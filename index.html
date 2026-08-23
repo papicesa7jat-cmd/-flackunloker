@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="es">
 
 <head>
@@ -14,50 +13,162 @@
 
   <style>
 
-    *{box-sizing:border-box}
+    *{
+      box-sizing:border-box;
+    }
 
     body{
-
       margin:0;
-
       background:#f4f7fb;
-
       color:#111;
-
       font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;
-
     }
 
     .contenedor{
-
       max-width:600px;
-
       margin:auto;
-
-      padding:24px 18px;
-
+      padding:24px 18px 100px;
     }
 
     .encabezado{
-
       text-align:center;
-
-      margin:35px 0;
-
+      margin:20px 0 30px;
     }
 
     .logo{
-
       width:72px;
-
       height:72px;
-
       margin:auto;
-
       border-radius:20px;
+      background:linear-gradient(135deg,#0a84ff,#0055cc);
+      box-shadow:0 10px 25px rgba(10,132,255,.25);
+    }
 
-      background:linear-gradient(135deg, #0a84ff, #0055cc);
+    .titulo{
+      margin:15px 0 5px;
+      font-size:28px;
+      font-weight:700;
+    }
 
+    .subtitulo{
+      margin:0;
+      color:#777;
+      font-size:15px;
+    }
+
+    .resumen{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:12px;
+      margin-bottom:22px;
+    }
+
+    .tarjeta{
+      background:#fff;
+      border-radius:18px;
+      padding:18px;
+      box-shadow:0 5px 20px rgba(0,0,0,.06);
+    }
+
+    .tarjeta span{
+      display:block;
+      color:#777;
+      font-size:13px;
+      margin-bottom:8px;
+    }
+
+    .tarjeta strong{
+      font-size:25px;
+    }
+
+    .busqueda{
+      width:100%;
+      border:0;
+      outline:none;
+      background:#fff;
+      border-radius:15px;
+      padding:15px 17px;
+      font-size:15px;
+      box-shadow:0 5px 20px rgba(0,0,0,.06);
+      margin-bottom:20px;
+    }
+
+    .seccion-titulo{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin:20px 0 12px;
+    }
+
+    .seccion-titulo h2{
+      margin:0;
+      font-size:20px;
+    }
+
+    .boton-agregar{
+      border:0;
+      background:#0a84ff;
+      color:#fff;
+      border-radius:12px;
+      padding:10px 14px;
+      font-weight:600;
+      cursor:pointer;
+    }
+
+    .producto{
+      background:#fff;
+      border-radius:18px;
+      padding:17px;
+      margin-bottom:12px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      box-shadow:0 5px 20px rgba(0,0,0,.06);
+    }
+
+    .producto-info h3{
+      margin:0 0 5px;
+      font-size:16px;
+    }
+
+    .producto-info p{
+      margin:0;
+      color:#777;
+      font-size:13px;
+    }
+
+    .cantidad{
+      background:#eaf4ff;
+      color:#0a84ff;
+      padding:8px 11px;
+      border-radius:10px;
+      font-weight:700;
+    }
+
+    .menu{
+      position:fixed;
+      bottom:0;
+      left:0;
+      right:0;
+      background:#fff;
+      border-top:1px solid #eee;
+      padding:12px;
+      display:flex;
+      justify-content:center;
+      gap:35px;
+    }
+
+    .menu button{
+      border:0;
+      background:none;
+      font-size:13px;
+      color:#777;
+      cursor:pointer;
+    }
+
+    .menu .activo{
+      color:#0a84ff;
+      font-weight:700;
     }
 
   </style>
@@ -72,11 +183,79 @@
 
       <div class="logo"></div>
 
+      <h1 class="titulo">Flackunloker</h1>
+
+      <p class="subtitulo">Control de inventario</p>
+
     </div>
+
+
+    <div class="resumen">
+
+      <div class="tarjeta">
+
+        <span>Productos</span>
+
+        <strong>0</strong>
+
+      </div>
+
+      <div class="tarjeta">
+
+        <span>Unidades</span>
+
+        <strong>0</strong>
+
+      </div>
+
+    </div>
+
+
+    <input
+      class="busqueda"
+      type="search"
+      placeholder="Buscar producto..."
+    >
+
+
+    <div class="seccion-titulo">
+
+      <h2>Inventario</h2>
+
+      <button class="boton-agregar">+ Agregar</button>
+
+    </div>
+
+
+    <div class="producto">
+
+      <div class="producto-info">
+
+        <h3>Producto de ejemplo</h3>
+
+        <p>SKU: FLK-001</p>
+
+      </div>
+
+      <div class="cantidad">
+        0
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <div class="menu">
+
+    <button class="activo">Inventario</button>
+
+    <button>Agregar</button>
+
+    <button>Configuración</button>
 
   </div>
 
 </body>
 
 </html>
-  
