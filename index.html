@@ -115,6 +115,737 @@
       cursor:pointer;
     }
 
+    .boton-agregar:hover{
+      opacity:.9;
+    }
+
+    .producto{
+      background:#fff;
+      border-radius:18px;
+      padding:17px;
+      margin-bottom:12px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      box-shadow:0 5px 20px rgba(0,0,0,.06);
+    }
+
+    .producto-info{
+      min-width:0;
+    }
+
+    .producto-info h3{
+      margin:0 0 5px;
+      font-size:16px;
+    }
+
+    .producto-info p{
+      margin:0;
+      color:#777;
+      font-size:13px;
+    }
+
+    .producto-derecha{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .cantidad{
+      background:#eaf4ff;
+      color:#0a84ff;
+      padding:8px 11px;
+      border-radius:10px;
+      font-weight:700;
+    }
+
+    .boton-eliminar{
+      border:0;
+      background:#ffecec;
+      color:#d93025;
+      border-radius:10px;
+      padding:8px 10px;
+      cursor:pointer;
+      font-size:13px;
+    }
+
+    .sin-productos{
+      text-align:center;
+      color:#777;
+      padding:30px 15px;
+      background:#fff;
+      border-radius:18px;
+      box-shadow:0 5px 20px rgba(0,0,0,.06);
+    }
+
+    .modal{
+      display:none;
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.45);
+      z-index:1000;
+      padding:20px;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .modal.visible{
+      display:flex;
+    }
+
+    .formulario{
+      width:100%;
+      max-width:480px;
+      background:#fff;
+      border-radius:22px;
+      padding:22px;
+      box-shadow:0 15px 40px rgba(0,0,0,.2);
+    }
+
+    .formulario h2{
+      margin:0 0 20px;
+      font-size:22px;
+    }
+
+    .campo{
+      margin-bottom:15px;
+    }
+
+    .campo label{
+      display:block;
+      font-size:13px;
+      font-weight:600;
+      margin-bottom:7px;
+    }
+
+    .campo input{
+      width:100%;
+      border:1px solid #ddd;
+      outline:none;
+      border-radius:12px;
+      padding:13px;
+      font-size:15px;
+    }
+
+    .campo input:focus{
+      border-color:#0a84ff;
+    }
+
+    .botones-formulario{
+      display:flex;
+      gap:10px;
+      margin-top:20px;
+    }
+
+    .boton-cancelar,
+    .boton-guardar{
+      flex:1;
+      border:0;
+      border-radius:12px;
+      padding:13px;
+      font-size:15px;
+      font-weight:600;
+      cursor:pointer;
+    }
+
+    .boton-cancelar{
+      background:#eee;
+      color:#333;
+    }
+
+    .boton-guardar{
+      background:#0a84ff;
+      color:#fff;
+    }
+
+    .menu{
+      position:fixed;
+      bottom:0;
+      left:0;
+      right:0;
+      background:#fff;
+      border-top:1px solid #eee;
+      padding:12px;
+      display:flex;
+      justify-content:center;
+      gap:35px;
+      z-index:500;
+    }
+
+    .menu button{
+      border:0;
+      background:none;
+      font-size:13px;
+      color:#777;
+      cursor:pointer;
+    }
+
+    .menu .activo{
+      color:#0a84ff;
+      font-weight:700;
+    }
+
+    @media(max-width:400px){
+
+      .producto-derecha{
+        gap:6px;
+      }
+
+      .boton-eliminar{
+        padding:7px 8px;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <div class="contenedor">
+
+    <div class="encabezado">
+
+      <div class="logo"></div>
+
+      <h1 class="titulo">Flackunloker</h1>
+
+      <p class="subtitulo">Control de inventario</p>
+
+    </div>
+
+
+    <div class="resumen">
+
+      <div class="tarjeta">
+
+        <span>Productos</span>
+
+        <strong id="totalProductos">0</strong>
+
+      </div>
+
+      <div class="tarjeta">
+
+        <span>Unidades</span>
+
+        <strong id="totalUnidades">0</strong>
+
+      </div>
+
+    </div>
+
+
+    <input
+      id="busqueda"
+      class="busqueda"
+      type="search"
+      placeholder="Buscar producto..."
+    >
+
+
+    <div class="seccion-titulo">
+
+      <h2>Inventario</h2>
+
+      <button
+        class="boton-agregar"
+        onclick="abrirFormulario()"
+      >
+        + Agregar
+      </button>
+
+    </div>
+
+
+    <div id="listaProductos"></div>
+
+  </div>
+
+
+  <div class="modal" id="modal">
+
+    <form
+      class="formulario"
+      id="formularioProducto"
+    >
+
+      <h2>Agregar producto</h2>
+
+
+      <div class="campo">
+
+        <label for="nombre">Nombre del producto</label>
+
+        <input
+          id="nombre"
+          type="text"
+          placeholder="Ej. Camisa azul"
+          required
+        >
+
+      </div>
+
+
+      <div class="campo">
+
+        <label for="sku">SKU</label>
+
+        <input
+          id="sku"
+          type="text"
+          placeholder="Ej. FLK-001"
+          required
+        >
+
+      </div>
+
+
+      <div class="campo">
+
+        <label for="cantidadProducto">Cantidad</label>
+
+        <input
+          id="cantidadProducto"
+          type="number"
+          min="0"
+          placeholder="Ej. 10"
+          required
+        >
+
+      </div>
+
+
+      <div class="campo">
+
+        <label for="precio">Precio</label>
+
+        <input
+          id="precio"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Ej. 25.00"
+          required
+        >
+
+      </div>
+
+
+      <div class="botones-formulario">
+
+        <button
+          type="button"
+          class="boton-cancelar"
+          onclick="cerrarFormulario()"
+        >
+          Cancelar
+        </button>
+
+        <button
+          type="submit"
+          class="boton-guardar"
+        >
+          Guardar
+        </button>
+
+      </div>
+
+    </form>
+
+  </div>
+
+
+  <div class="menu">
+
+    <button
+      class="activo"
+      onclick="mostrarInventario()"
+    >
+      Inventario
+    </button>
+
+    <button onclick="abrirFormulario()">
+      Agregar
+    </button>
+
+    <button onclick="mostrarConfiguracion()">
+      Configuración
+    </button>
+
+  </div>
+
+
+  <script>
+
+    let productos = JSON.parse(
+      localStorage.getItem("flackunloker_productos")
+    ) || [];
+
+
+    function guardarDatos(){
+
+      localStorage.setItem(
+        "flackunloker_productos",
+        JSON.stringify(productos)
+      );
+
+    }
+
+
+    function abrirFormulario(){
+
+      document.getElementById("modal").classList.add("visible");
+
+      document.getElementById("nombre").focus();
+
+    }
+
+
+    function cerrarFormulario(){
+
+      document.getElementById("modal").classList.remove("visible");
+
+      document.getElementById("formularioProducto").reset();
+
+    }
+
+
+    document
+      .getElementById("formularioProducto")
+      .addEventListener("submit", function(event){
+
+        event.preventDefault();
+
+
+        const nombre =
+          document.getElementById("nombre").value.trim();
+
+        const sku =
+          document.getElementById("sku").value.trim();
+
+        const cantidad =
+          Number(document.getElementById("cantidadProducto").value);
+
+        const precio =
+          Number(document.getElementById("precio").value);
+
+
+        if(!nombre || !sku){
+
+          alert("Completa el nombre y el SKU.");
+
+          return;
+
+        }
+
+
+        if(cantidad < 0 || precio < 0){
+
+          alert("La cantidad y el precio no pueden ser negativos.");
+
+          return;
+
+        }
+
+
+        const producto = {
+
+          id: Date.now(),
+
+          nombre: nombre,
+
+          sku: sku,
+
+          cantidad: cantidad,
+
+          precio: precio
+
+        };
+
+
+        productos.push(producto);
+
+        guardarDatos();
+
+        mostrarProductos();
+
+        cerrarFormulario();
+
+      });
+
+
+    function eliminarProducto(id){
+
+      const confirmar =
+        confirm("¿Quieres eliminar este producto?");
+
+      if(!confirmar){
+
+        return;
+
+      }
+
+
+      productos =
+        productos.filter(function(producto){
+
+          return producto.id !== id;
+
+        });
+
+
+      guardarDatos();
+
+      mostrarProductos();
+
+    }
+
+
+    function mostrarProductos(){
+
+      const lista =
+        document.getElementById("listaProductos");
+
+      const textoBusqueda =
+        document
+          .getElementById("busqueda")
+          .value
+          .toLowerCase()
+          .trim();
+
+
+      const productosFiltrados =
+        productos.filter(function(producto){
+
+          return (
+            producto.nombre.toLowerCase().includes(textoBusqueda) ||
+            producto.sku.toLowerCase().includes(textoBusqueda)
+          );
+
+        });
+
+
+      lista.innerHTML = "";
+
+
+      if(productosFiltrados.length === 0){
+
+        lista.innerHTML = `
+          <div class="sin-productos">
+            ${
+              productos.length === 0
+              ? "No hay productos todavía.<br>Presiona + Agregar para comenzar."
+              : "No encontramos productos con esa búsqueda."
+            }
+          </div>
+        `;
+
+      }else{
+
+        productosFiltrados.forEach(function(producto){
+
+          const elemento =
+            document.createElement("div");
+
+          elemento.className = "producto";
+
+          elemento.innerHTML = `
+
+            <div class="producto-info">
+
+              <h3>${producto.nombre}</h3>
+
+              <p>
+                SKU: ${producto.sku}
+                · $${producto.precio.toFixed(2)}
+              </p>
+
+            </div>
+
+            <div class="producto-derecha">
+
+              <div class="cantidad">
+                ${producto.cantidad}
+              </div>
+
+              <button
+                class="boton-eliminar"
+                onclick="eliminarProducto(${producto.id})"
+              >
+                Eliminar
+              </button>
+
+            </div>
+
+          `;
+
+
+          lista.appendChild(elemento);
+
+        });
+
+      }
+
+
+      actualizarResumen();
+
+    }
+
+
+    function actualizarResumen(){
+
+      const totalProductos =
+        productos.length;
+
+
+      const totalUnidades =
+        productos.reduce(function(total, producto){
+
+          return total + producto.cantidad;
+
+        }, 0);
+
+
+      document.getElementById("totalProductos").textContent =
+        totalProductos;
+
+
+      document.getElementById("totalUnidades").textContent =
+        totalUnidades;
+
+    }
+
+
+    document
+      .getElementById("busqueda")
+      .addEventListener("input", function(){
+
+        mostrarProductos();
+
+      });
+
+
+    function mostrarInventario(){
+
+      window.scrollTo({
+        top:0,
+        behavior:"smooth"
+      });
+
+    }
+
+
+    function mostrarConfiguracion(){
+
+      alert(
+        "Configuración de Flackunloker\n\nEsta sección la construiremos próximamente."
+      );
+
+    }
+
+
+    document
+      .getElementById("modal")
+      .addEventListener("click", function(event){
+
+        if(event.target === this){
+
+          cerrarFormulario();
+
+        }
+
+      });
+
+
+    mostrarProductos();
+
+  </script>
+
+</body>
+
+</html>
+    .logo{
+      width:72px;
+      height:72px;
+      margin:auto;
+      border-radius:20px;
+      background:linear-gradient(135deg,#0a84ff,#0055cc);
+      box-shadow:0 10px 25px rgba(10,132,255,.25);
+    }
+
+    .titulo{
+      margin:15px 0 5px;
+      font-size:28px;
+      font-weight:700;
+    }
+
+    .subtitulo{
+      margin:0;
+      color:#777;
+      font-size:15px;
+    }
+
+    .resumen{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:12px;
+      margin-bottom:22px;
+    }
+
+    .tarjeta{
+      background:#fff;
+      border-radius:18px;
+      padding:18px;
+      box-shadow:0 5px 20px rgba(0,0,0,.06);
+    }
+
+    .tarjeta span{
+      display:block;
+      color:#777;
+      font-size:13px;
+      margin-bottom:8px;
+    }
+
+    .tarjeta strong{
+      font-size:25px;
+    }
+
+    .busqueda{
+      width:100%;
+      border:0;
+      outline:none;
+      background:#fff;
+      border-radius:15px;
+      padding:15px 17px;
+      font-size:15px;
+      box-shadow:0 5px 20px rgba(0,0,0,.06);
+      margin-bottom:20px;
+    }
+
+    .seccion-titulo{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin:20px 0 12px;
+    }
+
+    .seccion-titulo h2{
+      margin:0;
+      font-size:20px;
+    }
+
+    .boton-agregar{
+      border:0;
+      background:#0a84ff;
+      color:#fff;
+      border-radius:12px;
+      padding:10px 14px;
+      font-weight:600;
+      cursor:pointer;
+    }
+
     .producto{
       background:#fff;
       border-radius:18px;
