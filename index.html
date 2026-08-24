@@ -16,16 +16,7 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 .tarjeta,.producto,.movimiento,.lista-estadisticas,.respaldo-box,.estadistica-card,.tarjeta-historial{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06)}
 .tarjeta{padding:18px}.tarjeta span,.estadistica-card span,.tarjeta-historial span{display:block;color:#777;font-size:13px;margin-bottom:8px}.tarjeta strong{font-size:24px}.tarjeta.valor{grid-column:1/-1}.tarjeta.valor strong{color:#0a84ff}
 .alerta-inventario{display:none;background:#fff7e8;border:1px solid #ffd27a;border-radius:18px;padding:16px;margin-bottom:20px}.alerta-inventario.visible{display:block}.alerta-titulo{display:flex;gap:8px;font-size:16px;font-weight:700;color:#a15c00;margin-bottom:10px}.alerta-descripcion{color:#795000;font-size:13px;margin-bottom:12px}.producto-alerta{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #f0d99d}.producto-alerta-info strong{display:block;font-size:14px}.producto-alerta-info small{display:block;color:#876c3e;margin-top:3px;font-size:12px}.producto-alerta-cantidad{font-weight:700;white-space:nowrap;color:#a15c00}
-.busqueda,.busqueda-historial{width:100%;border:0;outline:none;background:#fff;border-radius:15px;padding:15px 17px;font-size:15px;box-shadow:0 5px 20px rgba(0,0,0,.06)}.busqueda{margin-bottom:20px}
-.filtros-inventario{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
-.filtro-inventario{width:100%;border:0;outline:none;background:#fff;border-radius:12px;padding:12px 10px;font-size:13px;color:#555;box-shadow:0 5px 20px rgba(0,0,0,.05)}
-.boton-limpiar-filtros{width:100%;border:0;background:#eee;color:#555;border-radius:12px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:18px}
-.producto-metadatos{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
-.producto-meta{background:#f4f7fb;color:#555;border-radius:9px;padding:7px 9px;font-size:11px}
-.producto-meta strong{color:#111}
-.ayuda-campo{display:block;margin-top:6px;color:#777;font-size:11px;line-height:1.5}
-@media(max-width:430px){.filtros-inventario{grid-template-columns:1fr}.producto-meta{font-size:10px}}
-.busqueda-historial{margin-bottom:12px}
+.busqueda,.busqueda-historial{width:100%;border:0;outline:none;background:#fff;border-radius:15px;padding:15px 17px;font-size:15px;box-shadow:0 5px 20px rgba(0,0,0,.06)}.busqueda{margin-bottom:20px}.busqueda-historial{margin-bottom:12px}
 .seccion-titulo{display:flex;justify-content:space-between;align-items:center;margin:20px 0 12px}.seccion-titulo h2{margin:0;font-size:20px}.boton-agregar{border:0;background:#0a84ff;color:#fff;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}
 .producto{padding:17px;margin-bottom:12px}.producto-superior,.movimiento-superior{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.producto-info,.movimiento-info{min-width:0}.producto-info h3,.movimiento-info h3{margin:0 0 5px;font-size:16px}.producto-info p,.movimiento-info p{margin:0;color:#777;font-size:13px}.cantidad{background:#eaf4ff;color:#0a84ff;padding:8px 11px;border-radius:10px;font-weight:700;white-space:nowrap}.cantidad.stock-bajo{background:#fff7e8;color:#a15c00}.cantidad.sin-stock{background:#ffecec;color:#d93025}.producto-precio{margin-top:12px;color:#555;font-size:14px}.producto-precio strong{color:#111}.aviso-producto{margin-top:10px;padding:10px;border-radius:10px;background:#fff7e8;color:#a15c00;font-size:13px;font-weight:600}.aviso-producto.sin-stock{background:#ffecec;color:#d93025}
 .acciones{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:14px}.accion{border:0;border-radius:10px;padding:9px 5px;font-size:12px;font-weight:600;cursor:pointer}.entrada{background:#e9f8ef;color:#168044}.salida{background:#fff1e8;color:#c45b19}.editar{background:#eaf4ff;color:#0a84ff}.eliminar{background:#ffecec;color:#d93025}
@@ -52,18 +43,6 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 </div>
 <div class="alerta-inventario" id="alertaInventario"><div class="alerta-titulo">⚠️ Inventario bajo</div><div class="alerta-descripcion">Los siguientes productos están en su stock mínimo o por debajo.</div><div id="listaAlertas"></div></div>
 <input id="busqueda" class="busqueda" type="search" placeholder="Buscar producto...">
-<div class="filtros-inventario">
-<select id="filtroCategoria" class="filtro-inventario" aria-label="Filtrar por categoría">
-<option value="">Todas las categorías</option>
-</select>
-<select id="filtroProveedor" class="filtro-inventario" aria-label="Filtrar por proveedor">
-<option value="">Todos los proveedores</option>
-</select>
-<select id="filtroUbicacion" class="filtro-inventario" aria-label="Filtrar por ubicación">
-<option value="">Todas las ubicaciones</option>
-</select>
-</div>
-<button class="boton-limpiar-filtros" type="button" onclick="limpiarFiltrosInventario()">↺ Limpiar filtros</button>
 <div class="seccion-titulo"><h2>Inventario</h2><button class="boton-agregar" onclick="abrirFormulario()">+ Agregar</button></div>
 <div id="listaProductos"></div>
 </div>
@@ -109,10 +88,6 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <div class="campo"><label for="sku">SKU</label><input id="sku" type="text" placeholder="Ej. FLK-001" required></div>
 <div class="campo"><label for="cantidadProducto">Cantidad</label><input id="cantidadProducto" type="number" min="0" step="1" required></div>
 <div class="campo"><label for="precio">Precio</label><input id="precio" type="number" min="0" step="0.01" required></div>
-
-<div class="campo"><label for="categoria">Categoría</label><input id="categoria" type="text" placeholder="Ej. Camisas"><small class="ayuda-campo">Puedes crear tus propias categorías.</small></div>
-<div class="campo"><label for="proveedor">Proveedor</label><input id="proveedor" type="text" placeholder="Ej. Proveedor ABC"></div>
-<div class="campo"><label for="ubicacion">Ubicación</label><input id="ubicacion" type="text" placeholder="Ej. Almacén A · Estante 3"></div>
 <div class="campo"><label for="stockMinimo">Stock mínimo</label><input id="stockMinimo" type="number" min="0" step="1" value="5" required><small class="ayuda-campo">Se mostrará una alerta cuando el inventario llegue a este número o menos.</small></div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarFormulario()">Cancelar</button><button type="submit" class="boton-guardar">Guardar</button></div>
 </form>
@@ -144,106 +119,74 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 </div>
 
 <script>
-function leerArraySeguro(clave){
- try{
-  const valor=localStorage.getItem(clave);
-  if(valor===null)return [];
-  const datos=JSON.parse(valor);
-  return Array.isArray(datos)?datos:[];
- }catch(error){
-  console.error("No se pudo leer "+clave,error);
-  return [];
- }
-}
-
-let productos=leerArraySeguro("flackunloker_productos");
-let historial=leerArraySeguro("flackunloker_historial");
-
-let datosMigrados=false;
-productos.forEach(p=>{
- if(p.stockMinimo===undefined||p.stockMinimo===null||p.stockMinimo===""){p.stockMinimo=5;datosMigrados=true}
- if(p.categoria===undefined||p.categoria===null){p.categoria="";datosMigrados=true}
- if(p.proveedor===undefined||p.proveedor===null){p.proveedor="";datosMigrados=true}
- if(p.ubicacion===undefined||p.ubicacion===null){p.ubicacion="";datosMigrados=true}
-});
-
-/* Elimina duplicados accidentales del mismo registro sin borrar productos legítimos. */
-const idsVistos=new Set();
-const productosAntes=productos.length;
-productos=productos.filter(p=>{
- const id=String(p.id??"");
- if(!id)return true;
- if(idsVistos.has(id))return false;
- idsVistos.add(id);
- return true;
-});
-if(productos.length!==productosAntes)datosMigrados=true;
-
+let productos=[];
+let historial=[];
 let productoEditando=null,productoMovimiento=null,tipoMovimiento=null,movimientoEditandoId=null,filtroHistorialActual="todos";
-let guardandoProducto=false;
+let procesandoGuardado=false;
 
+function cargarDatos(){
+ try{
+  const p=localStorage.getItem("flackunloker_productos");
+  const h=localStorage.getItem("flackunloker_historial");
+  productos=p?JSON.parse(p):[];
+  historial=h?JSON.parse(h):[];
+  if(!Array.isArray(productos))productos=[];
+  if(!Array.isArray(historial))historial=[];
+ }catch(e){
+  console.error("Error cargando datos:",e);
+  productos=[];
+  historial=[];
+ }
+ productos.forEach(p=>{
+  if(p.stockMinimo===undefined||p.stockMinimo===null||p.stockMinimo==="")p.stockMinimo=5;
+ });
+}
 function guardarDatos(){localStorage.setItem("flackunloker_productos",JSON.stringify(productos))}
 function guardarHistorial(){localStorage.setItem("flackunloker_historial",JSON.stringify(historial))}
+cargarDatos();
 function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 
 function abrirFormulario(){
- mostrarInventario();productoEditando=null;
- document.getElementById("tituloFormulario").textContent="Agregar producto";
- document.getElementById("formularioProducto").reset();
- document.getElementById("stockMinimo").value=5;
- document.getElementById("categoria").value="";
- document.getElementById("proveedor").value="";
- document.getElementById("ubicacion").value="";
- document.getElementById("modalProducto").classList.add("visible");
- document.getElementById("nombre").focus()
+ mostrarInventario();productoEditando=null;document.getElementById("tituloFormulario").textContent="Agregar producto";document.getElementById("formularioProducto").reset();document.getElementById("stockMinimo").value=5;document.getElementById("modalProducto").classList.add("visible");document.getElementById("nombre").focus()
 }
 function editarProducto(id){
  const p=productos.find(x=>x.id===id);if(!p)return;
  productoEditando=id;document.getElementById("tituloFormulario").textContent="Editar producto";
- document.getElementById("nombre").value=p.nombre;
- document.getElementById("sku").value=p.sku;
- document.getElementById("cantidadProducto").value=p.cantidad;
- document.getElementById("precio").value=p.precio;
- document.getElementById("stockMinimo").value=Number(p.stockMinimo??5);
- document.getElementById("categoria").value=p.categoria||"";
- document.getElementById("proveedor").value=p.proveedor||"";
- document.getElementById("ubicacion").value=p.ubicacion||"";
- document.getElementById("modalProducto").classList.add("visible")
+ document.getElementById("nombre").value=p.nombre;document.getElementById("sku").value=p.sku;document.getElementById("cantidadProducto").value=p.cantidad;document.getElementById("precio").value=p.precio;document.getElementById("stockMinimo").value=Number(p.stockMinimo??5);document.getElementById("modalProducto").classList.add("visible")
 }
 function cerrarFormulario(){document.getElementById("modalProducto").classList.remove("visible");document.getElementById("formularioProducto").reset();productoEditando=null}
 
 document.getElementById("formularioProducto").addEventListener("submit",e=>{
  e.preventDefault();
- if(guardandoProducto)return;
- guardandoProducto=true;
- const boton=e.submitter||document.querySelector("#formularioProducto .boton-guardar");
- if(boton)boton.disabled=true;
- const nombre=document.getElementById("nombre").value.trim();
- const sku=document.getElementById("sku").value.trim();
- const cantidad=Number(document.getElementById("cantidadProducto").value);
- const precio=Number(document.getElementById("precio").value);
- const stockMinimo=Number(document.getElementById("stockMinimo").value);
- const categoria=document.getElementById("categoria").value.trim();
- const proveedor=document.getElementById("proveedor").value.trim();
- const ubicacion=document.getElementById("ubicacion").value.trim();
-
- if(!nombre||!sku)return alert("Completa el nombre y el SKU.");
- if(cantidad<0||precio<0||stockMinimo<0||!Number.isInteger(stockMinimo))return alert("Revisa los valores introducidos.");
-
- if(productoEditando!==null){
-  const p=productos.find(x=>x.id===productoEditando);
-  if(p){
-   p.nombre=nombre;p.sku=sku;p.cantidad=cantidad;p.precio=precio;p.stockMinimo=stockMinimo;
-   p.categoria=categoria;p.proveedor=proveedor;p.ubicacion=ubicacion;
+ e.stopPropagation();
+ if(procesandoGuardado)return;
+ procesandoGuardado=true;
+ try{
+  const nombre=document.getElementById("nombre").value.trim();
+  const sku=document.getElementById("sku").value.trim();
+  const cantidad=Number(document.getElementById("cantidadProducto").value);
+  const precio=Number(document.getElementById("precio").value);
+  const stockMinimo=Number(document.getElementById("stockMinimo").value);
+  if(!nombre||!sku){alert("Completa el nombre y el SKU.");return}
+  if(cantidad<0||precio<0||stockMinimo<0||!Number.isInteger(stockMinimo)){
+   alert("Revisa los valores introducidos.");return
   }
- } else {
-  productos.push({id:Date.now()+"-"+Math.random().toString(36).slice(2,8),nombre,sku,cantidad,precio,stockMinimo,categoria,proveedor,ubicacion});
- }
- guardarDatos();actualizarFiltrosInventario();mostrarProductos();actualizarEstadisticas();cerrarFormulario();
- if(boton)boton.disabled=false;
- guardandoProducto=false;
+  const skuNorm=sku.toLowerCase();
+  if(productoEditando!==null){
+   const p=productos.find(x=>x.id===productoEditando); if(!p)return;
+   if(productos.some(x=>x.id!==productoEditando&&String(x.sku||"").trim().toLowerCase()===skuNorm)){
+    alert("Ya existe otro producto con ese SKU.");return
+   }
+   p.nombre=nombre;p.sku=sku;p.cantidad=cantidad;p.precio=precio;p.stockMinimo=stockMinimo;
+  }else{
+   if(productos.some(x=>String(x.sku||"").trim().toLowerCase()===skuNorm)){
+    alert("Ya existe un producto con ese SKU.");return
+   }
+   productos.push({id:Date.now()+Math.floor(Math.random()*100000),nombre,sku,cantidad,precio,stockMinimo});
+  }
+  guardarDatos();mostrarProductos();actualizarEstadisticas();cerrarFormulario();
+ }finally{procesandoGuardado=false}
 });
-
 function abrirMovimiento(id,tipo){
  const p=productos.find(x=>x.id===id);if(!p)return;productoMovimiento=id;tipoMovimiento=tipo;
  document.getElementById("tituloMovimiento").textContent=tipo==="entrada"?"Entrada de mercancía":"Salida de mercancía";
@@ -253,20 +196,28 @@ function abrirMovimiento(id,tipo){
 function cerrarMovimiento(){document.getElementById("modalMovimiento").classList.remove("visible");document.getElementById("formularioMovimiento").reset();productoMovimiento=null;tipoMovimiento=null}
 
 document.getElementById("formularioMovimiento").addEventListener("submit",e=>{
- e.preventDefault();const cantidad=Number(document.getElementById("cantidadMovimiento").value);
- if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
- const p=productos.find(x=>x.id===productoMovimiento);if(!p)return cerrarMovimiento();
- let nuevo=Number(p.cantidad);
- if(tipoMovimiento==="entrada")nuevo+=cantidad;
- else{if(cantidad>nuevo)return alert("No puedes retirar más unidades de las que existen en inventario.");nuevo-=cantidad}
- p.cantidad=nuevo;
- historial.unshift({id:Date.now(),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:tipoMovimiento,cantidad,saldo:nuevo,fecha:new Date().toISOString()});
- guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();cerrarMovimiento()
+ e.preventDefault();
+ e.stopPropagation();
+ if(procesandoGuardado)return;
+ procesandoGuardado=true;
+ try{
+  const cantidad=Number(document.getElementById("cantidadMovimiento").value);
+  if(!Number.isInteger(cantidad)||cantidad<=0){alert("Introduce una cantidad válida.");return}
+  const p=productos.find(x=>x.id===productoMovimiento);if(!p){cerrarMovimiento();return}
+  let nuevo=Number(p.cantidad);
+  if(tipoMovimiento==="entrada")nuevo+=cantidad;
+  else{
+   if(cantidad>nuevo){alert("No puedes retirar más unidades de las que existen en inventario.");return}
+   nuevo-=cantidad;
+  }
+  p.cantidad=nuevo;
+  historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:tipoMovimiento,cantidad,saldo:nuevo,fecha:new Date().toISOString()});
+  guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();cerrarMovimiento();
+ }finally{procesandoGuardado=false}
 });
-
 function eliminarProducto(id){
  if(!confirm("¿Quieres eliminar este producto?"))return;
- productos=productos.filter(p=>p.id!==id);guardarDatos();actualizarFiltrosInventario();mostrarProductos();actualizarEstadisticas()
+ productos=productos.filter(p=>p.id!==id);guardarDatos();mostrarProductos();actualizarEstadisticas()
 }
 
 function mostrarProductos(){
@@ -335,7 +286,7 @@ document.getElementById("formularioEditarMovimiento").addEventListener("submit",
  const stockActual=Number(p.cantidad),efectoAnterior=m.tipo==="entrada"?Number(m.cantidad):-Number(m.cantidad),efectoNuevo=nuevoTipo==="entrada"?nuevaCantidad:-nuevaCantidad,resultado=stockActual-efectoAnterior+efectoNuevo;
  if(resultado<0)return alert("Ese cambio dejaría el inventario en negativo.");
  p.cantidad=resultado;m.tipo=nuevoTipo;m.cantidad=nuevaCantidad;m.nombre=p.nombre;m.sku=p.sku;m.fecha=m.fecha||new Date().toISOString();
- recalcularSaldos();guardarDatos();guardarHistorial();actualizarFiltrosInventario();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();cerrarEditarMovimiento();alert("Movimiento actualizado correctamente.")
+ recalcularSaldos();guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();cerrarEditarMovimiento();alert("Movimiento actualizado correctamente.")
 });
 function eliminarMovimiento(id){
  const m=historial.find(x=>x.id===id);if(!m)return;
@@ -343,7 +294,7 @@ function eliminarMovimiento(id){
  const efecto=m.tipo==="entrada"?Number(m.cantidad):-Number(m.cantidad),resultado=Number(p.cantidad)-efecto;
  if(resultado<0)return alert("No se puede eliminar este movimiento porque dejaría el inventario en negativo.");
  if(!confirm(`¿Eliminar el movimiento de ${m.nombre}?\n\nEl inventario se ajustará automáticamente.`))return;
- p.cantidad=resultado;historial=historial.filter(x=>x.id!==id);recalcularSaldos();guardarDatos();guardarHistorial();actualizarFiltrosInventario();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas()
+ p.cantidad=resultado;historial=historial.filter(x=>x.id!==id);recalcularSaldos();guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas()
 }
 function borrarHistorial(){
  if(!historial.length)return alert("No hay movimientos para borrar.");
@@ -362,27 +313,29 @@ function actualizarEstadisticas(){
 function actualizarMenu(sec){["botonInventario","botonHistorial","botonEstadisticas"].forEach(id=>document.getElementById(id).classList.remove("activo"));document.getElementById(sec==="inventario"?"botonInventario":sec==="historial"?"botonHistorial":"botonEstadisticas").classList.add("activo")}
 function mostrarInventario(){document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
 function scrollTop(){window.scrollTo({top:0,behavior:"smooth"})}
+document.addEventListener("visibilitychange",()=>{
+ if(document.visibilityState==="visible"){
+  cargarDatos();
+  recalcularSaldos();
+  mostrarProductos();
+  actualizarResumenHistorial();
+  actualizarEstadisticas();
+ }
+});
 
 function mostrarEstadoRespaldo(m){const e=document.getElementById("estadoRespaldo");e.textContent=m;e.classList.add("visible")}
-function crearRespaldo(){const datos={aplicacion:"Flackunloker",version:"1.2",fecha:new Date().toISOString(),productos,historial};const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a"),fecha=new Date().toISOString().replace(/[:.]/g,"-");a.href=url;a.download="flackunloker-respaldo-"+fecha+".json";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);mostrarEstadoRespaldo("✅ Respaldo creado correctamente.")}
+function crearRespaldo(){const datos={aplicacion:"Flackunloker",version:"1.1",fecha:new Date().toISOString(),productos,historial};const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a"),fecha=new Date().toISOString().replace(/[:.]/g,"-");a.href=url;a.download="flackunloker-respaldo-"+fecha+".json";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);mostrarEstadoRespaldo("✅ Respaldo creado correctamente.")}
 function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
 function restaurarRespaldo(event){
  const archivo=event.target.files[0];if(!archivo)return;const lector=new FileReader();
- lector.onload=()=>{try{const datos=JSON.parse(lector.result);if(!datos||datos.aplicacion!=="Flackunloker")return alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial))return alert("El respaldo está incompleto o dañado.");if(!confirm("¿Quieres restaurar este respaldo?\n\nLos productos y el historial actuales serán reemplazados por los datos del respaldo."))return;productos=datos.productos;historial=datos.historial;productos.forEach(p=>{
- if(p.stockMinimo===undefined||p.stockMinimo===null)p.stockMinimo=5;
- if(p.categoria===undefined||p.categoria===null)p.categoria="";
- if(p.proveedor===undefined||p.proveedor===null)p.proveedor="";
- if(p.ubicacion===undefined||p.ubicacion===null)p.ubicacion="";
-});recalcularSaldos();guardarDatos();guardarHistorial();actualizarFiltrosInventario();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();mostrarEstadoRespaldo("✅ Respaldo restaurado correctamente.");alert("Respaldo restaurado correctamente.")}catch(err){console.error(err);alert("No se pudo leer el respaldo. Comprueba que el archivo sea válido.")}finally{event.target.value=""}};lector.readAsText(archivo)
+ lector.onload=()=>{try{const datos=JSON.parse(lector.result);if(!datos||datos.aplicacion!=="Flackunloker")return alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial))return alert("El respaldo está incompleto o dañado.");if(!confirm("¿Quieres restaurar este respaldo?\n\nLos productos y el historial actuales serán reemplazados por los datos del respaldo."))return;productos=datos.productos;historial=datos.historial;productos.forEach(p=>{if(p.stockMinimo===undefined||p.stockMinimo===null)p.stockMinimo=5});recalcularSaldos();guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();mostrarEstadoRespaldo("✅ Respaldo restaurado correctamente.");alert("Respaldo restaurado correctamente.")}catch(err){console.error(err);alert("No se pudo leer el respaldo. Comprueba que el archivo sea válido.")}finally{event.target.value=""}};lector.readAsText(archivo)
 }
 
 document.getElementById("modalProducto").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarFormulario()});
 document.getElementById("modalMovimiento").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarMovimiento()});
 document.getElementById("modalEditarMovimiento").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarEditarMovimiento()});
 
-recalcularSaldos();
-if(datosMigrados)guardarDatos();
-actualizarFiltrosInventario();mostrarProductos();actualizarResumenHistorial();actualizarEstadisticas();
+recalcularSaldos();mostrarProductos();actualizarResumenHistorial();actualizarEstadisticas();
 </script>
 </body>
 </html>
