@@ -889,6 +889,7 @@ async function mostrarAppConSesion(session){
   await cargarInventarioSupabase();
   await cargarVentasSupabase();
   await cargarGastosSupabase();
+  await cargarMovimientosCajaSupabase();
  }else{
   document.getElementById("authOverlay").classList.remove("oculto");
   document.getElementById("authUsuario").classList.remove("visible");
@@ -957,6 +958,7 @@ let proximoNumeroRecibo=1;
 let gastoEditandoId=null;
 let proveedorEditandoId=null;
 let ordenEditandoId=null;
+let movimientosCajaSupabase=[];
 
 let inventarioSupabaseListo=false;
 
@@ -1224,6 +1226,9 @@ async function cargarGastosSupabase(){
  guardarGastos();
  actualizarGastos();
  actualizarResumen();
+ if(typeof cargarMovimientosCajaSupabase==="function"){
+  await cargarMovimientosCajaSupabase();
+ }
  actualizarFlujoCaja();
  actualizarFinanzas();
  return true
@@ -2018,6 +2023,31 @@ function mostrarCuentasPagar(){["vistaInventario","vistaHistorial","vistaVentas"
 document.getElementById("busquedaCuentasPagar").addEventListener("input",mostrarListaCuentasPagar);
 
 
+
+async function cargarMovimientosCajaSupabase(){
+ const {data,error}=await flkSupabase.from("cash_movements")
+  .select("id,type,amount,description,payment_method,occurred_at,created_at,sale_id")
+  .order("occurred_at",{ascending:true});
+ if(error){
+  console.error("Supabase flujo caja:",error);
+  alert("No se pudo cargar el flujo de caja desde Supabase.");
+  return false;
+ }
+ movimientosCajaSupabase=(data||[]).map(m=>({
+  id:m.id,
+  tipo:m.type==="income"?"entrada":"salida",
+  cantidad:Number(m.amount||0),
+  concepto:m.description||"Movimiento",
+  metodo:normalizarMetodoFlujo(m.payment_method||"Otro"),
+  fecha:m.occurred_at||m.created_at,
+  grupo:String(m.description||"").startsWith("Gasto ·")?"gasto":
+        String(m.description||"").startsWith("Abono ·")?"abono":
+        String(m.description||"").startsWith("Venta ·")?"venta":
+        String(m.description||"").startsWith("Pago proveedor ·")?"proveedor":
+        String(m.description||"").startsWith("Reembolso devolución ·")?"reembolso":"otro"
+ }));
+ return true
+}
 function normalizarMetodoFlujo(m){
  const x=String(m||"Otro").trim().toLowerCase();
  if(x.includes("efectivo"))return "Efectivo";
@@ -2042,19 +2072,7 @@ function limitesFlujo(){
  return {desde,hasta,texto}
 }
 function movimientosFlujoCaja(){
- const mov=[];
- ventas.forEach(v=>{
-  const pagos=Array.isArray(v.pagos)?v.pagos:[];
-  if(pagos.length){
-   pagos.forEach(p=>{if(Number(p.cantidad||0)>0)mov.push({tipo:"entrada",grupo:"abono",fecha:p.fecha||v.fecha,cantidad:Number(p.cantidad||0),metodo:normalizarMetodoFlujo(p.metodo||v.metodoPago),concepto:`Cobro cliente · Recibo #${v.numero||String(v.id).slice(-8)} · ${v.cliente||"Cliente general"}`})})
-  }else{
-   const cobrado=Number(v.totalPagado??v.ingreso??0);
-   if(cobrado>0)mov.push({tipo:"entrada",grupo:"venta",fecha:v.fecha,cantidad:cobrado,metodo:normalizarMetodoFlujo(v.metodoPago),concepto:`Venta cobrada · Recibo #${v.numero||String(v.id).slice(-8)} · ${v.cliente||"Cliente general"}`})
-  }
- });
- gastos.forEach(g=>{if(Number(g.cantidad||0)>0)mov.push({tipo:"salida",grupo:"gasto",fecha:g.fecha||g.fechaLocal,cantidad:Number(g.cantidad||0),metodo:normalizarMetodoFlujo(g.metodo),concepto:`Gasto · ${g.concepto||g.categoria||"Gasto"}`})});
- ordenesCompra.filter(o=>o.estado==="recibida").forEach(o=>(Array.isArray(o.pagosProveedor)?o.pagosProveedor:[]).forEach(p=>{if(Number(p.cantidad||0)>0)mov.push({tipo:"salida",grupo:"proveedor",fecha:p.fecha||o.fechaRecibida,cantidad:Number(p.cantidad||0),metodo:normalizarMetodoFlujo(p.metodo),concepto:`Pago proveedor · ${o.proveedor||"Proveedor"} · ${numeroOrdenCompra(o)}`})}));
- return mov
+ return Array.isArray(movimientosCajaSupabase)?movimientosCajaSupabase:[];
 }
 function datosFlujoCaja(){
  const lim=limitesFlujo();if(!lim)return null;
@@ -2090,6 +2108,7 @@ function actualizarFlujoCaja(){
 async function mostrarFlujoCaja(){
  await cargarVentasSupabase();
  await cargarGastosSupabase();
+ await cargarMovimientosCajaSupabase();
  ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");
  document.getElementById("vistaFlujoCaja").style.display="block";actualizarMenu("flujoCaja");actualizarFlujoCaja();scrollTop()
 }
@@ -2225,7 +2244,7 @@ function scrollTop(){window.scrollTo({top:0,behavior:"smooth"})}
 document.addEventListener("visibilitychange",()=>{
  if(document.visibilityState==="visible"){
   if(typeof flkSupabase!=="undefined"){
-   setTimeout(async()=>{try{await cargarVentasSupabase();await cargarGastosSupabase()}catch(e){console.error(e)}},0);
+   setTimeout(async()=>{try{await cargarVentasSupabase();await cargarGastosSupabase();await cargarMovimientosCajaSupabase()}catch(e){console.error(e)}},0);
   }
   cargarDatos();
   recalcularSaldos();
