@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="es">
 
@@ -56,6 +57,10 @@
       font-size: 15px;
     }
 
+    /* =========================
+       RESUMEN
+    ========================= */
+
     .resumen {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -89,7 +94,12 @@
       color: #0a84ff;
     }
 
-    .busqueda {
+    /* =========================
+       BUSQUEDA
+    ========================= */
+
+    .busqueda,
+    .busqueda-historial {
       width: 100%;
       border: 0;
       outline: none;
@@ -98,8 +108,19 @@
       padding: 15px 17px;
       font-size: 15px;
       box-shadow: 0 5px 20px rgba(0, 0, 0, .06);
+    }
+
+    .busqueda {
       margin-bottom: 20px;
     }
+
+    .busqueda-historial {
+      margin-bottom: 12px;
+    }
+
+    /* =========================
+       TITULOS
+    ========================= */
 
     .seccion-titulo {
       display: flex;
@@ -113,6 +134,10 @@
       font-size: 20px;
     }
 
+    /* =========================
+       BOTON AGREGAR
+    ========================= */
+
     .boton-agregar {
       border: 0;
       background: #0a84ff;
@@ -122,6 +147,10 @@
       font-weight: 600;
       cursor: pointer;
     }
+
+    /* =========================
+       PRODUCTOS
+    ========================= */
 
     .producto {
       background: #fff;
@@ -172,6 +201,10 @@
       color: #111;
     }
 
+    /* =========================
+       ACCIONES
+    ========================= */
+
     .acciones {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -208,6 +241,10 @@
       color: #d93025;
     }
 
+    /* =========================
+       SIN PRODUCTOS
+    ========================= */
+
     .sin-productos {
       text-align: center;
       color: #777;
@@ -217,7 +254,31 @@
       box-shadow: 0 5px 20px rgba(0, 0, 0, .06);
     }
 
-    /* HISTORIAL */
+    /* =========================
+       HISTORIAL
+    ========================= */
+
+    .filtros-historial {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+
+    .filtro-historial {
+      flex: 1;
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 8px;
+      background: #eee;
+      color: #555;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .filtro-historial.activo {
+      background: #0a84ff;
+      color: #fff;
+    }
 
     .movimiento {
       background: #fff;
@@ -285,6 +346,10 @@
       cursor: pointer;
       margin-bottom: 15px;
     }
+
+    /* =========================
+       MODALES
+    ========================= */
 
     .modal {
       display: none;
@@ -377,6 +442,10 @@
       font-size: 14px;
     }
 
+    /* =========================
+       MENU
+    ========================= */
+
     .menu {
       position: fixed;
       bottom: 0;
@@ -404,6 +473,10 @@
       font-weight: 700;
     }
 
+    /* =========================
+       MOVIL
+    ========================= */
+
     @media (max-width: 400px) {
 
       .acciones {
@@ -413,6 +486,15 @@
       .producto-superior,
       .movimiento-superior {
         gap: 8px;
+      }
+
+      .filtros-historial {
+        gap: 6px;
+      }
+
+      .filtro-historial {
+        font-size: 12px;
+        padding: 10px 5px;
       }
 
     }
@@ -425,18 +507,28 @@
 
   <div class="contenedor">
 
+    <!-- =========================
+         ENCABEZADO
+    ========================= -->
+
     <div class="encabezado">
 
       <div class="logo"></div>
 
-      <h1 class="titulo">Flackunloker</h1>
+      <h1 class="titulo">
+        Flackunloker
+      </h1>
 
-      <p class="subtitulo">Control de inventario</p>
+      <p class="subtitulo">
+        Control de inventario
+      </p>
 
     </div>
 
 
-    <!-- INVENTARIO -->
+    <!-- =========================
+         VISTA INVENTARIO
+    ========================= -->
 
     <div id="vistaInventario">
 
@@ -444,27 +536,39 @@
 
         <div class="tarjeta">
 
-          <span>Productos</span>
+          <span>
+            Productos
+          </span>
 
-          <strong id="totalProductos">0</strong>
+          <strong id="totalProductos">
+            0
+          </strong>
 
         </div>
 
 
         <div class="tarjeta">
 
-          <span>Unidades</span>
+          <span>
+            Unidades
+          </span>
 
-          <strong id="totalUnidades">0</strong>
+          <strong id="totalUnidades">
+            0
+          </strong>
 
         </div>
 
 
         <div class="tarjeta valor">
 
-          <span>Valor del inventario</span>
+          <span>
+            Valor del inventario
+          </span>
 
-          <strong id="valorInventario">$0.00</strong>
+          <strong id="valorInventario">
+            $0.00
+          </strong>
 
         </div>
 
@@ -481,7 +585,9 @@
 
       <div class="seccion-titulo">
 
-        <h2>Inventario</h2>
+        <h2>
+          Inventario
+        </h2>
 
         <button
           class="boton-agregar"
@@ -498,15 +604,60 @@
     </div>
 
 
-    <!-- HISTORIAL -->
+    <!-- =========================
+         VISTA HISTORIAL
+    ========================= -->
 
-    <div id="vistaHistorial" style="display:none;">
+    <div
+      id="vistaHistorial"
+      style="display:none;"
+    >
 
       <div class="seccion-titulo">
 
-        <h2>Historial</h2>
+        <h2>
+          Historial
+        </h2>
 
       </div>
+
+
+      <input
+        id="busquedaHistorial"
+        class="busqueda-historial"
+        type="search"
+        placeholder="Buscar por producto o SKU..."
+      >
+
+
+      <div class="filtros-historial">
+
+        <button
+          id="filtroTodos"
+          class="filtro-historial activo"
+          onclick="filtrarHistorial('todos')"
+        >
+          Todos
+        </button>
+
+        <button
+          id="filtroEntradas"
+          class="filtro-historial"
+          onclick="filtrarHistorial('entrada')"
+        >
+          + Entradas
+        </button>
+
+        <button
+          id="filtroSalidas"
+          class="filtro-historial"
+          onclick="filtrarHistorial('salida')"
+        >
+          − Salidas
+        </button>
+
+      </div>
+
 
       <button
         class="boton-borrar-historial"
@@ -515,6 +666,7 @@
         🗑️ Borrar historial
       </button>
 
+
       <div id="listaHistorial"></div>
 
     </div>
@@ -522,21 +674,30 @@
   </div>
 
 
-  <!-- FORMULARIO DE PRODUCTO -->
+  <!-- =========================
+       MODAL PRODUCTO
+  ========================= -->
 
-  <div class="modal" id="modalProducto">
+  <div
+    class="modal"
+    id="modalProducto"
+  >
 
     <form
       class="formulario"
       id="formularioProducto"
     >
 
-      <h2 id="tituloFormulario">Agregar producto</h2>
+      <h2 id="tituloFormulario">
+        Agregar producto
+      </h2>
 
 
       <div class="campo">
 
-        <label for="nombre">Nombre del producto</label>
+        <label for="nombre">
+          Nombre del producto
+        </label>
 
         <input
           id="nombre"
@@ -550,7 +711,9 @@
 
       <div class="campo">
 
-        <label for="sku">SKU</label>
+        <label for="sku">
+          SKU
+        </label>
 
         <input
           id="sku"
@@ -564,7 +727,9 @@
 
       <div class="campo">
 
-        <label for="cantidadProducto">Cantidad</label>
+        <label for="cantidadProducto">
+          Cantidad
+        </label>
 
         <input
           id="cantidadProducto"
@@ -579,7 +744,9 @@
 
       <div class="campo">
 
-        <label for="precio">Precio</label>
+        <label for="precio">
+          Precio
+        </label>
 
         <input
           id="precio"
@@ -617,16 +784,24 @@
   </div>
 
 
-  <!-- FORMULARIO DE MOVIMIENTO -->
+  <!-- =========================
+       MODAL MOVIMIENTO
+  ========================= -->
 
-  <div class="modal" id="modalMovimiento">
+  <div
+    class="modal"
+    id="modalMovimiento"
+  >
 
     <form
       class="formulario"
       id="formularioMovimiento"
     >
 
-      <h2 id="tituloMovimiento">Movimiento</h2>
+      <h2 id="tituloMovimiento">
+        Movimiento
+      </h2>
+
 
       <p
         class="mensaje-movimiento"
@@ -678,7 +853,9 @@
   </div>
 
 
-  <!-- MENÚ -->
+  <!-- =========================
+       MENU INFERIOR
+  ========================= -->
 
   <div class="menu">
 
@@ -690,9 +867,13 @@
       Inventario
     </button>
 
-    <button onclick="abrirFormulario()">
+
+    <button
+      onclick="abrirFormulario()"
+    >
       Agregar
     </button>
+
 
     <button
       id="botonHistorial"
@@ -710,14 +891,20 @@
        DATOS
     ========================= */
 
-    let productos = JSON.parse(
-      localStorage.getItem("flackunloker_productos")
-    ) || [];
+    let productos =
+      JSON.parse(
+        localStorage.getItem(
+          "flackunloker_productos"
+        )
+      ) || [];
 
 
-    let historial = JSON.parse(
-      localStorage.getItem("flackunloker_historial")
-    ) || [];
+    let historial =
+      JSON.parse(
+        localStorage.getItem(
+          "flackunloker_historial"
+        )
+      ) || [];
 
 
     let productoEditando = null;
@@ -726,6 +913,12 @@
 
     let tipoMovimiento = null;
 
+    let filtroHistorialActual = "todos";
+
+
+    /* =========================
+       GUARDAR DATOS
+    ========================= */
 
     function guardarDatos() {
 
@@ -757,23 +950,35 @@
 
       productoEditando = null;
 
+
       document
-        .getElementById("tituloFormulario")
-        .textContent = "Agregar producto";
+        .getElementById(
+          "tituloFormulario"
+        )
+        .textContent =
+        "Agregar producto";
 
 
       document
-        .getElementById("formularioProducto")
+        .getElementById(
+          "formularioProducto"
+        )
         .reset();
 
 
       document
-        .getElementById("modalProducto")
-        .classList.add("visible");
+        .getElementById(
+          "modalProducto"
+        )
+        .classList.add(
+          "visible"
+        );
 
 
       document
-        .getElementById("nombre")
+        .getElementById(
+          "nombre"
+        )
         .focus();
 
     }
@@ -782,11 +987,13 @@
     function editarProducto(id) {
 
       const producto =
-        productos.find(function(item) {
+        productos.find(
+          function(item) {
 
-          return item.id === id;
+            return item.id === id;
 
-        });
+          }
+        );
 
 
       if (!producto) {
@@ -800,33 +1007,52 @@
 
 
       document
-        .getElementById("tituloFormulario")
-        .textContent = "Editar producto";
+        .getElementById(
+          "tituloFormulario"
+        )
+        .textContent =
+        "Editar producto";
 
 
       document
-        .getElementById("nombre")
-        .value = producto.nombre;
+        .getElementById(
+          "nombre"
+        )
+        .value =
+        producto.nombre;
 
 
       document
-        .getElementById("sku")
-        .value = producto.sku;
+        .getElementById(
+          "sku"
+        )
+        .value =
+        producto.sku;
 
 
       document
-        .getElementById("cantidadProducto")
-        .value = producto.cantidad;
+        .getElementById(
+          "cantidadProducto"
+        )
+        .value =
+        producto.cantidad;
 
 
       document
-        .getElementById("precio")
-        .value = producto.precio;
+        .getElementById(
+          "precio"
+        )
+        .value =
+        producto.precio;
 
 
       document
-        .getElementById("modalProducto")
-        .classList.add("visible");
+        .getElementById(
+          "modalProducto"
+        )
+        .classList.add(
+          "visible"
+        );
 
     }
 
@@ -834,12 +1060,18 @@
     function cerrarFormulario() {
 
       document
-        .getElementById("modalProducto")
-        .classList.remove("visible");
+        .getElementById(
+          "modalProducto"
+        )
+        .classList.remove(
+          "visible"
+        );
 
 
       document
-        .getElementById("formularioProducto")
+        .getElementById(
+          "formularioProducto"
+        )
         .reset();
 
 
@@ -849,129 +1081,163 @@
 
 
     document
-      .getElementById("formularioProducto")
-      .addEventListener("submit", function(event) {
+      .getElementById(
+        "formularioProducto"
+      )
+      .addEventListener(
+        "submit",
+        function(event) {
 
-        event.preventDefault();
-
-
-        const nombre =
-          document
-            .getElementById("nombre")
-            .value
-            .trim();
+          event.preventDefault();
 
 
-        const sku =
-          document
-            .getElementById("sku")
-            .value
-            .trim();
-
-
-        const cantidad =
-          Number(
+          const nombre =
             document
-              .getElementById("cantidadProducto")
+              .getElementById(
+                "nombre"
+              )
               .value
-          );
+              .trim();
 
 
-        const precio =
-          Number(
+          const sku =
             document
-              .getElementById("precio")
+              .getElementById(
+                "sku"
+              )
               .value
-          );
+              .trim();
 
 
-        if (!nombre || !sku) {
-
-          alert(
-            "Completa el nombre y el SKU."
-          );
-
-          return;
-
-        }
-
-
-        if (cantidad < 0 || precio < 0) {
-
-          alert(
-            "La cantidad y el precio no pueden ser negativos."
-          );
-
-          return;
-
-        }
+          const cantidad =
+            Number(
+              document
+                .getElementById(
+                  "cantidadProducto"
+                )
+                .value
+            );
 
 
-        if (productoEditando !== null) {
+          const precio =
+            Number(
+              document
+                .getElementById(
+                  "precio"
+                )
+                .value
+            );
 
-          const producto =
-            productos.find(function(item) {
 
-              return item.id === productoEditando;
+          if (!nombre || !sku) {
 
-            });
+            alert(
+              "Completa el nombre y el SKU."
+            );
 
-
-          if (producto) {
-
-            producto.nombre = nombre;
-
-            producto.sku = sku;
-
-            producto.cantidad = cantidad;
-
-            producto.precio = precio;
+            return;
 
           }
 
-        } else {
 
-          const producto = {
+          if (
+            cantidad < 0 ||
+            precio < 0
+          ) {
 
-            id: Date.now(),
+            alert(
+              "La cantidad y el precio no pueden ser negativos."
+            );
 
-            nombre: nombre,
+            return;
 
-            sku: sku,
-
-            cantidad: cantidad,
-
-            precio: precio
-
-          };
+          }
 
 
-          productos.push(producto);
+          if (
+            productoEditando !== null
+          ) {
+
+            const producto =
+              productos.find(
+                function(item) {
+
+                  return (
+                    item.id ===
+                    productoEditando
+                  );
+
+                }
+              );
+
+
+            if (producto) {
+
+              producto.nombre =
+                nombre;
+
+              producto.sku =
+                sku;
+
+              producto.cantidad =
+                cantidad;
+
+              producto.precio =
+                precio;
+
+            }
+
+          } else {
+
+            const producto = {
+
+              id: Date.now(),
+
+              nombre: nombre,
+
+              sku: sku,
+
+              cantidad: cantidad,
+
+              precio: precio
+
+            };
+
+
+            productos.push(
+              producto
+            );
+
+          }
+
+
+          guardarDatos();
+
+          mostrarProductos();
+
+          cerrarFormulario();
 
         }
-
-
-        guardarDatos();
-
-        mostrarProductos();
-
-        cerrarFormulario();
-
-      });
+      );
 
 
     /* =========================
        ENTRADA / SALIDA
     ========================= */
 
-    function abrirMovimiento(id, tipo) {
+    function abrirMovimiento(
+      id,
+      tipo
+    ) {
 
       const producto =
-        productos.find(function(item) {
+        productos.find(
+          function(item) {
 
-          return item.id === id;
+            return item.id === id;
 
-        });
+          }
+        );
 
 
       if (!producto) {
@@ -981,50 +1247,74 @@
       }
 
 
-      productoMovimiento = id;
+      productoMovimiento =
+        id;
 
-      tipoMovimiento = tipo;
+      tipoMovimiento =
+        tipo;
 
 
-      if (tipo === "entrada") {
+      if (
+        tipo === "entrada"
+      ) {
 
         document
-          .getElementById("tituloMovimiento")
-          .textContent = "Entrada de mercancía";
-
-
-        document
-          .getElementById("textoMovimiento")
+          .getElementById(
+            "tituloMovimiento"
+          )
           .textContent =
-          "Agregar unidades a: " + producto.nombre;
+          "Entrada de mercancía";
+
+
+        document
+          .getElementById(
+            "textoMovimiento"
+          )
+          .textContent =
+          "Agregar unidades a: " +
+          producto.nombre;
 
       } else {
 
         document
-          .getElementById("tituloMovimiento")
-          .textContent = "Salida de mercancía";
+          .getElementById(
+            "tituloMovimiento"
+          )
+          .textContent =
+          "Salida de mercancía";
 
 
         document
-          .getElementById("textoMovimiento")
+          .getElementById(
+            "textoMovimiento"
+          )
           .textContent =
-          "Retirar unidades de: " + producto.nombre;
+          "Retirar unidades de: " +
+          producto.nombre;
 
       }
 
 
       document
-        .getElementById("cantidadMovimiento")
+        .getElementById(
+          "cantidadMovimiento"
+        )
         .value = "";
 
 
       document
-        .getElementById("modalMovimiento")
-        .classList.add("visible");
+        .getElementById(
+          "modalMovimiento"
+        )
+        .classList.add(
+          "visible"
+        );
 
 
       document
-        .getElementById("cantidadMovimiento")
+        .getElementById(
+          "cantidadMovimiento"
+        )
         .focus();
 
     }
@@ -1033,12 +1323,18 @@
     function cerrarMovimiento() {
 
       document
-        .getElementById("modalMovimiento")
-        .classList.remove("visible");
+        .getElementById(
+          "modalMovimiento"
+        )
+        .classList.remove(
+          "visible"
+        );
 
 
       document
-        .getElementById("formularioMovimiento")
+        .getElementById(
+          "formularioMovimiento"
+        )
         .reset();
 
 
@@ -1050,65 +1346,35 @@
 
 
     document
-      .getElementById("formularioMovimiento")
-      .addEventListener("submit", function(event) {
+      .getElementById(
+        "formularioMovimiento"
+      )
+      .addEventListener(
+        "submit",
+        function(event) {
 
-        event.preventDefault();
-
-
-        const cantidad =
-          Number(
-            document
-              .getElementById("cantidadMovimiento")
-              .value
-          );
+          event.preventDefault();
 
 
-        if (!Number.isInteger(cantidad) || cantidad <= 0) {
-
-          alert(
-            "Introduce una cantidad válida."
-          );
-
-          return;
-
-        }
-
-
-        const producto =
-          productos.find(function(item) {
-
-            return item.id === productoMovimiento;
-
-          });
+          const cantidad =
+            Number(
+              document
+                .getElementById(
+                  "cantidadMovimiento"
+                )
+                .value
+            );
 
 
-        if (!producto) {
-
-          cerrarMovimiento();
-
-          return;
-
-        }
-
-
-        /* ENTRADA */
-
-        if (tipoMovimiento === "entrada") {
-
-          producto.cantidad += cantidad;
-
-        }
-
-
-        /* SALIDA */
-
-        if (tipoMovimiento === "salida") {
-
-          if (cantidad > producto.cantidad) {
+          if (
+            !Number.isInteger(
+              cantidad
+            ) ||
+            cantidad <= 0
+          ) {
 
             alert(
-              "No puedes retirar más unidades de las que existen en inventario."
+              "Introduce una cantidad válida."
             );
 
             return;
@@ -1116,51 +1382,115 @@
           }
 
 
-          producto.cantidad -= cantidad;
+          const producto =
+            productos.find(
+              function(item) {
+
+                return (
+                  item.id ===
+                  productoMovimiento
+                );
+
+              }
+            );
+
+
+          if (!producto) {
+
+            cerrarMovimiento();
+
+            return;
+
+          }
+
+
+          if (
+            tipoMovimiento ===
+            "entrada"
+          ) {
+
+            producto.cantidad +=
+              cantidad;
+
+          }
+
+
+          if (
+            tipoMovimiento ===
+            "salida"
+          ) {
+
+            if (
+              cantidad >
+              producto.cantidad
+            ) {
+
+              alert(
+                "No puedes retirar más unidades de las que existen en inventario."
+              );
+
+              return;
+
+            }
+
+
+            producto.cantidad -=
+              cantidad;
+
+          }
+
+
+          /* REGISTRAR MOVIMIENTO */
+
+          const movimiento = {
+
+            id: Date.now(),
+
+            productoId:
+              producto.id,
+
+            nombre:
+              producto.nombre,
+
+            sku:
+              producto.sku,
+
+            tipo:
+              tipoMovimiento,
+
+            cantidad:
+              cantidad,
+
+            fecha:
+              new Date().toISOString()
+
+          };
+
+
+          historial.unshift(
+            movimiento
+          );
+
+
+          guardarDatos();
+
+          guardarHistorial();
+
+          mostrarProductos();
+
+          cerrarMovimiento();
 
         }
-
-
-        /* REGISTRAR MOVIMIENTO */
-
-        const movimiento = {
-
-          id: Date.now(),
-
-          productoId: producto.id,
-
-          nombre: producto.nombre,
-
-          sku: producto.sku,
-
-          tipo: tipoMovimiento,
-
-          cantidad: cantidad,
-
-          fecha: new Date().toISOString()
-
-        };
-
-
-        historial.unshift(movimiento);
-
-
-        guardarDatos();
-
-        guardarHistorial();
-
-        mostrarProductos();
-
-        cerrarMovimiento();
-
-      });
+      );
 
 
     /* =========================
        ELIMINAR PRODUCTO
     ========================= */
 
-    function eliminarProducto(id) {
+    function eliminarProducto(
+      id
+    ) {
 
       const confirmar =
         confirm(
@@ -1176,11 +1506,13 @@
 
 
       productos =
-        productos.filter(function(producto) {
+        productos.filter(
+          function(producto) {
 
-          return producto.id !== id;
+            return producto.id !== id;
 
-        });
+          }
+        );
 
 
       guardarDatos();
@@ -1197,37 +1529,49 @@
     function mostrarProductos() {
 
       const lista =
-        document.getElementById("listaProductos");
+        document.getElementById(
+          "listaProductos"
+        );
 
 
       const textoBusqueda =
         document
-          .getElementById("busqueda")
+          .getElementById(
+            "busqueda"
+          )
           .value
           .toLowerCase()
           .trim();
 
 
       const productosFiltrados =
-        productos.filter(function(producto) {
+        productos.filter(
+          function(producto) {
 
-          return (
-            producto.nombre
-              .toLowerCase()
-              .includes(textoBusqueda)
-            ||
-            producto.sku
-              .toLowerCase()
-              .includes(textoBusqueda)
-          );
+            return (
+              producto.nombre
+                .toLowerCase()
+                .includes(
+                  textoBusqueda
+                )
+              ||
+              producto.sku
+                .toLowerCase()
+                .includes(
+                  textoBusqueda
+                )
+            );
 
-        });
+          }
+        );
 
 
       lista.innerHTML = "";
 
 
-      if (productosFiltrados.length === 0) {
+      if (
+        productosFiltrados.length === 0
+      ) {
 
         lista.innerHTML = `
 
@@ -1245,98 +1589,111 @@
 
       } else {
 
-        productosFiltrados.forEach(function(producto) {
+        productosFiltrados.forEach(
+          function(producto) {
 
-          const elemento =
-            document.createElement("div");
+            const elemento =
+              document.createElement(
+                "div"
+              );
 
 
-          elemento.className = "producto";
+            elemento.className =
+              "producto";
 
 
-          elemento.innerHTML = `
+            elemento.innerHTML = `
 
-            <div class="producto-superior">
+              <div class="producto-superior">
 
-              <div class="producto-info">
+                <div class="producto-info">
 
-                <h3>
-                  ${producto.nombre}
-                </h3>
+                  <h3>
+                    ${producto.nombre}
+                  </h3>
 
-                <p>
-                  SKU: ${producto.sku}
-                </p>
+                  <p>
+                    SKU: ${producto.sku}
+                  </p>
+
+                </div>
+
+
+                <div class="cantidad">
+                  ${producto.cantidad}
+                </div>
 
               </div>
 
-              <div class="cantidad">
-                ${producto.cantidad}
+
+              <div class="producto-precio">
+
+                Precio:
+
+                <strong>
+                  $${Number(
+                    producto.precio
+                  ).toFixed(2)}
+                </strong>
+
+                &nbsp;·&nbsp;
+
+                Valor:
+
+                <strong>
+                  $${(
+                    producto.cantidad *
+                    producto.precio
+                  ).toFixed(2)}
+                </strong>
+
               </div>
 
-            </div>
+
+              <div class="acciones">
+
+                <button
+                  class="accion entrada"
+                  onclick="abrirMovimiento(${producto.id}, 'entrada')"
+                >
+                  + Entrada
+                </button>
 
 
-            <div class="producto-precio">
-
-              Precio:
-              <strong>
-                $${Number(producto.precio).toFixed(2)}
-              </strong>
-
-              &nbsp;·&nbsp;
-
-              Valor:
-              <strong>
-                $${(
-                  producto.cantidad * producto.precio
-                ).toFixed(2)}
-              </strong>
-
-            </div>
+                <button
+                  class="accion salida"
+                  onclick="abrirMovimiento(${producto.id}, 'salida')"
+                >
+                  − Salida
+                </button>
 
 
-            <div class="acciones">
-
-              <button
-                class="accion entrada"
-                onclick="abrirMovimiento(${producto.id}, 'entrada')"
-              >
-                + Entrada
-              </button>
+                <button
+                  class="accion editar"
+                  onclick="editarProducto(${producto.id})"
+                >
+                  ✏️ Editar
+                </button>
 
 
-              <button
-                class="accion salida"
-                onclick="abrirMovimiento(${producto.id}, 'salida')"
-              >
-                − Salida
-              </button>
+                <button
+                  class="accion eliminar"
+                  onclick="eliminarProducto(${producto.id})"
+                >
+                  🗑️ Eliminar
+                </button>
+
+              </div>
+
+            `;
 
 
-              <button
-                class="accion editar"
-                onclick="editarProducto(${producto.id})"
-              >
-                ✏️ Editar
-              </button>
+            lista.appendChild(
+              elemento
+            );
 
-
-              <button
-                class="accion eliminar"
-                onclick="eliminarProducto(${producto.id})"
-              >
-                🗑️ Eliminar
-              </button>
-
-            </div>
-
-          `;
-
-
-          lista.appendChild(elemento);
-
-        });
+          }
+        );
 
       }
 
@@ -1357,80 +1714,133 @@
 
 
       const totalUnidades =
-        productos.reduce(function(total, producto) {
+        productos.reduce(
+          function(
+            total,
+            producto
+          ) {
 
-          return total + Number(producto.cantidad);
+            return (
+              total +
+              Number(
+                producto.cantidad
+              )
+            );
 
-        }, 0);
+          },
+          0
+        );
 
 
       const valorInventario =
-        productos.reduce(function(total, producto) {
+        productos.reduce(
+          function(
+            total,
+            producto
+          ) {
 
-          return total +
-            (
-              Number(producto.cantidad) *
-              Number(producto.precio)
+            return (
+              total +
+              (
+                Number(
+                  producto.cantidad
+                ) *
+                Number(
+                  producto.precio
+                )
+              )
             );
 
-        }, 0);
+          },
+          0
+        );
 
 
       document
-        .getElementById("totalProductos")
-        .textContent = totalProductos;
-
-
-      document
-        .getElementById("totalUnidades")
-        .textContent = totalUnidades;
-
-
-      document
-        .getElementById("valorInventario")
+        .getElementById(
+          "totalProductos"
+        )
         .textContent =
-        "$" + valorInventario.toFixed(2);
+        totalProductos;
+
+
+      document
+        .getElementById(
+          "totalUnidades"
+        )
+        .textContent =
+        totalUnidades;
+
+
+      document
+        .getElementById(
+          "valorInventario"
+        )
+        .textContent =
+        "$" +
+        valorInventario.toFixed(
+          2
+        );
 
     }
 
 
     /* =========================
-       BUSCADOR
+       BUSCADOR INVENTARIO
     ========================= */
 
     document
-      .getElementById("busqueda")
-      .addEventListener("input", function() {
+      .getElementById(
+        "busqueda"
+      )
+      .addEventListener(
+        "input",
+        function() {
 
-        mostrarProductos();
+          mostrarProductos();
 
-      });
+        }
+      );
 
 
     /* =========================
-       MOSTRAR HISTORIAL
+       HISTORIAL
     ========================= */
 
     function mostrarHistorial() {
 
       document
-        .getElementById("vistaInventario")
-        .style.display = "none";
+        .getElementById(
+          "vistaInventario"
+        )
+        .style.display =
+        "none";
 
 
       document
-        .getElementById("vistaHistorial")
-        .style.display = "block";
+        .getElementById(
+          "vistaHistorial"
+        )
+        .style.display =
+        "block";
 
 
       document
-        .getElementById("botonInventario")
-        .classList.remove("activo");
+        .getElementById(
+          "botonInventario"
+        )
+        .classList.remove(
+          "activo"
+        );
 
 
       document
-        .getElementById("botonHistorial")
-        .classList.add("activo");
+        .getElementById(
+          "botonHistorial"
+        )
+        .classList.add(
+          "activo"
+        );
 
 
       mostrarListaHistorial();
@@ -1447,19 +1857,82 @@
     function mostrarListaHistorial() {
 
       const lista =
-        document.getElementById("listaHistorial");
+        document.getElementById(
+          "listaHistorial"
+        );
+
+
+      const textoBusqueda =
+        document
+          .getElementById(
+            "busquedaHistorial"
+          )
+          .value
+          .toLowerCase()
+          .trim();
+
+
+      const movimientosFiltrados =
+        historial.filter(
+          function(movimiento) {
+
+            const nombre =
+              String(
+                movimiento.nombre ||
+                ""
+              ).toLowerCase();
+
+
+            const sku =
+              String(
+                movimiento.sku ||
+                ""
+              ).toLowerCase();
+
+
+            const coincideTexto =
+              nombre.includes(
+                textoBusqueda
+              ) ||
+              sku.includes(
+                textoBusqueda
+              );
+
+
+            const coincideTipo =
+              filtroHistorialActual ===
+                "todos"
+              ||
+              movimiento.tipo ===
+                filtroHistorialActual;
+
+
+            return (
+              coincideTexto &&
+              coincideTipo
+            );
+
+          }
+        );
 
 
       lista.innerHTML = "";
 
 
-      if (historial.length === 0) {
+      if (
+        movimientosFiltrados.length ===
+        0
+      ) {
 
         lista.innerHTML = `
 
           <div class="sin-productos">
 
-            No hay movimientos registrados todavía.
+            ${
+              historial.length === 0
+                ? "No hay movimientos registrados todavía."
+                : "No encontramos movimientos con esos filtros."
+            }
 
           </div>
 
@@ -1470,85 +1943,223 @@
       }
 
 
-      historial.forEach(function(movimiento) {
+      movimientosFiltrados.forEach(
+        function(movimiento) {
 
-        const elemento =
-          document.createElement("div");
-
-
-        elemento.className = "movimiento";
-
-
-        const fecha =
-          new Date(movimiento.fecha);
+          const elemento =
+            document.createElement(
+              "div"
+            );
 
 
-        const fechaTexto =
-          fecha.toLocaleDateString("es-PR", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric"
-          });
+          elemento.className =
+            "movimiento";
 
 
-        const horaTexto =
-          fecha.toLocaleTimeString("es-PR", {
-            hour: "2-digit",
-            minute: "2-digit"
-          });
+          const fecha =
+            new Date(
+              movimiento.fecha
+            );
 
 
-        const esEntrada =
-          movimiento.tipo === "entrada";
+          const fechaTexto =
+            fecha.toLocaleDateString(
+              "es-PR",
+              {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric"
+              }
+            );
 
 
-        elemento.innerHTML = `
+          const horaTexto =
+            fecha.toLocaleTimeString(
+              "es-PR",
+              {
+                hour: "2-digit",
+                minute: "2-digit"
+              }
+            );
 
-          <div class="movimiento-superior">
 
-            <div class="movimiento-info">
+          const esEntrada =
+            movimiento.tipo ===
+            "entrada";
 
-              <h3>
-                ${movimiento.nombre}
-              </h3>
 
-              <p>
-                SKU: ${movimiento.sku}
-              </p>
+          elemento.innerHTML = `
+
+            <div class="movimiento-superior">
+
+              <div class="movimiento-info">
+
+                <h3>
+                  ${movimiento.nombre}
+                </h3>
+
+                <p>
+                  SKU: ${movimiento.sku}
+                </p>
+
+              </div>
+
+
+              <div
+                class="movimiento-tipo ${
+                  esEntrada
+                    ? "entrada"
+                    : "salida"
+                }"
+              >
+
+                ${
+                  esEntrada
+                    ? "＋ Entrada"
+                    : "− Salida"
+                }
+
+              </div>
 
             </div>
 
 
-            <div
-              class="movimiento-tipo ${esEntrada ? "entrada" : "salida"}"
-            >
+            <div class="movimiento-detalle">
 
-              ${esEntrada ? "＋ Entrada" : "− Salida"}
+              Cantidad:
+
+              <strong>
+                ${movimiento.cantidad}
+              </strong>
+
+              &nbsp;·&nbsp;
+
+              ${fechaTexto}
+
+              ·
+
+              ${horaTexto}
 
             </div>
 
-          </div>
+          `;
 
 
-          <div class="movimiento-detalle">
+          lista.appendChild(
+            elemento
+          );
 
-            Cantidad:
-            <strong>${movimiento.cantidad}</strong>
-
-            &nbsp;·&nbsp;
-
-            ${fechaTexto} · ${horaTexto}
-
-          </div>
-
-        `;
-
-
-        lista.appendChild(elemento);
-
-      });
+        }
+      );
 
     }
+
+
+    /* =========================
+       FILTROS HISTORIAL
+    ========================= */
+
+    function filtrarHistorial(
+      tipo
+    ) {
+
+      filtroHistorialActual =
+        tipo;
+
+
+      document
+        .getElementById(
+          "filtroTodos"
+        )
+        .classList.remove(
+          "activo"
+        );
+
+
+      document
+        .getElementById(
+          "filtroEntradas"
+        )
+        .classList.remove(
+          "activo"
+        );
+
+
+      document
+        .getElementById(
+          "filtroSalidas"
+        )
+        .classList.remove(
+          "activo"
+        );
+
+
+      if (
+        tipo === "todos"
+      ) {
+
+        document
+          .getElementById(
+            "filtroTodos"
+          )
+          .classList.add(
+            "activo"
+          );
+
+      }
+
+
+      if (
+        tipo === "entrada"
+      ) {
+
+        document
+          .getElementById(
+            "filtroEntradas"
+          )
+          .classList.add(
+            "activo"
+          );
+
+      }
+
+
+      if (
+        tipo === "salida"
+      ) {
+
+        document
+          .getElementById(
+            "filtroSalidas"
+          )
+          .classList.add(
+            "activo"
+          );
+
+      }
+
+
+      mostrarListaHistorial();
+
+    }
+
+
+    /* =========================
+       BUSCADOR HISTORIAL
+    ========================= */
+
+    document
+      .getElementById(
+        "busquedaHistorial"
+      )
+      .addEventListener(
+        "input",
+        function() {
+
+          mostrarListaHistorial();
+
+        }
+      );
 
 
     /* =========================
@@ -1557,7 +2168,9 @@
 
     function borrarHistorial() {
 
-      if (historial.length === 0) {
+      if (
+        historial.length === 0
+      ) {
 
         alert(
           "No hay movimientos para borrar."
@@ -1598,23 +2211,37 @@
     function mostrarInventario() {
 
       document
-        .getElementById("vistaInventario")
-        .style.display = "block";
+        .getElementById(
+          "vistaInventario"
+        )
+        .style.display =
+        "block";
 
 
       document
-        .getElementById("vistaHistorial")
-        .style.display = "none";
+        .getElementById(
+          "vistaHistorial"
+        )
+        .style.display =
+        "none";
 
 
       document
-        .getElementById("botonInventario")
-        .classList.add("activo");
+        .getElementById(
+          "botonInventario"
+        )
+        .classList.add(
+          "activo"
+        );
 
 
       document
-        .getElementById("botonHistorial")
-        .classList.remove("activo");
+        .getElementById(
+          "botonHistorial"
+        )
+        .classList.remove(
+          "activo"
+        );
 
 
       window.scrollTo({
@@ -1630,46 +2257,47 @@
     ========================= */
 
     document
-      .getElementById("modalProducto")
-      .addEventListener("click", function(event) {
+      .getElementById(
+        "modalProducto"
+      )
+      .addEventListener(
+        "click",
+        function(event) {
 
-        if (event.target === this) {
+          if (
+            event.target === this
+          ) {
 
-          cerrarFormulario();
+            cerrarFormulario();
+
+          }
 
         }
-
-      });
+      );
 
 
     document
-      .getElementById("modalMovimiento")
-      .addEventListener("click", function(event) {
+      .getElementById(
+        "modalMovimiento"
+      )
+      .addEventListener(
+        "click",
+        function(event) {
 
-        if (event.target === this) {
+          if (
+            event.target === this
+          ) {
 
-          cerrarMovimiento();
+            cerrarMovimiento();
+
+          }
 
         }
-
-      });
-
-
-    /* =========================
-       CONFIGURACIÓN
-    ========================= */
-
-    function mostrarConfiguracion() {
-
-      alert(
-        "Configuración de Flackunloker\n\nEsta sección la construiremos próximamente."
       );
 
-    }
-
 
     /* =========================
-       INICIAR APLICACIÓN
+       INICIAR
     ========================= */
 
     mostrarProductos();
@@ -1679,3 +2307,4 @@
 </body>
 
 </html>
+```
