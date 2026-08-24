@@ -72,6 +72,13 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 
 <div id="vistaVentas" style="display:none">
 <div class="seccion-titulo"><h2>💰 Ventas</h2></div>
+<div class="lista-estadisticas"><h3>📊 Dashboard del negocio</h3>
+<div class="fila-estadistica"><span>Hoy · Ingresos / Ganancia</span><strong id="dashboardHoy">$0.00 / $0.00</strong></div>
+<div class="fila-estadistica"><span>Últimos 7 días · Ingresos / Ganancia</span><strong id="dashboardSemana">$0.00 / $0.00</strong></div>
+<div class="fila-estadistica"><span>Este mes · Ingresos / Ganancia</span><strong id="dashboardMes">$0.00 / $0.00</strong></div>
+</div>
+<div class="lista-estadisticas"><h3>🏆 Productos más vendidos</h3><div id="dashboardMasVendidos"></div></div>
+<div class="lista-estadisticas"><h3>🐢 Productos con poca rotación</h3><div id="dashboardPocaRotacion"></div></div>
 <div class="estadisticas-grid">
 <div class="estadistica-card azul"><span>Ventas de hoy</span><strong id="ventasHoy">0</strong></div>
 <div class="estadistica-card azul"><span>Unidades hoy</span><strong id="unidadesVendidasHoy">0</strong></div>
@@ -362,7 +369,24 @@ document.getElementById("formularioVenta").addEventListener("submit",e=>{
  }finally{procesandoGuardado=false}
 });
 function esMismoDia(fechaA,fechaB){const a=new Date(fechaA),b=new Date(fechaB);return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
+function actualizarDashboardVentas(){
+ const ahora=new Date(),inicioHoy=new Date(ahora.getFullYear(),ahora.getMonth(),ahora.getDate()),inicioSemana=new Date(inicioHoy);inicioSemana.setDate(inicioSemana.getDate()-6);const inicioMes=new Date(ahora.getFullYear(),ahora.getMonth(),1);
+ const enPeriodo=(v,inicio)=>{const f=new Date(v.fecha);return !Number.isNaN(f.getTime())&&f>=inicio&&f<=ahora};
+ const resumen=arr=>({ingresos:arr.reduce((t,v)=>t+Number(v.ingreso??0),0),ganancia:arr.reduce((t,v)=>t+Number(v.ganancia??0),0)});
+ const formato=r=>`$${r.ingresos.toFixed(2)} / $${r.ganancia.toFixed(2)}`;
+ document.getElementById("dashboardHoy").textContent=formato(resumen(ventas.filter(v=>enPeriodo(v,inicioHoy))));
+ document.getElementById("dashboardSemana").textContent=formato(resumen(ventas.filter(v=>enPeriodo(v,inicioSemana))));
+ document.getElementById("dashboardMes").textContent=formato(resumen(ventas.filter(v=>enPeriodo(v,inicioMes))));
+ const conteo={};
+ ventas.forEach(v=>{const k=String(v.productoId??v.sku??v.nombre);if(!conteo[k])conteo[k]={nombre:v.nombre||"Producto",unidades:0,ingresos:0};conteo[k].unidades+=Number(v.cantidad??0);conteo[k].ingresos+=Number(v.ingreso??0)});
+ const top=Object.values(conteo).sort((a,b)=>b.unidades-a.unidades||b.ingresos-a.ingresos).slice(0,5);
+ document.getElementById("dashboardMasVendidos").innerHTML=top.length?top.map(x=>`<div class="fila-estadistica"><span>${escapeHtml(x.nombre)}</span><strong>${x.unidades} u. · $${x.ingresos.toFixed(2)}</strong></div>`).join(""):`<div class="fila-estadistica"><span>Aún no hay ventas.</span><strong>—</strong></div>`;
+ const vendidosIds=new Set(ventas.map(v=>String(v.productoId)));
+ const poca=[...productos].filter(p=>Number(p.cantidad)>0).map(p=>{const vs=ventas.filter(v=>String(v.productoId)===String(p.id));return {nombre:p.nombre,cantidad:Number(p.cantidad),vendidas:vs.reduce((t,v)=>t+Number(v.cantidad??0),0)}}).sort((a,b)=>a.vendidas-b.vendidas||b.cantidad-a.cantidad).slice(0,5);
+ document.getElementById("dashboardPocaRotacion").innerHTML=poca.length?poca.map(x=>`<div class="fila-estadistica"><span>${escapeHtml(x.nombre)}</span><strong>${x.vendidas} vend. · ${x.cantidad} stock</strong></div>`).join(""):`<div class="fila-estadistica"><span>No hay productos con stock.</span><strong>—</strong></div>`;
+}
 function actualizarVentas(){
+ actualizarDashboardVentas();
  const hoy=new Date(),ventasHoyArr=ventas.filter(v=>esMismoDia(v.fecha,hoy));
  const sumar=(arr,campo)=>arr.reduce((t,v)=>t+Number(v[campo]??0),0);
  document.getElementById("ventasHoy").textContent=ventasHoyArr.length;
