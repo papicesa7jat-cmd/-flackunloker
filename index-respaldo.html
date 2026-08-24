@@ -1346,6 +1346,8 @@ function ventaDesdeSupabase(v){
   return {
    productoId:p?p.id:idLocalDesdeLegacy(null,i.product_id),
    supabaseProductId:i.product_id,
+   supabaseSaleItemId:i.id,
+   devuelto:Number(i.returned_quantity||0),
    nombre:p?p.nombre:"Producto",
    sku:p?p.sku:"",
    cantidad,precioUnitario,costoUnitario,
@@ -1390,7 +1392,7 @@ function ventaDesdeSupabase(v){
 async function cargarVentasSupabase(){
  const locales=Array.isArray(ventas)?[...ventas]:[];
  const consulta=()=>flkSupabase.from("sales")
-  .select("*,sale_items(id,product_id,quantity,unit_price,unit_cost),sale_payments(id,amount,payment_method,note,balance_before,balance_after,created_at)")
+  .select("*,sale_items(id,product_id,quantity,unit_price,unit_cost),sale_payments(id,amount,payment_method,note,balance_before,balance_after,created_at),sale_returns(id,return_number,sale_item_id,product_id,quantity,refund_amount,reason,created_at)")
   .order("created_at",{ascending:false});
 
  let {data:cloud,error}=await consulta();
@@ -1448,7 +1450,17 @@ async function cargarVentasSupabase(){
   if(error){console.error(error);return false}
  }
 
- ventas=(cloud||[]).map(ventaDesdeSupabase);
+ ventas=(cloud||[]).map(v=>{
+  const local=ventaDesdeSupabase(v);
+  const retornos=Array.isArray(v.sale_returns)?v.sale_returns:[];
+  local.devoluciones=retornos.map(r=>({
+   id:idLocalDesdeLegacy(null,r.id),supabaseId:r.id,numeroDevolucion:r.return_number,ventaId:local.id,
+   productoId:(local.items.find(i=>i.supabaseSaleItemId===r.sale_item_id)||{}).productoId,
+   cantidad:Number(r.quantity||0),monto:Number(r.refund_amount||0),motivo:r.reason||"",fecha:r.created_at
+  }));
+  local.items.forEach(i=>{i.devuelto=retornos.filter(r=>r.sale_item_id===i.supabaseSaleItemId).reduce((t,r)=>t+Number(r.quantity||0),0)});
+  return local;
+ });
  const maxNumero=ventas.reduce((m,v)=>Math.max(m,Number(v.numeroConsecutivo||0)),0);
  if(maxNumero>=proximoNumeroRecibo)proximoNumeroRecibo=maxNumero+1;
  guardarVentas();
@@ -1560,11 +1572,20 @@ function mostrarListaVentas(){
   const f=new Date(v.fecha),el=document.createElement("div");el.className="venta-card";const numero=v.numero||String(v.id).slice(-8),items=itemsDeVenta(v);
   const cliente=escapeHtml(v.cliente||"Cliente general"),telefono=v.telefono?` · ${escapeHtml(v.telefono)}`:"",nota=v.nota?`<br>Nota: ${escapeHtml(v.nota)}`:"",devoluciones=devolucionesDeVenta(v);
   const itemsHtml=items.filter(i=>Number(i.cantidad)>0).map(i=>`<div class="recibo-item"><span>${Number(i.cantidad)} × ${escapeHtml(i.nombre)}</span><strong>$${Number(i.ingreso??(Number(i.cantidad)*Number(i.precioUnitario))).toFixed(2)}</strong></div>`).join("")||'<div class="recibo-item"><span>Todos los artículos fueron devueltos</span><strong>$0.00</strong></div>';
-  const devTxt=devoluciones.length?`<br>Devoluciones parciales: <strong>${devoluciones.length}</strong>`:"";
-  const puedeDevolver=items.some(i=>Number(i.cantidad)>0);   normalizarCuentaVenta(v);const ev=estadoVencimientoVenta(v),estadoTxt=`<span class="estado-pago ${ev.clave}">${ev.texto}${v.saldo>0?` · Debe $${Number(v.saldo).toFixed(2)}`:""}</span>`;
-   el.innerHTML=`<div class="venta-superior"><div><h3>Recibo #${escapeHtml(numero)}</h3><p>${cliente}${telefono}</p>${estadoTxt}</div><div class="venta-total">$${Number(v.ingreso??0).toFixed(2)}</div></div><div class="recibo-items">${itemsHtml}</div><div class="venta-detalle">Unidades netas: <strong>${Number(v.cantidad??0)}</strong> · Productos: <strong>${items.filter(i=>Number(i.cantidad)>0).length}</strong><br>Ganancia real: <strong class="ganancia-venta">$${Number(v.ganancia??0).toFixed(2)}</strong><br>Pagado: <strong>$${Number(v.totalPagado||0).toFixed(2)}</strong> · Saldo: <strong>$${Number(v.saldo||0).toFixed(2)}</strong>${v.saldo>0&&v.fechaVencimiento?`<br>Vencimiento: <strong>${new Date(v.fechaVencimiento+"T00:00:00").toLocaleDateString("es-PR")}</strong>`:""}${v.metodoPago?`<br>Método inicial: <strong>${escapeHtml(v.metodoPago)}</strong>`:""}${devTxt}${nota}<br>${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div><div class="acciones-venta"><button class="boton-recibo-venta" onclick="generarReciboVenta(${v.id})">🧾 Ver recibo</button>${v.saldo>0?`<button class="boton-abono-venta" onclick="abrirAbono(${v.id})">💵 Registrar abono</button>`:""}${pagosDeVenta(v).length?`<button class="boton-historial-abonos" onclick="verHistorialAbonos(${v.id})">📋 Historial abonos</button>`:""}${puedeDevolver?`<button class="boton-devolver-venta" onclick="abrirDevolucion(${v.id})">↩️ Devolver producto</button>`:""}<button class="boton-eliminar-venta" onclick="eliminarVenta(${v.id})">⛔ Anular recibo</button></div>`;
+  const devTxt=devoluciones.length?`<br>Devoluciones parciales: <strong>${devoluciones.length}</strong><br>${devoluciones.map(d=>`<button class="boton-recibo-venta" style="margin-top:7px" onclick="imprimirComprobanteDevolucion(${v.id},\'${d.supabaseId||""}\')">🖨️ Devolución ${d.numeroDevolucion?"#"+String(d.numeroDevolucion).padStart(6,"0"):""}</button>`).join(" ")}`:"";
+  const puedeDevolver=items.some(i=>(Number(i.cantidad||0)-Number(i.devuelto||0))>0);   normalizarCuentaVenta(v);const ev=estadoVencimientoVenta(v),estadoTxt=`<span class="estado-pago ${ev.clave}">${ev.texto}${v.saldo>0?` · Debe $${Number(v.saldo).toFixed(2)}`:""}</span>`;
+   el.innerHTML=`<div class="venta-superior"><div><h3>Recibo #${escapeHtml(numero)}</h3><p>${cliente}${telefono}</p>${estadoTxt}</div><div class="venta-total">$${Number(v.ingreso??0).toFixed(2)}</div></div><div class="recibo-items">${itemsHtml}</div><div class="venta-detalle">Unidades netas: <strong>${items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0)}</strong> · Productos: <strong>${items.filter(i=>Number(i.cantidad)>0).length}</strong><br>Ganancia real: <strong class="ganancia-venta">$${Number(v.ganancia??0).toFixed(2)}</strong><br>Pagado: <strong>$${Number(v.totalPagado||0).toFixed(2)}</strong> · Saldo: <strong>$${Number(v.saldo||0).toFixed(2)}</strong>${v.saldo>0&&v.fechaVencimiento?`<br>Vencimiento: <strong>${new Date(v.fechaVencimiento+"T00:00:00").toLocaleDateString("es-PR")}</strong>`:""}${v.metodoPago?`<br>Método inicial: <strong>${escapeHtml(v.metodoPago)}</strong>`:""}${devTxt}${nota}<br>${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div><div class="acciones-venta"><button class="boton-recibo-venta" onclick="generarReciboVenta(${v.id})">🧾 Ver recibo</button>${v.saldo>0?`<button class="boton-abono-venta" onclick="abrirAbono(${v.id})">💵 Registrar abono</button>`:""}${pagosDeVenta(v).length?`<button class="boton-historial-abonos" onclick="verHistorialAbonos(${v.id})">📋 Historial abonos</button>`:""}${puedeDevolver?`<button class="boton-devolver-venta" onclick="abrirDevolucion(${v.id})">↩️ Devolver producto</button>`:""}<button class="boton-eliminar-venta" onclick="eliminarVenta(${v.id})">⛔ Anular recibo</button></div>`;
   lista.appendChild(el)
  })
+}
+function imprimirComprobanteDevolucion(ventaId,devolucionSupabaseId){
+ const v=ventas.find(x=>x.id===ventaId);if(!v)return alert("Venta no encontrada.");
+ const d=devolucionesDeVenta(v).find(x=>String(x.supabaseId||"")===String(devolucionSupabaseId||""));if(!d)return alert("Devolución no encontrada.");
+ const item=itemsDeVenta(v).find(i=>i.productoId===d.productoId)||{};
+ const numero=d.numeroDevolucion?String(d.numeroDevolucion).padStart(6,"0"):String(d.id).slice(-6);
+ const fecha=new Date(d.fecha);
+ const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Devolución ${numero}</title><style>body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0;color:#111}.comprobante{max-width:430px;margin:24px auto;background:white;padding:28px;border-radius:18px}h1,h2{text-align:center}h1{margin:0;font-size:25px}h2{font-size:15px;margin:5px 0 22px}.dato{margin:8px 0}.fila{display:flex;justify-content:space-between;gap:15px;border-bottom:1px solid #ddd;padding:12px 0}.total{text-align:right;font-size:19px;font-weight:bold;margin-top:18px}.pie{text-align:center;color:#777;font-size:12px;margin-top:28px}.imprimir{width:100%;margin-top:20px;padding:12px;border:0;border-radius:10px;background:#0a84ff;color:white;font-weight:bold}@media print{body{background:white}.comprobante{margin:0;max-width:none}.imprimir{display:none}}</style></head><body><div class="comprobante"><h1>Flackunloker</h1><h2>COMPROBANTE DE DEVOLUCIÓN #${numero}</h2><div class="dato"><strong>Recibo original:</strong> #${escapeHtml(v.numero||"")}</div><div class="dato"><strong>Cliente:</strong> ${escapeHtml(v.cliente||"Cliente general")}</div><div class="dato"><strong>Fecha:</strong> ${fecha.toLocaleDateString("es-PR")} · ${fecha.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div><div class="fila"><span>${Number(d.cantidad||0)} × ${escapeHtml(item.nombre||"Producto")}<br><small>SKU: ${escapeHtml(item.sku||"")}</small></span><strong>-$${Number(d.monto||0).toFixed(2)}</strong></div><div class="dato"><strong>Motivo:</strong> ${escapeHtml(d.motivo||"No especificado")}</div><div class="total">Total devuelto: $${Number(d.monto||0).toFixed(2)}</div><div class="pie">Comprobante generado por Flackunloker</div><button class="imprimir" onclick="window.print()">🖨️ Imprimir comprobante</button></div></body></html>`;
+ const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el comprobante.");w.document.write(html);w.document.close()
 }
 function generarReciboVenta(id){
  const v=ventas.find(x=>x.id===id);if(!v)return;const f=new Date(v.fecha),numero=v.numero||String(v.id).slice(-8),items=itemsDeVenta(v);
@@ -1578,30 +1599,62 @@ function generarReciboVenta(id){
  const w=window.open("","_blank");if(!w)return alert("El navegador bloqueó el recibo. Permite ventanas emergentes para Flackunloker.");w.document.open();w.document.write(contenido);w.document.close()
 }
 function abrirDevolucion(id){
- const v=ventas.find(x=>x.id===id);if(!v)return;const items=itemsDeVenta(v).filter(i=>Number(i.cantidad)>0),numero=v.numero||String(v.id).slice(-8);
- if(!items.length)return alert("Este recibo ya no tiene productos disponibles para devolver.");
- ventaDevolucionId=id;document.getElementById("textoDevolucion").textContent=`Recibo #${numero} · Selecciona el producto y la cantidad a devolver.`;
- const sel=document.getElementById("productoDevolucion");sel.innerHTML=items.map((i,n)=>`<option value="${itemsDeVenta(v).indexOf(i)}">${escapeHtml(i.nombre)} · ${Number(i.cantidad)} disponible(s) para devolver</option>`).join("");
- document.getElementById("cantidadDevolucion").value="1";document.getElementById("motivoDevolucion").value="";actualizarAyudaDevolucion();document.getElementById("modalDevolucion").classList.add("visible")
+ const v=ventas.find(x=>x.id===id);if(!v)return;
+ const todos=itemsDeVenta(v);
+ const disponibles=todos.map((i,indice)=>({i,indice,disponible:Number(i.cantidad||0)-Number(i.devuelto||0)})).filter(x=>x.disponible>0);
+ const numero=v.numero||String(v.id).slice(-8);
+ if(!disponibles.length)return alert("Este recibo ya no tiene productos disponibles para devolver.");
+ ventaDevolucionId=id;
+ document.getElementById("textoDevolucion").textContent=`Recibo #${numero} · Selecciona el producto y la cantidad a devolver.`;
+ const sel=document.getElementById("productoDevolucion");
+ sel.innerHTML=disponibles.map(x=>`<option value="${x.indice}">${escapeHtml(x.i.nombre)} · ${x.disponible} disponible(s) para devolver</option>`).join("");
+ document.getElementById("cantidadDevolucion").value="1";
+ document.getElementById("motivoDevolucion").value="";
+ actualizarAyudaDevolucion();
+ document.getElementById("modalDevolucion").classList.add("visible")
 }
-function cerrarDevolucion(){document.getElementById("modalDevolucion").classList.remove("visible");document.getElementById("formularioDevolucion").reset();ventaDevolucionId=null}
+function cerrarDevolucion(){
+ document.getElementById("modalDevolucion").classList.remove("visible");
+ document.getElementById("formularioDevolucion").reset();
+ ventaDevolucionId=null
+}
 function actualizarAyudaDevolucion(){
- const v=ventas.find(x=>x.id===ventaDevolucionId);if(!v)return;const indice=Number(document.getElementById("productoDevolucion").value),item=itemsDeVenta(v)[indice];
- document.getElementById("ayudaDevolucion").textContent=item?`Máximo: ${Number(item.cantidad)} · Reembolso por unidad: $${Number(item.precioUnitario??0).toFixed(2)}`:""
+ const v=ventas.find(x=>x.id===ventaDevolucionId);if(!v)return;
+ const indice=Number(document.getElementById("productoDevolucion").value),item=itemsDeVenta(v)[indice];
+ const disponible=item?Number(item.cantidad||0)-Number(item.devuelto||0):0;
+ document.getElementById("ayudaDevolucion").textContent=item?`Máximo: ${disponible} · Reembolso por unidad: $${Number(item.precioUnitario??0).toFixed(2)}`:"";
+ const input=document.getElementById("cantidadDevolucion");
+ if(item)input.max=String(disponible)
 }
 document.getElementById("productoDevolucion").addEventListener("change",actualizarAyudaDevolucion);
-document.getElementById("formularioDevolucion").addEventListener("submit",e=>{
- e.preventDefault();if(procesandoGuardado)return;const v=ventas.find(x=>x.id===ventaDevolucionId);if(!v)return cerrarDevolucion();
- const indice=Number(document.getElementById("productoDevolucion").value),item=itemsDeVenta(v)[indice],cantidad=Number(document.getElementById("cantidadDevolucion").value),motivo=document.getElementById("motivoDevolucion").value.trim();
- if(!item)return alert("Selecciona un producto válido.");if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");if(cantidad>Number(item.cantidad))return alert(`Solo puedes devolver hasta ${Number(item.cantidad)} unidad(es) de ${item.nombre}.`);
- const numero=v.numero||String(v.id).slice(-8),reembolso=cantidad*Number(item.precioUnitario??0);
- if(!confirm(`¿Confirmar devolución?\n\nRecibo #${numero}\n${cantidad} × ${item.nombre}\nReembolso: $${reembolso.toFixed(2)}`))return;
- procesandoGuardado=true;try{
-  const p=productos.find(x=>x.id===item.productoId);if(!p)return alert("El producto ya no existe en el inventario. No se puede completar la devolución automáticamente.");
-  p.cantidad=Number(p.cantidad)+cantidad;item.cantidad=Number(item.cantidad)-cantidad;
-  const fecha=new Date().toISOString();if(!Array.isArray(v.devoluciones))v.devoluciones=[];v.devoluciones.push({id:Date.now()+Math.floor(Math.random()*100000),productoId:item.productoId,nombre:item.nombre,sku:item.sku,cantidad,precioUnitario:Number(item.precioUnitario??0),reembolso,fecha,motivo});
-  recalcularTotalesVenta(v);historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:"entrada",cantidad,saldo:Number(p.cantidad),fecha,detalle:"Devolución · Recibo #"+numero,ventaId:v.id,devolucion:true});
-  recalcularSaldos();guardarDatos();guardarHistorial();guardarVentas();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarEstadisticas();cerrarDevolucion();alert(`Devolución registrada.\n\n${cantidad} unidad(es) regresaron al inventario.\nReembolso: $${reembolso.toFixed(2)}`)
+document.getElementById("formularioDevolucion").addEventListener("submit",async e=>{
+ e.preventDefault();if(procesandoGuardado)return;
+ const v=ventas.find(x=>x.id===ventaDevolucionId);if(!v)return cerrarDevolucion();
+ const indice=Number(document.getElementById("productoDevolucion").value);
+ const item=itemsDeVenta(v)[indice];
+ if(!item)return alert("Selecciona un producto válido del recibo.");
+ const cantidad=Number(document.getElementById("cantidadDevolucion").value);
+ const motivo=(document.getElementById("motivoDevolucion")?.value||"").trim();
+ const disponible=Number(item.cantidad||0)-Number(item.devuelto||0);
+ if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
+ if(cantidad>disponible)return alert(`Solo quedan ${disponible} unidad(es) disponibles para devolver.`);
+ if(!item.supabaseSaleItemId)return alert("Este artículo del recibo todavía no está vinculado con Supabase.");
+ procesandoGuardado=true;
+ try{
+  const {error}=await flkSupabase.rpc("flk_return_sale_item",{
+   p_sale_item_id:item.supabaseSaleItemId,
+   p_quantity:cantidad,
+   p_reason:motivo||null
+  });
+  if(error)throw error;
+  await cargarInventarioSupabase();
+  await cargarVentasSupabase();
+  actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();
+  cerrarDevolucion();
+  alert("✅ Devolución guardada en Supabase. El inventario, el recibo y el saldo fueron actualizados.");
+ }catch(err){
+  console.error(err);
+  alert("Supabase rechazó la devolución: "+(err.message||err))
  }finally{procesandoGuardado=false}
 });
 
