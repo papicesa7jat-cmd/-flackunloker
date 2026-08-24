@@ -887,6 +887,7 @@ async function mostrarAppConSesion(session){
   document.getElementById("authOverlay").classList.add("oculto");
   await cargarRolUsuario(session.user);
   await cargarInventarioSupabase();
+  await cargarVentasSupabase();
  }else{
   document.getElementById("authOverlay").classList.remove("oculto");
   document.getElementById("authUsuario").classList.remove("visible");
@@ -1337,6 +1338,127 @@ function renderCarritoVenta(){
  box.innerHTML=carritoVenta.map((i,n)=>`<div class="item-carrito"><div><strong>${n+1}. ${escapeHtml(i.nombre)}</strong><small>SKU: ${escapeHtml(i.sku||"")}<br>${Number(i.cantidad)} × $${Number(i.precioUnitario).toFixed(2)} = $${(Number(i.cantidad)*Number(i.precioUnitario)).toFixed(2)}</small></div><button type="button" class="quitar-item" onclick="quitarItemRecibo(${n})">Quitar</button></div>`).join("")+`<div class="total-carrito"><span>Total del recibo</span><strong>$${total.toFixed(2)}</strong></div>`
 }
 
+
+function ventaDesdeSupabase(v){
+ const items=(v.sale_items||[]).map(i=>{
+  const p=productos.find(x=>x.supabaseId===i.product_id);
+  const cantidad=Number(i.quantity||0),precioUnitario=Number(i.unit_price||0),costoUnitario=Number(i.unit_cost||0);
+  return {
+   productoId:p?p.id:idLocalDesdeLegacy(null,i.product_id),
+   supabaseProductId:i.product_id,
+   nombre:p?p.nombre:"Producto",
+   sku:p?p.sku:"",
+   cantidad,precioUnitario,costoUnitario,
+   ingreso:cantidad*precioUnitario,
+   costo:cantidad*costoUnitario,
+   ganancia:cantidad*(precioUnitario-costoUnitario)
+  }
+ });
+ const pagos=(v.sale_payments||[]).map(p=>({
+  id:idLocalDesdeLegacy(null,p.id),
+  supabaseId:p.id,
+  cantidad:Number(p.amount||0),
+  fecha:p.created_at,
+  metodo:p.payment_method||"cash",
+  nota:p.note||"",
+  saldoAnterior:Number(p.balance_before??0),
+  saldoRestante:Number(p.balance_after??0)
+ }));
+ const legacyNum=Number(v.legacy_id);
+ const id=Number.isFinite(legacyNum)&&v.legacy_id!==null?idLocalDesdeLegacy(v.legacy_id,v.id):idLocalDesdeLegacy(null,v.id);
+ const ingreso=Number(v.total||0),costoTotal=items.reduce((t,i)=>t+i.costo,0);
+ return {
+  id,supabaseId:v.id,
+  numero:v.receipt_number||String(id).slice(-8),
+  numeroConsecutivo:Number(v.receipt_number)||0,
+  items,
+  cantidad:items.reduce((t,i)=>t+i.cantidad,0),
+  ingreso,costoTotal,ganancia:ingreso-costoTotal,
+  fecha:v.created_at,
+  cliente:v.customer_name||"Cliente general",
+  telefono:v.customer_phone||"",
+  metodoPago:v.payment_method||"cash",
+  estadoPago:Number(v.balance_due||0)>0.009?"credito":"pagado",
+  totalPagado:Number(v.paid_amount||0),
+  saldo:Number(v.balance_due||0),
+  pagos,
+  fechaVencimiento:v.due_date||"",
+  nota:v.note||""
+ }
+}
+
+async function cargarVentasSupabase(){
+ const locales=Array.isArray(ventas)?[...ventas]:[];
+ const consulta=()=>flkSupabase.from("sales")
+  .select("*,sale_items(id,product_id,quantity,unit_price,unit_cost),sale_payments(id,amount,payment_method,note,balance_before,balance_after,created_at)")
+  .order("created_at",{ascending:false});
+
+ let {data:cloud,error}=await consulta();
+ if(error){console.error("Supabase ventas:",error);alert("No se pudieron cargar las ventas de Supabase. Se conserva la copia local.");return false}
+
+ if(rolSesion==="admin" && locales.length){
+  const existentes=new Set((cloud||[]).map(v=>String(v.legacy_id||"")).filter(Boolean));
+
+  for(const v of locales){
+   const legacy=String(v.id);
+   if(existentes.has(legacy))continue;
+
+   const items=(Array.isArray(v.items)?v.items:[]).map(i=>({
+    legacy_product_id:String(i.productoId),
+    quantity:Number(i.cantidad||0),
+    unit_price:Number(i.precioUnitario??0),
+    unit_cost:Number(i.costoUnitario??0)
+   })).filter(i=>i.quantity>0);
+
+   if(!items.length)continue;
+
+   const pagos=(Array.isArray(v.pagos)?v.pagos:[]).map(p=>({
+    amount:Number(p.cantidad||0),
+    payment_method:p.metodo||v.metodoPago||"cash",
+    note:p.nota||"",
+    balance_before:Number(p.saldoAnterior??0),
+    balance_after:Number(p.saldoRestante??0),
+    created_at:p.fecha||v.fecha
+   })).filter(p=>p.amount>0);
+
+   const {error:impErr}=await flkSupabase.rpc("flk_import_legacy_sale",{
+    p_legacy_id:legacy,
+    p_receipt_number:String(v.numero||String(v.id).slice(-8)),
+    p_customer_name:v.cliente||"Cliente general",
+    p_customer_phone:v.telefono||null,
+    p_payment_method:v.metodoPago||"cash",
+    p_total:Number(v.ingreso||0),
+    p_paid_amount:Number(v.totalPagado??v.ingreso??0),
+    p_due_date:v.fechaVencimiento||null,
+    p_note:v.nota||null,
+    p_created_at:v.fecha||new Date().toISOString(),
+    p_items:items,
+    p_payments:pagos
+   });
+   if(impErr){
+    console.error("Migración venta:",v.numero||v.id,impErr);
+    alert("No se pudo migrar el recibo #"+(v.numero||v.id)+": "+impErr.message);
+    return false;
+   }
+   existentes.add(legacy);
+  }
+
+  const recarga=await consulta();
+  cloud=recarga.data;error=recarga.error;
+  if(error){console.error(error);return false}
+ }
+
+ ventas=(cloud||[]).map(ventaDesdeSupabase);
+ const maxNumero=ventas.reduce((m,v)=>Math.max(m,Number(v.numeroConsecutivo||0)),0);
+ if(maxNumero>=proximoNumeroRecibo)proximoNumeroRecibo=maxNumero+1;
+ guardarVentas();
+ actualizarVentas();
+ actualizarClientes();
+ actualizarFlujoCaja();
+ actualizarFinanzas();
+ return true
+}
+
 async function registrarVentaSupabase(datos){
  const items=datos.items.map(i=>{
   const p=productos.find(x=>x.id===i.productoId);
@@ -1375,7 +1497,9 @@ document.getElementById("formularioVenta").addEventListener("submit",async e=>{
   items.forEach(item=>{const p=productos.find(x=>x.id===item.productoId);historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:item.productoId,nombre:item.nombre,sku:item.sku,tipo:"salida",cantidad:item.cantidad,saldo:p?Number(p.cantidad):0,fecha,detalle:"Venta · Recibo "+numero,ventaId})});
   const pagos=totalPagado>0?[{id:Date.now()+Math.floor(Math.random()*100000),cantidad:totalPagado,fecha,metodo:metodoPago,nota:estadoSolicitado==="credito"?"Abono inicial":"Pago de venta",saldoAnterior:ingreso,saldoRestante:saldo}]:[];
   ventas.unshift({id:ventaId,supabaseId:supabaseSaleId,numero,numeroConsecutivo,items,cantidad,ingreso,costoTotal,ganancia,fecha,cliente,telefono,metodoPago,estadoPago,totalPagado,saldo,pagos,fechaVencimiento:saldo>0?fechaVencimiento:"",nota});
-  guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarClientes();actualizarFlujoCaja();actualizarFinanzas();actualizarEstadisticas();cerrarVenta();
+  guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();
+  await cargarVentasSupabase();
+  actualizarEstadisticas();cerrarVenta();
   alert(`Recibo guardado en Supabase.
 
 Productos: ${items.length}
