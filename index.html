@@ -2231,31 +2231,46 @@ cerrarMovimiento();
 
           let saldoTexto;
 
+const productoActual =
+  productos.find(function(producto) {
 
-          if (
-            movimiento.saldo !==
-            undefined &&
-            movimiento.saldo !==
-            null
-          ) {
+    return producto.id === movimiento.productoId;
 
-            saldoTexto = `
-              Saldo después del movimiento:
-              <strong>
-                ${movimiento.saldo}
-              </strong>
-            `;
+  });
 
-          } else {
 
-            saldoTexto = `
-              Saldo después del movimiento:
-              <strong>
-                No disponible
-              </strong>
-            `;
+if (
+  movimiento.saldo !== undefined &&
+  movimiento.saldo !== null &&
+  movimiento.saldo !== ""
+) {
 
-          }
+  saldoTexto = `
+    Saldo después del movimiento:
+    <strong>
+      ${Number(movimiento.saldo)}
+    </strong>
+  `;
+
+} else if (productoActual) {
+
+  saldoTexto = `
+    Saldo después del movimiento:
+    <strong>
+      ${Number(productoActual.cantidad)}
+    </strong>
+  `;
+
+} else {
+
+  saldoTexto = `
+    Saldo después del movimiento:
+    <strong>
+      No disponible
+    </strong>
+  `;
+
+}
 
 
           elemento.innerHTML = `
