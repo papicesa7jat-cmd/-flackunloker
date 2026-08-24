@@ -16,7 +16,7 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 .tarjeta,.producto,.movimiento,.lista-estadisticas,.respaldo-box,.estadistica-card,.tarjeta-historial{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06)}
 .tarjeta{padding:18px}.tarjeta span,.estadistica-card span,.tarjeta-historial span{display:block;color:#777;font-size:13px;margin-bottom:8px}.tarjeta strong{font-size:24px}.tarjeta.valor{grid-column:1/-1}.tarjeta.valor strong{color:#0a84ff}
 .alerta-inventario{display:none;background:#fff7e8;border:1px solid #ffd27a;border-radius:18px;padding:16px;margin-bottom:20px}.alerta-inventario.visible{display:block}.alerta-titulo{display:flex;gap:8px;font-size:16px;font-weight:700;color:#a15c00;margin-bottom:10px}.alerta-descripcion{color:#795000;font-size:13px;margin-bottom:12px}.producto-alerta{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #f0d99d}.producto-alerta-info strong{display:block;font-size:14px}.producto-alerta-info small{display:block;color:#876c3e;margin-top:3px;font-size:12px}.producto-alerta-cantidad{font-weight:700;white-space:nowrap;color:#a15c00}
-.busqueda,.busqueda-historial{width:100%;border:0;outline:none;background:#fff;border-radius:15px;padding:15px 17px;font-size:15px;box-shadow:0 5px 20px rgba(0,0,0,.06)}.busqueda{margin-bottom:20px}.busqueda-historial{margin-bottom:12px}
+.busqueda,.busqueda-historial{width:100%;border:0;outline:none;background:#fff;border-radius:15px;padding:15px 17px;font-size:15px;box-shadow:0 5px 20px rgba(0,0,0,.06)}.busqueda{margin-bottom:20px}.busqueda-historial{margin-bottom:12px}.filtros-inventario{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:-8px 0 20px}.filtro-inventario{width:100%;border:0;outline:none;background:#fff;border-radius:13px;padding:12px 13px;font-size:13px;color:#555;box-shadow:0 5px 20px rgba(0,0,0,.06)}.filtro-inventario:focus{box-shadow:0 5px 20px rgba(10,132,255,.15)}
 .seccion-titulo{display:flex;justify-content:space-between;align-items:center;margin:20px 0 12px}.seccion-titulo h2{margin:0;font-size:20px}.boton-agregar{border:0;background:#0a84ff;color:#fff;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}
 .producto{padding:17px;margin-bottom:12px}.producto-superior,.movimiento-superior{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.producto-info,.movimiento-info{min-width:0}.producto-info h3,.movimiento-info h3{margin:0 0 5px;font-size:16px}.producto-info p,.movimiento-info p{margin:0;color:#777;font-size:13px}.cantidad{background:#eaf4ff;color:#0a84ff;padding:8px 11px;border-radius:10px;font-weight:700;white-space:nowrap}.cantidad.stock-bajo{background:#fff7e8;color:#a15c00}.cantidad.sin-stock{background:#ffecec;color:#d93025}.producto-precio{margin-top:12px;color:#555;font-size:14px}.producto-precio strong{color:#111}.aviso-producto{margin-top:10px;padding:10px;border-radius:10px;background:#fff7e8;color:#a15c00;font-size:13px;font-weight:600}.aviso-producto.sin-stock{background:#ffecec;color:#d93025}
 .acciones{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:14px}.accion{border:0;border-radius:10px;padding:9px 5px;font-size:12px;font-weight:600;cursor:pointer}.entrada{background:#e9f8ef;color:#168044}.salida{background:#fff1e8;color:#c45b19}.editar{background:#eaf4ff;color:#0a84ff}.eliminar{background:#ffecec;color:#d93025}
@@ -28,7 +28,7 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 .respaldo-box{padding:18px;margin-bottom:15px}.respaldo-box h3{margin:0 0 8px;font-size:18px}.respaldo-box p{margin:0 0 15px;color:#777;font-size:13px;line-height:1.6}.botones-respaldo{display:grid;grid-template-columns:1fr 1fr;gap:10px}.boton-respaldo{border:0;border-radius:12px;padding:13px 10px;font-size:14px;font-weight:700;cursor:pointer}.boton-crear-respaldo{background:#eaf4ff;color:#0a84ff}.boton-restaurar-respaldo{background:#e9f8ef;color:#168044}.estado-respaldo{margin-top:12px;padding:11px;border-radius:10px;background:#f4f7fb;color:#555;font-size:12px;display:none}.estado-respaldo.visible{display:block}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;padding:20px;align-items:center;justify-content:center}.modal.visible{display:flex}.formulario{width:100%;max-width:480px;max-height:90vh;overflow-y:auto;background:#fff;border-radius:22px;padding:22px;box-shadow:0 15px 40px rgba(0,0,0,.2)}.formulario h2{margin:0 0 20px;font-size:22px}.campo{margin-bottom:15px}.campo label{display:block;font-size:13px;font-weight:600;margin-bottom:7px}.campo input,.campo select{width:100%;border:1px solid #ddd;outline:none;border-radius:12px;padding:13px;font-size:15px;background:#fff}.campo input:focus,.campo select:focus{border-color:#0a84ff}.ayuda-campo{display:block;margin-top:6px;color:#777;font-size:11px;line-height:1.5}.botones-formulario{display:flex;gap:10px;margin-top:20px}.boton-cancelar,.boton-guardar{flex:1;border:0;border-radius:12px;padding:13px;font-size:15px;font-weight:600;cursor:pointer}.boton-cancelar{background:#eee;color:#333}.boton-guardar{background:#0a84ff;color:#fff}.mensaje-movimiento{margin:0 0 18px;padding:12px;border-radius:12px;background:#eaf4ff;color:#0a84ff;font-size:14px}
 .menu{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #eee;padding:12px 8px;display:flex;justify-content:center;gap:20px;z-index:500}.menu button{border:0;background:none;font-size:12px;color:#777;cursor:pointer;padding:5px}.menu .activo{color:#0a84ff;font-weight:700}
-@media(max-width:430px){.acciones{grid-template-columns:repeat(2,1fr)}.menu{gap:8px}.menu button{font-size:11px}.botones-respaldo{grid-template-columns:1fr}.estadisticas-grid{grid-template-columns:1fr}.estadistica-card.ancha{grid-column:auto}}
+@media(max-width:430px){.filtros-inventario{grid-template-columns:1fr}.acciones{grid-template-columns:repeat(2,1fr)}.menu{gap:8px}.menu button{font-size:11px}.botones-respaldo{grid-template-columns:1fr}.estadisticas-grid{grid-template-columns:1fr}.estadistica-card.ancha{grid-column:auto}}
 </style>
 </head>
 <body>
@@ -43,6 +43,10 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 </div>
 <div class="alerta-inventario" id="alertaInventario"><div class="alerta-titulo">⚠️ Inventario bajo</div><div class="alerta-descripcion">Los siguientes productos están en su stock mínimo o por debajo.</div><div id="listaAlertas"></div></div>
 <input id="busqueda" class="busqueda" type="search" placeholder="Buscar por nombre, SKU, categoría, proveedor o ubicación...">
+<div class="filtros-inventario">
+<select id="filtroCategoria" class="filtro-inventario" onchange="cambiarFiltrosInventario()"><option value="">Todas las categorías</option></select>
+<select id="filtroUbicacion" class="filtro-inventario" onchange="cambiarFiltrosInventario()"><option value="">Todas las ubicaciones</option></select>
+</div>
 <div class="seccion-titulo"><h2>Inventario</h2><button class="boton-agregar" onclick="abrirFormulario()">+ Agregar</button></div>
 <div id="listaProductos"></div>
 </div>
@@ -88,9 +92,9 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <div class="campo"><label for="sku">SKU</label><input id="sku" type="text" placeholder="Ej. FLK-001" required></div>
 <div class="campo"><label for="cantidadProducto">Cantidad</label><input id="cantidadProducto" type="number" min="0" step="1" required></div>
 <div class="campo"><label for="precio">Precio</label><input id="precio" type="number" min="0" step="0.01" required></div>
-<div class="campo"><label for="categoria">Categoría</label><input id="categoria" type="text" placeholder="Ej. Teléfonos"></div>
-<div class="campo"><label for="proveedor">Proveedor</label><input id="proveedor" type="text" placeholder="Ej. Distribuidor principal"></div>
-<div class="campo"><label for="ubicacion">Ubicación</label><input id="ubicacion" type="text" placeholder="Ej. Vitrina 1 / Almacén A"></div>
+<div class="campo"><label for="categoria">Categoría</label><input id="categoria" type="text" list="listaCategorias" placeholder="Ej. Teléfonos"><datalist id="listaCategorias"></datalist></div>
+<div class="campo"><label for="proveedor">Proveedor</label><input id="proveedor" type="text" list="listaProveedores" placeholder="Ej. Distribuidor principal"><datalist id="listaProveedores"></datalist></div>
+<div class="campo"><label for="ubicacion">Ubicación</label><input id="ubicacion" type="text" list="listaUbicaciones" placeholder="Ej. Vitrina 1 / Almacén A"><datalist id="listaUbicaciones"></datalist></div>
 <div class="campo"><label for="stockMinimo">Stock mínimo</label><input id="stockMinimo" type="number" min="0" step="1" value="5" required><small class="ayuda-campo">Se mostrará una alerta cuando el inventario llegue a este número o menos.</small></div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarFormulario()">Cancelar</button><button type="submit" class="boton-guardar">Guardar</button></div>
 </form>
@@ -124,7 +128,7 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <script>
 let productos=[];
 let historial=[];
-let productoEditando=null,productoMovimiento=null,tipoMovimiento=null,movimientoEditandoId=null,filtroHistorialActual="todos";
+let productoEditando=null,productoMovimiento=null,tipoMovimiento=null,movimientoEditandoId=null,filtroHistorialActual="todos",filtroCategoriaActual="",filtroUbicacionActual="";
 let procesandoGuardado=false;
 
 function cargarDatos(){
@@ -151,6 +155,21 @@ function guardarDatos(){localStorage.setItem("flackunloker_productos",JSON.strin
 function guardarHistorial(){localStorage.setItem("flackunloker_historial",JSON.stringify(historial))}
 cargarDatos();
 function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+
+function valoresUnicos(campo){return [...new Set(productos.map(p=>String(p[campo]||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"}))}
+function actualizarOpcionesOrganizacion(){
+ const categorias=valoresUnicos("categoria"),proveedores=valoresUnicos("proveedor"),ubicaciones=valoresUnicos("ubicacion");
+ document.getElementById("listaCategorias").innerHTML=categorias.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
+ document.getElementById("listaProveedores").innerHTML=proveedores.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
+ document.getElementById("listaUbicaciones").innerHTML=ubicaciones.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
+ const fc=document.getElementById("filtroCategoria"),fu=document.getElementById("filtroUbicacion");
+ const catPrev=filtroCategoriaActual,ubiPrev=filtroUbicacionActual;
+ fc.innerHTML='<option value="">Todas las categorías</option>'+categorias.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+ fu.innerHTML='<option value="">Todas las ubicaciones</option>'+ubicaciones.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+ if(categorias.includes(catPrev))fc.value=catPrev;else filtroCategoriaActual="";
+ if(ubicaciones.includes(ubiPrev))fu.value=ubiPrev;else filtroUbicacionActual="";
+}
+function cambiarFiltrosInventario(){filtroCategoriaActual=document.getElementById("filtroCategoria").value;filtroUbicacionActual=document.getElementById("filtroUbicacion").value;mostrarProductos()}
 
 function abrirFormulario(){
  mostrarInventario();productoEditando=null;document.getElementById("tituloFormulario").textContent="Agregar producto";document.getElementById("formularioProducto").reset();document.getElementById("stockMinimo").value=5;document.getElementById("modalProducto").classList.add("visible");document.getElementById("nombre").focus()
@@ -245,7 +264,8 @@ function eliminarProducto(id){
 
 function mostrarProductos(){
  const lista=document.getElementById("listaProductos"),q=document.getElementById("busqueda").value.toLowerCase().trim();
- const arr=productos.filter(p=>[p.nombre,p.sku,p.categoria,p.proveedor,p.ubicacion].some(v=>String(v||"").toLowerCase().includes(q)));lista.innerHTML="";
+ actualizarOpcionesOrganizacion();
+ const arr=productos.filter(p=>[p.nombre,p.sku,p.categoria,p.proveedor,p.ubicacion].some(v=>String(v||"").toLowerCase().includes(q))&&(!filtroCategoriaActual||String(p.categoria||"")===filtroCategoriaActual)&&(!filtroUbicacionActual||String(p.ubicacion||"")===filtroUbicacionActual));lista.innerHTML="";
  if(!arr.length){lista.innerHTML=`<div class="sin-productos">${productos.length?"No encontramos productos con esa búsqueda.":"No hay productos todavía.<br>Presiona + Agregar para comenzar."}</div>`}
  else arr.forEach(p=>{
   const c=Number(p.cantidad),min=Number(p.stockMinimo??5),el=document.createElement("div");el.className="producto";
