@@ -144,15 +144,43 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 </div>
 
 <script>
-let productos=JSON.parse(localStorage.getItem("flackunloker_productos"))||[];
-let historial=JSON.parse(localStorage.getItem("flackunloker_historial"))||[];
+function leerArraySeguro(clave){
+ try{
+  const valor=localStorage.getItem(clave);
+  if(valor===null)return [];
+  const datos=JSON.parse(valor);
+  return Array.isArray(datos)?datos:[];
+ }catch(error){
+  console.error("No se pudo leer "+clave,error);
+  return [];
+ }
+}
+
+let productos=leerArraySeguro("flackunloker_productos");
+let historial=leerArraySeguro("flackunloker_historial");
+
+let datosMigrados=false;
 productos.forEach(p=>{
- if(p.stockMinimo===undefined||p.stockMinimo===null||p.stockMinimo==="")p.stockMinimo=5;
- if(p.categoria===undefined||p.categoria===null)p.categoria="";
- if(p.proveedor===undefined||p.proveedor===null)p.proveedor="";
- if(p.ubicacion===undefined||p.ubicacion===null)p.ubicacion="";
+ if(p.stockMinimo===undefined||p.stockMinimo===null||p.stockMinimo===""){p.stockMinimo=5;datosMigrados=true}
+ if(p.categoria===undefined||p.categoria===null){p.categoria="";datosMigrados=true}
+ if(p.proveedor===undefined||p.proveedor===null){p.proveedor="";datosMigrados=true}
+ if(p.ubicacion===undefined||p.ubicacion===null){p.ubicacion="";datosMigrados=true}
 });
+
+/* Elimina duplicados accidentales del mismo registro sin borrar productos legítimos. */
+const idsVistos=new Set();
+const productosAntes=productos.length;
+productos=productos.filter(p=>{
+ const id=String(p.id??"");
+ if(!id)return true;
+ if(idsVistos.has(id))return false;
+ idsVistos.add(id);
+ return true;
+});
+if(productos.length!==productosAntes)datosMigrados=true;
+
 let productoEditando=null,productoMovimiento=null,tipoMovimiento=null,movimientoEditandoId=null,filtroHistorialActual="todos";
+let guardandoProducto=false;
 
 function guardarDatos(){localStorage.setItem("flackunloker_productos",JSON.stringify(productos))}
 function guardarHistorial(){localStorage.setItem("flackunloker_historial",JSON.stringify(historial))}
@@ -186,6 +214,10 @@ function cerrarFormulario(){document.getElementById("modalProducto").classList.r
 
 document.getElementById("formularioProducto").addEventListener("submit",e=>{
  e.preventDefault();
+ if(guardandoProducto)return;
+ guardandoProducto=true;
+ const boton=e.submitter||document.querySelector("#formularioProducto .boton-guardar");
+ if(boton)boton.disabled=true;
  const nombre=document.getElementById("nombre").value.trim();
  const sku=document.getElementById("sku").value.trim();
  const cantidad=Number(document.getElementById("cantidadProducto").value);
@@ -205,9 +237,11 @@ document.getElementById("formularioProducto").addEventListener("submit",e=>{
    p.categoria=categoria;p.proveedor=proveedor;p.ubicacion=ubicacion;
   }
  } else {
-  productos.push({id:Date.now(),nombre,sku,cantidad,precio,stockMinimo,categoria,proveedor,ubicacion});
+  productos.push({id:Date.now()+"-"+Math.random().toString(36).slice(2,8),nombre,sku,cantidad,precio,stockMinimo,categoria,proveedor,ubicacion});
  }
- guardarDatos();actualizarFiltrosInventario();mostrarProductos();actualizarEstadisticas();cerrarFormulario()
+ guardarDatos();actualizarFiltrosInventario();mostrarProductos();actualizarEstadisticas();cerrarFormulario();
+ if(boton)boton.disabled=false;
+ guardandoProducto=false;
 });
 
 function abrirMovimiento(id,tipo){
@@ -346,7 +380,9 @@ document.getElementById("modalProducto").addEventListener("click",e=>{if(e.targe
 document.getElementById("modalMovimiento").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarMovimiento()});
 document.getElementById("modalEditarMovimiento").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarEditarMovimiento()});
 
-recalcularSaldos();guardarDatos();guardarHistorial();actualizarFiltrosInventario();mostrarProductos();actualizarResumenHistorial();actualizarEstadisticas();
+recalcularSaldos();
+if(datosMigrados)guardarDatos();
+actualizarFiltrosInventario();mostrarProductos();actualizarResumenHistorial();actualizarEstadisticas();
 </script>
 </body>
 </html>
