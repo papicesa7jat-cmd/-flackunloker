@@ -37,6 +37,13 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 .proveedor-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px}.proveedor-superior{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.proveedor-superior h3{margin:0 0 5px;font-size:16px}.proveedor-superior p{margin:0;color:#777;font-size:13px}.proveedor-total{font-weight:800;color:#0a84ff;white-space:nowrap}.proveedor-detalle{margin-top:12px;font-size:13px;line-height:1.75;color:#555}.acciones-proveedor{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.boton-proveedor{border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.boton-proveedor-orden{background:#e9f8ef;color:#168044}.boton-proveedor-editar{background:#eaf4ff;color:#0a84ff}.boton-proveedor-eliminar{background:#ffecec;color:#d93025}
 
 .cuenta-proveedor-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px;border-left:5px solid #f5a623}.cuenta-proveedor-card.vencida{border-left-color:#d93025}.cuenta-proveedor-card.pagada{border-left-color:#168044}.cuenta-proveedor-superior{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.cuenta-proveedor-superior h3{margin:0 0 5px;font-size:16px}.cuenta-proveedor-superior p{margin:0;color:#777;font-size:13px}.cuenta-proveedor-saldo{font-weight:800;color:#d93025;white-space:nowrap}.cuenta-proveedor-detalle{margin-top:12px;font-size:13px;line-height:1.75;color:#555}.acciones-cuenta-proveedor{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-cuenta-proveedor{border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.boton-pagar-proveedor{background:#e9f8ef;color:#168044}.boton-historial-proveedor{background:#eaf4ff;color:#0a84ff}.estado-cuenta{display:inline-block;margin-top:8px;padding:7px 10px;border-radius:10px;font-size:12px;font-weight:800}.estado-cuenta.pendiente{background:#fff7e8;color:#a15c00}.estado-cuenta.vencida{background:#ffecec;color:#d93025}.estado-cuenta.pagada{background:#e9f8ef;color:#168044}
+
+.finanzas-balance{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:15px}
+.finanzas-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px}
+.finanzas-card span{display:block;color:#777;font-size:13px;margin-bottom:8px}.finanzas-card strong{font-size:23px}
+.finanzas-card.activo strong,.finanzas-card.positivo strong{color:#168044}.finanzas-card.pasivo strong,.finanzas-card.negativo strong{color:#d93025}
+.finanzas-card.azul strong{color:#0a84ff}.finanzas-card.ancha{grid-column:1/-1}
+@media(max-width:430px){.finanzas-balance{grid-template-columns:1fr}.finanzas-card.ancha{grid-column:auto}}
 </style>
 </head>
 <body>
@@ -302,6 +309,52 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <div class="lista-estadisticas"><h3>🧾 Movimientos de efectivo del período</h3><div id="listaFlujoCaja"></div></div>
 </div>
 
+
+<div id="vistaFinanzas" style="display:none">
+<div class="seccion-titulo"><h2>📊 Finanzas</h2></div>
+<div class="reporte-controles">
+<p class="reporte-periodo">Panel financiero central de Flackunloker. El balance muestra la posición actual del negocio; resultados y flujo se calculan para el período seleccionado.</p>
+<div class="reporte-controles-grid">
+<div class="campo" style="margin:0"><label for="periodoFinanzas">Período</label><select id="periodoFinanzas" onchange="cambiarPeriodoFinanzas()"><option value="mes" selected>Este mes</option><option value="anio">Este año</option><option value="personalizado">Fechas personalizadas</option></select></div>
+<div class="campo" style="margin:0"><label>Resumen</label><input id="textoPeriodoFinanzas" type="text" value="Este mes" readonly></div>
+</div>
+<div id="rangoPersonalizadoFinanzas" class="reporte-rango oculto">
+<div class="campo" style="margin:0"><label for="fechaDesdeFinanzas">Desde</label><input id="fechaDesdeFinanzas" type="date" onchange="actualizarFinanzas()"></div>
+<div class="campo" style="margin:0"><label for="fechaHastaFinanzas">Hasta</label><input id="fechaHastaFinanzas" type="date" onchange="actualizarFinanzas()"></div>
+</div>
+<div class="reporte-botones"><button class="boton-agregar" onclick="actualizarFinanzas()">🔄 Actualizar</button><button class="boton-respaldo boton-crear-respaldo" onclick="imprimirFinanzas()">🧾 Ver / imprimir</button></div>
+</div>
+
+<div class="lista-estadisticas"><h3>🏦 Posición financiera actual</h3></div>
+<div class="finanzas-balance">
+<div class="finanzas-card activo"><span>📦 Inventario a costo</span><strong id="finInventario">$0.00</strong></div>
+<div class="finanzas-card activo"><span>👥 Cuentas por cobrar</span><strong id="finPorCobrar">$0.00</strong></div>
+<div class="finanzas-card ancha activo"><span>Activos operativos</span><strong id="finActivos">$0.00</strong></div>
+<div class="finanzas-card ancha pasivo"><span>💳 Cuentas por pagar</span><strong id="finPorPagar">$0.00</strong></div>
+<div class="finanzas-card ancha azul"><span>💼 Patrimonio operativo estimado</span><strong id="finPatrimonio">$0.00</strong></div>
+</div>
+
+<div class="lista-estadisticas"><h3>📈 Resultados del período</h3>
+<div class="fila-estadistica"><span>Ventas</span><strong id="finVentas">$0.00</strong></div>
+<div class="fila-estadistica"><span>Costo de mercancía vendida</span><strong id="finCosto">$0.00</strong></div>
+<div class="fila-estadistica"><span>Ganancia bruta</span><strong id="finBruta">$0.00</strong></div>
+<div class="fila-estadistica"><span>Gastos</span><strong id="finGastos">$0.00</strong></div>
+<div class="fila-estadistica"><span>💰 Ganancia neta</span><strong id="finNeta">$0.00</strong></div>
+</div>
+
+<div class="lista-estadisticas"><h3>💵 Liquidez / Flujo del período</h3>
+<div class="fila-estadistica"><span>Entradas de dinero</span><strong id="finEntradas">$0.00</strong></div>
+<div class="fila-estadistica"><span>Salidas de dinero</span><strong id="finSalidas">$0.00</strong></div>
+<div class="fila-estadistica"><span>💰 Flujo neto</span><strong id="finFlujoNeto">$0.00</strong></div>
+</div>
+
+<div class="lista-estadisticas"><h3>📌 Indicadores</h3>
+<div class="fila-estadistica"><span>Margen bruto sobre ventas</span><strong id="finMargenBruto">0.0%</strong></div>
+<div class="fila-estadistica"><span>Margen neto sobre ventas</span><strong id="finMargenNeto">0.0%</strong></div>
+<div class="fila-estadistica"><span>Relación por cobrar / por pagar</span><strong id="finRelacion">—</strong></div>
+</div>
+</div>
+
 <div id="vistaEstadisticas" style="display:none">
 <div class="seccion-titulo"><h2>📊 Estadísticas</h2></div>
 <div class="estadisticas-grid">
@@ -490,6 +543,7 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <button id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button>
 <button id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button>
 <button id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button>
+<button id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button>
 <button id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button>
 </div>
 
@@ -1110,7 +1164,7 @@ function cerrarHistorialPagosProveedor(){document.getElementById("modalHistorial
 function actualizarFiltroProveedorCuentas(){const sel=document.getElementById("filtroProveedorCuentas");if(!sel)return;const prev=sel.value,nombres=[...new Set(ordenesCompra.filter(o=>o.estado==="recibida").map(o=>String(o.proveedor||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"}));sel.innerHTML='<option value="">Todos los proveedores</option>'+nombres.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");if(nombres.includes(prev))sel.value=prev}
 function mostrarListaCuentasPagar(){actualizarFiltroProveedorCuentas();const lista=document.getElementById("listaCuentasPagar");if(!lista)return;const q=document.getElementById("busquedaCuentasPagar").value.toLowerCase().trim(),filtro=document.getElementById("filtroCuentasPagar").value,prov=document.getElementById("filtroProveedorCuentas").value;let arr=ordenesCompra.filter(o=>o.estado==="recibida"&&(!prov||o.proveedor===prov)&&[o.proveedor,o.nombre,o.sku,numeroOrdenCompra(o)].some(v=>String(v||"").toLowerCase().includes(q)));arr=arr.filter(o=>{const e=estadoCuentaProveedor(o);return filtro==="todas"||(filtro==="pendientes"&&e.clave!=="pagada")||(filtro==="vencidas"&&e.clave==="vencida")||(filtro==="pagadas"&&e.clave==="pagada")});arr.sort((a,b)=>Number(b.saldoProveedor||0)-Number(a.saldoProveedor||0));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay cuentas con esos filtros.</div>';return}lista.innerHTML=arr.map(o=>{const e=estadoCuentaProveedor(o),total=Number(o.costoTotal||0),pagado=Number(o.totalPagadoProveedor||0),saldo=Number(o.saldoProveedor||0);return `<div class="cuenta-proveedor-card ${e.clave}"><div class="cuenta-proveedor-superior"><div><h3>${escapeHtml(o.proveedor||"Proveedor")}</h3><p>${numeroOrdenCompra(o)} · ${escapeHtml(o.nombre)}</p></div><div class="cuenta-proveedor-saldo">$${saldo.toFixed(2)}</div></div><span class="estado-cuenta ${e.clave}">${e.texto}</span><div class="cuenta-proveedor-detalle">Compra total: <strong>$${total.toFixed(2)}</strong><br>Total pagado: <strong>$${pagado.toFixed(2)}</strong><br>Saldo pendiente: <strong>$${saldo.toFixed(2)}</strong>${o.fechaVencimientoProveedor?`<br>Vencimiento: <strong>${new Date(o.fechaVencimientoProveedor+"T00:00:00").toLocaleDateString("es-PR")}</strong>`:""}</div><div class="acciones-cuenta-proveedor">${saldo>0.009?`<button class="boton-cuenta-proveedor boton-pagar-proveedor" onclick="abrirPagoProveedor(${o.id})">💵 Registrar pago</button>`:""}<button class="boton-cuenta-proveedor boton-historial-proveedor" onclick="verHistorialPagosProveedor(${o.id})">📋 Historial</button></div></div>`}).join("")}
 function actualizarCuentasPagar(){const rec=ordenesCompra.filter(o=>o.estado==="recibida"),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),vencido=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").reduce((t,o)=>t+Number(o.saldoProveedor||0),0);if(document.getElementById("cuentasSaldoTotal")){document.getElementById("cuentasSaldoTotal").textContent="$"+saldo.toFixed(2);document.getElementById("cuentasSaldoVencido").textContent="$"+vencido.toFixed(2);document.getElementById("cuentasPendientes").textContent=rec.filter(o=>Number(o.saldoProveedor||0)>0.009).length;document.getElementById("cuentasTotalPagado").textContent="$"+pagado.toFixed(2);mostrarListaCuentasPagar()}}
-function mostrarCuentasPagar(){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaFlujoCaja","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaCuentasPagar").style.display="block";actualizarMenu("cuentasPagar");actualizarCuentasPagar();scrollTop()}
+function mostrarCuentasPagar(){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaCuentasPagar").style.display="block";actualizarMenu("cuentasPagar");actualizarCuentasPagar();scrollTop()}
 document.getElementById("busquedaCuentasPagar").addEventListener("input",mostrarListaCuentasPagar);
 
 
@@ -1184,7 +1238,7 @@ function actualizarFlujoCaja(){
  lista.innerHTML=arr.length?arr.map(m=>`<div class="fila-estadistica"><span>${m.tipo==="entrada"?"⬇️":"⬆️"} ${escapeHtml(m.concepto)}<br><small>${new Date(m.fecha).toLocaleString("es-PR")} · ${escapeHtml(m.metodo)}</small></span><strong style="color:${m.tipo==="entrada"?"#168044":"#d93025"}">${m.tipo==="entrada"?"+":"-"}$${m.cantidad.toFixed(2)}</strong></div>`).join(""):'<div class="fila-estadistica"><span>No hay movimientos de dinero en este período.</span><strong>—</strong></div>'
 }
 function mostrarFlujoCaja(){
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");
  document.getElementById("vistaFlujoCaja").style.display="block";actualizarMenu("flujoCaja");actualizarFlujoCaja();scrollTop()
 }
 function imprimirFlujoCaja(){
@@ -1192,6 +1246,68 @@ function imprimirFlujoCaja(){
  const filas=[...d.mov].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).map(m=>`<tr><td>${new Date(m.fecha).toLocaleString("es-PR")}</td><td>${escapeHtml(m.concepto)}</td><td>${escapeHtml(m.metodo)}</td><td style="text-align:right">${m.tipo==="entrada"?"+":"-"}$${m.cantidad.toFixed(2)}</td></tr>`).join("");
  const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Flujo de caja</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{margin-bottom:4px}p{color:#666}.res{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0}.c{border:1px solid #ddd;border-radius:12px;padding:14px}.c strong{display:block;font-size:22px;margin-top:6px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:9px;border-bottom:1px solid #ddd;text-align:left}.print{margin-top:20px;padding:12px 18px}@media print{.print{display:none}}</style></head><body><h1>Flackunloker · Flujo de caja</h1><p>${escapeHtml(d.lim.texto)}</p><div class="res"><div class="c">Entradas<strong>$${d.entradas.toFixed(2)}</strong></div><div class="c">Salidas<strong>$${d.salidas.toFixed(2)}</strong></div><div class="c">Flujo neto<strong>$${d.neto.toFixed(2)}</strong></div></div><table><thead><tr><th>Fecha</th><th>Movimiento</th><th>Método</th><th style="text-align:right">Importe</th></tr></thead><tbody>${filas||'<tr><td colspan="4">Sin movimientos.</td></tr>'}</tbody></table><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el reporte.");w.document.write(html);w.document.close()
+}
+
+
+function limitesFinanzas(){
+ const tipo=document.getElementById("periodoFinanzas")?.value||"mes",ahora=new Date(),hoy=new Date(ahora.getFullYear(),ahora.getMonth(),ahora.getDate());
+ let desde,hasta,texto;
+ if(tipo==="anio"){desde=new Date(ahora.getFullYear(),0,1);hasta=new Date(ahora.getFullYear()+1,0,1);texto="Este año"}
+ else if(tipo==="personalizado"){
+  const di=document.getElementById("fechaDesdeFinanzas")?.value,ha=document.getElementById("fechaHastaFinanzas")?.value;
+  if(!di||!ha)return null;
+  desde=new Date(di+"T00:00:00");hasta=new Date(ha+"T00:00:00");hasta.setDate(hasta.getDate()+1);
+  if(hasta<=desde)return null;
+  texto=`${desde.toLocaleDateString("es-PR")} – ${new Date(hasta.getTime()-1).toLocaleDateString("es-PR")}`
+ }else{desde=new Date(ahora.getFullYear(),ahora.getMonth(),1);hasta=new Date(ahora.getFullYear(),ahora.getMonth()+1,1);texto="Este mes"}
+ return {desde,hasta,texto}
+}
+function datosFinanzas(){
+ const lim=limitesFinanzas();if(!lim)return null;
+ const enRango=f=>{const d=new Date(f);return !Number.isNaN(d.getTime())&&d>=lim.desde&&d<lim.hasta};
+ const vv=ventas.filter(v=>enRango(v.fecha));
+ const gg=gastos.filter(g=>enRango(g.fecha||g.fechaLocal));
+ const ventasTotal=vv.reduce((t,v)=>t+Number(v.ingreso||0),0);
+ const costo=vv.reduce((t,v)=>t+Number(v.costoTotal||0),0);
+ const bruta=ventasTotal-costo;
+ const gastosTotal=gg.reduce((t,g)=>t+Number(g.cantidad||0),0);
+ const neta=bruta-gastosTotal;
+ const inventario=productos.reduce((t,p)=>t+Number(p.cantidad||0)*Number(p.costo||0),0);
+ const porCobrar=ventas.reduce((t,v)=>t+Math.max(0,Number(v.saldoPendiente||0)),0);
+ const porPagar=ordenesCompra.filter(o=>o.estado==="recibida").reduce((t,o)=>t+saldoOrdenProveedor(o),0);
+ const activos=inventario+porCobrar,patrimonio=activos-porPagar;
+ const mov=movimientosFlujoCaja().filter(m=>enRango(m.fecha));
+ const entradas=mov.filter(m=>m.tipo==="entrada").reduce((t,m)=>t+m.cantidad,0);
+ const salidas=mov.filter(m=>m.tipo==="salida").reduce((t,m)=>t+m.cantidad,0);
+ return {lim,ventasTotal,costo,bruta,gastosTotal,neta,inventario,porCobrar,porPagar,activos,patrimonio,entradas,salidas,flujo:entradas-salidas}
+}
+function cambiarPeriodoFinanzas(){
+ const p=document.getElementById("periodoFinanzas").value==="personalizado";
+ document.getElementById("rangoPersonalizadoFinanzas").classList.toggle("oculto",!p);actualizarFinanzas()
+}
+function actualizarFinanzas(){
+ const d=datosFinanzas();if(!d)return;
+ document.getElementById("textoPeriodoFinanzas").value=d.lim.texto;
+ const money=(id,n)=>document.getElementById(id).textContent="$"+Number(n).toFixed(2);
+ money("finInventario",d.inventario);money("finPorCobrar",d.porCobrar);money("finActivos",d.activos);money("finPorPagar",d.porPagar);money("finPatrimonio",d.patrimonio);
+ money("finVentas",d.ventasTotal);money("finCosto",d.costo);money("finBruta",d.bruta);money("finGastos",d.gastosTotal);money("finNeta",d.neta);
+ money("finEntradas",d.entradas);money("finSalidas",d.salidas);money("finFlujoNeto",d.flujo);
+ document.getElementById("finPatrimonio").style.color=d.patrimonio<0?"#d93025":"#0a84ff";
+ document.getElementById("finNeta").style.color=d.neta<0?"#d93025":"#168044";
+ document.getElementById("finFlujoNeto").style.color=d.flujo<0?"#d93025":"#168044";
+ document.getElementById("finMargenBruto").textContent=(d.ventasTotal?d.bruta/d.ventasTotal*100:0).toFixed(1)+"%";
+ document.getElementById("finMargenNeto").textContent=(d.ventasTotal?d.neta/d.ventasTotal*100:0).toFixed(1)+"%";
+ document.getElementById("finRelacion").textContent=d.porPagar>0?(d.porCobrar/d.porPagar).toFixed(2)+"x":(d.porCobrar>0?"Sin deuda":"—")
+}
+function mostrarFinanzas(){
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");
+ document.getElementById("vistaFinanzas").style.display="block";actualizarMenu("finanzas");actualizarFinanzas();scrollTop()
+}
+function imprimirFinanzas(){
+ const d=datosFinanzas();if(!d)return alert("Selecciona un período válido.");
+ const pct=n=>(d.ventasTotal?n/d.ventasTotal*100:0).toFixed(1)+"%";
+ const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Estado financiero</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{margin-bottom:4px}h2{margin-top:28px}p{color:#666}.fila{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #ddd}.fila strong{white-space:nowrap}.print{margin-top:24px;padding:12px 18px}@media print{.print{display:none}}</style></head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo estimado</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
+ const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el estado financiero.");w.document.write(html);w.document.close()
 }
 
 function datosCentroAlertas(){
@@ -1229,8 +1345,8 @@ function actualizarEstadisticas(){
  const conteo={};historial.forEach(m=>{const id=m.productoId;if(!conteo[id])conteo[id]={nombre:m.nombre,movimientos:0};conteo[id].movimientos++});const rm=Object.values(conteo).sort((a,b)=>b.movimientos-a.movimientos).slice(0,5);document.getElementById("rankingMovimientos").innerHTML=rm.length?rm.map(x=>`<div class="fila-estadistica"><span>${escapeHtml(x.nombre)}</span><strong>${x.movimientos} movimiento(s)</strong></div>`).join(""):`<div class="fila-estadistica"><span>No hay movimientos.</span><strong>—</strong></div>`;
  const bajos=productos.filter(p=>Number(p.cantidad)<=Number(p.stockMinimo??5));document.getElementById("rankingStockBajo").innerHTML=bajos.length?bajos.map(p=>`<div class="fila-estadistica"><span>${escapeHtml(p.nombre)}</span><strong>${p.cantidad} / ${Number(p.stockMinimo??5)}</strong></div>`).join(""):`<div class="fila-estadistica"><span>Todo el inventario está por encima del mínimo.</span><strong>✓ OK</strong></div>`
 }
-function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonEstadisticas"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";if(sec!=="cuentasPagar")document.getElementById("vistaCuentasPagar").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",cuentasPagar:"botonCuentasPagar",flujoCaja:"botonFlujoCaja",estadisticas:"botonEstadisticas"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo")}
-function mostrarInventario(){document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";document.getElementById("vistaFlujoCaja").style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
+function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonEstadisticas"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";if(sec!=="cuentasPagar")document.getElementById("vistaCuentasPagar").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",cuentasPagar:"botonCuentasPagar",flujoCaja:"botonFlujoCaja",finanzas:"botonFinanzas",estadisticas:"botonEstadisticas"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo")}
+function mostrarInventario(){document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";document.getElementById("vistaFlujoCaja").style.display="none";document.getElementById("vistaFinanzas").style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
 function scrollTop(){window.scrollTo({top:0,behavior:"smooth"})}
 document.addEventListener("visibilitychange",()=>{
  if(document.visibilityState==="visible"){
@@ -1273,7 +1389,7 @@ document.getElementById("modalPagoProveedor").addEventListener("click",e=>{if(e.
 document.getElementById("modalHistorialPagosProveedor").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarHistorialPagosProveedor()});
 document.getElementById("modalEditarMovimiento").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarEditarMovimiento()});
 
-recalcularSaldos();mostrarProductos();actualizarResumenHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarFlujoCaja();actualizarEstadisticas();
+recalcularSaldos();mostrarProductos();actualizarResumenHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarFlujoCaja();actualizarFinanzas();actualizarEstadisticas();
 </script>
 </body>
 </html>
