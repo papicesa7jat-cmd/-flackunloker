@@ -13,29 +13,22 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 .logo{width:72px;height:72px;margin:auto;border-radius:20px;background:linear-gradient(135deg,#0a84ff,#0055cc);box-shadow:0 10px 25px rgba(10,132,255,.25)}
 .titulo{margin:15px 0 5px;font-size:28px;font-weight:700}.subtitulo{margin:0;color:#777;font-size:15px}
 .resumen{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:22px}
-.tarjeta{background:#fff;border-radius:18px;padding:18px;box-shadow:0 5px 20px rgba(0,0,0,.06)}
-.tarjeta span{display:block;color:#777;font-size:13px;margin-bottom:8px}.tarjeta strong{font-size:24px}.tarjeta.valor{grid-column:1/-1}.tarjeta.valor strong{color:#0a84ff}
-.alerta-inventario{display:none;background:#fff7e8;border:1px solid #ffd27a;border-radius:18px;padding:16px;margin-bottom:20px;box-shadow:0 5px 20px rgba(0,0,0,.05)}
-.alerta-inventario.visible{display:block}.alerta-titulo{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;color:#a15c00;margin-bottom:10px}.alerta-titulo span{font-size:20px}
-.alerta-descripcion{color:#795000;font-size:13px;margin-bottom:12px}.producto-alerta{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #f0d99d}.producto-alerta-info{min-width:0}.producto-alerta-info strong{display:block;font-size:14px}.producto-alerta-info small{display:block;color:#876c3e;margin-top:3px;font-size:12px}.producto-alerta-cantidad{font-weight:700;white-space:nowrap;color:#a15c00}
+.tarjeta,.producto,.movimiento,.lista-estadisticas,.respaldo-box,.estadistica-card,.tarjeta-historial{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06)}
+.tarjeta{padding:18px}.tarjeta span,.estadistica-card span,.tarjeta-historial span{display:block;color:#777;font-size:13px;margin-bottom:8px}.tarjeta strong{font-size:24px}.tarjeta.valor{grid-column:1/-1}.tarjeta.valor strong{color:#0a84ff}
+.alerta-inventario{display:none;background:#fff7e8;border:1px solid #ffd27a;border-radius:18px;padding:16px;margin-bottom:20px}.alerta-inventario.visible{display:block}.alerta-titulo{display:flex;gap:8px;font-size:16px;font-weight:700;color:#a15c00;margin-bottom:10px}.alerta-descripcion{color:#795000;font-size:13px;margin-bottom:12px}.producto-alerta{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #f0d99d}.producto-alerta-info strong{display:block;font-size:14px}.producto-alerta-info small{display:block;color:#876c3e;margin-top:3px;font-size:12px}.producto-alerta-cantidad{font-weight:700;white-space:nowrap;color:#a15c00}
 .busqueda,.busqueda-historial{width:100%;border:0;outline:none;background:#fff;border-radius:15px;padding:15px 17px;font-size:15px;box-shadow:0 5px 20px rgba(0,0,0,.06)}.busqueda{margin-bottom:20px}.busqueda-historial{margin-bottom:12px}
-.seccion-titulo{display:flex;justify-content:space-between;align-items:center;margin:20px 0 12px}.seccion-titulo h2{margin:0;font-size:20px}
-.boton-agregar{border:0;background:#0a84ff;color:#fff;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}.boton-agregar:hover{opacity:.9}
-.producto{background:#fff;border-radius:18px;padding:17px;margin-bottom:12px;box-shadow:0 5px 20px rgba(0,0,0,.06)}
-.producto-superior{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.producto-info{min-width:0}.producto-info h3{margin:0 0 5px;font-size:16px}.producto-info p{margin:0;color:#777;font-size:13px}
-.cantidad{background:#eaf4ff;color:#0a84ff;padding:8px 11px;border-radius:10px;font-weight:700;white-space:nowrap}.cantidad.stock-bajo{background:#fff7e8;color:#a15c00}.cantidad.sin-stock{background:#ffecec;color:#d93025}
-.producto-precio{margin-top:12px;color:#555;font-size:14px}.producto-precio strong{color:#111}.aviso-producto{margin-top:10px;padding:10px;border-radius:10px;background:#fff7e8;color:#a15c00;font-size:13px;font-weight:600}.aviso-producto.sin-stock{background:#ffecec;color:#d93025}
+.seccion-titulo{display:flex;justify-content:space-between;align-items:center;margin:20px 0 12px}.seccion-titulo h2{margin:0;font-size:20px}.boton-agregar{border:0;background:#0a84ff;color:#fff;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}
+.producto{padding:17px;margin-bottom:12px}.producto-superior,.movimiento-superior{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.producto-info,.movimiento-info{min-width:0}.producto-info h3,.movimiento-info h3{margin:0 0 5px;font-size:16px}.producto-info p,.movimiento-info p{margin:0;color:#777;font-size:13px}.cantidad{background:#eaf4ff;color:#0a84ff;padding:8px 11px;border-radius:10px;font-weight:700;white-space:nowrap}.cantidad.stock-bajo{background:#fff7e8;color:#a15c00}.cantidad.sin-stock{background:#ffecec;color:#d93025}.producto-precio{margin-top:12px;color:#555;font-size:14px}.producto-precio strong{color:#111}.aviso-producto{margin-top:10px;padding:10px;border-radius:10px;background:#fff7e8;color:#a15c00;font-size:13px;font-weight:600}.aviso-producto.sin-stock{background:#ffecec;color:#d93025}
 .acciones{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:14px}.accion{border:0;border-radius:10px;padding:9px 5px;font-size:12px;font-weight:600;cursor:pointer}.entrada{background:#e9f8ef;color:#168044}.salida{background:#fff1e8;color:#c45b19}.editar{background:#eaf4ff;color:#0a84ff}.eliminar{background:#ffecec;color:#d93025}
 .sin-productos{text-align:center;color:#777;padding:30px 15px;background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06)}
-.resumen-historial{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:15px}.tarjeta-historial{background:#fff;border-radius:15px;padding:14px 10px;text-align:center;box-shadow:0 5px 20px rgba(0,0,0,.06)}.tarjeta-historial span{display:block;font-size:11px;color:#777;margin-bottom:7px}.tarjeta-historial strong{font-size:20px}.tarjeta-historial.entradas strong{color:#168044}.tarjeta-historial.salidas strong{color:#c45b19}
+.resumen-historial{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:15px}.tarjeta-historial{padding:14px 10px;text-align:center}.tarjeta-historial strong{font-size:20px}.tarjeta-historial.entradas strong{color:#168044}.tarjeta-historial.salidas strong{color:#c45b19}
 .filtros-historial{display:flex;gap:8px;margin-bottom:15px}.filtro-historial{flex:1;border:0;border-radius:12px;padding:11px 8px;background:#eee;color:#555;font-weight:600;cursor:pointer}.filtro-historial.activo{background:#0a84ff;color:#fff}.boton-borrar-historial{width:100%;border:0;background:#ffecec;color:#d93025;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:15px}
-.movimiento{background:#fff;border-radius:18px;padding:17px;margin-bottom:12px;box-shadow:0 5px 20px rgba(0,0,0,.06)}.movimiento-superior{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.movimiento-info{min-width:0}.movimiento-info h3{margin:0 0 5px;font-size:16px}.movimiento-info p{margin:0;color:#777;font-size:13px}.movimiento-tipo{padding:8px 11px;border-radius:10px;font-weight:700;white-space:nowrap;font-size:13px}.movimiento-tipo.entrada{background:#e9f8ef;color:#168044}.movimiento-tipo.salida{background:#fff1e8;color:#c45b19}.movimiento-detalle{margin-top:12px;color:#555;font-size:13px;line-height:1.7}.saldo-movimiento{margin-top:8px;padding-top:8px;border-top:1px solid #eee}.saldo-movimiento strong{color:#0a84ff}
-.estadisticas-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:15px}.estadistica-card{background:#fff;border-radius:18px;padding:18px;box-shadow:0 5px 20px rgba(0,0,0,.06)}.estadistica-card span{display:block;color:#777;font-size:12px;margin-bottom:8px}.estadistica-card strong{font-size:24px}.estadistica-card.ancha{grid-column:1/-1}.estadistica-card.azul strong{color:#0a84ff}.estadistica-card.positiva strong{color:#168044}.estadistica-card.negativa strong{color:#c45b19}
-.lista-estadisticas{background:#fff;border-radius:18px;padding:17px;margin-bottom:12px;box-shadow:0 5px 20px rgba(0,0,0,.06)}.lista-estadisticas h3{margin:0 0 12px;font-size:16px}.fila-estadistica{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-top:1px solid #eee;font-size:13px}.fila-estadistica:first-child{border-top:0}.fila-estadistica span{color:#555}.fila-estadistica strong{color:#0a84ff;white-space:nowrap}
-.respaldo-box{background:#fff;border-radius:18px;padding:18px;margin-bottom:15px;box-shadow:0 5px 20px rgba(0,0,0,.06)}.respaldo-box h3{margin:0 0 8px;font-size:18px}.respaldo-box p{margin:0 0 15px;color:#777;font-size:13px;line-height:1.6}.botones-respaldo{display:grid;grid-template-columns:1fr 1fr;gap:10px}.boton-respaldo{border:0;border-radius:12px;padding:13px 10px;font-size:14px;font-weight:700;cursor:pointer}.boton-crear-respaldo{background:#eaf4ff;color:#0a84ff}.boton-restaurar-respaldo{background:#e9f8ef;color:#168044}.estado-respaldo{margin-top:12px;padding:11px;border-radius:10px;background:#f4f7fb;color:#555;font-size:12px;display:none}.estado-respaldo.visible{display:block}
-.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;padding:20px;align-items:center;justify-content:center}.modal.visible{display:flex}.formulario{width:100%;max-width:480px;max-height:90vh;overflow-y:auto;background:#fff;border-radius:22px;padding:22px;box-shadow:0 15px 40px rgba(0,0,0,.2)}.formulario h2{margin:0 0 20px;font-size:22px}.campo{margin-bottom:15px}.campo label{display:block;font-size:13px;font-weight:600;margin-bottom:7px}.campo input{width:100%;border:1px solid #ddd;outline:none;border-radius:12px;padding:13px;font-size:15px}.campo input:focus{border-color:#0a84ff}.ayuda-campo{display:block;margin-top:6px;color:#777;font-size:11px;line-height:1.5}.botones-formulario{display:flex;gap:10px;margin-top:20px}.boton-cancelar,.boton-guardar{flex:1;border:0;border-radius:12px;padding:13px;font-size:15px;font-weight:600;cursor:pointer}.boton-cancelar{background:#eee;color:#333}.boton-guardar{background:#0a84ff;color:#fff}.mensaje-movimiento{margin:0 0 18px;padding:12px;border-radius:12px;background:#eaf4ff;color:#0a84ff;font-size:14px}
+.movimiento{padding:17px;margin-bottom:12px}.movimiento-tipo{padding:8px 11px;border-radius:10px;font-weight:700;white-space:nowrap;font-size:13px}.movimiento-tipo.entrada{background:#e9f8ef;color:#168044}.movimiento-tipo.salida{background:#fff1e8;color:#c45b19}.movimiento-detalle{margin-top:12px;color:#555;font-size:13px;line-height:1.7}.saldo-movimiento{margin-top:8px;padding-top:8px;border-top:1px solid #eee}.saldo-movimiento strong{color:#0a84ff}.acciones-movimiento{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-movimiento-editar,.boton-movimiento-eliminar{border:0;border-radius:10px;padding:9px;font-size:12px;font-weight:700;cursor:pointer}.boton-movimiento-editar{background:#eaf4ff;color:#0a84ff}.boton-movimiento-eliminar{background:#ffecec;color:#d93025}
+.estadisticas-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:15px}.estadistica-card{padding:18px}.estadistica-card strong{font-size:24px}.estadistica-card.ancha{grid-column:1/-1}.estadistica-card.azul strong{color:#0a84ff}.estadistica-card.positiva strong{color:#168044}.estadistica-card.negativa strong{color:#c45b19}.lista-estadisticas{padding:17px;margin-bottom:12px}.lista-estadisticas h3{margin:0 0 12px;font-size:16px}.fila-estadistica{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid #eee;font-size:13px}.fila-estadistica:first-child{border-top:0}.fila-estadistica span{color:#555}.fila-estadistica strong{color:#0a84ff;white-space:nowrap}
+.respaldo-box{padding:18px;margin-bottom:15px}.respaldo-box h3{margin:0 0 8px;font-size:18px}.respaldo-box p{margin:0 0 15px;color:#777;font-size:13px;line-height:1.6}.botones-respaldo{display:grid;grid-template-columns:1fr 1fr;gap:10px}.boton-respaldo{border:0;border-radius:12px;padding:13px 10px;font-size:14px;font-weight:700;cursor:pointer}.boton-crear-respaldo{background:#eaf4ff;color:#0a84ff}.boton-restaurar-respaldo{background:#e9f8ef;color:#168044}.estado-respaldo{margin-top:12px;padding:11px;border-radius:10px;background:#f4f7fb;color:#555;font-size:12px;display:none}.estado-respaldo.visible{display:block}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;padding:20px;align-items:center;justify-content:center}.modal.visible{display:flex}.formulario{width:100%;max-width:480px;max-height:90vh;overflow-y:auto;background:#fff;border-radius:22px;padding:22px;box-shadow:0 15px 40px rgba(0,0,0,.2)}.formulario h2{margin:0 0 20px;font-size:22px}.campo{margin-bottom:15px}.campo label{display:block;font-size:13px;font-weight:600;margin-bottom:7px}.campo input,.campo select{width:100%;border:1px solid #ddd;outline:none;border-radius:12px;padding:13px;font-size:15px;background:#fff}.campo input:focus,.campo select:focus{border-color:#0a84ff}.ayuda-campo{display:block;margin-top:6px;color:#777;font-size:11px;line-height:1.5}.botones-formulario{display:flex;gap:10px;margin-top:20px}.boton-cancelar,.boton-guardar{flex:1;border:0;border-radius:12px;padding:13px;font-size:15px;font-weight:600;cursor:pointer}.boton-cancelar{background:#eee;color:#333}.boton-guardar{background:#0a84ff;color:#fff}.mensaje-movimiento{margin:0 0 18px;padding:12px;border-radius:12px;background:#eaf4ff;color:#0a84ff;font-size:14px}
 .menu{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #eee;padding:12px 8px;display:flex;justify-content:center;gap:20px;z-index:500}.menu button{border:0;background:none;font-size:12px;color:#777;cursor:pointer;padding:5px}.menu .activo{color:#0a84ff;font-weight:700}
-@media(max-width:430px){.acciones{grid-template-columns:repeat(2,1fr)}.menu{gap:8px}.menu button{font-size:11px}.botones-respaldo{grid-template-columns:1fr}}
+@media(max-width:430px){.acciones{grid-template-columns:repeat(2,1fr)}.menu{gap:8px}.menu button{font-size:11px}.botones-respaldo{grid-template-columns:1fr}.estadisticas-grid{grid-template-columns:1fr}.estadistica-card.ancha{grid-column:auto}}
 </style>
 </head>
 <body>
@@ -48,7 +41,7 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <div class="tarjeta"><span>Unidades</span><strong id="totalUnidades">0</strong></div>
 <div class="tarjeta valor"><span>Valor del inventario</span><strong id="valorInventario">$0.00</strong></div>
 </div>
-<div class="alerta-inventario" id="alertaInventario"><div class="alerta-titulo"><span>⚠️</span>Inventario bajo</div><div class="alerta-descripcion">Los siguientes productos están en su stock mínimo o por debajo.</div><div id="listaAlertas"></div></div>
+<div class="alerta-inventario" id="alertaInventario"><div class="alerta-titulo">⚠️ Inventario bajo</div><div class="alerta-descripcion">Los siguientes productos están en su stock mínimo o por debajo.</div><div id="listaAlertas"></div></div>
 <input id="busqueda" class="busqueda" type="search" placeholder="Buscar producto...">
 <div class="seccion-titulo"><h2>Inventario</h2><button class="boton-agregar" onclick="abrirFormulario()">+ Agregar</button></div>
 <div id="listaProductos"></div>
@@ -84,16 +77,7 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <div class="lista-estadisticas"><h3>🔄 Productos con más movimientos</h3><div id="rankingMovimientos"></div></div>
 <div class="lista-estadisticas"><h3>⚠️ Productos con stock bajo</h3><div id="rankingStockBajo"></div></div>
 <div class="seccion-titulo"><h2>💾 Datos</h2></div>
-<div class="respaldo-box">
-<h3>Respaldo y restauración</h3>
-<p>Guarda una copia de tus productos, stock mínimo e historial para poder recuperarlos posteriormente.</p>
-<div class="botones-respaldo">
-<button class="boton-respaldo boton-crear-respaldo" onclick="crearRespaldo()">💾 Crear respaldo</button>
-<button class="boton-respaldo boton-restaurar-respaldo" onclick="seleccionarRespaldo()">📥 Restaurar respaldo</button>
-</div>
-<input id="archivoRespaldo" type="file" accept=".json,application/json" style="display:none" onchange="restaurarRespaldo(event)">
-<div id="estadoRespaldo" class="estado-respaldo"></div>
-</div>
+<div class="respaldo-box"><h3>Respaldo y restauración</h3><p>Guarda una copia de tus productos, stock mínimo e historial para poder recuperarlos posteriormente.</p><div class="botones-respaldo"><button class="boton-respaldo boton-crear-respaldo" onclick="crearRespaldo()">💾 Crear respaldo</button><button class="boton-respaldo boton-restaurar-respaldo" onclick="seleccionarRespaldo()">📥 Restaurar respaldo</button></div><input id="archivoRespaldo" type="file" accept=".json,application/json" style="display:none" onchange="restaurarRespaldo(event)"><div id="estadoRespaldo" class="estado-respaldo"></div></div>
 </div>
 </div>
 
@@ -102,8 +86,8 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <h2 id="tituloFormulario">Agregar producto</h2>
 <div class="campo"><label for="nombre">Nombre del producto</label><input id="nombre" type="text" placeholder="Ej. Camisa azul" required></div>
 <div class="campo"><label for="sku">SKU</label><input id="sku" type="text" placeholder="Ej. FLK-001" required></div>
-<div class="campo"><label for="cantidadProducto">Cantidad</label><input id="cantidadProducto" type="number" min="0" placeholder="Ej. 10" required></div>
-<div class="campo"><label for="precio">Precio</label><input id="precio" type="number" min="0" step="0.01" placeholder="Ej. 25.00" required></div>
+<div class="campo"><label for="cantidadProducto">Cantidad</label><input id="cantidadProducto" type="number" min="0" step="1" required></div>
+<div class="campo"><label for="precio">Precio</label><input id="precio" type="number" min="0" step="0.01" required></div>
 <div class="campo"><label for="stockMinimo">Stock mínimo</label><input id="stockMinimo" type="number" min="0" step="1" value="5" required><small class="ayuda-campo">Se mostrará una alerta cuando el inventario llegue a este número o menos.</small></div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarFormulario()">Cancelar</button><button type="submit" class="boton-guardar">Guardar</button></div>
 </form>
@@ -111,10 +95,19 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 
 <div class="modal" id="modalMovimiento">
 <form class="formulario" id="formularioMovimiento">
-<h2 id="tituloMovimiento">Movimiento</h2>
-<p class="mensaje-movimiento" id="textoMovimiento">Movimiento de inventario</p>
-<div class="campo"><label for="cantidadMovimiento">Cantidad</label><input id="cantidadMovimiento" type="number" min="1" step="1" placeholder="Ej. 5" required></div>
+<h2 id="tituloMovimiento">Movimiento</h2><p class="mensaje-movimiento" id="textoMovimiento">Movimiento de inventario</p>
+<div class="campo"><label for="cantidadMovimiento">Cantidad</label><input id="cantidadMovimiento" type="number" min="1" step="1" required></div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarMovimiento()">Cancelar</button><button type="submit" class="boton-guardar">Confirmar</button></div>
+</form>
+</div>
+
+<div class="modal" id="modalEditarMovimiento">
+<form class="formulario" id="formularioEditarMovimiento">
+<h2>Editar movimiento</h2>
+<p class="mensaje-movimiento" id="textoEditarMovimiento">Corrige el tipo o la cantidad del movimiento.</p>
+<div class="campo"><label for="tipoMovimientoEditar">Tipo</label><select id="tipoMovimientoEditar"><option value="entrada">Entrada</option><option value="salida">Salida</option></select></div>
+<div class="campo"><label for="cantidadMovimientoEditar">Cantidad</label><input id="cantidadMovimientoEditar" type="number" min="1" step="1" required></div>
+<div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarEditarMovimiento()">Cancelar</button><button type="submit" class="boton-guardar">Guardar cambios</button></div>
 </form>
 </div>
 
@@ -129,187 +122,164 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 let productos=JSON.parse(localStorage.getItem("flackunloker_productos"))||[];
 let historial=JSON.parse(localStorage.getItem("flackunloker_historial"))||[];
 productos.forEach(p=>{if(p.stockMinimo===undefined||p.stockMinimo===null||p.stockMinimo==="")p.stockMinimo=5});
-let productoEditando=null,productoMovimiento=null,tipoMovimiento=null,filtroHistorialActual="todos";
+let productoEditando=null,productoMovimiento=null,tipoMovimiento=null,movimientoEditandoId=null,filtroHistorialActual="todos";
 
 function guardarDatos(){localStorage.setItem("flackunloker_productos",JSON.stringify(productos))}
 function guardarHistorial(){localStorage.setItem("flackunloker_historial",JSON.stringify(historial))}
+function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 
 function abrirFormulario(){
- mostrarInventario();productoEditando=null;
- document.getElementById("tituloFormulario").textContent="Agregar producto";
- document.getElementById("formularioProducto").reset();
- document.getElementById("stockMinimo").value=5;
- document.getElementById("modalProducto").classList.add("visible");
- document.getElementById("nombre").focus();
+ mostrarInventario();productoEditando=null;document.getElementById("tituloFormulario").textContent="Agregar producto";document.getElementById("formularioProducto").reset();document.getElementById("stockMinimo").value=5;document.getElementById("modalProducto").classList.add("visible");document.getElementById("nombre").focus()
 }
 function editarProducto(id){
  const p=productos.find(x=>x.id===id);if(!p)return;
  productoEditando=id;document.getElementById("tituloFormulario").textContent="Editar producto";
- document.getElementById("nombre").value=p.nombre;document.getElementById("sku").value=p.sku;
- document.getElementById("cantidadProducto").value=p.cantidad;document.getElementById("precio").value=p.precio;
- document.getElementById("stockMinimo").value=Number(p.stockMinimo??5);
- document.getElementById("modalProducto").classList.add("visible");
+ document.getElementById("nombre").value=p.nombre;document.getElementById("sku").value=p.sku;document.getElementById("cantidadProducto").value=p.cantidad;document.getElementById("precio").value=p.precio;document.getElementById("stockMinimo").value=Number(p.stockMinimo??5);document.getElementById("modalProducto").classList.add("visible")
 }
 function cerrarFormulario(){document.getElementById("modalProducto").classList.remove("visible");document.getElementById("formularioProducto").reset();productoEditando=null}
 
 document.getElementById("formularioProducto").addEventListener("submit",e=>{
  e.preventDefault();
- const nombre=document.getElementById("nombre").value.trim(),sku=document.getElementById("sku").value.trim();
- const cantidad=Number(document.getElementById("cantidadProducto").value),precio=Number(document.getElementById("precio").value),stockMinimo=Number(document.getElementById("stockMinimo").value);
- if(!nombre||!sku){alert("Completa el nombre y el SKU.");return}
- if(cantidad<0||precio<0||stockMinimo<0){alert("La cantidad, el precio y el stock mínimo no pueden ser negativos.");return}
- if(!Number.isInteger(stockMinimo)){alert("El stock mínimo debe ser un número entero.");return}
- if(productoEditando!==null){
-  const p=productos.find(x=>x.id===productoEditando);
-  if(p){p.nombre=nombre;p.sku=sku;p.cantidad=cantidad;p.precio=precio;p.stockMinimo=stockMinimo}
- }else{
-  productos.push({id:Date.now(),nombre,sku,cantidad,precio,stockMinimo});
- }
- guardarDatos();mostrarProductos();actualizarEstadisticas();cerrarFormulario();
+ const nombre=document.getElementById("nombre").value.trim(),sku=document.getElementById("sku").value.trim(),cantidad=Number(document.getElementById("cantidadProducto").value),precio=Number(document.getElementById("precio").value),stockMinimo=Number(document.getElementById("stockMinimo").value);
+ if(!nombre||!sku)return alert("Completa el nombre y el SKU.");
+ if(cantidad<0||precio<0||stockMinimo<0||!Number.isInteger(stockMinimo))return alert("Revisa los valores introducidos.");
+ if(productoEditando!==null){const p=productos.find(x=>x.id===productoEditando);if(p){p.nombre=nombre;p.sku=sku;p.cantidad=cantidad;p.precio=precio;p.stockMinimo=stockMinimo}}
+ else productos.push({id:Date.now(),nombre,sku,cantidad,precio,stockMinimo});
+ guardarDatos();mostrarProductos();actualizarEstadisticas();cerrarFormulario()
 });
 
 function abrirMovimiento(id,tipo){
- const p=productos.find(x=>x.id===id);if(!p)return;
- productoMovimiento=id;tipoMovimiento=tipo;
+ const p=productos.find(x=>x.id===id);if(!p)return;productoMovimiento=id;tipoMovimiento=tipo;
  document.getElementById("tituloMovimiento").textContent=tipo==="entrada"?"Entrada de mercancía":"Salida de mercancía";
  document.getElementById("textoMovimiento").textContent=(tipo==="entrada"?"Agregar unidades a: ":"Retirar unidades de: ")+p.nombre;
- document.getElementById("cantidadMovimiento").value="";
- document.getElementById("modalMovimiento").classList.add("visible");document.getElementById("cantidadMovimiento").focus();
+ document.getElementById("cantidadMovimiento").value="";document.getElementById("modalMovimiento").classList.add("visible");document.getElementById("cantidadMovimiento").focus()
 }
 function cerrarMovimiento(){document.getElementById("modalMovimiento").classList.remove("visible");document.getElementById("formularioMovimiento").reset();productoMovimiento=null;tipoMovimiento=null}
 
 document.getElementById("formularioMovimiento").addEventListener("submit",e=>{
- e.preventDefault();
- const cantidad=Number(document.getElementById("cantidadMovimiento").value);
- if(!Number.isInteger(cantidad)||cantidad<=0){alert("Introduce una cantidad válida.");return}
- const p=productos.find(x=>x.id===productoMovimiento);if(!p){cerrarMovimiento();return}
- let nuevoSaldo=Number(p.cantidad);
- if(tipoMovimiento==="entrada")nuevoSaldo+=cantidad;
- if(tipoMovimiento==="salida"){
-  if(cantidad>Number(p.cantidad)){alert("No puedes retirar más unidades de las que existen en inventario.");return}
-  nuevoSaldo-=cantidad;
- }
- p.cantidad=nuevoSaldo;
- historial.unshift({id:Date.now(),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:tipoMovimiento,cantidad,saldo:nuevoSaldo,fecha:new Date().toISOString()});
- guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();actualizarEstadisticas();cerrarMovimiento();
+ e.preventDefault();const cantidad=Number(document.getElementById("cantidadMovimiento").value);
+ if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
+ const p=productos.find(x=>x.id===productoMovimiento);if(!p)return cerrarMovimiento();
+ let nuevo=Number(p.cantidad);
+ if(tipoMovimiento==="entrada")nuevo+=cantidad;
+ else{if(cantidad>nuevo)return alert("No puedes retirar más unidades de las que existen en inventario.");nuevo-=cantidad}
+ p.cantidad=nuevo;
+ historial.unshift({id:Date.now(),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:tipoMovimiento,cantidad,saldo:nuevo,fecha:new Date().toISOString()});
+ guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();cerrarMovimiento()
 });
 
 function eliminarProducto(id){
  if(!confirm("¿Quieres eliminar este producto?"))return;
- productos=productos.filter(p=>p.id!==id);guardarDatos();mostrarProductos();actualizarEstadisticas();
+ productos=productos.filter(p=>p.id!==id);guardarDatos();mostrarProductos();actualizarEstadisticas()
 }
 
 function mostrarProductos(){
  const lista=document.getElementById("listaProductos"),q=document.getElementById("busqueda").value.toLowerCase().trim();
- const filtrados=productos.filter(p=>String(p.nombre||"").toLowerCase().includes(q)||String(p.sku||"").toLowerCase().includes(q));
- lista.innerHTML="";
- if(!filtrados.length){
-  lista.innerHTML=`<div class="sin-productos">${productos.length===0?"No hay productos todavía.<br>Presiona + Agregar para comenzar.":"No encontramos productos con esa búsqueda."}</div>`;
- }else{
-  filtrados.forEach(p=>{
-   const minimo=Number(p.stockMinimo??5),cantidad=Number(p.cantidad);
-   let clase="cantidad";if(cantidad===0)clase+=" sin-stock";else if(cantidad<=minimo)clase+=" stock-bajo";
-   let aviso="";if(cantidad===0)aviso='<div class="aviso-producto sin-stock">🔴 Sin stock</div>';else if(cantidad<=minimo)aviso=`<div class="aviso-producto">⚠️ Inventario bajo · Mínimo: ${minimo}</div>`;
-   const el=document.createElement("div");el.className="producto";
-   el.innerHTML=`<div class="producto-superior"><div class="producto-info"><h3>${escapeHtml(p.nombre)}</h3><p>SKU: ${escapeHtml(p.sku)}</p></div><div class="${clase}">${cantidad}</div></div>
-   <div class="producto-precio">Precio: <strong>$${Number(p.precio).toFixed(2)}</strong> &nbsp;·&nbsp; Valor: <strong>$${(cantidad*Number(p.precio)).toFixed(2)}</strong></div>${aviso}
-   <div class="acciones"><button class="accion entrada" onclick="abrirMovimiento(${p.id},'entrada')">+ Entrada</button><button class="accion salida" onclick="abrirMovimiento(${p.id},'salida')">− Salida</button><button class="accion editar" onclick="editarProducto(${p.id})">✏️ Editar</button><button class="accion eliminar" onclick="eliminarProducto(${p.id})">🗑️ Eliminar</button></div>`;
-   lista.appendChild(el);
-  });
- }
- actualizarResumen();actualizarAlertasInventario();
+ const arr=productos.filter(p=>String(p.nombre||"").toLowerCase().includes(q)||String(p.sku||"").toLowerCase().includes(q));lista.innerHTML="";
+ if(!arr.length){lista.innerHTML=`<div class="sin-productos">${productos.length?"No encontramos productos con esa búsqueda.":"No hay productos todavía.<br>Presiona + Agregar para comenzar."}</div>`}
+ else arr.forEach(p=>{
+  const c=Number(p.cantidad),min=Number(p.stockMinimo??5),el=document.createElement("div");el.className="producto";
+  const clase=c===0?"cantidad sin-stock":c<=min?"cantidad stock-bajo":"cantidad";
+  const aviso=c===0?'<div class="aviso-producto sin-stock">🔴 Sin stock</div>':c<=min?`<div class="aviso-producto">⚠️ Inventario bajo · Mínimo: ${min}</div>`:"";
+  el.innerHTML=`<div class="producto-superior"><div class="producto-info"><h3>${escapeHtml(p.nombre)}</h3><p>SKU: ${escapeHtml(p.sku)}</p></div><div class="${clase}">${c}</div></div><div class="producto-precio">Precio: <strong>$${Number(p.precio).toFixed(2)}</strong> &nbsp;·&nbsp; Valor: <strong>$${(c*Number(p.precio)).toFixed(2)}</strong></div>${aviso}<div class="acciones"><button class="accion entrada" onclick="abrirMovimiento(${p.id},'entrada')">+ Entrada</button><button class="accion salida" onclick="abrirMovimiento(${p.id},'salida')">− Salida</button><button class="accion editar" onclick="editarProducto(${p.id})">✏️ Editar</button><button class="accion eliminar" onclick="eliminarProducto(${p.id})">🗑️ Eliminar</button></div>`;
+  lista.appendChild(el)
+ });
+ actualizarResumen();actualizarAlertasInventario()
 }
-function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
-
 function actualizarResumen(){
  const unidades=productos.reduce((t,p)=>t+Number(p.cantidad),0),valor=productos.reduce((t,p)=>t+Number(p.cantidad)*Number(p.precio),0);
- document.getElementById("totalProductos").textContent=productos.length;document.getElementById("totalUnidades").textContent=unidades;document.getElementById("valorInventario").textContent="$"+valor.toFixed(2);
+ document.getElementById("totalProductos").textContent=productos.length;document.getElementById("totalUnidades").textContent=unidades;document.getElementById("valorInventario").textContent="$"+valor.toFixed(2)
 }
 function actualizarAlertasInventario(){
- const alerta=document.getElementById("alertaInventario"),lista=document.getElementById("listaAlertas");
- const bajos=productos.filter(p=>Number(p.cantidad)<=Number(p.stockMinimo??5));lista.innerHTML="";
- if(!bajos.length){alerta.classList.remove("visible");return}
- alerta.classList.add("visible");
- bajos.forEach(p=>{const el=document.createElement("div");el.className="producto-alerta";const minimo=Number(p.stockMinimo??5);el.innerHTML=`<div class="producto-alerta-info"><strong>${escapeHtml(p.nombre)}</strong><small>SKU: ${escapeHtml(p.sku)} · Mínimo: ${minimo}</small></div><div class="producto-alerta-cantidad">${Number(p.cantidad)===0?"🔴 Sin stock":p.cantidad+" unidades"}</div>`;lista.appendChild(el)})
+ const bajos=productos.filter(p=>Number(p.cantidad)<=Number(p.stockMinimo??5)),box=document.getElementById("alertaInventario"),lista=document.getElementById("listaAlertas");
+ if(!bajos.length){box.classList.remove("visible");lista.innerHTML="";return}
+ box.classList.add("visible");lista.innerHTML=bajos.map(p=>`<div class="producto-alerta"><div class="producto-alerta-info"><strong>${escapeHtml(p.nombre)}</strong><small>SKU: ${escapeHtml(p.sku)} · Mínimo: ${Number(p.stockMinimo??5)}</small></div><div class="producto-alerta-cantidad">${Number(p.cantidad)===0?"🔴 Sin stock":p.cantidad+" unidades"}</div></div>`).join("")
 }
 document.getElementById("busqueda").addEventListener("input",mostrarProductos);
 
 function mostrarHistorial(){
- document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="block";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("historial");actualizarResumenHistorial();mostrarListaHistorial();scrollTop();
+ document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="block";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("historial");actualizarResumenHistorial();mostrarListaHistorial();scrollTop()
 }
 function actualizarResumenHistorial(){
  const entradas=historial.reduce((t,m)=>m.tipo==="entrada"?t+Number(m.cantidad):t,0),salidas=historial.reduce((t,m)=>m.tipo==="salida"?t+Number(m.cantidad):t,0);
- document.getElementById("totalMovimientos").textContent=historial.length;document.getElementById("totalEntradas").textContent=entradas;document.getElementById("totalSalidas").textContent=salidas;
+ document.getElementById("totalMovimientos").textContent=historial.length;document.getElementById("totalEntradas").textContent=entradas;document.getElementById("totalSalidas").textContent=salidas
 }
 function mostrarListaHistorial(){
  const lista=document.getElementById("listaHistorial"),q=document.getElementById("busquedaHistorial").value.toLowerCase().trim();
  const arr=historial.filter(m=>(String(m.nombre||"").toLowerCase().includes(q)||String(m.sku||"").toLowerCase().includes(q))&&(filtroHistorialActual==="todos"||m.tipo===filtroHistorialActual));lista.innerHTML="";
- if(!arr.length){lista.innerHTML=`<div class="sin-productos">${historial.length===0?"No hay movimientos registrados todavía.":"No encontramos movimientos con esos filtros."}</div>`;return}
+ if(!arr.length){lista.innerHTML=`<div class="sin-productos">${historial.length?"No encontramos movimientos con esos filtros.":"No hay movimientos registrados todavía."}</div>`;return}
  arr.forEach(m=>{
-  const el=document.createElement("div");el.className="movimiento";const f=new Date(m.fecha),es=m.tipo==="entrada",saldo=m.saldo!==undefined&&m.saldo!==null?Number(m.saldo):"No disponible";
-  el.innerHTML=`<div class="movimiento-superior"><div class="movimiento-info"><h3>${escapeHtml(m.nombre)}</h3><p>SKU: ${escapeHtml(m.sku)}</p></div><div class="movimiento-tipo ${es?"entrada":"salida"}">${es?"＋ Entrada":"− Salida"}</div></div><div class="movimiento-detalle">Cantidad: <strong>${m.cantidad}</strong> &nbsp;·&nbsp; ${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}<div class="saldo-movimiento">Saldo después del movimiento: <strong>${saldo}</strong></div></div>`;
-  lista.appendChild(el);
- });
+  const el=document.createElement("div");el.className="movimiento";const f=new Date(m.fecha),entrada=m.tipo==="entrada";
+  const saldo=m.saldo!==undefined&&m.saldo!==null?Number(m.saldo):"No disponible";
+  el.innerHTML=`<div class="movimiento-superior"><div class="movimiento-info"><h3>${escapeHtml(m.nombre)}</h3><p>SKU: ${escapeHtml(m.sku)}</p></div><div class="movimiento-tipo ${entrada?"entrada":"salida"}">${entrada?"＋ Entrada":"− Salida"}</div></div><div class="movimiento-detalle">Cantidad: <strong>${Number(m.cantidad)}</strong> &nbsp;·&nbsp; ${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}<div class="saldo-movimiento">Saldo después del movimiento: <strong>${saldo}</strong></div></div><div class="acciones-movimiento"><button class="boton-movimiento-editar" onclick="abrirEditarMovimiento(${m.id})">✏️ Editar movimiento</button><button class="boton-movimiento-eliminar" onclick="eliminarMovimiento(${m.id})">🗑️ Eliminar movimiento</button></div>`;
+  lista.appendChild(el)
+ })
 }
-function filtrarHistorial(tipo){
- filtroHistorialActual=tipo;
- ["filtroTodos","filtroEntradas","filtroSalidas"].forEach(id=>document.getElementById(id).classList.remove("activo"));
- document.getElementById(tipo==="todos"?"filtroTodos":tipo==="entrada"?"filtroEntradas":"filtroSalidas").classList.add("activo");mostrarListaHistorial();
-}
+function filtrarHistorial(tipo){filtroHistorialActual=tipo;["filtroTodos","filtroEntradas","filtroSalidas"].forEach(id=>document.getElementById(id).classList.remove("activo"));document.getElementById(tipo==="todos"?"filtroTodos":tipo==="entrada"?"filtroEntradas":"filtroSalidas").classList.add("activo");mostrarListaHistorial()}
 document.getElementById("busquedaHistorial").addEventListener("input",mostrarListaHistorial);
+
+function obtenerProductoMovimiento(m){return productos.find(p=>p.id===m.productoId)}
+function ajustarStockPorMovimiento(m,signo){const p=obtenerProductoMovimiento(m);if(!p)return false;p.cantidad=Number(p.cantidad)+(m.tipo==="entrada"?signo*Number(m.cantidad):-signo*Number(m.cantidad));return p.cantidad>=0}
+function recalcularSaldos(){
+ const porProducto={};
+ const orden=[...historial].sort((a,b)=>new Date(a.fecha)-new Date(b.fecha)||Number(a.id)-Number(b.id));
+ const bases={};
+ productos.forEach(p=>{let neto=0;historial.filter(m=>m.productoId===p.id).forEach(m=>neto+=m.tipo==="entrada"?Number(m.cantidad):-Number(m.cantidad));bases[p.id]=Number(p.cantidad)-neto;porProducto[p.id]=bases[p.id]});
+ orden.forEach(m=>{if(porProducto[m.productoId]===undefined)porProducto[m.productoId]=0;porProducto[m.productoId]+=m.tipo==="entrada"?Number(m.cantidad):-Number(m.cantidad);m.saldo=porProducto[m.productoId]});
+}
+function abrirEditarMovimiento(id){
+ const m=historial.find(x=>x.id===id);if(!m)return;movimientoEditandoId=id;
+ document.getElementById("tipoMovimientoEditar").value=m.tipo;document.getElementById("cantidadMovimientoEditar").value=Number(m.cantidad);document.getElementById("textoEditarMovimiento").textContent=`${m.nombre} · SKU: ${m.sku}`;document.getElementById("modalEditarMovimiento").classList.add("visible")
+}
+function cerrarEditarMovimiento(){document.getElementById("modalEditarMovimiento").classList.remove("visible");document.getElementById("formularioEditarMovimiento").reset();movimientoEditandoId=null}
+document.getElementById("formularioEditarMovimiento").addEventListener("submit",e=>{
+ e.preventDefault();const m=historial.find(x=>x.id===movimientoEditandoId);if(!m)return;
+ const p=obtenerProductoMovimiento(m),nuevoTipo=document.getElementById("tipoMovimientoEditar").value,nuevaCantidad=Number(document.getElementById("cantidadMovimientoEditar").value);
+ if(!p||!Number.isInteger(nuevaCantidad)||nuevaCantidad<=0)return alert("Introduce una cantidad válida.");
+ const stockActual=Number(p.cantidad),efectoAnterior=m.tipo==="entrada"?Number(m.cantidad):-Number(m.cantidad),efectoNuevo=nuevoTipo==="entrada"?nuevaCantidad:-nuevaCantidad,resultado=stockActual-efectoAnterior+efectoNuevo;
+ if(resultado<0)return alert("Ese cambio dejaría el inventario en negativo.");
+ p.cantidad=resultado;m.tipo=nuevoTipo;m.cantidad=nuevaCantidad;m.nombre=p.nombre;m.sku=p.sku;m.fecha=m.fecha||new Date().toISOString();
+ recalcularSaldos();guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();cerrarEditarMovimiento();alert("Movimiento actualizado correctamente.")
+});
+function eliminarMovimiento(id){
+ const m=historial.find(x=>x.id===id);if(!m)return;
+ const p=obtenerProductoMovimiento(m);if(!p)return alert("El producto de este movimiento ya no existe.");
+ const efecto=m.tipo==="entrada"?Number(m.cantidad):-Number(m.cantidad),resultado=Number(p.cantidad)-efecto;
+ if(resultado<0)return alert("No se puede eliminar este movimiento porque dejaría el inventario en negativo.");
+ if(!confirm(`¿Eliminar el movimiento de ${m.nombre}?\n\nEl inventario se ajustará automáticamente.`))return;
+ p.cantidad=resultado;historial=historial.filter(x=>x.id!==id);recalcularSaldos();guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas()
+}
 function borrarHistorial(){
- if(!historial.length){alert("No hay movimientos para borrar.");return}
- if(!confirm("¿Quieres borrar todo el historial de movimientos?\n\nEsta acción no cambiará las cantidades del inventario."))return;
- historial=[];guardarHistorial();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();
+ if(!historial.length)return alert("No hay movimientos para borrar.");
+ if(!confirm("¿Quieres borrar todo el historial?\n\nEsta acción NO cambiará las cantidades del inventario."))return;
+ historial=[];guardarHistorial();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas()
 }
 
-function mostrarEstadisticas(){
- document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaEstadisticas").style.display="block";actualizarMenu("estadisticas");actualizarEstadisticas();scrollTop();
-}
+function mostrarEstadisticas(){document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaEstadisticas").style.display="block";actualizarMenu("estadisticas");actualizarEstadisticas();scrollTop()}
 function actualizarEstadisticas(){
- const entradas=historial.reduce((t,m)=>m.tipo==="entrada"?t+Number(m.cantidad):t,0),salidas=historial.reduce((t,m)=>m.tipo==="salida"?t+Number(m.cantidad):t,0);
- const valor=productos.reduce((t,p)=>t+Number(p.cantidad)*Number(p.precio),0);
+ const entradas=historial.reduce((t,m)=>m.tipo==="entrada"?t+Number(m.cantidad):t,0),salidas=historial.reduce((t,m)=>m.tipo==="salida"?t+Number(m.cantidad):t,0),valor=productos.reduce((t,p)=>t+Number(p.cantidad)*Number(p.precio),0);
  document.getElementById("estadisticaMovimientos").textContent=historial.length;document.getElementById("estadisticaEntradas").textContent=entradas;document.getElementById("estadisticaSalidas").textContent=salidas;document.getElementById("estadisticaBalance").textContent=entradas-salidas;document.getElementById("estadisticaValor").textContent="$"+valor.toFixed(2);
- const rp=[...productos].sort((a,b)=>Number(b.cantidad)-Number(a.cantidad)).slice(0,5);
- document.getElementById("rankingProductos").innerHTML=rp.length?rp.map(p=>`<div class="fila-estadistica"><span>${escapeHtml(p.nombre)}</span><strong>${p.cantidad}</strong></div>`).join(""):`<div class="fila-estadistica"><span>No hay productos.</span><strong>—</strong></div>`;
- const conteo={};historial.forEach(m=>{const id=m.productoId;if(!conteo[id])conteo[id]={nombre:m.nombre,movimientos:0};conteo[id].movimientos++});
- const rm=Object.values(conteo).sort((a,b)=>b.movimientos-a.movimientos).slice(0,5);
- document.getElementById("rankingMovimientos").innerHTML=rm.length?rm.map(x=>`<div class="fila-estadistica"><span>${escapeHtml(x.nombre)}</span><strong>${x.movimientos} movimiento(s)</strong></div>`).join(""):`<div class="fila-estadistica"><span>No hay movimientos.</span><strong>—</strong></div>`;
- const bajos=productos.filter(p=>Number(p.cantidad)<=Number(p.stockMinimo??5));
- document.getElementById("rankingStockBajo").innerHTML=bajos.length?bajos.map(p=>`<div class="fila-estadistica"><span>${escapeHtml(p.nombre)}</span><strong>${p.cantidad} / ${Number(p.stockMinimo??5)}</strong></div>`).join(""):`<div class="fila-estadistica"><span>Todo el inventario está por encima del mínimo.</span><strong>✓ OK</strong></div>`;
+ const rp=[...productos].sort((a,b)=>Number(b.cantidad)-Number(a.cantidad)).slice(0,5);document.getElementById("rankingProductos").innerHTML=rp.length?rp.map(p=>`<div class="fila-estadistica"><span>${escapeHtml(p.nombre)}</span><strong>${p.cantidad}</strong></div>`).join(""):`<div class="fila-estadistica"><span>No hay productos.</span><strong>—</strong></div>`;
+ const conteo={};historial.forEach(m=>{const id=m.productoId;if(!conteo[id])conteo[id]={nombre:m.nombre,movimientos:0};conteo[id].movimientos++});const rm=Object.values(conteo).sort((a,b)=>b.movimientos-a.movimientos).slice(0,5);document.getElementById("rankingMovimientos").innerHTML=rm.length?rm.map(x=>`<div class="fila-estadistica"><span>${escapeHtml(x.nombre)}</span><strong>${x.movimientos} movimiento(s)</strong></div>`).join(""):`<div class="fila-estadistica"><span>No hay movimientos.</span><strong>—</strong></div>`;
+ const bajos=productos.filter(p=>Number(p.cantidad)<=Number(p.stockMinimo??5));document.getElementById("rankingStockBajo").innerHTML=bajos.length?bajos.map(p=>`<div class="fila-estadistica"><span>${escapeHtml(p.nombre)}</span><strong>${p.cantidad} / ${Number(p.stockMinimo??5)}</strong></div>`).join(""):`<div class="fila-estadistica"><span>Todo el inventario está por encima del mínimo.</span><strong>✓ OK</strong></div>`
 }
-
-function actualizarMenu(sec){
- ["botonInventario","botonHistorial","botonEstadisticas"].forEach(id=>document.getElementById(id).classList.remove("activo"));
- document.getElementById(sec==="inventario"?"botonInventario":sec==="historial"?"botonHistorial":"botonEstadisticas").classList.add("activo");
-}
+function actualizarMenu(sec){["botonInventario","botonHistorial","botonEstadisticas"].forEach(id=>document.getElementById(id).classList.remove("activo"));document.getElementById(sec==="inventario"?"botonInventario":sec==="historial"?"botonHistorial":"botonEstadisticas").classList.add("activo")}
 function mostrarInventario(){document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
 function scrollTop(){window.scrollTo({top:0,behavior:"smooth"})}
 
 function mostrarEstadoRespaldo(m){const e=document.getElementById("estadoRespaldo");e.textContent=m;e.classList.add("visible")}
-function crearRespaldo(){
- const datos={aplicacion:"Flackunloker",version:"1.0",fecha:new Date().toISOString(),productos,historial};
- const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a"),fecha=new Date().toISOString().replace(/[:.]/g,"-");
- a.href=url;a.download="flackunloker-respaldo-"+fecha+".json";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);mostrarEstadoRespaldo("✅ Respaldo creado correctamente.");
-}
+function crearRespaldo(){const datos={aplicacion:"Flackunloker",version:"1.1",fecha:new Date().toISOString(),productos,historial};const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a"),fecha=new Date().toISOString().replace(/[:.]/g,"-");a.href=url;a.download="flackunloker-respaldo-"+fecha+".json";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);mostrarEstadoRespaldo("✅ Respaldo creado correctamente.")}
 function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
 function restaurarRespaldo(event){
  const archivo=event.target.files[0];if(!archivo)return;const lector=new FileReader();
- lector.onload=()=>{try{
-  const datos=JSON.parse(lector.result);
-  if(!datos||datos.aplicacion!=="Flackunloker"){alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");return}
-  if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial)){alert("El respaldo está incompleto o dañado.");return}
-  if(!confirm("¿Quieres restaurar este respaldo?\n\nLos productos y el historial actuales serán reemplazados por los datos del respaldo."))return;
-  productos=datos.productos;historial=datos.historial;productos.forEach(p=>{if(p.stockMinimo===undefined||p.stockMinimo===null)p.stockMinimo=5});
-  guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();mostrarEstadoRespaldo("✅ Respaldo restaurado correctamente.");alert("Respaldo restaurado correctamente.");
- }catch(err){console.error(err);alert("No se pudo leer el respaldo. Comprueba que el archivo sea válido.")}finally{event.target.value=""}}
- lector.readAsText(archivo);
+ lector.onload=()=>{try{const datos=JSON.parse(lector.result);if(!datos||datos.aplicacion!=="Flackunloker")return alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial))return alert("El respaldo está incompleto o dañado.");if(!confirm("¿Quieres restaurar este respaldo?\n\nLos productos y el historial actuales serán reemplazados por los datos del respaldo."))return;productos=datos.productos;historial=datos.historial;productos.forEach(p=>{if(p.stockMinimo===undefined||p.stockMinimo===null)p.stockMinimo=5});recalcularSaldos();guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();mostrarEstadoRespaldo("✅ Respaldo restaurado correctamente.");alert("Respaldo restaurado correctamente.")}catch(err){console.error(err);alert("No se pudo leer el respaldo. Comprueba que el archivo sea válido.")}finally{event.target.value=""}};lector.readAsText(archivo)
 }
 
 document.getElementById("modalProducto").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarFormulario()});
 document.getElementById("modalMovimiento").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarMovimiento()});
+document.getElementById("modalEditarMovimiento").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarEditarMovimiento()});
 
-guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();actualizarEstadisticas();
+recalcularSaldos();guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();actualizarEstadisticas();
 </script>
 </body>
 </html>
