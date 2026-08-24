@@ -57,7 +57,7 @@
     }
 
     /* =========================
-       RESUMEN
+       RESUMEN INVENTARIO
     ========================= */
 
     .resumen {
@@ -94,27 +94,73 @@
     }
 
     /* =========================
-       ALERTA INVENTARIO
+       ALERTA INVENTARIO BAJO
     ========================= */
 
     .alerta-inventario {
       display: none;
-      background: #fff4d6;
-      color: #8a5a00;
-      border: 1px solid #f1d58a;
-      border-radius: 15px;
-      padding: 14px;
-      margin-bottom: 18px;
-      font-size: 14px;
-      font-weight: 600;
+      background: #fff7e8;
+      border: 1px solid #ffd27a;
+      border-radius: 18px;
+      padding: 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, .05);
     }
 
     .alerta-inventario.visible {
       display: block;
     }
 
-    .alerta-inventario strong {
-      color: #6f4600;
+    .alerta-titulo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #a15c00;
+      margin-bottom: 10px;
+    }
+
+    .alerta-titulo span {
+      font-size: 20px;
+    }
+
+    .alerta-descripcion {
+      color: #795000;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    .producto-alerta {
+      background: #fff;
+      border-radius: 12px;
+      padding: 11px 12px;
+      margin-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .producto-alerta-info {
+      min-width: 0;
+    }
+
+    .producto-alerta-info strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .producto-alerta-info small {
+      color: #777;
+      font-size: 12px;
+    }
+
+    .producto-alerta-cantidad {
+      color: #c45b19;
+      font-weight: 700;
+      font-size: 13px;
+      white-space: nowrap;
     }
 
     /* =========================
@@ -183,14 +229,8 @@
       box-shadow: 0 5px 20px rgba(0, 0, 0, .06);
     }
 
-    .producto-bajo {
-      border: 1px solid #f1d58a;
-      background: #fffdf7;
-    }
-
-    .producto-agotado {
-      border: 1px solid #efb4b4;
-      background: #fff8f8;
+    .producto.producto-bajo {
+      border: 1px solid #ffd27a;
     }
 
     .producto-superior {
@@ -224,14 +264,9 @@
       white-space: nowrap;
     }
 
-    .cantidad.baja {
-      background: #fff4d6;
-      color: #a66b00;
-    }
-
-    .cantidad.agotada {
-      background: #ffecec;
-      color: #d93025;
+    .cantidad.bajo {
+      background: #fff1e8;
+      color: #c45b19;
     }
 
     .producto-precio {
@@ -244,25 +279,15 @@
       color: #111;
     }
 
-    .producto-stock {
+    .stock-minimo {
       margin-top: 8px;
+      font-size: 12px;
       color: #777;
-      font-size: 12px;
     }
 
-    .alerta-producto {
-      margin-top: 10px;
-      padding: 9px 11px;
-      border-radius: 10px;
-      background: #fff4d6;
-      color: #8a5a00;
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    .alerta-agotado {
-      background: #ffecec;
-      color: #d93025;
+    .stock-minimo.alerta {
+      color: #c45b19;
+      font-weight: 700;
     }
 
     /* =========================
@@ -319,7 +344,7 @@
     }
 
     /* =========================
-       HISTORIAL
+       RESUMEN HISTORIAL
     ========================= */
 
     .resumen-historial {
@@ -357,7 +382,7 @@
     }
 
     /* =========================
-       FILTROS
+       FILTROS HISTORIAL
     ========================= */
 
     .filtros-historial {
@@ -714,12 +739,34 @@
       </div>
 
 
-      <!-- ALERTA GENERAL -->
+      <!-- =========================
+           ALERTA STOCK BAJO
+      ========================= -->
 
       <div
         id="alertaInventario"
         class="alerta-inventario"
-      ></div>
+      >
+
+        <div class="alerta-titulo">
+
+          <span>⚠️</span>
+
+          <span>
+            Inventario bajo
+          </span>
+
+        </div>
+
+
+        <div class="alerta-descripcion">
+          Los siguientes productos están en su mínimo o por debajo:
+        </div>
+
+
+        <div id="listaAlertas"></div>
+
+      </div>
 
 
       <input
@@ -894,7 +941,7 @@
         <input
           id="nombre"
           type="text"
-          placeholder="Ej. Teléfono"
+          placeholder="Ej. Camisa azul"
           required
         >
 
@@ -927,8 +974,25 @@
           id="cantidadProducto"
           type="number"
           min="0"
-          step="1"
-          placeholder="Ej. 15"
+          placeholder="Ej. 10"
+          required
+        >
+
+      </div>
+
+
+      <div class="campo">
+
+        <label for="precio">
+          Precio
+        </label>
+
+        <input
+          id="precio"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Ej. 25.00"
           required
         >
 
@@ -951,26 +1015,8 @@
         >
 
         <small class="ayuda-campo">
-          Se mostrará una alerta cuando el inventario llegue a este número.
+          Se mostrará una alerta cuando el inventario llegue a esta cantidad o menos.
         </small>
-
-      </div>
-
-
-      <div class="campo">
-
-        <label for="precio">
-          Precio
-        </label>
-
-        <input
-          id="precio"
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="Ej. 25.00"
-          required
-        >
 
       </div>
 
@@ -1124,26 +1170,13 @@
       ) || [];
 
 
-    let productoEditando = null;
-
-    let productoMovimiento = null;
-
-    let tipoMovimiento = null;
-
-    let filtroHistorialActual = "todos";
-
-
     /*
-       Para productos antiguos que todavía
-       no tienen stock mínimo, utilizamos 5.
+       Los productos creados anteriormente
+       pueden no tener stockMinimo.
+
+       En ese caso usamos 5 como mínimo
+       predeterminado.
     */
-
-    const STOCK_MINIMO_POR_DEFECTO = 5;
-
-
-    /* =========================
-       NORMALIZAR PRODUCTOS
-    ========================= */
 
     productos.forEach(
       function(producto) {
@@ -1151,18 +1184,24 @@
         if (
           producto.stockMinimo === undefined ||
           producto.stockMinimo === null ||
-          Number.isNaN(
-            Number(producto.stockMinimo)
-          )
+          producto.stockMinimo === ""
         ) {
 
-          producto.stockMinimo =
-            STOCK_MINIMO_POR_DEFECTO;
+          producto.stockMinimo = 5;
 
         }
 
       }
     );
+
+
+    let productoEditando = null;
+
+    let productoMovimiento = null;
+
+    let tipoMovimiento = null;
+
+    let filtroHistorialActual = "todos";
 
 
     /* =========================
@@ -1187,14 +1226,6 @@
       );
 
     }
-
-
-    /*
-       Guardamos inmediatamente los valores
-       normalizados de productos antiguos.
-    */
-
-    guardarDatos();
 
 
     /* =========================
@@ -1227,8 +1258,7 @@
         .getElementById(
           "stockMinimo"
         )
-        .value =
-        STOCK_MINIMO_POR_DEFECTO;
+        .value = 5;
 
 
       document
@@ -1305,21 +1335,18 @@
 
       document
         .getElementById(
-          "stockMinimo"
-        )
-        .value =
-        Number(
-          producto.stockMinimo ??
-          STOCK_MINIMO_POR_DEFECTO
-        );
-
-
-      document
-        .getElementById(
           "precio"
         )
         .value =
         producto.precio;
+
+
+      document
+        .getElementById(
+          "stockMinimo"
+        )
+        .value =
+        producto.stockMinimo ?? 5;
 
 
       document
@@ -1395,21 +1422,21 @@
             );
 
 
-          const stockMinimo =
-            Number(
-              document
-                .getElementById(
-                  "stockMinimo"
-                )
-                .value
-            );
-
-
           const precio =
             Number(
               document
                 .getElementById(
                   "precio"
+                )
+                .value
+            );
+
+
+          const stockMinimo =
+            Number(
+              document
+                .getElementById(
+                  "stockMinimo"
                 )
                 .value
             );
@@ -1428,12 +1455,12 @@
 
           if (
             cantidad < 0 ||
-            stockMinimo < 0 ||
-            precio < 0
+            precio < 0 ||
+            stockMinimo < 0
           ) {
 
             alert(
-              "La cantidad, el stock mínimo y el precio no pueden ser negativos."
+              "La cantidad, el precio y el stock mínimo no pueden ser negativos."
             );
 
             return;
@@ -1443,15 +1470,12 @@
 
           if (
             !Number.isInteger(
-              cantidad
-            ) ||
-            !Number.isInteger(
               stockMinimo
             )
           ) {
 
             alert(
-              "La cantidad y el stock mínimo deben ser números enteros."
+              "El stock mínimo debe ser un número entero."
             );
 
             return;
@@ -1487,11 +1511,11 @@
               producto.cantidad =
                 cantidad;
 
-              producto.stockMinimo =
-                stockMinimo;
-
               producto.precio =
                 precio;
+
+              producto.stockMinimo =
+                stockMinimo;
 
             }
 
@@ -1501,20 +1525,16 @@
 
               id: Date.now(),
 
-              nombre:
-                nombre,
+              nombre: nombre,
 
-              sku:
-                sku,
+              sku: sku,
 
-              cantidad:
-                cantidad,
+              cantidad: cantidad,
+
+              precio: precio,
 
               stockMinimo:
-                stockMinimo,
-
-              precio:
-                precio
+                stockMinimo
 
             };
 
@@ -1719,14 +1739,10 @@
           }
 
 
-          const saldoAnterior =
+          let nuevoSaldo =
             Number(
               producto.cantidad
             );
-
-
-          let nuevoSaldo =
-            saldoAnterior;
 
 
           if (
@@ -1747,7 +1763,7 @@
 
             if (
               cantidad >
-              saldoAnterior
+              producto.cantidad
             ) {
 
               alert(
@@ -1771,8 +1787,7 @@
 
           const movimiento = {
 
-            id:
-              Date.now(),
+            id: Date.now(),
 
             productoId:
               producto.id,
@@ -1792,14 +1807,8 @@
             saldo:
               nuevoSaldo,
 
-            saldoAnterior:
-              saldoAnterior,
-
             fecha:
-              new Date().toISOString(),
-
-            inicial:
-              false
+              new Date().toISOString()
 
           };
 
@@ -1814,10 +1823,6 @@
           guardarHistorial();
 
           mostrarProductos();
-
-          actualizarResumenHistorial();
-
-          mostrarListaHistorial();
 
           cerrarMovimiento();
 
@@ -1864,51 +1869,6 @@
 
 
     /* =========================
-       ESTADO INVENTARIO
-    ========================= */
-
-    function obtenerEstadoInventario(
-      producto
-    ) {
-
-      const cantidad =
-        Number(
-          producto.cantidad
-        );
-
-
-      const stockMinimo =
-        Number(
-          producto.stockMinimo ??
-          STOCK_MINIMO_POR_DEFECTO
-        );
-
-
-      if (
-        cantidad === 0
-      ) {
-
-        return "agotado";
-
-      }
-
-
-      if (
-        cantidad <=
-        stockMinimo
-      ) {
-
-        return "bajo";
-
-      }
-
-
-      return "normal";
-
-    }
-
-
-    /* =========================
        MOSTRAR PRODUCTOS
     ========================= */
 
@@ -1934,30 +1894,18 @@
         productos.filter(
           function(producto) {
 
-            const nombre =
-              String(
-                producto.nombre ||
-                ""
-              )
-              .toLowerCase();
-
-
-            const sku =
-              String(
-                producto.sku ||
-                ""
-              )
-              .toLowerCase();
-
-
             return (
-              nombre.includes(
-                textoBusqueda
-              )
+              producto.nombre
+                .toLowerCase()
+                .includes(
+                  textoBusqueda
+                )
               ||
-              sku.includes(
-                textoBusqueda
-              )
+              producto.sku
+                .toLowerCase()
+                .includes(
+                  textoBusqueda
+                )
             );
 
           }
@@ -1968,8 +1916,7 @@
 
 
       if (
-        productosFiltrados.length ===
-        0
+        productosFiltrados.length === 0
       ) {
 
         lista.innerHTML = `
@@ -1997,111 +1944,27 @@
               );
 
 
-            const cantidadActual =
-              Number(
-                producto.cantidad
-              );
-
-
-            const stockMinimo =
-              Number(
-                producto.stockMinimo ??
-                STOCK_MINIMO_POR_DEFECTO
-              );
-
-
-            const estado =
-              obtenerEstadoInventario(
-                producto
-              );
-
-
             elemento.className =
               "producto";
 
 
-            if (
-              estado === "bajo"
-            ) {
+            const stockMinimo =
+              Number(
+                producto.stockMinimo ?? 5
+              );
+
+
+            const stockBajo =
+              Number(
+                producto.cantidad
+              ) <= stockMinimo;
+
+
+            if (stockBajo) {
 
               elemento.classList.add(
                 "producto-bajo"
               );
-
-            }
-
-
-            if (
-              estado === "agotado"
-            ) {
-
-              elemento.classList.add(
-                "producto-agotado"
-              );
-
-            }
-
-
-            let claseCantidad =
-              "";
-
-
-            if (
-              estado === "bajo"
-            ) {
-
-              claseCantidad =
-                "baja";
-
-            }
-
-
-            if (
-              estado === "agotado"
-            ) {
-
-              claseCantidad =
-                "agotada";
-
-            }
-
-
-            let alertaProducto =
-              "";
-
-
-            if (
-              estado === "agotado"
-            ) {
-
-              alertaProducto = `
-
-                <div
-                  class="alerta-producto alerta-agotado"
-                >
-                  🔴 Sin inventario.
-                </div>
-
-              `;
-
-            }
-
-
-            if (
-              estado === "bajo"
-            ) {
-
-              alertaProducto = `
-
-                <div
-                  class="alerta-producto"
-                >
-                  ⚠️ Inventario bajo:
-                  quedan ${cantidadActual}
-                  unidades.
-                </div>
-
-              `;
 
             }
 
@@ -2124,9 +1987,15 @@
 
 
                 <div
-                  class="cantidad ${claseCantidad}"
+                  class="cantidad ${
+                    stockBajo
+                      ? "bajo"
+                      : ""
+                  }"
                 >
-                  ${cantidadActual}
+
+                  ${producto.cantidad}
+
                 </div>
 
               </div>
@@ -2148,27 +2017,31 @@
 
                 <strong>
                   $${(
-                    cantidadActual *
-                    Number(
-                      producto.precio
-                    )
+                    producto.cantidad *
+                    producto.precio
                   ).toFixed(2)}
                 </strong>
 
               </div>
 
 
-              <div class="producto-stock">
+              <div
+                class="stock-minimo ${
+                  stockBajo
+                    ? "alerta"
+                    : ""
+                }"
+              >
 
-                Stock mínimo:
-                <strong>
-                  ${stockMinimo}
-                </strong>
+                ${
+                  stockBajo
+                    ? "⚠️ Stock bajo · "
+                    : "Stock mínimo · "
+                }
+
+                ${stockMinimo}
 
               </div>
-
-
-              ${alertaProducto}
 
 
               <div class="acciones">
@@ -2220,6 +2093,8 @@
 
 
       actualizarResumen();
+
+      actualizarAlertasInventario();
 
     }
 
@@ -2303,17 +2178,14 @@
           2
         );
 
-
-      actualizarAlertaInventario();
-
     }
 
 
     /* =========================
-       ALERTA INVENTARIO
+       ALERTAS INVENTARIO
     ========================= */
 
-    function actualizarAlertaInventario() {
+    function actualizarAlertasInventario() {
 
       const alerta =
         document.getElementById(
@@ -2321,26 +2193,26 @@
         );
 
 
+      const lista =
+        document.getElementById(
+          "listaAlertas"
+        );
+
+
       const productosBajos =
         productos.filter(
           function(producto) {
 
-            const cantidad =
+            const minimo =
               Number(
-                producto.cantidad
-              );
-
-
-            const stockMinimo =
-              Number(
-                producto.stockMinimo ??
-                STOCK_MINIMO_POR_DEFECTO
+                producto.stockMinimo ?? 5
               );
 
 
             return (
-              cantidad <=
-              stockMinimo
+              Number(
+                producto.cantidad
+              ) <= minimo
             );
 
           }
@@ -2348,103 +2220,78 @@
 
 
       if (
-        productosBajos.length ===
-        0
+        productosBajos.length === 0
       ) {
 
         alerta.classList.remove(
           "visible"
         );
 
-        alerta.innerHTML = "";
+        lista.innerHTML = "";
 
         return;
 
       }
 
 
-      const agotados =
-        productosBajos.filter(
-          function(producto) {
-
-            return (
-              Number(
-                producto.cantidad
-              ) === 0
-            );
-
-          }
-        ).length;
-
-
-      const nombres =
-        productosBajos
-          .map(
-            function(producto) {
-
-              const cantidad =
-                Number(
-                  producto.cantidad
-                );
-
-
-              const stockMinimo =
-                Number(
-                  producto.stockMinimo ??
-                  STOCK_MINIMO_POR_DEFECTO
-                );
-
-
-              if (
-                cantidad === 0
-              ) {
-
-                return (
-                  "🔴 " +
-                  producto.nombre +
-                  " (agotado)"
-                );
-
-              }
-
-
-              return (
-                "⚠️ " +
-                producto.nombre +
-                " (" +
-                cantidad +
-                "/" +
-                stockMinimo +
-                ")"
-              );
-
-            }
-          )
-          .join(", ");
-
-
-      alerta.innerHTML = `
-
-        ⚠️ <strong>Alerta de inventario:</strong>
-
-        ${productosBajos.length}
-        producto(s) necesitan atención.
-
-        ${
-          agotados > 0
-            ? `<br>🔴 ${agotados} producto(s) agotado(s).`
-            : ""
-        }
-
-        <br>
-
-        ${nombres}
-
-      `;
-
-
       alerta.classList.add(
         "visible"
+      );
+
+
+      lista.innerHTML = "";
+
+
+      productosBajos.forEach(
+        function(producto) {
+
+          const minimo =
+            Number(
+              producto.stockMinimo ?? 5
+            );
+
+
+          const elemento =
+            document.createElement(
+              "div"
+            );
+
+
+          elemento.className =
+            "producto-alerta";
+
+
+          elemento.innerHTML = `
+
+            <div class="producto-alerta-info">
+
+              <strong>
+                ${producto.nombre}
+              </strong>
+
+              <small>
+                SKU: ${producto.sku}
+                · Mínimo: ${minimo}
+              </small>
+
+            </div>
+
+
+            <div class="producto-alerta-cantidad">
+
+              ${producto.cantidad}
+              unidades
+
+            </div>
+
+          `;
+
+
+          lista.appendChild(
+            elemento
+          );
+
+        }
       );
 
     }
@@ -2614,7 +2461,7 @@
 
 
     /* =========================
-       LISTA HISTORIAL
+       MOSTRAR LISTA HISTORIAL
     ========================= */
 
     function mostrarListaHistorial() {
@@ -2643,16 +2490,14 @@
               String(
                 movimiento.nombre ||
                 ""
-              )
-              .toLowerCase();
+              ).toLowerCase();
 
 
             const sku =
               String(
                 movimiento.sku ||
                 ""
-              )
-              .toLowerCase();
+              ).toLowerCase();
 
 
             const coincideTexto =
@@ -2666,10 +2511,10 @@
 
             const coincideTipo =
               filtroHistorialActual ===
-              "todos"
+                "todos"
               ||
               movimiento.tipo ===
-              filtroHistorialActual;
+                filtroHistorialActual;
 
 
             return (
@@ -2731,14 +2576,9 @@
             fecha.toLocaleDateString(
               "es-PR",
               {
-                day:
-                  "2-digit",
-
-                month:
-                  "2-digit",
-
-                year:
-                  "numeric"
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric"
               }
             );
 
@@ -2747,11 +2587,8 @@
             fecha.toLocaleTimeString(
               "es-PR",
               {
-                hour:
-                  "2-digit",
-
-                minute:
-                  "2-digit"
+                hour: "2-digit",
+                minute: "2-digit"
               }
             );
 
@@ -2871,7 +2708,7 @@
 
 
     /* =========================
-       FILTROS HISTORIAL
+       FILTROS
     ========================= */
 
     function filtrarHistorial(
@@ -2984,8 +2821,7 @@
     function borrarHistorial() {
 
       if (
-        historial.length ===
-        0
+        historial.length === 0
       ) {
 
         alert(
@@ -3062,9 +2898,6 @@
         );
 
 
-      mostrarProductos();
-
-
       window.scrollTo({
         top: 0,
         behavior: "smooth"
@@ -3120,6 +2953,8 @@
     /* =========================
        INICIAR
     ========================= */
+
+    guardarDatos();
 
     mostrarProductos();
 
