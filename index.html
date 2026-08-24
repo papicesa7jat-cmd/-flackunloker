@@ -888,6 +888,7 @@ async function mostrarAppConSesion(session){
   await cargarRolUsuario(session.user);
   await cargarInventarioSupabase();
   await cargarVentasSupabase();
+  await cargarGastosSupabase();
  }else{
   document.getElementById("authOverlay").classList.remove("oculto");
   document.getElementById("authUsuario").classList.remove("visible");
@@ -1167,6 +1168,67 @@ function cargarDatos(){
 function guardarDatos(){localStorage.setItem("flackunloker_productos",JSON.stringify(productos))}
 function guardarHistorial(){localStorage.setItem("flackunloker_historial",JSON.stringify(historial))}
 function guardarVentas(){localStorage.setItem("flackunloker_ventas",JSON.stringify(ventas))}
+
+function gastoDesdeSupabase(r){
+ return {
+  id:idLocalDesdeLegacy(r.legacy_id,r.id),
+  supabaseId:r.id,
+  concepto:r.concept||"",
+  categoria:r.category||"Otro",
+  cantidad:Number(r.amount||0),
+  metodo:r.payment_method||"Efectivo",
+  fechaLocal:r.expense_date||"",
+  fecha:(r.expense_date?r.expense_date+"T12:00:00-04:00":r.created_at),
+  nota:r.note||"",
+  creado:r.created_at
+ }
+}
+async function cargarGastosSupabase(){
+ const locales=Array.isArray(gastos)?[...gastos]:[];
+ let {data:cloud,error}=await flkSupabase.from("expenses").select("*").order("expense_date",{ascending:false}).order("created_at",{ascending:false});
+ if(error){
+  console.error("Supabase gastos:",error);
+  alert("No se pudieron cargar los gastos de Supabase. Se conserva la copia local.");
+  return false;
+ }
+
+ if(rolSesion==="admin" && locales.length){
+  const existentes=new Set((cloud||[]).map(g=>String(g.legacy_id||"")).filter(Boolean));
+  for(const g of locales){
+   const legacy=String(g.id);
+   if(existentes.has(legacy))continue;
+   const fechaLocal=g.fechaLocal||String(g.fecha||"").slice(0,10)||fechaLocalISO(new Date());
+   const {error:impErr}=await flkSupabase.rpc("flk_save_expense",{
+    p_expense_id:null,
+    p_legacy_id:legacy,
+    p_concept:g.concepto||"Gasto",
+    p_category:g.categoria||"Otro",
+    p_amount:Number(g.cantidad||0),
+    p_payment_method:g.metodo||"Efectivo",
+    p_expense_date:fechaLocal,
+    p_note:g.nota||null
+   });
+   if(impErr){
+    console.error("Migración gasto:",g.concepto,impErr);
+    alert("No se pudo migrar el gasto “"+(g.concepto||"Gasto")+"”: "+impErr.message);
+    return false;
+   }
+   existentes.add(legacy);
+  }
+  const recarga=await flkSupabase.from("expenses").select("*").order("expense_date",{ascending:false}).order("created_at",{ascending:false});
+  cloud=recarga.data; error=recarga.error;
+  if(error){console.error(error);return false}
+ }
+
+ gastos=(cloud||[]).map(gastoDesdeSupabase);
+ guardarGastos();
+ actualizarGastos();
+ actualizarResumen();
+ actualizarFlujoCaja();
+ actualizarFinanzas();
+ return true
+}
+
 function guardarGastos(){localStorage.setItem("flackunloker_gastos",JSON.stringify(gastos))}
 function guardarCierres(){localStorage.setItem("flackunloker_cierres",JSON.stringify(cierres))}
 function guardarOrdenesCompra(){localStorage.setItem("flackunloker_ordenes_compra",JSON.stringify(ordenesCompra))}
@@ -1773,14 +1835,57 @@ function abrirGasto(id=null){
  document.getElementById("modalGasto").classList.add("visible");document.getElementById("conceptoGasto").focus()
 }
 function cerrarGasto(){document.getElementById("modalGasto").classList.remove("visible");document.getElementById("formularioGasto").reset();gastoEditandoId=null}
-document.getElementById("formularioGasto").addEventListener("submit",e=>{
- e.preventDefault();const concepto=document.getElementById("conceptoGasto").value.trim(),categoria=document.getElementById("categoriaGasto").value,cantidad=Number(document.getElementById("cantidadGasto").value),metodo=document.getElementById("metodoGasto").value,fechaLocal=document.getElementById("fechaGasto").value,nota=document.getElementById("notaGasto").value.trim();
+document.getElementById("formularioGasto").addEventListener("submit",async e=>{
+ e.preventDefault();
+ if(procesandoGuardado)return;
+ const concepto=document.getElementById("conceptoGasto").value.trim(),
+       categoria=document.getElementById("categoriaGasto").value,
+       cantidad=Number(document.getElementById("cantidadGasto").value),
+       metodo=document.getElementById("metodoGasto").value,
+       fechaLocal=document.getElementById("fechaGasto").value,
+       nota=document.getElementById("notaGasto").value.trim();
  if(!concepto||!Number.isFinite(cantidad)||cantidad<=0||!fechaLocal)return alert("Completa el concepto, la cantidad y la fecha del gasto.");
- const fecha=new Date(fechaLocal+"T12:00:00").toISOString();
- if(gastoEditandoId!==null){const g=gastos.find(x=>x.id===gastoEditandoId);if(!g)return;Object.assign(g,{concepto,categoria,cantidad,metodo,fechaLocal,fecha,nota})}else gastos.unshift({id:Date.now()+Math.floor(Math.random()*100000),concepto,categoria,cantidad,metodo,fechaLocal,fecha,nota,creado:new Date().toISOString()});
- guardarGastos();actualizarGastos();actualizarResumen();cerrarGasto()
+ procesandoGuardado=true;
+ const estabaEditando=gastoEditandoId!==null;
+ try{
+  let g=null,legacy=null,supabaseId=null;
+  if(gastoEditandoId!==null){
+   g=gastos.find(x=>x.id===gastoEditandoId);
+   if(!g)return;
+   legacy=String(g.id);
+   supabaseId=g.supabaseId||null;
+  }else{
+   legacy=String(Date.now()+Math.floor(Math.random()*100000));
+  }
+  const {data,error}=await flkSupabase.rpc("flk_save_expense",{
+   p_expense_id:supabaseId,
+   p_legacy_id:legacy,
+   p_concept:concepto,
+   p_category:categoria||"Otro",
+   p_amount:cantidad,
+   p_payment_method:metodo||"Efectivo",
+   p_expense_date:fechaLocal,
+   p_note:nota||null
+  });
+  if(error)throw error;
+  await cargarGastosSupabase();
+  cerrarGasto();
+  alert(estabaEditando?"Gasto actualizado en Supabase.":"Gasto guardado en Supabase.");
+ }catch(err){
+  console.error(err);
+  alert("Supabase rechazó el gasto: "+(err.message||err));
+ }finally{procesandoGuardado=false}
 });
-function eliminarGasto(id){const g=gastos.find(x=>x.id===id);if(!g)return;if(!confirm(`¿Eliminar el gasto “${g.concepto}” por $${Number(g.cantidad).toFixed(2)}?`))return;gastos=gastos.filter(x=>x.id!==id);guardarGastos();actualizarGastos();actualizarResumen()}
+async function eliminarGasto(id){
+ const g=gastos.find(x=>x.id===id);if(!g)return;
+ if(!confirm(`¿Eliminar el gasto “${g.concepto}” por $${Number(g.cantidad).toFixed(2)}?`))return;
+ if(!g.supabaseId)return alert("Este gasto todavía no está vinculado con Supabase.");
+ try{
+  const {error}=await flkSupabase.rpc("flk_delete_expense",{p_expense_id:g.supabaseId});
+  if(error)throw error;
+  await cargarGastosSupabase();
+ }catch(err){console.error(err);alert("Supabase no permitió eliminar el gasto: "+(err.message||err))}
+}
 function fechaGastoObj(g){return new Date((g.fechaLocal||String(g.fecha||"").slice(0,10))+"T12:00:00")}
 function actualizarFiltrosGastos(){
  const cat=document.getElementById("filtroCategoriaGasto"),mes=document.getElementById("filtroMesGasto"),catPrev=cat.value,mesPrev=mes.value;
@@ -1800,7 +1905,7 @@ function mostrarListaGastos(){
  arr.forEach(g=>{const el=document.createElement("div");el.className="gasto-card";const f=fechaGastoObj(g);el.innerHTML=`<div class="gasto-superior"><div><h3>${escapeHtml(g.concepto)}</h3><p>${escapeHtml(g.categoria||"Otro")}</p></div><div class="gasto-total">-$${Number(g.cantidad||0).toFixed(2)}</div></div><div class="gasto-detalle">Método: <strong>${escapeHtml(g.metodo||"—")}</strong>${g.nota?`<br>Nota: ${escapeHtml(g.nota)}`:""}<br>Fecha: <strong>${f.toLocaleDateString("es-PR")}</strong></div><div class="acciones-gasto"><button class="boton-editar-gasto" onclick="abrirGasto(${g.id})">✏️ Editar</button><button class="boton-eliminar-gasto" onclick="eliminarGasto(${g.id})">🗑️ Eliminar</button></div>`;lista.appendChild(el)})
 }
 document.getElementById("busquedaGastos").addEventListener("input",mostrarListaGastos);
-function mostrarGastos(){document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="block";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("gastos");actualizarGastos();scrollTop()}
+async function mostrarGastos(){await cargarGastosSupabase();document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="block";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("gastos");actualizarGastos();scrollTop()}
 
 function metodoCajaClave(metodo){const m=String(metodo||"").trim().toLowerCase();if(m.includes("efectivo"))return "efectivo";if(m.includes("ath"))return "ath";if(m.includes("tarjeta"))return "tarjeta";return "otros"}
 function resumenCierreFecha(fechaLocal){
@@ -1982,7 +2087,9 @@ function actualizarFlujoCaja(){
  const lista=document.getElementById("listaFlujoCaja"),arr=[...d.mov].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
  lista.innerHTML=arr.length?arr.map(m=>`<div class="fila-estadistica"><span>${m.tipo==="entrada"?"⬇️":"⬆️"} ${escapeHtml(m.concepto)}<br><small>${new Date(m.fecha).toLocaleString("es-PR")} · ${escapeHtml(m.metodo)}</small></span><strong style="color:${m.tipo==="entrada"?"#168044":"#d93025"}">${m.tipo==="entrada"?"+":"-"}$${m.cantidad.toFixed(2)}</strong></div>`).join(""):'<div class="fila-estadistica"><span>No hay movimientos de dinero en este período.</span><strong>—</strong></div>'
 }
-function mostrarFlujoCaja(){
+async function mostrarFlujoCaja(){
+ await cargarVentasSupabase();
+ await cargarGastosSupabase();
  ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");
  document.getElementById("vistaFlujoCaja").style.display="block";actualizarMenu("flujoCaja");actualizarFlujoCaja();scrollTop()
 }
@@ -2117,6 +2224,9 @@ function mostrarInventario(){document.getElementById("vistaInventario").style.di
 function scrollTop(){window.scrollTo({top:0,behavior:"smooth"})}
 document.addEventListener("visibilitychange",()=>{
  if(document.visibilityState==="visible"){
+  if(typeof flkSupabase!=="undefined"){
+   setTimeout(async()=>{try{await cargarVentasSupabase();await cargarGastosSupabase()}catch(e){console.error(e)}},0);
+  }
   cargarDatos();
   recalcularSaldos();
   mostrarProductos();
