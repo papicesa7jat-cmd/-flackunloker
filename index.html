@@ -259,6 +259,49 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <div id="listaCuentasPagar"></div>
 </div>
 
+
+<div id="vistaFlujoCaja" style="display:none">
+<div class="seccion-titulo"><h2>💰 Flujo de caja</h2></div>
+<div class="reporte-controles">
+<p class="reporte-periodo">Muestra el dinero que realmente entró y salió del negocio según ventas cobradas, abonos de clientes, gastos y pagos a proveedores.</p>
+<div class="reporte-controles-grid">
+<div class="campo" style="margin:0"><label for="periodoFlujo">Período</label><select id="periodoFlujo" onchange="cambiarPeriodoFlujo()"><option value="hoy">Hoy</option><option value="7dias">Últimos 7 días</option><option value="mes" selected>Este mes</option><option value="personalizado">Fechas personalizadas</option></select></div>
+<div class="campo" style="margin:0"><label>Resumen</label><input id="textoPeriodoFlujo" type="text" value="Este mes" readonly></div>
+</div>
+<div id="rangoPersonalizadoFlujo" class="reporte-rango oculto">
+<div class="campo" style="margin:0"><label for="fechaDesdeFlujo">Desde</label><input id="fechaDesdeFlujo" type="date" onchange="actualizarFlujoCaja()"></div>
+<div class="campo" style="margin:0"><label for="fechaHastaFlujo">Hasta</label><input id="fechaHastaFlujo" type="date" onchange="actualizarFlujoCaja()"></div>
+</div>
+<div class="reporte-botones"><button class="boton-agregar" onclick="actualizarFlujoCaja()">🔄 Actualizar flujo</button><button class="boton-respaldo boton-crear-respaldo" onclick="imprimirFlujoCaja()">🧾 Ver / imprimir</button></div>
+</div>
+
+<div class="estadisticas-grid">
+<div class="estadistica-card ancha positiva"><span>⬇️ Entradas de dinero</span><strong id="flujoEntradas">$0.00</strong></div>
+<div class="estadistica-card ancha negativa"><span>⬆️ Salidas de dinero</span><strong id="flujoSalidas">$0.00</strong></div>
+<div class="estadistica-card ancha positiva"><span>💰 Flujo neto</span><strong id="flujoNeto">$0.00</strong></div>
+</div>
+
+<div class="lista-estadisticas"><h3>⬇️ Entradas</h3>
+<div class="fila-estadistica"><span>Ventas cobradas al momento</span><strong id="flujoVentasContado">$0.00</strong></div>
+<div class="fila-estadistica"><span>Abonos / cobros de clientes</span><strong id="flujoAbonosClientes">$0.00</strong></div>
+</div>
+
+<div class="lista-estadisticas"><h3>⬆️ Salidas</h3>
+<div class="fila-estadistica"><span>Gastos registrados</span><strong id="flujoGastos">$0.00</strong></div>
+<div class="fila-estadistica"><span>Pagos a proveedores</span><strong id="flujoPagosProveedores">$0.00</strong></div>
+</div>
+
+<div class="lista-estadisticas"><h3>💳 Flujo neto por método</h3>
+<div class="fila-estadistica"><span>💵 Efectivo</span><strong id="flujoEfectivo">$0.00</strong></div>
+<div class="fila-estadistica"><span>📱 ATH Móvil</span><strong id="flujoAth">$0.00</strong></div>
+<div class="fila-estadistica"><span>💳 Tarjeta</span><strong id="flujoTarjeta">$0.00</strong></div>
+<div class="fila-estadistica"><span>🏦 Transferencia</span><strong id="flujoTransferencia">$0.00</strong></div>
+<div class="fila-estadistica"><span>Otros métodos</span><strong id="flujoOtros">$0.00</strong></div>
+</div>
+
+<div class="lista-estadisticas"><h3>🧾 Movimientos de efectivo del período</h3><div id="listaFlujoCaja"></div></div>
+</div>
+
 <div id="vistaEstadisticas" style="display:none">
 <div class="seccion-titulo"><h2>📊 Estadísticas</h2></div>
 <div class="estadisticas-grid">
@@ -446,6 +489,7 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <button id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button>
 <button id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button>
 <button id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button>
+<button id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button>
 <button id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button>
 </div>
 
@@ -735,7 +779,7 @@ document.getElementById("formularioVenta").addEventListener("submit",e=>{
    const totalPagado=estadoSolicitado==="pagado"?ingreso:abonoInicial,saldo=Math.max(0,ingreso-totalPagado),estadoPago=saldo>0.009?"credito":"pagado";
    const pagos=estadoSolicitado==="credito"&&abonoInicial>0?[{id:Date.now()+Math.floor(Math.random()*100000),cantidad:abonoInicial,fecha,metodo:metodoPago,nota:"Abono inicial",saldoAnterior:ingreso,saldoRestante:Math.max(0,ingreso-abonoInicial)}]:[];
    ventas.unshift({id:ventaId,numero,numeroConsecutivo,items,cantidad,ingreso,costoTotal,ganancia,fecha,cliente,telefono,metodoPago,estadoPago,totalPagado,saldo,pagos,fechaVencimiento:saldo>0?fechaVencimiento:"",nota});
-   guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarClientes();actualizarEstadisticas();cerrarVenta();
+   guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarClientes();actualizarFlujoCaja();actualizarEstadisticas();cerrarVenta();
    alert(`Recibo guardado.\n\nProductos: ${items.length}\nUnidades: ${cantidad}\nTotal: $${ingreso.toFixed(2)}${saldo>0?`\nSaldo pendiente: $${saldo.toFixed(2)}`:""}`)
  }finally{procesandoGuardado=false}
 });
@@ -837,7 +881,7 @@ document.getElementById("formularioDevolucion").addEventListener("submit",e=>{
 
 function abrirAbono(id){const v=ventas.find(x=>x.id===id);if(!v)return;normalizarCuentaVenta(v);if(v.saldo<=0)return alert("Este recibo ya está pagado.");ventaAbonoId=id;const numero=v.numero||String(v.id).slice(-8);document.getElementById("textoAbono").textContent=`Recibo #${numero} · ${v.cliente||"Cliente general"}`;document.getElementById("cantidadAbono").value=Number(v.saldo).toFixed(2);document.getElementById("cantidadAbono").max=Number(v.saldo).toFixed(2);document.getElementById("ayudaAbono").textContent=`Saldo pendiente: $${Number(v.saldo).toFixed(2)}`;document.getElementById("notaAbono").value="";document.getElementById("modalAbono").classList.add("visible");document.getElementById("cantidadAbono").focus()}
 function cerrarAbono(){document.getElementById("modalAbono").classList.remove("visible");document.getElementById("formularioAbono").reset();ventaAbonoId=null}
-document.getElementById("formularioAbono").addEventListener("submit",e=>{e.preventDefault();if(procesandoGuardado)return;const v=ventas.find(x=>x.id===ventaAbonoId);if(!v)return cerrarAbono();normalizarCuentaVenta(v);const cantidad=Number(document.getElementById("cantidadAbono").value),metodo=document.getElementById("metodoAbono").value,nota=document.getElementById("notaAbono").value.trim();if(!Number.isFinite(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");if(cantidad>Number(v.saldo)+0.009)return alert(`El abono no puede superar el saldo de $${Number(v.saldo).toFixed(2)}.`);procesandoGuardado=true;try{if(!Array.isArray(v.pagos))v.pagos=[];const saldoAnterior=Number(v.saldo),saldoRestante=Math.max(0,saldoAnterior-cantidad),pago={id:Date.now()+Math.floor(Math.random()*100000),cantidad,fecha:new Date().toISOString(),metodo,nota,saldoAnterior,saldoRestante};v.pagos.push(pago);v.totalPagado=Number(v.totalPagado||0)+cantidad;normalizarCuentaVenta(v);guardarVentas();actualizarVentas();actualizarClientes();cerrarAbono();if(confirm((v.saldo<=0?"✅ Cuenta pagada completamente.":`Abono registrado.\n\nSaldo pendiente: $${Number(v.saldo).toFixed(2)}`)+"\n\n¿Quieres ver el comprobante de este abono?"))generarComprobanteAbono(v.id,pago.id)}finally{procesandoGuardado=false}});
+document.getElementById("formularioAbono").addEventListener("submit",e=>{e.preventDefault();if(procesandoGuardado)return;const v=ventas.find(x=>x.id===ventaAbonoId);if(!v)return cerrarAbono();normalizarCuentaVenta(v);const cantidad=Number(document.getElementById("cantidadAbono").value),metodo=document.getElementById("metodoAbono").value,nota=document.getElementById("notaAbono").value.trim();if(!Number.isFinite(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");if(cantidad>Number(v.saldo)+0.009)return alert(`El abono no puede superar el saldo de $${Number(v.saldo).toFixed(2)}.`);procesandoGuardado=true;try{if(!Array.isArray(v.pagos))v.pagos=[];const saldoAnterior=Number(v.saldo),saldoRestante=Math.max(0,saldoAnterior-cantidad),pago={id:Date.now()+Math.floor(Math.random()*100000),cantidad,fecha:new Date().toISOString(),metodo,nota,saldoAnterior,saldoRestante};v.pagos.push(pago);v.totalPagado=Number(v.totalPagado||0)+cantidad;normalizarCuentaVenta(v);guardarVentas();actualizarVentas();actualizarClientes();actualizarFlujoCaja();cerrarAbono();if(confirm((v.saldo<=0?"✅ Cuenta pagada completamente.":`Abono registrado.\n\nSaldo pendiente: $${Number(v.saldo).toFixed(2)}`)+"\n\n¿Quieres ver el comprobante de este abono?"))generarComprobanteAbono(v.id,pago.id)}finally{procesandoGuardado=false}});
 function verHistorialAbonos(id){const v=ventas.find(x=>x.id===id);if(!v)return;normalizarCuentaVenta(v);const pagos=[...pagosDeVenta(v)].sort((a,b)=>new Date(b.fecha||0)-new Date(a.fecha||0)||Number(b.id||0)-Number(a.id||0)),numero=v.numero||String(v.id).slice(-8);document.getElementById("textoHistorialAbonos").textContent=`Recibo #${numero} · ${v.cliente||"Cliente general"} · ${pagos.length} abono(s)`;const lista=document.getElementById("listaHistorialAbonos");lista.innerHTML=pagos.length?pagos.map((p,n)=>{const f=new Date(p.fecha);return `<div class="abono-card"><div class="abono-superior"><strong>Abono #${pagos.length-n}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}<br>Método: <strong>${escapeHtml(p.metodo||"No indicado")}</strong><br>Saldo anterior: <strong>$${Number(p.saldoAnterior??0).toFixed(2)}</strong><br>Saldo restante: <strong>$${Number(p.saldoRestante??0).toFixed(2)}</strong>${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><button type="button" class="boton-comprobante" onclick="generarComprobanteAbono(${v.id},${p.id})">🧾 Ver comprobante</button></div>`}).join(""):'<div class="sin-productos">Este recibo todavía no tiene abonos registrados.</div>';document.getElementById("modalHistorialAbonos").classList.add("visible")}
 function cerrarHistorialAbonos(){document.getElementById("modalHistorialAbonos").classList.remove("visible")}
 function generarComprobanteAbono(ventaId,pagoId){const v=ventas.find(x=>x.id===ventaId);if(!v)return;normalizarCuentaVenta(v);const pagos=pagosDeVenta(v),p=pagos.find(x=>x.id===pagoId);if(!p)return alert("No encontramos ese abono.");const numero=v.numero||String(v.id).slice(-8),indice=pagos.findIndex(x=>x.id===pagoId)+1,f=new Date(p.fecha),cliente=escapeHtml(v.cliente||"Cliente general"),telefono=escapeHtml(v.telefono||""),nota=escapeHtml(p.nota||"");const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comprobante de abono</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Arial,sans-serif;margin:0;background:#f4f7fb;color:#111}.recibo{max-width:420px;margin:24px auto;background:#fff;padding:28px;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.08)}h1{text-align:center;margin:0;font-size:26px}h2{text-align:center;margin:6px 0 24px;font-size:15px;color:#777;font-weight:500}.fila{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid #eee;font-size:14px}.total{font-size:20px;font-weight:800;color:#168044}.pie{text-align:center;color:#777;font-size:12px;margin-top:22px}.imprimir{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700;font-size:15px}@media print{body{background:#fff}.recibo{box-shadow:none;margin:0;max-width:none}.imprimir{display:none}}
@@ -1060,14 +1104,95 @@ function mostrarOrdenes(){["vistaInventario","vistaHistorial","vistaVentas","vis
 function estadoCuentaProveedor(o){const saldo=Number(o.saldoProveedor||0);if(saldo<=0.009)return {clave:"pagada",texto:"✅ Pagada"};if(o.fechaVencimientoProveedor){const hoy=new Date(fechaLocalISO(new Date())+"T00:00:00"),v=new Date(o.fechaVencimientoProveedor+"T00:00:00");if(v<hoy)return {clave:"vencida",texto:"🔴 Vencida"}}return {clave:"pendiente",texto:"⏳ Pendiente"}}
 function abrirPagoProveedor(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado!=="recibida"||Number(o.saldoProveedor||0)<=0)return;ordenPagoProveedorId=id;document.getElementById("formularioPagoProveedor").reset();document.getElementById("textoPagoProveedor").textContent=`${o.proveedor} · ${numeroOrdenCompra(o)}`;document.getElementById("cantidadPagoProveedor").max=Number(o.saldoProveedor).toFixed(2);document.getElementById("cantidadPagoProveedor").value=Number(o.saldoProveedor).toFixed(2);document.getElementById("ayudaPagoProveedor").textContent=`Saldo actual: $${Number(o.saldoProveedor).toFixed(2)}`;document.getElementById("modalPagoProveedor").classList.add("visible")}
 function cerrarPagoProveedor(){document.getElementById("modalPagoProveedor").classList.remove("visible");document.getElementById("formularioPagoProveedor").reset();ordenPagoProveedorId=null}
-document.getElementById("formularioPagoProveedor").addEventListener("submit",e=>{e.preventDefault();const o=ordenesCompra.find(x=>x.id===ordenPagoProveedorId);if(!o)return;const cantidad=Number(document.getElementById("cantidadPagoProveedor").value),saldoAnterior=Number(o.saldoProveedor||0),metodo=document.getElementById("metodoPagoCuentaProveedor").value,nota=document.getElementById("notaPagoProveedor").value.trim();if(!Number.isFinite(cantidad)||cantidad<=0||cantidad>saldoAnterior+0.009)return alert("El pago no puede ser mayor que el saldo pendiente.");if(!Array.isArray(o.pagosProveedor))o.pagosProveedor=[];const restante=Math.max(0,saldoAnterior-cantidad);o.pagosProveedor.push({id:Date.now()+Math.floor(Math.random()*100000),cantidad,fecha:new Date().toISOString(),metodo,nota,saldoAnterior,saldoRestante:restante});o.totalPagadoProveedor=Math.min(Number(o.costoTotal||0),Number(o.totalPagadoProveedor||0)+cantidad);o.saldoProveedor=restante;o.condicionPagoProveedor=restante>0.009?"credito":"pagado";if(restante<=0.009){o.saldoProveedor=0;o.fechaVencimientoProveedor=""}guardarOrdenesCompra();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();cerrarPagoProveedor()})
+document.getElementById("formularioPagoProveedor").addEventListener("submit",e=>{e.preventDefault();const o=ordenesCompra.find(x=>x.id===ordenPagoProveedorId);if(!o)return;const cantidad=Number(document.getElementById("cantidadPagoProveedor").value),saldoAnterior=Number(o.saldoProveedor||0),metodo=document.getElementById("metodoPagoCuentaProveedor").value,nota=document.getElementById("notaPagoProveedor").value.trim();if(!Number.isFinite(cantidad)||cantidad<=0||cantidad>saldoAnterior+0.009)return alert("El pago no puede ser mayor que el saldo pendiente.");if(!Array.isArray(o.pagosProveedor))o.pagosProveedor=[];const restante=Math.max(0,saldoAnterior-cantidad);o.pagosProveedor.push({id:Date.now()+Math.floor(Math.random()*100000),cantidad,fecha:new Date().toISOString(),metodo,nota,saldoAnterior,saldoRestante:restante});o.totalPagadoProveedor=Math.min(Number(o.costoTotal||0),Number(o.totalPagadoProveedor||0)+cantidad);o.saldoProveedor=restante;o.condicionPagoProveedor=restante>0.009?"credito":"pagado";if(restante<=0.009){o.saldoProveedor=0;o.fechaVencimientoProveedor=""}guardarOrdenesCompra();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarFlujoCaja();cerrarPagoProveedor()})
 function verHistorialPagosProveedor(id){const o=ordenesCompra.find(x=>x.id===id);if(!o)return;document.getElementById("textoHistorialPagosProveedor").textContent=`${o.proveedor} · ${numeroOrdenCompra(o)} · Total $${Number(o.costoTotal||0).toFixed(2)}`;const pagos=Array.isArray(o.pagosProveedor)?[...o.pagosProveedor].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)):[];document.getElementById("listaHistorialPagosProveedor").innerHTML=pagos.length?pagos.map(p=>`<div class="abono-card"><div class="abono-superior"><strong>${new Date(p.fecha).toLocaleString("es-PR")}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">Método: <strong>${escapeHtml(p.metodo||"—")}</strong><br>Saldo anterior: $${Number(p.saldoAnterior||0).toFixed(2)} · Restante: $${Number(p.saldoRestante||0).toFixed(2)}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div></div>`).join(""):'<div class="sin-productos">No hay pagos registrados.</div>';document.getElementById("modalHistorialPagosProveedor").classList.add("visible")}
 function cerrarHistorialPagosProveedor(){document.getElementById("modalHistorialPagosProveedor").classList.remove("visible")}
 function actualizarFiltroProveedorCuentas(){const sel=document.getElementById("filtroProveedorCuentas");if(!sel)return;const prev=sel.value,nombres=[...new Set(ordenesCompra.filter(o=>o.estado==="recibida").map(o=>String(o.proveedor||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"}));sel.innerHTML='<option value="">Todos los proveedores</option>'+nombres.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");if(nombres.includes(prev))sel.value=prev}
 function mostrarListaCuentasPagar(){actualizarFiltroProveedorCuentas();const lista=document.getElementById("listaCuentasPagar");if(!lista)return;const q=document.getElementById("busquedaCuentasPagar").value.toLowerCase().trim(),filtro=document.getElementById("filtroCuentasPagar").value,prov=document.getElementById("filtroProveedorCuentas").value;let arr=ordenesCompra.filter(o=>o.estado==="recibida"&&(!prov||o.proveedor===prov)&&[o.proveedor,o.nombre,o.sku,numeroOrdenCompra(o)].some(v=>String(v||"").toLowerCase().includes(q)));arr=arr.filter(o=>{const e=estadoCuentaProveedor(o);return filtro==="todas"||(filtro==="pendientes"&&e.clave!=="pagada")||(filtro==="vencidas"&&e.clave==="vencida")||(filtro==="pagadas"&&e.clave==="pagada")});arr.sort((a,b)=>Number(b.saldoProveedor||0)-Number(a.saldoProveedor||0));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay cuentas con esos filtros.</div>';return}lista.innerHTML=arr.map(o=>{const e=estadoCuentaProveedor(o),total=Number(o.costoTotal||0),pagado=Number(o.totalPagadoProveedor||0),saldo=Number(o.saldoProveedor||0);return `<div class="cuenta-proveedor-card ${e.clave}"><div class="cuenta-proveedor-superior"><div><h3>${escapeHtml(o.proveedor||"Proveedor")}</h3><p>${numeroOrdenCompra(o)} · ${escapeHtml(o.nombre)}</p></div><div class="cuenta-proveedor-saldo">$${saldo.toFixed(2)}</div></div><span class="estado-cuenta ${e.clave}">${e.texto}</span><div class="cuenta-proveedor-detalle">Compra total: <strong>$${total.toFixed(2)}</strong><br>Total pagado: <strong>$${pagado.toFixed(2)}</strong><br>Saldo pendiente: <strong>$${saldo.toFixed(2)}</strong>${o.fechaVencimientoProveedor?`<br>Vencimiento: <strong>${new Date(o.fechaVencimientoProveedor+"T00:00:00").toLocaleDateString("es-PR")}</strong>`:""}</div><div class="acciones-cuenta-proveedor">${saldo>0.009?`<button class="boton-cuenta-proveedor boton-pagar-proveedor" onclick="abrirPagoProveedor(${o.id})">💵 Registrar pago</button>`:""}<button class="boton-cuenta-proveedor boton-historial-proveedor" onclick="verHistorialPagosProveedor(${o.id})">📋 Historial</button></div></div>`}).join("")}
 function actualizarCuentasPagar(){const rec=ordenesCompra.filter(o=>o.estado==="recibida"),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),vencido=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").reduce((t,o)=>t+Number(o.saldoProveedor||0),0);if(document.getElementById("cuentasSaldoTotal")){document.getElementById("cuentasSaldoTotal").textContent="$"+saldo.toFixed(2);document.getElementById("cuentasSaldoVencido").textContent="$"+vencido.toFixed(2);document.getElementById("cuentasPendientes").textContent=rec.filter(o=>Number(o.saldoProveedor||0)>0.009).length;document.getElementById("cuentasTotalPagado").textContent="$"+pagado.toFixed(2);mostrarListaCuentasPagar()}}
-function mostrarCuentasPagar(){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaCuentasPagar").style.display="block";actualizarMenu("cuentasPagar");actualizarCuentasPagar();scrollTop()}
+function mostrarCuentasPagar(){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaFlujoCaja","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaCuentasPagar").style.display="block";actualizarMenu("cuentasPagar");actualizarCuentasPagar();scrollTop()}
 document.getElementById("busquedaCuentasPagar").addEventListener("input",mostrarListaCuentasPagar);
+
+
+function normalizarMetodoFlujo(m){
+ const x=String(m||"Otro").trim().toLowerCase();
+ if(x.includes("efectivo"))return "Efectivo";
+ if(x.includes("ath"))return "ATH Móvil";
+ if(x.includes("tarjeta"))return "Tarjeta";
+ if(x.includes("transfer"))return "Transferencia";
+ return "Otro"
+}
+function fechaMovimientoFlujo(v){const d=new Date(v);return Number.isNaN(d.getTime())?null:d}
+function limitesFlujo(){
+ const tipo=document.getElementById("periodoFlujo")?.value||"mes",ahora=new Date(),hoy=new Date(ahora.getFullYear(),ahora.getMonth(),ahora.getDate());
+ let desde,hasta,texto;
+ if(tipo==="hoy"){desde=hoy;hasta=new Date(hoy);hasta.setDate(hasta.getDate()+1);texto="Hoy"}
+ else if(tipo==="7dias"){desde=new Date(hoy);desde.setDate(desde.getDate()-6);hasta=new Date(hoy);hasta.setDate(hasta.getDate()+1);texto="Últimos 7 días"}
+ else if(tipo==="personalizado"){
+  const di=document.getElementById("fechaDesdeFlujo")?.value,ha=document.getElementById("fechaHastaFlujo")?.value;
+  if(!di||!ha)return null;
+  desde=new Date(di+"T00:00:00");hasta=new Date(ha+"T00:00:00");hasta.setDate(hasta.getDate()+1);
+  if(hasta<=desde)return null;
+  texto=`${desde.toLocaleDateString("es-PR")} – ${new Date(hasta.getTime()-1).toLocaleDateString("es-PR")}`
+ }else{desde=new Date(ahora.getFullYear(),ahora.getMonth(),1);hasta=new Date(ahora.getFullYear(),ahora.getMonth()+1,1);texto="Este mes"}
+ return {desde,hasta,texto}
+}
+function movimientosFlujoCaja(){
+ const mov=[];
+ ventas.forEach(v=>{
+  const pagos=Array.isArray(v.pagos)?v.pagos:[];
+  if(pagos.length){
+   pagos.forEach(p=>{if(Number(p.cantidad||0)>0)mov.push({tipo:"entrada",grupo:"abono",fecha:p.fecha||v.fecha,cantidad:Number(p.cantidad||0),metodo:normalizarMetodoFlujo(p.metodo||v.metodoPago),concepto:`Cobro cliente · Recibo #${v.numero||String(v.id).slice(-8)} · ${v.cliente||"Cliente general"}`})})
+  }else{
+   const cobrado=Number(v.totalPagado??v.ingreso??0);
+   if(cobrado>0)mov.push({tipo:"entrada",grupo:"venta",fecha:v.fecha,cantidad:cobrado,metodo:normalizarMetodoFlujo(v.metodoPago),concepto:`Venta cobrada · Recibo #${v.numero||String(v.id).slice(-8)} · ${v.cliente||"Cliente general"}`})
+  }
+ });
+ gastos.forEach(g=>{if(Number(g.cantidad||0)>0)mov.push({tipo:"salida",grupo:"gasto",fecha:g.fecha||g.fechaLocal,cantidad:Number(g.cantidad||0),metodo:normalizarMetodoFlujo(g.metodo),concepto:`Gasto · ${g.concepto||g.categoria||"Gasto"}`})});
+ ordenesCompra.filter(o=>o.estado==="recibida").forEach(o=>(Array.isArray(o.pagosProveedor)?o.pagosProveedor:[]).forEach(p=>{if(Number(p.cantidad||0)>0)mov.push({tipo:"salida",grupo:"proveedor",fecha:p.fecha||o.fechaRecibida,cantidad:Number(p.cantidad||0),metodo:normalizarMetodoFlujo(p.metodo),concepto:`Pago proveedor · ${o.proveedor||"Proveedor"} · ${numeroOrdenCompra(o)}`})}));
+ return mov
+}
+function datosFlujoCaja(){
+ const lim=limitesFlujo();if(!lim)return null;
+ const mov=movimientosFlujoCaja().filter(m=>{const f=fechaMovimientoFlujo(m.fecha);return f&&f>=lim.desde&&f<lim.hasta});
+ const suma=(tipo,grupo)=>mov.filter(m=>(!tipo||m.tipo===tipo)&&(!grupo||m.grupo===grupo)).reduce((t,m)=>t+m.cantidad,0);
+ const entradas=suma("entrada"),salidas=suma("salida"),metodos={};
+ ["Efectivo","ATH Móvil","Tarjeta","Transferencia","Otro"].forEach(k=>metodos[k]=mov.filter(m=>m.metodo===k).reduce((t,m)=>t+(m.tipo==="entrada"?m.cantidad:-m.cantidad),0));
+ return {lim,mov,entradas,salidas,neto:entradas-salidas,ventas:suma("entrada","venta"),abonos:suma("entrada","abono"),gastos:suma("salida","gasto"),proveedores:suma("salida","proveedor"),metodos}
+}
+function cambiarPeriodoFlujo(){
+ const personalizado=document.getElementById("periodoFlujo").value==="personalizado";
+ document.getElementById("rangoPersonalizadoFlujo").classList.toggle("oculto",!personalizado);
+ actualizarFlujoCaja()
+}
+function actualizarFlujoCaja(){
+ const d=datosFlujoCaja();if(!d)return;
+ document.getElementById("textoPeriodoFlujo").value=d.lim.texto;
+ document.getElementById("flujoEntradas").textContent="$"+d.entradas.toFixed(2);
+ document.getElementById("flujoSalidas").textContent="$"+d.salidas.toFixed(2);
+ const net=document.getElementById("flujoNeto");net.textContent="$"+d.neto.toFixed(2);net.style.color=d.neto<0?"#d93025":"#168044";
+ document.getElementById("flujoVentasContado").textContent="$"+d.ventas.toFixed(2);
+ document.getElementById("flujoAbonosClientes").textContent="$"+d.abonos.toFixed(2);
+ document.getElementById("flujoGastos").textContent="$"+d.gastos.toFixed(2);
+ document.getElementById("flujoPagosProveedores").textContent="$"+d.proveedores.toFixed(2);
+ document.getElementById("flujoEfectivo").textContent="$"+d.metodos["Efectivo"].toFixed(2);
+ document.getElementById("flujoAth").textContent="$"+d.metodos["ATH Móvil"].toFixed(2);
+ document.getElementById("flujoTarjeta").textContent="$"+d.metodos["Tarjeta"].toFixed(2);
+ document.getElementById("flujoTransferencia").textContent="$"+d.metodos["Transferencia"].toFixed(2);
+ document.getElementById("flujoOtros").textContent="$"+d.metodos["Otro"].toFixed(2);
+ const lista=document.getElementById("listaFlujoCaja"),arr=[...d.mov].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+ lista.innerHTML=arr.length?arr.map(m=>`<div class="fila-estadistica"><span>${m.tipo==="entrada"?"⬇️":"⬆️"} ${escapeHtml(m.concepto)}<br><small>${new Date(m.fecha).toLocaleString("es-PR")} · ${escapeHtml(m.metodo)}</small></span><strong style="color:${m.tipo==="entrada"?"#168044":"#d93025"}">${m.tipo==="entrada"?"+":"-"}$${m.cantidad.toFixed(2)}</strong></div>`).join(""):'<div class="fila-estadistica"><span>No hay movimientos de dinero en este período.</span><strong>—</strong></div>'
+}
+function mostrarFlujoCaja(){
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");
+ document.getElementById("vistaFlujoCaja").style.display="block";actualizarMenu("flujoCaja");actualizarFlujoCaja();scrollTop()
+}
+function imprimirFlujoCaja(){
+ const d=datosFlujoCaja();if(!d)return alert("Selecciona un período válido.");
+ const filas=[...d.mov].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).map(m=>`<tr><td>${new Date(m.fecha).toLocaleString("es-PR")}</td><td>${escapeHtml(m.concepto)}</td><td>${escapeHtml(m.metodo)}</td><td style="text-align:right">${m.tipo==="entrada"?"+":"-"}$${m.cantidad.toFixed(2)}</td></tr>`).join("");
+ const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Flujo de caja</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{margin-bottom:4px}p{color:#666}.res{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0}.c{border:1px solid #ddd;border-radius:12px;padding:14px}.c strong{display:block;font-size:22px;margin-top:6px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:9px;border-bottom:1px solid #ddd;text-align:left}.print{margin-top:20px;padding:12px 18px}@media print{.print{display:none}}</style></head><body><h1>Flackunloker · Flujo de caja</h1><p>${escapeHtml(d.lim.texto)}</p><div class="res"><div class="c">Entradas<strong>$${d.entradas.toFixed(2)}</strong></div><div class="c">Salidas<strong>$${d.salidas.toFixed(2)}</strong></div><div class="c">Flujo neto<strong>$${d.neto.toFixed(2)}</strong></div></div><table><thead><tr><th>Fecha</th><th>Movimiento</th><th>Método</th><th style="text-align:right">Importe</th></tr></thead><tbody>${filas||'<tr><td colspan="4">Sin movimientos.</td></tr>'}</tbody></table><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
+ const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el reporte.");w.document.write(html);w.document.close()
+}
 
 function datosCentroAlertas(){
  const sinStock=productos.filter(p=>Number(p.cantidad)<=0);
@@ -1104,8 +1229,8 @@ function actualizarEstadisticas(){
  const conteo={};historial.forEach(m=>{const id=m.productoId;if(!conteo[id])conteo[id]={nombre:m.nombre,movimientos:0};conteo[id].movimientos++});const rm=Object.values(conteo).sort((a,b)=>b.movimientos-a.movimientos).slice(0,5);document.getElementById("rankingMovimientos").innerHTML=rm.length?rm.map(x=>`<div class="fila-estadistica"><span>${escapeHtml(x.nombre)}</span><strong>${x.movimientos} movimiento(s)</strong></div>`).join(""):`<div class="fila-estadistica"><span>No hay movimientos.</span><strong>—</strong></div>`;
  const bajos=productos.filter(p=>Number(p.cantidad)<=Number(p.stockMinimo??5));document.getElementById("rankingStockBajo").innerHTML=bajos.length?bajos.map(p=>`<div class="fila-estadistica"><span>${escapeHtml(p.nombre)}</span><strong>${p.cantidad} / ${Number(p.stockMinimo??5)}</strong></div>`).join(""):`<div class="fila-estadistica"><span>Todo el inventario está por encima del mínimo.</span><strong>✓ OK</strong></div>`
 }
-function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonCuentasPagar","botonEstadisticas"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";if(sec!=="cuentasPagar")document.getElementById("vistaCuentasPagar").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",cuentasPagar:"botonCuentasPagar",estadisticas:"botonEstadisticas"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo")}
-function mostrarInventario(){document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
+function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonEstadisticas"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";if(sec!=="cuentasPagar")document.getElementById("vistaCuentasPagar").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",cuentasPagar:"botonCuentasPagar",flujoCaja:"botonFlujoCaja",estadisticas:"botonEstadisticas"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo")}
+function mostrarInventario(){document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";document.getElementById("vistaFlujoCaja").style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
 function scrollTop(){window.scrollTo({top:0,behavior:"smooth"})}
 document.addEventListener("visibilitychange",()=>{
  if(document.visibilityState==="visible"){
@@ -1121,6 +1246,7 @@ document.addEventListener("visibilitychange",()=>{
   actualizarOrdenesCompra();
   actualizarProveedores();
   actualizarCuentasPagar();
+  actualizarFlujoCaja();
   actualizarEstadisticas();
  }
 });
@@ -1130,7 +1256,7 @@ function crearRespaldo(){const datos={aplicacion:"Flackunloker",version:"2.0",fe
 function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
 function restaurarRespaldo(event){
  const archivo=event.target.files[0];if(!archivo)return;const lector=new FileReader();
- lector.onload=()=>{try{const datos=JSON.parse(lector.result);if(!datos||datos.aplicacion!=="Flackunloker")return alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial))return alert("El respaldo está incompleto o dañado.");if(!confirm("¿Quieres restaurar este respaldo?\n\nLos productos y el historial actuales serán reemplazados por los datos del respaldo."))return;productos=datos.productos;historial=datos.historial;ventas=Array.isArray(datos.ventas)?datos.ventas:[];gastos=Array.isArray(datos.gastos)?datos.gastos:[];cierres=Array.isArray(datos.cierres)?datos.cierres:[];ordenesCompra=Array.isArray(datos.ordenesCompra)?datos.ordenesCompra:[];proveedores=Array.isArray(datos.proveedores)?datos.proveedores:[];productos.forEach(p=>{if(p.stockMinimo===undefined||p.stockMinimo===null)p.stockMinimo=5;if(p.costo===undefined||p.costo===null||p.costo==="")p.costo=0;if(p.categoria===undefined||p.categoria===null)p.categoria="";if(p.proveedor===undefined||p.proveedor===null)p.proveedor="";if(p.ubicacion===undefined||p.ubicacion===null)p.ubicacion=""});[...productos.map(p=>String(p.proveedor||"").trim()),...ordenesCompra.map(o=>String(o.proveedor||"").trim())].filter(Boolean).forEach(nombre=>{if(!proveedores.some(pr=>nombreProveedorNorm(pr.nombre)===nombreProveedorNorm(nombre)))proveedores.push({id:Date.now()+Math.floor(Math.random()*100000)+proveedores.length,nombre,contacto:"",telefono:"",email:"",direccion:"",nota:"",creado:new Date().toISOString()})});recalcularSaldos();guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();guardarOrdenesCompra();guardarProveedores();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarReporte();actualizarCentroAlertas();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarEstadisticas();mostrarEstadoRespaldo("✅ Respaldo restaurado correctamente.");alert("Respaldo restaurado correctamente.")}catch(err){console.error(err);alert("No se pudo leer el respaldo. Comprueba que el archivo sea válido.")}finally{event.target.value=""}};lector.readAsText(archivo)
+ lector.onload=()=>{try{const datos=JSON.parse(lector.result);if(!datos||datos.aplicacion!=="Flackunloker")return alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial))return alert("El respaldo está incompleto o dañado.");if(!confirm("¿Quieres restaurar este respaldo?\n\nLos productos y el historial actuales serán reemplazados por los datos del respaldo."))return;productos=datos.productos;historial=datos.historial;ventas=Array.isArray(datos.ventas)?datos.ventas:[];gastos=Array.isArray(datos.gastos)?datos.gastos:[];cierres=Array.isArray(datos.cierres)?datos.cierres:[];ordenesCompra=Array.isArray(datos.ordenesCompra)?datos.ordenesCompra:[];proveedores=Array.isArray(datos.proveedores)?datos.proveedores:[];productos.forEach(p=>{if(p.stockMinimo===undefined||p.stockMinimo===null)p.stockMinimo=5;if(p.costo===undefined||p.costo===null||p.costo==="")p.costo=0;if(p.categoria===undefined||p.categoria===null)p.categoria="";if(p.proveedor===undefined||p.proveedor===null)p.proveedor="";if(p.ubicacion===undefined||p.ubicacion===null)p.ubicacion=""});[...productos.map(p=>String(p.proveedor||"").trim()),...ordenesCompra.map(o=>String(o.proveedor||"").trim())].filter(Boolean).forEach(nombre=>{if(!proveedores.some(pr=>nombreProveedorNorm(pr.nombre)===nombreProveedorNorm(nombre)))proveedores.push({id:Date.now()+Math.floor(Math.random()*100000)+proveedores.length,nombre,contacto:"",telefono:"",email:"",direccion:"",nota:"",creado:new Date().toISOString()})});recalcularSaldos();guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();guardarOrdenesCompra();guardarProveedores();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarReporte();actualizarFlujoCaja();actualizarCentroAlertas();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarFlujoCaja();actualizarEstadisticas();mostrarEstadoRespaldo("✅ Respaldo restaurado correctamente.");alert("Respaldo restaurado correctamente.")}catch(err){console.error(err);alert("No se pudo leer el respaldo. Comprueba que el archivo sea válido.")}finally{event.target.value=""}};lector.readAsText(archivo)
 }
 
 document.getElementById("modalProducto").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarFormulario()});
@@ -1147,7 +1273,7 @@ document.getElementById("modalPagoProveedor").addEventListener("click",e=>{if(e.
 document.getElementById("modalHistorialPagosProveedor").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarHistorialPagosProveedor()});
 document.getElementById("modalEditarMovimiento").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarEditarMovimiento()});
 
-recalcularSaldos();mostrarProductos();actualizarResumenHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarEstadisticas();
+recalcularSaldos();mostrarProductos();actualizarResumenHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarFlujoCaja();actualizarEstadisticas();
 </script>
 </body>
 </html>
