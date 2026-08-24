@@ -33,6 +33,8 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 @media(max-width:430px){.reporte-controles-grid,.reporte-rango,.reporte-botones{grid-template-columns:1fr}.acciones-venta{grid-template-columns:1fr}.filtros-inventario{grid-template-columns:1fr}.acciones{grid-template-columns:repeat(2,1fr)}.menu{gap:8px;justify-content:flex-start;overflow-x:auto}.menu button{font-size:11px;white-space:nowrap;flex:0 0 auto}.botones-respaldo{grid-template-columns:1fr}.estadisticas-grid{grid-template-columns:1fr}.estadistica-card.ancha{grid-column:auto}}
 
 .orden-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px}.orden-superior{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.orden-superior h3{margin:0 0 5px;font-size:16px}.orden-superior p{margin:0;color:#777;font-size:13px}.orden-total{font-weight:800;color:#0a84ff;white-space:nowrap}.orden-detalle{margin-top:12px;font-size:13px;line-height:1.7;color:#555}.estado-orden{display:inline-block;margin-top:8px;padding:7px 10px;border-radius:10px;font-size:12px;font-weight:800}.estado-orden.pendiente{background:#fff7e8;color:#a15c00}.estado-orden.ordenada{background:#eaf4ff;color:#0a84ff}.estado-orden.recibida{background:#e9f8ef;color:#168044}.acciones-orden{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.boton-orden{border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.boton-orden-primario{background:#eaf4ff;color:#0a84ff}.boton-orden-recibir{background:#e9f8ef;color:#168044}.boton-orden-eliminar{background:#ffecec;color:#d93025}.orden-resumen{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:15px}
+
+.proveedor-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px}.proveedor-superior{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.proveedor-superior h3{margin:0 0 5px;font-size:16px}.proveedor-superior p{margin:0;color:#777;font-size:13px}.proveedor-total{font-weight:800;color:#0a84ff;white-space:nowrap}.proveedor-detalle{margin-top:12px;font-size:13px;line-height:1.75;color:#555}.acciones-proveedor{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.boton-proveedor{border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.boton-proveedor-orden{background:#e9f8ef;color:#168044}.boton-proveedor-editar{background:#eaf4ff;color:#0a84ff}.boton-proveedor-eliminar{background:#ffecec;color:#d93025}
 </style>
 </head>
 <body>
@@ -225,6 +227,19 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <div id="listaOrdenes"></div>
 </div>
 
+
+<div id="vistaProveedores" style="display:none">
+<div class="seccion-titulo"><h2>🏢 Proveedores</h2><button class="boton-agregar" onclick="abrirProveedor()">+ Nuevo proveedor</button></div>
+<div class="estadisticas-grid">
+<div class="estadistica-card azul"><span>Proveedores registrados</span><strong id="totalProveedores">0</strong></div>
+<div class="estadistica-card azul"><span>Con órdenes pendientes</span><strong id="proveedoresPendientes">0</strong></div>
+<div class="estadistica-card ancha positiva"><span>Total comprado · Órdenes recibidas</span><strong id="totalCompradoProveedores">$0.00</strong></div>
+</div>
+<input id="busquedaProveedores" class="busqueda-historial" type="search" placeholder="Buscar por proveedor, contacto, teléfono o email...">
+<div class="lista-estadisticas"><h3>ℹ️ Directorio de compras</h3><div class="fila-estadistica"><span>Productos asociados</span><strong>Según proveedor del inventario</strong></div><div class="fila-estadistica"><span>Compras y pendientes</span><strong>Según órdenes de compra</strong></div></div>
+<div id="listaProveedoresVista"></div>
+</div>
+
 <div id="vistaEstadisticas" style="display:none">
 <div class="seccion-titulo"><h2>📊 Estadísticas</h2></div>
 <div class="estadisticas-grid">
@@ -351,12 +366,27 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <h2 id="tituloOrdenCompra">Nueva orden de compra</h2>
 <p class="mensaje-movimiento">Crea una orden de reabastecimiento. El inventario solo aumentará cuando marques la orden como recibida.</p>
 <div class="campo"><label for="productoOrden">Producto</label><select id="productoOrden" required></select></div>
-<div class="campo"><label for="proveedorOrden">Proveedor</label><input id="proveedorOrden" type="text" placeholder="Ej. Distribuidor principal" required></div>
+<div class="campo"><label for="proveedorOrden">Proveedor</label><select id="proveedorOrden" required></select><small class="ayuda-campo">Selecciona un proveedor registrado en el directorio.</small></div>
 <div class="campo"><label for="cantidadOrden">Cantidad solicitada</label><input id="cantidadOrden" type="number" min="1" step="1" required></div>
 <div class="campo"><label for="costoUnitarioOrden">Costo por unidad</label><input id="costoUnitarioOrden" type="number" min="0" step="0.01" required><small class="ayuda-campo">Al recibir, Flackunloker actualizará el costo promedio del inventario.</small></div>
 <div class="campo"><label for="fechaOrden">Fecha de orden</label><input id="fechaOrden" type="date" required></div>
 <div class="campo"><label for="notaOrden">Nota</label><input id="notaOrden" type="text" placeholder="Opcional"></div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarOrdenCompra()">Cancelar</button><button type="submit" class="boton-guardar">Guardar orden</button></div>
+</form>
+</div>
+
+
+<div class="modal" id="modalProveedor">
+<form class="formulario" id="formularioProveedor">
+<h2 id="tituloProveedorForm">Nuevo proveedor</h2>
+<p class="mensaje-movimiento">Guarda los datos del proveedor para usarlo en productos y órdenes de compra.</p>
+<div class="campo"><label for="nombreProveedor">Nombre / Empresa</label><input id="nombreProveedor" type="text" placeholder="Ej. Distribuidor principal" required></div>
+<div class="campo"><label for="contactoProveedor">Persona de contacto</label><input id="contactoProveedor" type="text" placeholder="Opcional"></div>
+<div class="campo"><label for="telefonoProveedor">Teléfono</label><input id="telefonoProveedor" type="tel" placeholder="Opcional"></div>
+<div class="campo"><label for="emailProveedor">Email</label><input id="emailProveedor" type="email" placeholder="Opcional"></div>
+<div class="campo"><label for="direccionProveedor">Dirección</label><input id="direccionProveedor" type="text" placeholder="Opcional"></div>
+<div class="campo"><label for="notaProveedor">Nota</label><input id="notaProveedor" type="text" placeholder="Opcional"></div>
+<div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarProveedor()">Cancelar</button><button type="submit" class="boton-guardar">Guardar proveedor</button></div>
 </form>
 </div>
 
@@ -381,6 +411,7 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <button id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button>
 <button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button>
 <button id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button>
+<button id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button>
 <button id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button>
 </div>
 
@@ -391,6 +422,7 @@ let ventas=[];
 let gastos=[];
 let cierres=[];
 let ordenesCompra=[];
+let proveedores=[];
 let productoEditando=null,productoMovimiento=null,tipoMovimiento=null,movimientoEditandoId=null,productoVenta=null,filtroHistorialActual="todos",filtroCategoriaActual="",filtroUbicacionActual="";
 let procesandoGuardado=false;
 let carritoVenta=[];
@@ -398,6 +430,7 @@ let ventaDevolucionId=null;
 let ventaAbonoId=null;
 let proximoNumeroRecibo=1;
 let gastoEditandoId=null;
+let proveedorEditandoId=null;
 let ordenEditandoId=null;
 
 function cargarDatos(){
@@ -407,18 +440,21 @@ function cargarDatos(){
   const v=localStorage.getItem("flackunloker_ventas");
    const g=localStorage.getItem("flackunloker_gastos");
    const c=localStorage.getItem("flackunloker_cierres");
+   const pr=localStorage.getItem("flackunloker_proveedores");
    const oc=localStorage.getItem("flackunloker_ordenes_compra");
   productos=p?JSON.parse(p):[];
   historial=h?JSON.parse(h):[];
   ventas=v?JSON.parse(v):[];
    gastos=g?JSON.parse(g):[];
    cierres=c?JSON.parse(c):[];
+   proveedores=pr?JSON.parse(pr):[];
    ordenesCompra=oc?JSON.parse(oc):[];
   if(!Array.isArray(productos))productos=[];
   if(!Array.isArray(historial))historial=[];
   if(!Array.isArray(ventas))ventas=[];
    if(!Array.isArray(gastos))gastos=[];
    if(!Array.isArray(cierres))cierres=[];
+   if(!Array.isArray(proveedores))proveedores=[];
    if(!Array.isArray(ordenesCompra))ordenesCompra=[];
    ventas=ventas.map(v=>{
     let n=v;
@@ -440,6 +476,7 @@ function cargarDatos(){
    gastos=[];
    cierres=[];
    ordenesCompra=[];
+   proveedores=[];
  }
  productos.forEach(p=>{
   if(p.stockMinimo===undefined||p.stockMinimo===null||p.stockMinimo==="")p.stockMinimo=5;
@@ -448,6 +485,9 @@ function cargarDatos(){
   if(p.proveedor===undefined||p.proveedor===null)p.proveedor="";
   if(p.ubicacion===undefined||p.ubicacion===null)p.ubicacion="";
  });
+ const nombresExistentes=[...productos.map(p=>String(p.proveedor||"").trim()),...ordenesCompra.map(o=>String(o.proveedor||"").trim())].filter(Boolean);
+ nombresExistentes.forEach(nombre=>{if(!proveedores.some(pr=>String(pr.nombre||"").trim().toLowerCase()===nombre.toLowerCase()))proveedores.push({id:Date.now()+Math.floor(Math.random()*100000)+proveedores.length,nombre,contacto:"",telefono:"",email:"",direccion:"",nota:"",creado:new Date().toISOString()})});
+ guardarProveedores();
 }
 function guardarDatos(){localStorage.setItem("flackunloker_productos",JSON.stringify(productos))}
 function guardarHistorial(){localStorage.setItem("flackunloker_historial",JSON.stringify(historial))}
@@ -455,15 +495,16 @@ function guardarVentas(){localStorage.setItem("flackunloker_ventas",JSON.stringi
 function guardarGastos(){localStorage.setItem("flackunloker_gastos",JSON.stringify(gastos))}
 function guardarCierres(){localStorage.setItem("flackunloker_cierres",JSON.stringify(cierres))}
 function guardarOrdenesCompra(){localStorage.setItem("flackunloker_ordenes_compra",JSON.stringify(ordenesCompra))}
+function guardarProveedores(){localStorage.setItem("flackunloker_proveedores",JSON.stringify(proveedores))}
 cargarDatos();
 proximoNumeroRecibo=Math.max(0,...ventas.map(v=>Number(v.numeroConsecutivo||0)))+1;
 function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 
 function valoresUnicos(campo){return [...new Set(productos.map(p=>String(p[campo]||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"}))}
 function actualizarOpcionesOrganizacion(){
- const categorias=valoresUnicos("categoria"),proveedores=valoresUnicos("proveedor"),ubicaciones=valoresUnicos("ubicacion");
+ const categorias=valoresUnicos("categoria"),nombresProveedores=[...new Set([...valoresUnicos("proveedor"),...proveedores.map(p=>String(p.nombre||"").trim()).filter(Boolean)])].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"})),ubicaciones=valoresUnicos("ubicacion");
  document.getElementById("listaCategorias").innerHTML=categorias.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
- document.getElementById("listaProveedores").innerHTML=proveedores.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
+ document.getElementById("listaProveedores").innerHTML=nombresProveedores.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
  document.getElementById("listaUbicaciones").innerHTML=ubicaciones.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
  const fc=document.getElementById("filtroCategoria"),fu=document.getElementById("filtroUbicacion");
  const catPrev=filtroCategoriaActual,ubiPrev=filtroUbicacionActual;
@@ -936,18 +977,35 @@ function imprimirReporte(){const d=datosReporte(),prod=d.productos.length?d.prod
 function mostrarReportes(){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaReportes").style.display="block";actualizarMenu("reportes");actualizarReporte();scrollTop()}
 
 
+function nombreProveedorNorm(v){return String(v||"").trim().toLowerCase()}
+function cargarSelectorProveedoresOrden(preferido=""){
+ const sel=document.getElementById("proveedorOrden");if(!sel)return;
+ const arr=[...proveedores].sort((a,b)=>String(a.nombre||"").localeCompare(String(b.nombre||""),"es",{sensitivity:"base"}));
+ sel.innerHTML=arr.length?'<option value="">Selecciona un proveedor...</option>'+arr.map(p=>`<option value="${escapeHtml(p.nombre)}">${escapeHtml(p.nombre)}</option>`).join(""):'<option value="">Primero registra un proveedor</option>';
+ if(preferido){const encontrado=arr.find(p=>nombreProveedorNorm(p.nombre)===nombreProveedorNorm(preferido));if(encontrado)sel.value=encontrado.nombre}
+}
+function abrirProveedor(id=null){proveedorEditandoId=id;document.getElementById("formularioProveedor").reset();document.getElementById("tituloProveedorForm").textContent=id===null?"Nuevo proveedor":"Editar proveedor";if(id!==null){const p=proveedores.find(x=>x.id===id);if(!p)return;document.getElementById("nombreProveedor").value=p.nombre||"";document.getElementById("contactoProveedor").value=p.contacto||"";document.getElementById("telefonoProveedor").value=p.telefono||"";document.getElementById("emailProveedor").value=p.email||"";document.getElementById("direccionProveedor").value=p.direccion||"";document.getElementById("notaProveedor").value=p.nota||""}document.getElementById("modalProveedor").classList.add("visible");document.getElementById("nombreProveedor").focus()}
+function cerrarProveedor(){document.getElementById("modalProveedor").classList.remove("visible");document.getElementById("formularioProveedor").reset();proveedorEditandoId=null}
+document.getElementById("formularioProveedor").addEventListener("submit",e=>{e.preventDefault();e.stopPropagation();const nombre=document.getElementById("nombreProveedor").value.trim(),contacto=document.getElementById("contactoProveedor").value.trim(),telefono=document.getElementById("telefonoProveedor").value.trim(),email=document.getElementById("emailProveedor").value.trim(),direccion=document.getElementById("direccionProveedor").value.trim(),nota=document.getElementById("notaProveedor").value.trim();if(!nombre)return alert("Escribe el nombre del proveedor.");if(proveedores.some(p=>p.id!==proveedorEditandoId&&nombreProveedorNorm(p.nombre)===nombreProveedorNorm(nombre)))return alert("Ya existe un proveedor con ese nombre.");if(proveedorEditandoId===null){proveedores.unshift({id:Date.now()+Math.floor(Math.random()*100000),nombre,contacto,telefono,email,direccion,nota,creado:new Date().toISOString()})}else{const p=proveedores.find(x=>x.id===proveedorEditandoId);if(!p)return;const anterior=p.nombre;p.nombre=nombre;p.contacto=contacto;p.telefono=telefono;p.email=email;p.direccion=direccion;p.nota=nota;if(nombreProveedorNorm(anterior)!==nombreProveedorNorm(nombre)){productos.forEach(x=>{if(nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(anterior))x.proveedor=nombre});ordenesCompra.forEach(o=>{if(nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(anterior))o.proveedor=nombre});guardarDatos();guardarOrdenesCompra()}}guardarProveedores();actualizarProveedores();actualizarOpcionesOrganizacion();cerrarProveedor()});
+function eliminarProveedor(id){const p=proveedores.find(x=>x.id===id);if(!p)return;const productosAsociados=productos.filter(x=>nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(p.nombre)).length,ordenesAsociadas=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)).length;if(!confirm(`¿Eliminar ${p.nombre} del directorio?\n\nSus ${productosAsociados} producto(s) y ${ordenesAsociadas} orden(es) conservarán el nombre del proveedor como historial.`))return;proveedores=proveedores.filter(x=>x.id!==id);guardarProveedores();actualizarProveedores();actualizarOpcionesOrganizacion()}
+function nuevaOrdenProveedor(id){const p=proveedores.find(x=>x.id===id);if(!p)return;abrirOrdenCompra(null,p.nombre)}
+function mostrarListaProveedores(){const q=document.getElementById("busquedaProveedores").value.toLowerCase().trim(),lista=document.getElementById("listaProveedoresVista");const arr=[...proveedores].filter(p=>[p.nombre,p.contacto,p.telefono,p.email,p.direccion,p.nota].some(v=>String(v||"").toLowerCase().includes(q))).sort((a,b)=>String(a.nombre||"").localeCompare(String(b.nombre||""),"es",{sensitivity:"base"}));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay proveedores con esa búsqueda.</div>';return}lista.innerHTML=arr.map(p=>{const prods=productos.filter(x=>nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(p.nombre)),ords=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)),pend=ords.filter(o=>o.estado!=="recibida").length,rec=ords.filter(o=>o.estado==="recibida"),total=rec.reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0);return `<div class="proveedor-card"><div class="proveedor-superior"><div><h3>${escapeHtml(p.nombre)}</h3><p>${p.contacto?`Contacto: ${escapeHtml(p.contacto)}`:"Proveedor registrado"}</p></div><div class="proveedor-total">$${total.toFixed(2)}</div></div><div class="proveedor-detalle">Productos asociados: <strong>${prods.length}</strong><br>Órdenes totales: <strong>${ords.length}</strong> · Pendientes/ordenadas: <strong>${pend}</strong><br>Compras recibidas: <strong>${rec.length}</strong>${p.telefono?`<br>Teléfono: <strong>${escapeHtml(p.telefono)}</strong>`:""}${p.email?`<br>Email: <strong>${escapeHtml(p.email)}</strong>`:""}${p.direccion?`<br>Dirección: ${escapeHtml(p.direccion)}`:""}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><div class="acciones-proveedor"><button class="boton-proveedor boton-proveedor-orden" onclick="nuevaOrdenProveedor(${p.id})">📦 Nueva orden</button><button class="boton-proveedor boton-proveedor-editar" onclick="abrirProveedor(${p.id})">✏️ Editar</button><button class="boton-proveedor boton-proveedor-eliminar" onclick="eliminarProveedor(${p.id})">🗑️ Eliminar</button></div></div>`}).join("")}
+function actualizarProveedores(){const tp=document.getElementById("totalProveedores");if(!tp)return;tp.textContent=proveedores.length;const conPendiente=proveedores.filter(p=>ordenesCompra.some(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)&&o.estado!=="recibida")).length,total=ordenesCompra.filter(o=>o.estado==="recibida").reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0);document.getElementById("proveedoresPendientes").textContent=conPendiente;document.getElementById("totalCompradoProveedores").textContent="$"+total.toFixed(2);mostrarListaProveedores()}
+function mostrarProveedores(){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaProveedores").style.display="block";actualizarMenu("proveedores");actualizarProveedores();scrollTop()}
+document.getElementById("busquedaProveedores").addEventListener("input",mostrarListaProveedores);
+
 function numeroOrdenCompra(o){return "OC-"+String(o.numero||o.id).slice(-6)}
 function cargarProductosOrden(idPreferido=null){const sel=document.getElementById("productoOrden");sel.innerHTML=productos.length?productos.map(p=>`<option value="${p.id}">${escapeHtml(p.nombre)} · SKU ${escapeHtml(p.sku)} · Stock ${Number(p.cantidad)}</option>`).join(""):'<option value="">No hay productos</option>';if(idPreferido!==null&&productos.some(p=>String(p.id)===String(idPreferido)))sel.value=String(idPreferido);actualizarDatosProductoOrden()}
 function actualizarDatosProductoOrden(){const id=Number(document.getElementById("productoOrden").value),p=productos.find(x=>x.id===id);if(!p)return;document.getElementById("proveedorOrden").value=p.proveedor||document.getElementById("proveedorOrden").value||"";document.getElementById("costoUnitarioOrden").value=Number(p.costo??0).toFixed(2);const sugerida=Math.max(1,Number(p.stockMinimo??5)*2-Number(p.cantidad||0));if(!ordenEditandoId)document.getElementById("cantidadOrden").value=sugerida}
-function abrirOrdenCompra(productoId=null){ordenEditandoId=null;document.getElementById("tituloOrdenCompra").textContent="Nueva orden de compra";document.getElementById("formularioOrdenCompra").reset();document.getElementById("fechaOrden").value=fechaLocalISO(new Date());cargarProductosOrden(productoId);document.getElementById("modalOrdenCompra").classList.add("visible")}
-function editarOrdenCompra(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;ordenEditandoId=id;document.getElementById("tituloOrdenCompra").textContent="Editar orden de compra";cargarProductosOrden(o.productoId);document.getElementById("productoOrden").value=String(o.productoId);document.getElementById("proveedorOrden").value=o.proveedor||"";document.getElementById("cantidadOrden").value=Number(o.cantidad||1);document.getElementById("costoUnitarioOrden").value=Number(o.costoUnitario||0).toFixed(2);document.getElementById("fechaOrden").value=o.fechaOrden||fechaLocalISO(new Date());document.getElementById("notaOrden").value=o.nota||"";document.getElementById("modalOrdenCompra").classList.add("visible")}
+function abrirOrdenCompra(productoId=null,proveedorPreferido=""){if(!proveedores.length){alert("Primero registra al menos un proveedor en la sección 🏢 Proveedores.");mostrarProveedores();return}ordenEditandoId=null;document.getElementById("tituloOrdenCompra").textContent="Nueva orden de compra";document.getElementById("formularioOrdenCompra").reset();document.getElementById("fechaOrden").value=fechaLocalISO(new Date());cargarProductosOrden(productoId);cargarSelectorProveedoresOrden(proveedorPreferido);document.getElementById("modalOrdenCompra").classList.add("visible")}
+function editarOrdenCompra(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;ordenEditandoId=id;document.getElementById("tituloOrdenCompra").textContent="Editar orden de compra";cargarProductosOrden(o.productoId);cargarSelectorProveedoresOrden(o.proveedor||"");document.getElementById("productoOrden").value=String(o.productoId);document.getElementById("proveedorOrden").value=o.proveedor||"";document.getElementById("cantidadOrden").value=Number(o.cantidad||1);document.getElementById("costoUnitarioOrden").value=Number(o.costoUnitario||0).toFixed(2);document.getElementById("fechaOrden").value=o.fechaOrden||fechaLocalISO(new Date());document.getElementById("notaOrden").value=o.nota||"";document.getElementById("modalOrdenCompra").classList.add("visible")}
 function cerrarOrdenCompra(){document.getElementById("modalOrdenCompra").classList.remove("visible");document.getElementById("formularioOrdenCompra").reset();ordenEditandoId=null}
 document.getElementById("productoOrden").addEventListener("change",actualizarDatosProductoOrden);
 document.getElementById("busquedaOrdenes").addEventListener("input",mostrarListaOrdenes);
-document.getElementById("formularioOrdenCompra").addEventListener("submit",e=>{e.preventDefault();e.stopPropagation();const productoId=Number(document.getElementById("productoOrden").value),p=productos.find(x=>x.id===productoId),proveedor=document.getElementById("proveedorOrden").value.trim(),cantidad=Number(document.getElementById("cantidadOrden").value),costoUnitario=Number(document.getElementById("costoUnitarioOrden").value),fechaOrden=document.getElementById("fechaOrden").value,nota=document.getElementById("notaOrden").value.trim();if(!p)return alert("Selecciona un producto válido.");if(!proveedor)return alert("Escribe el proveedor.");if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");if(!Number.isFinite(costoUnitario)||costoUnitario<0)return alert("Introduce un costo válido.");if(!fechaOrden)return alert("Selecciona la fecha de la orden.");if(ordenEditandoId!==null){const o=ordenesCompra.find(x=>x.id===ordenEditandoId);if(!o)return;o.productoId=p.id;o.nombre=p.nombre;o.sku=p.sku;o.proveedor=proveedor;o.cantidad=cantidad;o.costoUnitario=costoUnitario;o.fechaOrden=fechaOrden;o.nota=nota}else{const id=Date.now()+Math.floor(Math.random()*100000);ordenesCompra.unshift({id,numero:ordenesCompra.length+1,productoId:p.id,nombre:p.nombre,sku:p.sku,proveedor,cantidad,costoUnitario,fechaOrden,nota,estado:"pendiente",fechaCreacion:new Date().toISOString(),fechaOrdenada:null,fechaRecibida:null,costoTotal:cantidad*costoUnitario})}guardarOrdenesCompra();actualizarOrdenesCompra();actualizarCentroAlertas();cerrarOrdenCompra()});
-function marcarOrdenada(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;o.estado="ordenada";o.fechaOrdenada=new Date().toISOString();guardarOrdenesCompra();actualizarOrdenesCompra()}
-function recibirOrden(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;const p=productos.find(x=>x.id===o.productoId);if(!p)return alert("El producto de esta orden ya no existe en el inventario.");if(!confirm(`¿Confirmas que recibiste ${Number(o.cantidad)} unidad(es) de ${o.nombre}?\n\nEl inventario aumentará automáticamente.`))return;const anterior=Number(p.cantidad||0),costoAnterior=Number(p.costo||0),cantidad=Number(o.cantidad||0),costoCompra=Number(o.costoUnitario||0),nuevo=anterior+cantidad;p.cantidad=nuevo;p.costo=nuevo>0?((anterior*costoAnterior)+(cantidad*costoCompra))/nuevo:costoCompra;if(!p.proveedor&&o.proveedor)p.proveedor=o.proveedor;o.estado="recibida";o.fechaRecibida=new Date().toISOString();o.costoTotal=cantidad*costoCompra;o.costoPromedioResultante=p.costo;historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:"entrada",cantidad,saldo:nuevo,fecha:o.fechaRecibida,detalle:`Recepción ${numeroOrdenCompra(o)} · ${o.proveedor}`,ordenCompraId:o.id});guardarDatos();guardarHistorial();guardarOrdenesCompra();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarOrdenesCompra();actualizarCentroAlertas();actualizarEstadisticas();alert(`Orden recibida correctamente.\n\nNuevo inventario: ${nuevo}\nCosto promedio: $${Number(p.costo).toFixed(2)}`)}
-function eliminarOrdenCompra(id){const o=ordenesCompra.find(x=>x.id===id);if(!o)return;if(o.estado==="recibida")return alert("Una orden recibida no se elimina para conservar el historial de compras.");if(!confirm("¿Quieres eliminar esta orden de compra?"))return;ordenesCompra=ordenesCompra.filter(x=>x.id!==id);guardarOrdenesCompra();actualizarOrdenesCompra();actualizarCentroAlertas()}
+document.getElementById("formularioOrdenCompra").addEventListener("submit",e=>{e.preventDefault();e.stopPropagation();const productoId=Number(document.getElementById("productoOrden").value),p=productos.find(x=>x.id===productoId),proveedor=document.getElementById("proveedorOrden").value.trim(),cantidad=Number(document.getElementById("cantidadOrden").value),costoUnitario=Number(document.getElementById("costoUnitarioOrden").value),fechaOrden=document.getElementById("fechaOrden").value,nota=document.getElementById("notaOrden").value.trim();if(!p)return alert("Selecciona un producto válido.");if(!proveedor)return alert("Escribe el proveedor.");if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");if(!Number.isFinite(costoUnitario)||costoUnitario<0)return alert("Introduce un costo válido.");if(!fechaOrden)return alert("Selecciona la fecha de la orden.");if(ordenEditandoId!==null){const o=ordenesCompra.find(x=>x.id===ordenEditandoId);if(!o)return;o.productoId=p.id;o.nombre=p.nombre;o.sku=p.sku;o.proveedor=proveedor;o.cantidad=cantidad;o.costoUnitario=costoUnitario;o.fechaOrden=fechaOrden;o.nota=nota}else{const id=Date.now()+Math.floor(Math.random()*100000);ordenesCompra.unshift({id,numero:ordenesCompra.length+1,productoId:p.id,nombre:p.nombre,sku:p.sku,proveedor,cantidad,costoUnitario,fechaOrden,nota,estado:"pendiente",fechaCreacion:new Date().toISOString(),fechaOrdenada:null,fechaRecibida:null,costoTotal:cantidad*costoUnitario})}guardarOrdenesCompra();actualizarOrdenesCompra();actualizarProveedores();actualizarCentroAlertas();cerrarOrdenCompra()});
+function marcarOrdenada(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;o.estado="ordenada";o.fechaOrdenada=new Date().toISOString();guardarOrdenesCompra();actualizarOrdenesCompra();actualizarProveedores()}
+function recibirOrden(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;const p=productos.find(x=>x.id===o.productoId);if(!p)return alert("El producto de esta orden ya no existe en el inventario.");if(!confirm(`¿Confirmas que recibiste ${Number(o.cantidad)} unidad(es) de ${o.nombre}?\n\nEl inventario aumentará automáticamente.`))return;const anterior=Number(p.cantidad||0),costoAnterior=Number(p.costo||0),cantidad=Number(o.cantidad||0),costoCompra=Number(o.costoUnitario||0),nuevo=anterior+cantidad;p.cantidad=nuevo;p.costo=nuevo>0?((anterior*costoAnterior)+(cantidad*costoCompra))/nuevo:costoCompra;if(!p.proveedor&&o.proveedor)p.proveedor=o.proveedor;o.estado="recibida";o.fechaRecibida=new Date().toISOString();o.costoTotal=cantidad*costoCompra;o.costoPromedioResultante=p.costo;historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:"entrada",cantidad,saldo:nuevo,fecha:o.fechaRecibida,detalle:`Recepción ${numeroOrdenCompra(o)} · ${o.proveedor}`,ordenCompraId:o.id});guardarDatos();guardarHistorial();guardarOrdenesCompra();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarOrdenesCompra();actualizarProveedores();actualizarCentroAlertas();actualizarEstadisticas();alert(`Orden recibida correctamente.\n\nNuevo inventario: ${nuevo}\nCosto promedio: $${Number(p.costo).toFixed(2)}`)}
+function eliminarOrdenCompra(id){const o=ordenesCompra.find(x=>x.id===id);if(!o)return;if(o.estado==="recibida")return alert("Una orden recibida no se elimina para conservar el historial de compras.");if(!confirm("¿Quieres eliminar esta orden de compra?"))return;ordenesCompra=ordenesCompra.filter(x=>x.id!==id);guardarOrdenesCompra();actualizarOrdenesCompra();actualizarProveedores();actualizarCentroAlertas()}
 function actualizarFiltrosOrdenes(){const proveedores=[...new Set(ordenesCompra.map(o=>String(o.proveedor||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"})),sel=document.getElementById("filtroProveedorOrden"),prev=sel.value;sel.innerHTML='<option value="">Todos los proveedores</option>'+proveedores.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(proveedores.includes(prev))sel.value=prev}
 function mostrarListaOrdenes(){actualizarFiltrosOrdenes();const q=document.getElementById("busquedaOrdenes").value.toLowerCase().trim(),estado=document.getElementById("filtroEstadoOrden").value,proveedor=document.getElementById("filtroProveedorOrden").value,lista=document.getElementById("listaOrdenes");const arr=ordenesCompra.filter(o=>(!estado||o.estado===estado)&&(!proveedor||o.proveedor===proveedor)&&[o.nombre,o.sku,o.proveedor,numeroOrdenCompra(o)].some(v=>String(v||"").toLowerCase().includes(q)));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay órdenes de compra con esos filtros.</div>';return}lista.innerHTML=arr.map(o=>{const total=Number(o.cantidad||0)*Number(o.costoUnitario||0),estadoTexto=o.estado==="recibida"?"✅ Recibida":o.estado==="ordenada"?"🚚 Ordenada":"⏳ Pendiente",acciones=o.estado==="recibida"?'<div class="acciones-orden"><button class="boton-orden boton-orden-primario" onclick="mostrarHistorial()">📜 Ver historial</button></div>':`<div class="acciones-orden"><button class="boton-orden boton-orden-primario" onclick="editarOrdenCompra(${o.id})">✏️ Editar</button>${o.estado==="pendiente"?`<button class="boton-orden boton-orden-primario" onclick="marcarOrdenada(${o.id})">🚚 Ordenada</button>`:""}<button class="boton-orden boton-orden-recibir" onclick="recibirOrden(${o.id})">✅ Recibir</button><button class="boton-orden boton-orden-eliminar" onclick="eliminarOrdenCompra(${o.id})">🗑️ Eliminar</button></div>`;return `<div class="orden-card"><div class="orden-superior"><div><h3>${escapeHtml(o.nombre)}</h3><p>${numeroOrdenCompra(o)} · SKU: ${escapeHtml(o.sku||"")}</p></div><div class="orden-total">$${total.toFixed(2)}</div></div><span class="estado-orden ${o.estado}">${estadoTexto}</span><div class="orden-detalle">Proveedor: <strong>${escapeHtml(o.proveedor||"—")}</strong><br>Cantidad: <strong>${Number(o.cantidad||0)}</strong> · Costo/u.: <strong>$${Number(o.costoUnitario||0).toFixed(2)}</strong><br>Fecha orden: <strong>${o.fechaOrden?new Date(o.fechaOrden+"T00:00:00").toLocaleDateString("es-PR"):"—"}</strong>${o.fechaRecibida?`<br>Recibida: <strong>${new Date(o.fechaRecibida).toLocaleDateString("es-PR")}</strong>`:""}${o.nota?`<br>Nota: ${escapeHtml(o.nota)}`:""}</div>${acciones}</div>`}).join("")}
 function actualizarOrdenesCompra(){document.getElementById("ordenesPendientes").textContent=ordenesCompra.filter(o=>o.estado==="pendiente").length;document.getElementById("ordenesOrdenadas").textContent=ordenesCompra.filter(o=>o.estado==="ordenada").length;document.getElementById("ordenesRecibidas").textContent=ordenesCompra.filter(o=>o.estado==="recibida").length;document.getElementById("valorOrdenesRecibidas").textContent="$"+ordenesCompra.filter(o=>o.estado==="recibida").reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0).toFixed(2);mostrarListaOrdenes()}
@@ -988,7 +1046,7 @@ function actualizarEstadisticas(){
  const conteo={};historial.forEach(m=>{const id=m.productoId;if(!conteo[id])conteo[id]={nombre:m.nombre,movimientos:0};conteo[id].movimientos++});const rm=Object.values(conteo).sort((a,b)=>b.movimientos-a.movimientos).slice(0,5);document.getElementById("rankingMovimientos").innerHTML=rm.length?rm.map(x=>`<div class="fila-estadistica"><span>${escapeHtml(x.nombre)}</span><strong>${x.movimientos} movimiento(s)</strong></div>`).join(""):`<div class="fila-estadistica"><span>No hay movimientos.</span><strong>—</strong></div>`;
  const bajos=productos.filter(p=>Number(p.cantidad)<=Number(p.stockMinimo??5));document.getElementById("rankingStockBajo").innerHTML=bajos.length?bajos.map(p=>`<div class="fila-estadistica"><span>${escapeHtml(p.nombre)}</span><strong>${p.cantidad} / ${Number(p.stockMinimo??5)}</strong></div>`).join(""):`<div class="fila-estadistica"><span>Todo el inventario está por encima del mínimo.</span><strong>✓ OK</strong></div>`
 }
-function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonEstadisticas"].forEach(id=>document.getElementById(id).classList.remove("activo"));const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",estadisticas:"botonEstadisticas"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo")}
+function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonEstadisticas"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",estadisticas:"botonEstadisticas"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo")}
 function mostrarInventario(){document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
 function scrollTop(){window.scrollTo({top:0,behavior:"smooth"})}
 document.addEventListener("visibilitychange",()=>{
@@ -1003,16 +1061,17 @@ document.addEventListener("visibilitychange",()=>{
   actualizarReporte();
   actualizarCentroAlertas();
   actualizarOrdenesCompra();
+  actualizarProveedores();
   actualizarEstadisticas();
  }
 });
 
 function mostrarEstadoRespaldo(m){const e=document.getElementById("estadoRespaldo");e.textContent=m;e.classList.add("visible")}
-function crearRespaldo(){const datos={aplicacion:"Flackunloker",version:"1.9",fecha:new Date().toISOString(),productos,historial,ventas,gastos,cierres,ordenesCompra};const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a"),fecha=new Date().toISOString().replace(/[:.]/g,"-");a.href=url;a.download="flackunloker-respaldo-"+fecha+".json";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);mostrarEstadoRespaldo("✅ Respaldo creado correctamente.")}
+function crearRespaldo(){const datos={aplicacion:"Flackunloker",version:"2.0",fecha:new Date().toISOString(),productos,historial,ventas,gastos,cierres,ordenesCompra,proveedores};const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a"),fecha=new Date().toISOString().replace(/[:.]/g,"-");a.href=url;a.download="flackunloker-respaldo-"+fecha+".json";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);mostrarEstadoRespaldo("✅ Respaldo creado correctamente.")}
 function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
 function restaurarRespaldo(event){
  const archivo=event.target.files[0];if(!archivo)return;const lector=new FileReader();
- lector.onload=()=>{try{const datos=JSON.parse(lector.result);if(!datos||datos.aplicacion!=="Flackunloker")return alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial))return alert("El respaldo está incompleto o dañado.");if(!confirm("¿Quieres restaurar este respaldo?\n\nLos productos y el historial actuales serán reemplazados por los datos del respaldo."))return;productos=datos.productos;historial=datos.historial;ventas=Array.isArray(datos.ventas)?datos.ventas:[];gastos=Array.isArray(datos.gastos)?datos.gastos:[];cierres=Array.isArray(datos.cierres)?datos.cierres:[];ordenesCompra=Array.isArray(datos.ordenesCompra)?datos.ordenesCompra:[];productos.forEach(p=>{if(p.stockMinimo===undefined||p.stockMinimo===null)p.stockMinimo=5;if(p.costo===undefined||p.costo===null||p.costo==="")p.costo=0;if(p.categoria===undefined||p.categoria===null)p.categoria="";if(p.proveedor===undefined||p.proveedor===null)p.proveedor="";if(p.ubicacion===undefined||p.ubicacion===null)p.ubicacion=""});recalcularSaldos();guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();guardarOrdenesCompra();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarReporte();actualizarCentroAlertas();actualizarOrdenesCompra();actualizarEstadisticas();mostrarEstadoRespaldo("✅ Respaldo restaurado correctamente.");alert("Respaldo restaurado correctamente.")}catch(err){console.error(err);alert("No se pudo leer el respaldo. Comprueba que el archivo sea válido.")}finally{event.target.value=""}};lector.readAsText(archivo)
+ lector.onload=()=>{try{const datos=JSON.parse(lector.result);if(!datos||datos.aplicacion!=="Flackunloker")return alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial))return alert("El respaldo está incompleto o dañado.");if(!confirm("¿Quieres restaurar este respaldo?\n\nLos productos y el historial actuales serán reemplazados por los datos del respaldo."))return;productos=datos.productos;historial=datos.historial;ventas=Array.isArray(datos.ventas)?datos.ventas:[];gastos=Array.isArray(datos.gastos)?datos.gastos:[];cierres=Array.isArray(datos.cierres)?datos.cierres:[];ordenesCompra=Array.isArray(datos.ordenesCompra)?datos.ordenesCompra:[];proveedores=Array.isArray(datos.proveedores)?datos.proveedores:[];productos.forEach(p=>{if(p.stockMinimo===undefined||p.stockMinimo===null)p.stockMinimo=5;if(p.costo===undefined||p.costo===null||p.costo==="")p.costo=0;if(p.categoria===undefined||p.categoria===null)p.categoria="";if(p.proveedor===undefined||p.proveedor===null)p.proveedor="";if(p.ubicacion===undefined||p.ubicacion===null)p.ubicacion=""});[...productos.map(p=>String(p.proveedor||"").trim()),...ordenesCompra.map(o=>String(o.proveedor||"").trim())].filter(Boolean).forEach(nombre=>{if(!proveedores.some(pr=>nombreProveedorNorm(pr.nombre)===nombreProveedorNorm(nombre)))proveedores.push({id:Date.now()+Math.floor(Math.random()*100000)+proveedores.length,nombre,contacto:"",telefono:"",email:"",direccion:"",nota:"",creado:new Date().toISOString()})});recalcularSaldos();guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();guardarOrdenesCompra();guardarProveedores();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarReporte();actualizarCentroAlertas();actualizarOrdenesCompra();actualizarProveedores();actualizarEstadisticas();mostrarEstadoRespaldo("✅ Respaldo restaurado correctamente.");alert("Respaldo restaurado correctamente.")}catch(err){console.error(err);alert("No se pudo leer el respaldo. Comprueba que el archivo sea válido.")}finally{event.target.value=""}};lector.readAsText(archivo)
 }
 
 document.getElementById("modalProducto").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarFormulario()});
@@ -1023,9 +1082,10 @@ document.getElementById("modalAbono").addEventListener("click",e=>{if(e.target==
 document.getElementById("modalHistorialAbonos").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarHistorialAbonos()});
 document.getElementById("modalGasto").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarGasto()});
 document.getElementById("modalOrdenCompra").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarOrdenCompra()});
+document.getElementById("modalProveedor").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarProveedor()});
 document.getElementById("modalEditarMovimiento").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarEditarMovimiento()});
 
-recalcularSaldos();mostrarProductos();actualizarResumenHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarOrdenesCompra();actualizarEstadisticas();
+recalcularSaldos();mostrarProductos();actualizarResumenHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarOrdenesCompra();actualizarProveedores();actualizarEstadisticas();
 </script>
 </body>
 </html>
