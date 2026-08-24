@@ -890,7 +890,7 @@ async function mostrarAppConSesion(session){
   await cargarVentasSupabase();
   await cargarGastosSupabase();
   await cargarMovimientosCajaSupabase();
-  await migrarComprasLocalesSupabase();
+  await cargarComprasSupabase();
  }else{
   document.getElementById("authOverlay").classList.remove("oculto");
   document.getElementById("authUsuario").classList.remove("visible");
@@ -2025,8 +2025,12 @@ document.getElementById("formularioProveedor").addEventListener("submit",async e
  if(!nombre)return alert("Escribe el nombre del proveedor.");
  const actual=proveedores.find(x=>x.id===proveedorEditandoId),legacy=actual?String(actual.id):String(Date.now()+Math.floor(Math.random()*100000));
  const payload={legacy_id:legacy,name:nombre,contact_name:contacto||null,phone:telefono||null,email:email||null,address:direccion||null,notes:nota||null,updated_at:new Date().toISOString()};
+ if(!actual){
+  const repetido=proveedores.find(p=>nombreProveedorNorm(p.nombre)===nombreProveedorNorm(nombre));
+  if(repetido)return alert("Ese proveedor ya existe: "+repetido.nombre);
+ }
  const q=actual?.supabaseId?flkSupabase.from("suppliers").update(payload).eq("id",actual.supabaseId):flkSupabase.from("suppliers").insert(payload);
- const {error}=await q;if(error)return alert("Supabase rechazó el proveedor: "+error.message);
+ const {error}=await q;if(error)return alert(error.code==="23505"?"Ese proveedor ya existe.":"Supabase rechazó el proveedor: "+error.message);
  await cargarComprasSupabase();cerrarProveedor()
 });
 function eliminarProveedor(id){const p=proveedores.find(x=>x.id===id);if(!p)return;const productosAsociados=productos.filter(x=>nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(p.nombre)).length,ordenesAsociadas=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)).length;if(!confirm(`¿Eliminar ${p.nombre} del directorio?\n\nSus ${productosAsociados} producto(s) y ${ordenesAsociadas} orden(es) conservarán el nombre del proveedor como historial.`))return;proveedores=proveedores.filter(x=>x.id!==id);guardarProveedores();actualizarProveedores();actualizarOpcionesOrganizacion()}
