@@ -201,6 +201,35 @@
     }
 
     /* =========================
+       ALERTAS DE STOCK
+    ========================= */
+
+    .alerta-stock {
+      margin-top: 12px;
+      padding: 11px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .alerta-stock.bajo {
+      background: #fff4d6;
+      color: #9a6700;
+    }
+
+    .alerta-stock.sin-stock {
+      background: #ffecec;
+      color: #d93025;
+    }
+
+    .stock-normal {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #168044;
+      font-weight: 600;
+    }
+
+    /* =========================
        ACCIONES
     ========================= */
 
@@ -569,14 +598,11 @@
 
 </head>
 
-
 <body>
 
   <div class="contenedor">
 
-    <!-- =========================
-         ENCABEZADO
-    ========================= -->
+    <!-- ENCABEZADO -->
 
     <div class="encabezado">
 
@@ -688,8 +714,6 @@
 
       </div>
 
-
-      <!-- RESUMEN DEL HISTORIAL -->
 
       <div class="resumen-historial">
 
@@ -849,6 +873,7 @@
           id="cantidadProducto"
           type="number"
           min="0"
+          step="1"
           placeholder="Ej. 10"
           required
         >
@@ -868,6 +893,24 @@
           min="0"
           step="0.01"
           placeholder="Ej. 25.00"
+          required
+        >
+
+      </div>
+
+
+      <div class="campo">
+
+        <label for="stockMinimo">
+          Stock mínimo
+        </label>
+
+        <input
+          id="stockMinimo"
+          type="number"
+          min="0"
+          step="1"
+          placeholder="Ej. 5"
           required
         >
 
@@ -1033,6 +1076,39 @@
 
 
     /* =========================
+       MIGRACIÓN
+       Productos anteriores
+       sin stockMinimo
+    ========================= */
+
+    productos.forEach(function(producto) {
+
+      if (
+        producto.stockMinimo === undefined ||
+        producto.stockMinimo === null
+      ) {
+
+        producto.stockMinimo = 0;
+
+      }
+
+    });
+
+
+    guardarDatosInicial();
+
+
+    function guardarDatosInicial() {
+
+      localStorage.setItem(
+        "flackunloker_productos",
+        JSON.stringify(productos)
+      );
+
+    }
+
+
+    /* =========================
        GUARDAR DATOS
     ========================= */
 
@@ -1080,6 +1156,13 @@
           "formularioProducto"
         )
         .reset();
+
+
+      document
+        .getElementById(
+          "stockMinimo"
+        )
+        .value = "0";
 
 
       document
@@ -1160,6 +1243,14 @@
         )
         .value =
         producto.precio;
+
+
+      document
+        .getElementById(
+          "stockMinimo"
+        )
+        .value =
+        producto.stockMinimo ?? 0;
 
 
       document
@@ -1245,6 +1336,16 @@
             );
 
 
+          const stockMinimo =
+            Number(
+              document
+                .getElementById(
+                  "stockMinimo"
+                )
+                .value
+            );
+
+
           if (!nombre || !sku) {
 
             alert(
@@ -1258,11 +1359,27 @@
 
           if (
             cantidad < 0 ||
-            precio < 0
+            precio < 0 ||
+            stockMinimo < 0
           ) {
 
             alert(
-              "La cantidad y el precio no pueden ser negativos."
+              "La cantidad, el precio y el stock mínimo no pueden ser negativos."
+            );
+
+            return;
+
+          }
+
+
+          if (
+            !Number.isInteger(
+              stockMinimo
+            )
+          ) {
+
+            alert(
+              "El stock mínimo debe ser un número entero."
             );
 
             return;
@@ -1301,6 +1418,9 @@
               producto.precio =
                 precio;
 
+              producto.stockMinimo =
+                stockMinimo;
+
             }
 
           } else {
@@ -1309,13 +1429,20 @@
 
               id: Date.now(),
 
-              nombre: nombre,
+              nombre:
+                nombre,
 
-              sku: sku,
+              sku:
+                sku,
 
-              cantidad: cantidad,
+              cantidad:
+                cantidad,
 
-              precio: precio
+              precio:
+                precio,
+
+              stockMinimo:
+                stockMinimo
 
             };
 
@@ -1520,10 +1647,6 @@
           }
 
 
-          /*
-             Calculamos primero el nuevo saldo.
-          */
-
           let nuevoSaldo =
             Number(
               producto.cantidad
@@ -1548,7 +1671,9 @@
 
             if (
               cantidad >
-              producto.cantidad
+              Number(
+                producto.cantidad
+              )
             ) {
 
               alert(
@@ -1566,22 +1691,19 @@
           }
 
 
-          /*
-             Actualizamos inventario.
-          */
-
           producto.cantidad =
             nuevoSaldo;
 
 
           /*
-             Registramos movimiento
-             con el saldo resultante.
+             Registramos el saldo exacto
+             después de este movimiento.
           */
 
           const movimiento = {
 
-            id: Date.now(),
+            id:
+              Date.now(),
 
             productoId:
               producto.id,
@@ -1614,15 +1736,16 @@
 
           guardarDatos();
 
-guardarHistorial();
+          guardarHistorial();
 
-mostrarProductos();
+          mostrarProductos();
 
-actualizarResumenHistorial();
+          actualizarResumenHistorial();
 
-mostrarListaHistorial();
+          mostrarListaHistorial();
 
-cerrarMovimiento();
+          cerrarMovimiento();
+
         }
       );
 
@@ -1692,17 +1815,21 @@ cerrarMovimiento();
           function(producto) {
 
             return (
-              producto.nombre
-                .toLowerCase()
-                .includes(
-                  textoBusqueda
-                )
+              String(
+                producto.nombre || ""
+              )
+              .toLowerCase()
+              .includes(
+                textoBusqueda
+              )
               ||
-              producto.sku
-                .toLowerCase()
-                .includes(
-                  textoBusqueda
-                )
+              String(
+                producto.sku || ""
+              )
+              .toLowerCase()
+              .includes(
+                textoBusqueda
+              )
             );
 
           }
@@ -1713,7 +1840,8 @@ cerrarMovimiento();
 
 
       if (
-        productosFiltrados.length === 0
+        productosFiltrados.length ===
+        0
       ) {
 
         lista.innerHTML = `
@@ -1745,6 +1873,67 @@ cerrarMovimiento();
               "producto";
 
 
+            const cantidad =
+              Number(
+                producto.cantidad
+              );
+
+
+            const stockMinimo =
+              Number(
+                producto.stockMinimo ?? 0
+              );
+
+
+            let alertaStock = "";
+
+
+            if (
+              cantidad === 0
+            ) {
+
+              alertaStock = `
+
+                <div class="alerta-stock sin-stock">
+
+                  🔴 Sin inventario
+
+                </div>
+
+              `;
+
+            } else if (
+              cantidad <=
+              stockMinimo
+            ) {
+
+              alertaStock = `
+
+                <div class="alerta-stock bajo">
+
+                  ⚠️ Inventario bajo
+                  · Mínimo: ${stockMinimo}
+
+                </div>
+
+              `;
+
+            } else {
+
+              alertaStock = `
+
+                <div class="stock-normal">
+
+                  ✓ Inventario normal
+                  · Mínimo: ${stockMinimo}
+
+                </div>
+
+              `;
+
+            }
+
+
             elemento.innerHTML = `
 
               <div class="producto-superior">
@@ -1763,10 +1952,13 @@ cerrarMovimiento();
 
 
                 <div class="cantidad">
-                  ${producto.cantidad}
+                  ${cantidad}
                 </div>
 
               </div>
+
+
+              ${alertaStock}
 
 
               <div class="producto-precio">
@@ -1785,8 +1977,10 @@ cerrarMovimiento();
 
                 <strong>
                   $${(
-                    producto.cantidad *
-                    producto.precio
+                    cantidad *
+                    Number(
+                      producto.precio
+                    )
                   ).toFixed(2)}
                 </strong>
 
@@ -2121,14 +2315,16 @@ cerrarMovimiento();
               String(
                 movimiento.nombre ||
                 ""
-              ).toLowerCase();
+              )
+              .toLowerCase();
 
 
             const sku =
               String(
                 movimiento.sku ||
                 ""
-              ).toLowerCase();
+              )
+              .toLowerCase();
 
 
             const coincideTexto =
@@ -2231,46 +2427,58 @@ cerrarMovimiento();
 
           let saldoTexto;
 
-const productoActual =
-  productos.find(function(producto) {
 
-    return producto.id === movimiento.productoId;
+          if (
+            movimiento.saldo !==
+              undefined &&
+            movimiento.saldo !==
+              null
+          ) {
 
-  });
+            saldoTexto = `
+
+              Saldo después del movimiento:
+
+              <strong>
+                ${Number(
+                  movimiento.saldo
+                )}
+              </strong>
+
+            `;
+
+          } else {
+
+            const productoActual =
+              productos.find(
+                function(producto) {
+
+                  return (
+                    producto.id ===
+                    movimiento.productoId
+                  );
+
+                }
+              );
 
 
-if (
-  movimiento.saldo !== undefined &&
-  movimiento.saldo !== null &&
-  movimiento.saldo !== ""
-) {
+            saldoTexto = `
 
-  saldoTexto = `
-    Saldo después del movimiento:
-    <strong>
-      ${Number(movimiento.saldo)}
-    </strong>
-  `;
+              Saldo después del movimiento:
 
-} else if (productoActual) {
+              <strong>
+                ${
+                  productoActual
+                    ? Number(
+                        productoActual.cantidad
+                      )
+                    : "No disponible"
+                }
+              </strong>
 
-  saldoTexto = `
-    Saldo después del movimiento:
-    <strong>
-      ${Number(productoActual.cantidad)}
-    </strong>
-  `;
+            `;
 
-} else {
-
-  saldoTexto = `
-    Saldo después del movimiento:
-    <strong>
-      No disponible
-    </strong>
-  `;
-
-}
+          }
 
 
           elemento.innerHTML = `
