@@ -158,6 +158,41 @@ button:active{transform:scale(.97)}
   .menu{bottom:8px;width:calc(100% - 14px);border-radius:19px}
 }
 
+
+/* ===== MENÚ PRINCIPAL ===== */
+.menu{display:none!important}
+.boton-menu-flotante{
+ position:fixed;right:18px;bottom:18px;z-index:650;border:0;border-radius:18px;
+ padding:14px 18px;background:linear-gradient(135deg,#0a84ff,#0055cc);color:#fff;
+ font-size:15px;font-weight:800;box-shadow:0 12px 30px rgba(10,132,255,.32);cursor:pointer
+}
+.menu-panel-fondo{
+ display:none;position:fixed;inset:0;z-index:1200;background:rgba(15,23,42,.46);
+ backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:18px;align-items:flex-end;justify-content:center
+}
+.menu-panel-fondo.visible{display:flex}
+.menu-panel{
+ width:min(100%,620px);max-height:82vh;overflow-y:auto;background:#f8faff;border-radius:28px;
+ padding:18px;box-shadow:0 24px 70px rgba(0,0,0,.25);animation:subirMenu .2s ease
+}
+@keyframes subirMenu{from{transform:translateY(25px);opacity:.5}to{transform:none;opacity:1}}
+.menu-panel-cabecera{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}
+.menu-panel-cabecera h2{margin:0;font-size:21px}.cerrar-menu{
+ width:38px;height:38px;border:0;border-radius:12px;background:#e9eef6;color:#344054;font-size:18px;cursor:pointer
+}
+.menu-cuadricula{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.menu-cuadricula button{
+ min-height:67px;border:1px solid #e4eaf2;border-radius:16px;background:#fff;color:#475467;
+ padding:10px 7px;font-size:12px;font-weight:750;cursor:pointer;box-shadow:0 5px 16px rgba(20,42,80,.04)
+}
+.menu-cuadricula button.activo{background:#eaf4ff;color:#0a84ff;border-color:#cce5ff}
+@media(max-width:430px){
+ .boton-menu-flotante{right:12px;bottom:12px;padding:13px 16px;border-radius:16px}
+ .menu-panel-fondo{padding:10px}.menu-panel{border-radius:24px;padding:15px;max-height:88vh}
+ .menu-cuadricula{grid-template-columns:repeat(3,1fr);gap:8px}
+ .menu-cuadricula button{font-size:11px;min-height:64px;padding:8px 5px}
+}
+
 </style>
 </head>
 <body>
@@ -643,25 +678,26 @@ button:active{transform:scale(.97)}
 </form>
 </div>
 
-<div class="menu">
-<button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button>
-<button onclick="abrirFormulario()">➕ Agregar</button>
-<button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button>
-<button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button>
-<button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button>
-<button id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button>
-<button id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button>
-<button id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button>
-<button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button>
-<button id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button>
-<button id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button>
-<button id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button>
-<button id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button>
-<button id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button>
-<button id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button>
+<button class="boton-menu-flotante" onclick="abrirMenuPrincipal()">☰ Menú</button>
+<div id="menuPrincipalFondo" class="menu-panel-fondo" onclick="cerrarMenuPrincipal(event)">
+ <div class="menu-panel" onclick="event.stopPropagation()">
+  <div class="menu-panel-cabecera"><h2>☰ Menú principal</h2><button class="cerrar-menu" onclick="cerrarMenuPrincipal()">✕</button></div>
+  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button></div>
+ </div>
 </div>
 
 <script>
+
+function abrirMenuPrincipal(){document.getElementById("menuPrincipalFondo").classList.add("visible")}
+function cerrarMenuPrincipal(e){
+ if(e&&e.target!==document.getElementById("menuPrincipalFondo"))return;
+ document.getElementById("menuPrincipalFondo").classList.remove("visible")
+}
+document.addEventListener("click",function(e){
+ const b=e.target.closest("#menuPrincipalFondo .menu-cuadricula button");
+ if(b)document.getElementById("menuPrincipalFondo").classList.remove("visible")
+});
+
 let productos=[];
 let historial=[];
 let ventas=[];
