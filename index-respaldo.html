@@ -14,21 +14,21 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 .titulo{margin:15px 0 5px;font-size:28px;font-weight:700}.subtitulo{margin:0;color:#777;font-size:15px}
 .resumen{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:22px}
 .tarjeta,.producto,.movimiento,.lista-estadisticas,.respaldo-box,.estadistica-card,.tarjeta-historial{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06)}
-.tarjeta{padding:18px}.tarjeta span,.estadistica-card span,.tarjeta-historial span{display:block;color:#777;font-size:13px;margin-bottom:8px}.tarjeta strong{font-size:24px}.tarjeta.valor{grid-column:1/-1}.tarjeta.valor strong{color:#0a84ff}
+.tarjeta{padding:18px}.tarjeta span,.estadistica-card span,.tarjeta-historial span{display:block;color:#777;font-size:13px;margin-bottom:8px}.tarjeta strong{font-size:24px}.tarjeta.valor{grid-column:1/-1}.tarjeta.valor strong{color:#0a84ff}.tarjeta.ganancia strong{color:#168044}
 .alerta-inventario{display:none;background:#fff7e8;border:1px solid #ffd27a;border-radius:18px;padding:16px;margin-bottom:20px}.alerta-inventario.visible{display:block}.alerta-titulo{display:flex;gap:8px;font-size:16px;font-weight:700;color:#a15c00;margin-bottom:10px}.alerta-descripcion{color:#795000;font-size:13px;margin-bottom:12px}.producto-alerta{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #f0d99d}.producto-alerta-info strong{display:block;font-size:14px}.producto-alerta-info small{display:block;color:#876c3e;margin-top:3px;font-size:12px}.producto-alerta-cantidad{font-weight:700;white-space:nowrap;color:#a15c00}
-.busqueda,.busqueda-historial{width:100%;border:0;outline:none;background:#fff;border-radius:15px;padding:15px 17px;font-size:15px;box-shadow:0 5px 20px rgba(0,0,0,.06)}.busqueda{margin-bottom:20px}.busqueda-historial{margin-bottom:12px}
+.busqueda,.busqueda-historial{width:100%;border:0;outline:none;background:#fff;border-radius:15px;padding:15px 17px;font-size:15px;box-shadow:0 5px 20px rgba(0,0,0,.06)}.busqueda{margin-bottom:20px}.busqueda-historial{margin-bottom:12px}.filtros-inventario{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:-8px 0 20px}.filtro-inventario{width:100%;border:0;outline:none;background:#fff;border-radius:13px;padding:12px 13px;font-size:13px;color:#555;box-shadow:0 5px 20px rgba(0,0,0,.06)}.filtro-inventario:focus{box-shadow:0 5px 20px rgba(10,132,255,.15)}
 .seccion-titulo{display:flex;justify-content:space-between;align-items:center;margin:20px 0 12px}.seccion-titulo h2{margin:0;font-size:20px}.boton-agregar{border:0;background:#0a84ff;color:#fff;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}
 .producto{padding:17px;margin-bottom:12px}.producto-superior,.movimiento-superior{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.producto-info,.movimiento-info{min-width:0}.producto-info h3,.movimiento-info h3{margin:0 0 5px;font-size:16px}.producto-info p,.movimiento-info p{margin:0;color:#777;font-size:13px}.cantidad{background:#eaf4ff;color:#0a84ff;padding:8px 11px;border-radius:10px;font-weight:700;white-space:nowrap}.cantidad.stock-bajo{background:#fff7e8;color:#a15c00}.cantidad.sin-stock{background:#ffecec;color:#d93025}.producto-precio{margin-top:12px;color:#555;font-size:14px}.producto-precio strong{color:#111}.aviso-producto{margin-top:10px;padding:10px;border-radius:10px;background:#fff7e8;color:#a15c00;font-size:13px;font-weight:600}.aviso-producto.sin-stock{background:#ffecec;color:#d93025}
-.acciones{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:14px}.accion{border:0;border-radius:10px;padding:9px 5px;font-size:12px;font-weight:600;cursor:pointer}.entrada{background:#e9f8ef;color:#168044}.salida{background:#fff1e8;color:#c45b19}.editar{background:#eaf4ff;color:#0a84ff}.eliminar{background:#ffecec;color:#d93025}
+.acciones{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-top:14px}.accion{border:0;border-radius:10px;padding:9px 5px;font-size:12px;font-weight:600;cursor:pointer}.entrada{background:#e9f8ef;color:#168044}.salida{background:#fff1e8;color:#c45b19}.vender{background:#edf9f1;color:#08783e}.editar{background:#eaf4ff;color:#0a84ff}.eliminar{background:#ffecec;color:#d93025}
 .sin-productos{text-align:center;color:#777;padding:30px 15px;background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06)}
 .resumen-historial{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:15px}.tarjeta-historial{padding:14px 10px;text-align:center}.tarjeta-historial strong{font-size:20px}.tarjeta-historial.entradas strong{color:#168044}.tarjeta-historial.salidas strong{color:#c45b19}
 .filtros-historial{display:flex;gap:8px;margin-bottom:15px}.filtro-historial{flex:1;border:0;border-radius:12px;padding:11px 8px;background:#eee;color:#555;font-weight:600;cursor:pointer}.filtro-historial.activo{background:#0a84ff;color:#fff}.boton-borrar-historial{width:100%;border:0;background:#ffecec;color:#d93025;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:15px}
 .movimiento{padding:17px;margin-bottom:12px}.movimiento-tipo{padding:8px 11px;border-radius:10px;font-weight:700;white-space:nowrap;font-size:13px}.movimiento-tipo.entrada{background:#e9f8ef;color:#168044}.movimiento-tipo.salida{background:#fff1e8;color:#c45b19}.movimiento-detalle{margin-top:12px;color:#555;font-size:13px;line-height:1.7}.saldo-movimiento{margin-top:8px;padding-top:8px;border-top:1px solid #eee}.saldo-movimiento strong{color:#0a84ff}.acciones-movimiento{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-movimiento-editar,.boton-movimiento-eliminar{border:0;border-radius:10px;padding:9px;font-size:12px;font-weight:700;cursor:pointer}.boton-movimiento-editar{background:#eaf4ff;color:#0a84ff}.boton-movimiento-eliminar{background:#ffecec;color:#d93025}
 .estadisticas-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:15px}.estadistica-card{padding:18px}.estadistica-card strong{font-size:24px}.estadistica-card.ancha{grid-column:1/-1}.estadistica-card.azul strong{color:#0a84ff}.estadistica-card.positiva strong{color:#168044}.estadistica-card.negativa strong{color:#c45b19}.lista-estadisticas{padding:17px;margin-bottom:12px}.lista-estadisticas h3{margin:0 0 12px;font-size:16px}.fila-estadistica{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid #eee;font-size:13px}.fila-estadistica:first-child{border-top:0}.fila-estadistica span{color:#555}.fila-estadistica strong{color:#0a84ff;white-space:nowrap}
-.respaldo-box{padding:18px;margin-bottom:15px}.respaldo-box h3{margin:0 0 8px;font-size:18px}.respaldo-box p{margin:0 0 15px;color:#777;font-size:13px;line-height:1.6}.botones-respaldo{display:grid;grid-template-columns:1fr 1fr;gap:10px}.boton-respaldo{border:0;border-radius:12px;padding:13px 10px;font-size:14px;font-weight:700;cursor:pointer}.boton-crear-respaldo{background:#eaf4ff;color:#0a84ff}.boton-restaurar-respaldo{background:#e9f8ef;color:#168044}.estado-respaldo{margin-top:12px;padding:11px;border-radius:10px;background:#f4f7fb;color:#555;font-size:12px;display:none}.estado-respaldo.visible{display:block}
+.venta-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px}.venta-superior{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.venta-superior h3{margin:0 0 5px;font-size:16px}.venta-superior p{margin:0;color:#777;font-size:13px}.venta-total{font-weight:800;color:#168044;white-space:nowrap}.venta-detalle{margin-top:12px;font-size:13px;line-height:1.7;color:#555}.venta-detalle strong{color:#111}.ganancia-venta{color:#168044!important}.acciones-venta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-recibo-venta,.boton-eliminar-venta{width:100%;border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.boton-recibo-venta{background:#eaf4ff;color:#0a84ff}.boton-eliminar-venta{background:#ffecec;color:#d93025}.respaldo-box{padding:18px;margin-bottom:15px}.respaldo-box h3{margin:0 0 8px;font-size:18px}.respaldo-box p{margin:0 0 15px;color:#777;font-size:13px;line-height:1.6}.botones-respaldo{display:grid;grid-template-columns:1fr 1fr;gap:10px}.boton-respaldo{border:0;border-radius:12px;padding:13px 10px;font-size:14px;font-weight:700;cursor:pointer}.boton-crear-respaldo{background:#eaf4ff;color:#0a84ff}.boton-restaurar-respaldo{background:#e9f8ef;color:#168044}.estado-respaldo{margin-top:12px;padding:11px;border-radius:10px;background:#f4f7fb;color:#555;font-size:12px;display:none}.estado-respaldo.visible{display:block}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;padding:20px;align-items:center;justify-content:center}.modal.visible{display:flex}.formulario{width:100%;max-width:480px;max-height:90vh;overflow-y:auto;background:#fff;border-radius:22px;padding:22px;box-shadow:0 15px 40px rgba(0,0,0,.2)}.formulario h2{margin:0 0 20px;font-size:22px}.campo{margin-bottom:15px}.campo label{display:block;font-size:13px;font-weight:600;margin-bottom:7px}.campo input,.campo select{width:100%;border:1px solid #ddd;outline:none;border-radius:12px;padding:13px;font-size:15px;background:#fff}.campo input:focus,.campo select:focus{border-color:#0a84ff}.ayuda-campo{display:block;margin-top:6px;color:#777;font-size:11px;line-height:1.5}.botones-formulario{display:flex;gap:10px;margin-top:20px}.boton-cancelar,.boton-guardar{flex:1;border:0;border-radius:12px;padding:13px;font-size:15px;font-weight:600;cursor:pointer}.boton-cancelar{background:#eee;color:#333}.boton-guardar{background:#0a84ff;color:#fff}.mensaje-movimiento{margin:0 0 18px;padding:12px;border-radius:12px;background:#eaf4ff;color:#0a84ff;font-size:14px}
 .menu{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #eee;padding:12px 8px;display:flex;justify-content:center;gap:20px;z-index:500}.menu button{border:0;background:none;font-size:12px;color:#777;cursor:pointer;padding:5px}.menu .activo{color:#0a84ff;font-weight:700}
-@media(max-width:430px){.acciones{grid-template-columns:repeat(2,1fr)}.menu{gap:8px}.menu button{font-size:11px}.botones-respaldo{grid-template-columns:1fr}.estadisticas-grid{grid-template-columns:1fr}.estadistica-card.ancha{grid-column:auto}}
+@media(max-width:430px){.filtros-inventario{grid-template-columns:1fr}.acciones{grid-template-columns:repeat(2,1fr)}.menu{gap:8px}.menu button{font-size:11px}.botones-respaldo{grid-template-columns:1fr}.estadisticas-grid{grid-template-columns:1fr}.estadistica-card.ancha{grid-column:auto}}
 </style>
 </head>
 <body>
@@ -39,10 +39,16 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <div class="resumen">
 <div class="tarjeta"><span>Productos</span><strong id="totalProductos">0</strong></div>
 <div class="tarjeta"><span>Unidades</span><strong id="totalUnidades">0</strong></div>
-<div class="tarjeta valor"><span>Valor del inventario</span><strong id="valorInventario">$0.00</strong></div>
+<div class="tarjeta valor"><span>Valor del inventario a costo</span><strong id="valorInventario">$0.00</strong></div>
+<div class="tarjeta valor"><span>Venta potencial</span><strong id="ventaPotencial">$0.00</strong></div>
+<div class="tarjeta valor ganancia"><span>Ganancia potencial</span><strong id="gananciaPotencial">$0.00</strong></div>
 </div>
 <div class="alerta-inventario" id="alertaInventario"><div class="alerta-titulo">⚠️ Inventario bajo</div><div class="alerta-descripcion">Los siguientes productos están en su stock mínimo o por debajo.</div><div id="listaAlertas"></div></div>
-<input id="busqueda" class="busqueda" type="search" placeholder="Buscar producto...">
+<input id="busqueda" class="busqueda" type="search" placeholder="Buscar por nombre, SKU, categoría, proveedor o ubicación...">
+<div class="filtros-inventario">
+<select id="filtroCategoria" class="filtro-inventario" onchange="cambiarFiltrosInventario()"><option value="">Todas las categorías</option></select>
+<select id="filtroUbicacion" class="filtro-inventario" onchange="cambiarFiltrosInventario()"><option value="">Todas las ubicaciones</option></select>
+</div>
 <div class="seccion-titulo"><h2>Inventario</h2><button class="boton-agregar" onclick="abrirFormulario()">+ Agregar</button></div>
 <div id="listaProductos"></div>
 </div>
@@ -64,6 +70,33 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <div id="listaHistorial"></div>
 </div>
 
+<div id="vistaVentas" style="display:none">
+<div class="seccion-titulo"><h2>💰 Ventas</h2></div>
+<div class="lista-estadisticas"><h3>📊 Dashboard del negocio</h3>
+<div class="fila-estadistica"><span>Hoy · Ingresos / Ganancia</span><strong id="dashboardHoy">$0.00 / $0.00</strong></div>
+<div class="fila-estadistica"><span>Últimos 7 días · Ingresos / Ganancia</span><strong id="dashboardSemana">$0.00 / $0.00</strong></div>
+<div class="fila-estadistica"><span>Este mes · Ingresos / Ganancia</span><strong id="dashboardMes">$0.00 / $0.00</strong></div>
+</div>
+<div class="lista-estadisticas"><h3>🏆 Productos más vendidos</h3><div id="dashboardMasVendidos"></div></div>
+<div class="lista-estadisticas"><h3>🐢 Productos con poca rotación</h3><div id="dashboardPocaRotacion"></div></div>
+<div class="estadisticas-grid">
+<div class="estadistica-card azul"><span>Ventas de hoy</span><strong id="ventasHoy">0</strong></div>
+<div class="estadistica-card azul"><span>Unidades hoy</span><strong id="unidadesVendidasHoy">0</strong></div>
+<div class="estadistica-card ancha positiva"><span>Ingresos de hoy</span><strong id="ingresosHoy">$0.00</strong></div>
+<div class="estadistica-card ancha"><span>Costo vendido hoy</span><strong id="costoVendidoHoy">$0.00</strong></div>
+<div class="estadistica-card ancha positiva"><span>Ganancia real de hoy</span><strong id="gananciaHoy">$0.00</strong></div>
+</div>
+<input id="busquedaVentas" class="busqueda-historial" type="search" placeholder="Buscar por producto, SKU, cliente o teléfono...">
+<div class="lista-estadisticas"><h3>📈 Totales de ventas registradas</h3>
+<div class="fila-estadistica"><span>Ventas</span><strong id="totalVentas">0</strong></div>
+<div class="fila-estadistica"><span>Unidades vendidas</span><strong id="totalUnidadesVendidas">0</strong></div>
+<div class="fila-estadistica"><span>Ingresos</span><strong id="totalIngresosVentas">$0.00</strong></div>
+<div class="fila-estadistica"><span>Costo de mercancía vendida</span><strong id="totalCostoVentas">$0.00</strong></div>
+<div class="fila-estadistica"><span>Ganancia real</span><strong id="totalGananciaVentas">$0.00</strong></div>
+</div>
+<div id="listaVentas"></div>
+</div>
+
 <div id="vistaEstadisticas" style="display:none">
 <div class="seccion-titulo"><h2>📊 Estadísticas</h2></div>
 <div class="estadisticas-grid">
@@ -71,7 +104,9 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <div class="estadistica-card positiva"><span>Unidades entradas</span><strong id="estadisticaEntradas">0</strong></div>
 <div class="estadistica-card negativa"><span>Unidades salidas</span><strong id="estadisticaSalidas">0</strong></div>
 <div class="estadistica-card azul"><span>Balance</span><strong id="estadisticaBalance">0</strong></div>
-<div class="estadistica-card ancha"><span>Valor actual del inventario</span><strong id="estadisticaValor">$0.00</strong></div>
+<div class="estadistica-card ancha"><span>Valor del inventario a costo</span><strong id="estadisticaValor">$0.00</strong></div>
+<div class="estadistica-card ancha azul"><span>Venta potencial del inventario</span><strong id="estadisticaVentaPotencial">$0.00</strong></div>
+<div class="estadistica-card ancha positiva"><span>Ganancia potencial</span><strong id="estadisticaGananciaPotencial">$0.00</strong></div>
 </div>
 <div class="lista-estadisticas"><h3>📦 Productos con mayor existencia</h3><div id="rankingProductos"></div></div>
 <div class="lista-estadisticas"><h3>🔄 Productos con más movimientos</h3><div id="rankingMovimientos"></div></div>
@@ -87,7 +122,11 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <div class="campo"><label for="nombre">Nombre del producto</label><input id="nombre" type="text" placeholder="Ej. Camisa azul" required></div>
 <div class="campo"><label for="sku">SKU</label><input id="sku" type="text" placeholder="Ej. FLK-001" required></div>
 <div class="campo"><label for="cantidadProducto">Cantidad</label><input id="cantidadProducto" type="number" min="0" step="1" required></div>
-<div class="campo"><label for="precio">Precio</label><input id="precio" type="number" min="0" step="0.01" required></div>
+<div class="campo"><label for="costo">Costo de compra</label><input id="costo" type="number" min="0" step="0.01" value="0" required><small class="ayuda-campo">Lo que pagaste por cada unidad.</small></div>
+<div class="campo"><label for="precio">Precio de venta</label><input id="precio" type="number" min="0" step="0.01" required><small class="ayuda-campo">El precio al que vendes cada unidad.</small></div>
+<div class="campo"><label for="categoria">Categoría</label><input id="categoria" type="text" list="listaCategorias" placeholder="Ej. Teléfonos"><datalist id="listaCategorias"></datalist></div>
+<div class="campo"><label for="proveedor">Proveedor</label><input id="proveedor" type="text" list="listaProveedores" placeholder="Ej. Distribuidor principal"><datalist id="listaProveedores"></datalist></div>
+<div class="campo"><label for="ubicacion">Ubicación</label><input id="ubicacion" type="text" list="listaUbicaciones" placeholder="Ej. Vitrina 1 / Almacén A"><datalist id="listaUbicaciones"></datalist></div>
 <div class="campo"><label for="stockMinimo">Stock mínimo</label><input id="stockMinimo" type="number" min="0" step="1" value="5" required><small class="ayuda-campo">Se mostrará una alerta cuando el inventario llegue a este número o menos.</small></div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarFormulario()">Cancelar</button><button type="submit" class="boton-guardar">Guardar</button></div>
 </form>
@@ -98,6 +137,19 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <h2 id="tituloMovimiento">Movimiento</h2><p class="mensaje-movimiento" id="textoMovimiento">Movimiento de inventario</p>
 <div class="campo"><label for="cantidadMovimiento">Cantidad</label><input id="cantidadMovimiento" type="number" min="1" step="1" required></div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarMovimiento()">Cancelar</button><button type="submit" class="boton-guardar">Confirmar</button></div>
+</form>
+</div>
+
+<div class="modal" id="modalVenta">
+<form class="formulario" id="formularioVenta">
+<h2>Registrar venta</h2>
+<p class="mensaje-movimiento" id="textoVenta">Venta de producto</p>
+<div class="campo"><label for="cantidadVenta">Cantidad vendida</label><input id="cantidadVenta" type="number" min="1" step="1" required></div>
+<div class="campo"><label for="precioVentaUnitario">Precio de venta por unidad</label><input id="precioVentaUnitario" type="number" min="0" step="0.01" required><small class="ayuda-campo">Puedes usar el precio habitual o cambiarlo para esta venta.</small></div>
+<div class="campo"><label for="clienteVenta">Cliente</label><input id="clienteVenta" type="text" placeholder="Opcional"></div>
+<div class="campo"><label for="telefonoVenta">Teléfono</label><input id="telefonoVenta" type="tel" placeholder="Opcional"></div>
+<div class="campo"><label for="notaVenta">Nota</label><input id="notaVenta" type="text" placeholder="Opcional · Ej. Pago en efectivo"></div>
+<div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarVenta()">Cancelar</button><button type="submit" class="boton-guardar">Registrar venta</button></div>
 </form>
 </div>
 
@@ -115,36 +167,62 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button>
 <button onclick="abrirFormulario()">➕ Agregar</button>
 <button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button>
+<button id="botonVentas" onclick="mostrarVentas()">💰 Ventas</button>
 <button id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button>
 </div>
 
 <script>
 let productos=[];
 let historial=[];
-let productoEditando=null,productoMovimiento=null,tipoMovimiento=null,movimientoEditandoId=null,filtroHistorialActual="todos";
+let ventas=[];
+let productoEditando=null,productoMovimiento=null,tipoMovimiento=null,movimientoEditandoId=null,productoVenta=null,filtroHistorialActual="todos",filtroCategoriaActual="",filtroUbicacionActual="";
 let procesandoGuardado=false;
 
 function cargarDatos(){
  try{
   const p=localStorage.getItem("flackunloker_productos");
   const h=localStorage.getItem("flackunloker_historial");
+  const v=localStorage.getItem("flackunloker_ventas");
   productos=p?JSON.parse(p):[];
   historial=h?JSON.parse(h):[];
+  ventas=v?JSON.parse(v):[];
   if(!Array.isArray(productos))productos=[];
   if(!Array.isArray(historial))historial=[];
+  if(!Array.isArray(ventas))ventas=[];
  }catch(e){
   console.error("Error cargando datos:",e);
   productos=[];
   historial=[];
+  ventas=[];
  }
  productos.forEach(p=>{
   if(p.stockMinimo===undefined||p.stockMinimo===null||p.stockMinimo==="")p.stockMinimo=5;
+  if(p.costo===undefined||p.costo===null||p.costo==="")p.costo=0;
+  if(p.categoria===undefined||p.categoria===null)p.categoria="";
+  if(p.proveedor===undefined||p.proveedor===null)p.proveedor="";
+  if(p.ubicacion===undefined||p.ubicacion===null)p.ubicacion="";
  });
 }
 function guardarDatos(){localStorage.setItem("flackunloker_productos",JSON.stringify(productos))}
 function guardarHistorial(){localStorage.setItem("flackunloker_historial",JSON.stringify(historial))}
+function guardarVentas(){localStorage.setItem("flackunloker_ventas",JSON.stringify(ventas))}
 cargarDatos();
 function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+
+function valoresUnicos(campo){return [...new Set(productos.map(p=>String(p[campo]||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"}))}
+function actualizarOpcionesOrganizacion(){
+ const categorias=valoresUnicos("categoria"),proveedores=valoresUnicos("proveedor"),ubicaciones=valoresUnicos("ubicacion");
+ document.getElementById("listaCategorias").innerHTML=categorias.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
+ document.getElementById("listaProveedores").innerHTML=proveedores.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
+ document.getElementById("listaUbicaciones").innerHTML=ubicaciones.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
+ const fc=document.getElementById("filtroCategoria"),fu=document.getElementById("filtroUbicacion");
+ const catPrev=filtroCategoriaActual,ubiPrev=filtroUbicacionActual;
+ fc.innerHTML='<option value="">Todas las categorías</option>'+categorias.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+ fu.innerHTML='<option value="">Todas las ubicaciones</option>'+ubicaciones.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+ if(categorias.includes(catPrev))fc.value=catPrev;else filtroCategoriaActual="";
+ if(ubicaciones.includes(ubiPrev))fu.value=ubiPrev;else filtroUbicacionActual="";
+}
+function cambiarFiltrosInventario(){filtroCategoriaActual=document.getElementById("filtroCategoria").value;filtroUbicacionActual=document.getElementById("filtroUbicacion").value;mostrarProductos()}
 
 function abrirFormulario(){
  mostrarInventario();productoEditando=null;document.getElementById("tituloFormulario").textContent="Agregar producto";document.getElementById("formularioProducto").reset();document.getElementById("stockMinimo").value=5;document.getElementById("modalProducto").classList.add("visible");document.getElementById("nombre").focus()
@@ -152,7 +230,7 @@ function abrirFormulario(){
 function editarProducto(id){
  const p=productos.find(x=>x.id===id);if(!p)return;
  productoEditando=id;document.getElementById("tituloFormulario").textContent="Editar producto";
- document.getElementById("nombre").value=p.nombre;document.getElementById("sku").value=p.sku;document.getElementById("cantidadProducto").value=p.cantidad;document.getElementById("precio").value=p.precio;document.getElementById("stockMinimo").value=Number(p.stockMinimo??5);document.getElementById("modalProducto").classList.add("visible")
+ document.getElementById("nombre").value=p.nombre;document.getElementById("sku").value=p.sku;document.getElementById("cantidadProducto").value=p.cantidad;document.getElementById("costo").value=Number(p.costo??0);document.getElementById("precio").value=p.precio;document.getElementById("categoria").value=p.categoria||"";document.getElementById("proveedor").value=p.proveedor||"";document.getElementById("ubicacion").value=p.ubicacion||"";document.getElementById("stockMinimo").value=Number(p.stockMinimo??5);document.getElementById("modalProducto").classList.add("visible")
 }
 function cerrarFormulario(){document.getElementById("modalProducto").classList.remove("visible");document.getElementById("formularioProducto").reset();productoEditando=null}
 
@@ -165,10 +243,14 @@ document.getElementById("formularioProducto").addEventListener("submit",e=>{
   const nombre=document.getElementById("nombre").value.trim();
   const sku=document.getElementById("sku").value.trim();
   const cantidad=Number(document.getElementById("cantidadProducto").value);
+  const costo=Number(document.getElementById("costo").value);
   const precio=Number(document.getElementById("precio").value);
+  const categoria=document.getElementById("categoria").value.trim();
+  const proveedor=document.getElementById("proveedor").value.trim();
+  const ubicacion=document.getElementById("ubicacion").value.trim();
   const stockMinimo=Number(document.getElementById("stockMinimo").value);
   if(!nombre||!sku){alert("Completa el nombre y el SKU.");return}
-  if(cantidad<0||precio<0||stockMinimo<0||!Number.isInteger(stockMinimo)){
+  if(cantidad<0||costo<0||precio<0||stockMinimo<0||!Number.isInteger(stockMinimo)){
    alert("Revisa los valores introducidos.");return
   }
   const skuNorm=sku.toLowerCase();
@@ -177,14 +259,28 @@ document.getElementById("formularioProducto").addEventListener("submit",e=>{
    if(productos.some(x=>x.id!==productoEditando&&String(x.sku||"").trim().toLowerCase()===skuNorm)){
     alert("Ya existe otro producto con ese SKU.");return
    }
-   p.nombre=nombre;p.sku=sku;p.cantidad=cantidad;p.precio=precio;p.stockMinimo=stockMinimo;
+   p.nombre=nombre;p.sku=sku;p.cantidad=cantidad;p.costo=costo;p.precio=precio;p.categoria=categoria;p.proveedor=proveedor;p.ubicacion=ubicacion;p.stockMinimo=stockMinimo;
   }else{
    if(productos.some(x=>String(x.sku||"").trim().toLowerCase()===skuNorm)){
     alert("Ya existe un producto con ese SKU.");return
    }
-   productos.push({id:Date.now()+Math.floor(Math.random()*100000),nombre,sku,cantidad,precio,stockMinimo});
+   const nuevoProducto={id:Date.now()+Math.floor(Math.random()*100000),nombre,sku,cantidad,costo,precio,categoria,proveedor,ubicacion,stockMinimo};
+   productos.push(nuevoProducto);
+   if(cantidad>0){
+    historial.unshift({
+     id:Date.now()+Math.floor(Math.random()*100000),
+     productoId:nuevoProducto.id,
+     nombre:nuevoProducto.nombre,
+     sku:nuevoProducto.sku,
+     tipo:"entrada",
+     cantidad:cantidad,
+     saldo:cantidad,
+     fecha:new Date().toISOString(),
+     detalle:"Inventario inicial"
+    });
+   }
   }
-  guardarDatos();mostrarProductos();actualizarEstadisticas();cerrarFormulario();
+  guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();cerrarFormulario();
  }finally{procesandoGuardado=false}
 });
 function abrirMovimiento(id,tipo){
@@ -222,20 +318,22 @@ function eliminarProducto(id){
 
 function mostrarProductos(){
  const lista=document.getElementById("listaProductos"),q=document.getElementById("busqueda").value.toLowerCase().trim();
- const arr=productos.filter(p=>String(p.nombre||"").toLowerCase().includes(q)||String(p.sku||"").toLowerCase().includes(q));lista.innerHTML="";
+ actualizarOpcionesOrganizacion();
+ const arr=productos.filter(p=>[p.nombre,p.sku,p.categoria,p.proveedor,p.ubicacion].some(v=>String(v||"").toLowerCase().includes(q))&&(!filtroCategoriaActual||String(p.categoria||"")===filtroCategoriaActual)&&(!filtroUbicacionActual||String(p.ubicacion||"")===filtroUbicacionActual));lista.innerHTML="";
  if(!arr.length){lista.innerHTML=`<div class="sin-productos">${productos.length?"No encontramos productos con esa búsqueda.":"No hay productos todavía.<br>Presiona + Agregar para comenzar."}</div>`}
  else arr.forEach(p=>{
   const c=Number(p.cantidad),min=Number(p.stockMinimo??5),el=document.createElement("div");el.className="producto";
   const clase=c===0?"cantidad sin-stock":c<=min?"cantidad stock-bajo":"cantidad";
   const aviso=c===0?'<div class="aviso-producto sin-stock">🔴 Sin stock</div>':c<=min?`<div class="aviso-producto">⚠️ Inventario bajo · Mínimo: ${min}</div>`:"";
-  el.innerHTML=`<div class="producto-superior"><div class="producto-info"><h3>${escapeHtml(p.nombre)}</h3><p>SKU: ${escapeHtml(p.sku)}</p></div><div class="${clase}">${c}</div></div><div class="producto-precio">Precio: <strong>$${Number(p.precio).toFixed(2)}</strong> &nbsp;·&nbsp; Valor: <strong>$${(c*Number(p.precio)).toFixed(2)}</strong></div>${aviso}<div class="acciones"><button class="accion entrada" onclick="abrirMovimiento(${p.id},'entrada')">+ Entrada</button><button class="accion salida" onclick="abrirMovimiento(${p.id},'salida')">− Salida</button><button class="accion editar" onclick="editarProducto(${p.id})">✏️ Editar</button><button class="accion eliminar" onclick="eliminarProducto(${p.id})">🗑️ Eliminar</button></div>`;
+  const detalles=[p.categoria?`Categoría: ${escapeHtml(p.categoria)}`:"",p.proveedor?`Proveedor: ${escapeHtml(p.proveedor)}`:"",p.ubicacion?`Ubicación: ${escapeHtml(p.ubicacion)}`:""].filter(Boolean).map(x=>`<p>${x}</p>`).join("");
+  el.innerHTML=`<div class="producto-superior"><div class="producto-info"><h3>${escapeHtml(p.nombre)}</h3><p>SKU: ${escapeHtml(p.sku)}</p>${detalles}</div><div class="${clase}">${c}</div></div><div class="producto-precio">Costo: <strong>$${Number(p.costo??0).toFixed(2)}</strong> &nbsp;·&nbsp; Venta: <strong>$${Number(p.precio).toFixed(2)}</strong><br>Ganancia/u.: <strong>$${(Number(p.precio)-Number(p.costo??0)).toFixed(2)}</strong> &nbsp;·&nbsp; Margen: <strong>${Number(p.precio)>0?(((Number(p.precio)-Number(p.costo??0))/Number(p.precio))*100).toFixed(1):"0.0"}%</strong><br>Valor a costo: <strong>$${(c*Number(p.costo??0)).toFixed(2)}</strong> &nbsp;·&nbsp; Venta potencial: <strong>$${(c*Number(p.precio)).toFixed(2)}</strong></div>${aviso}<div class="acciones"><button class="accion entrada" onclick="abrirMovimiento(${p.id},'entrada')">+ Entrada</button><button class="accion salida" onclick="abrirMovimiento(${p.id},'salida')">− Salida</button><button class="accion vender" onclick="abrirVenta(${p.id})">💰 Vender</button><button class="accion editar" onclick="editarProducto(${p.id})">✏️ Editar</button><button class="accion eliminar" onclick="eliminarProducto(${p.id})">🗑️ Eliminar</button></div>`;
   lista.appendChild(el)
  });
  actualizarResumen();actualizarAlertasInventario()
 }
 function actualizarResumen(){
- const unidades=productos.reduce((t,p)=>t+Number(p.cantidad),0),valor=productos.reduce((t,p)=>t+Number(p.cantidad)*Number(p.precio),0);
- document.getElementById("totalProductos").textContent=productos.length;document.getElementById("totalUnidades").textContent=unidades;document.getElementById("valorInventario").textContent="$"+valor.toFixed(2)
+ const unidades=productos.reduce((t,p)=>t+Number(p.cantidad),0),valorCosto=productos.reduce((t,p)=>t+Number(p.cantidad)*Number(p.costo??0),0),ventaPotencial=productos.reduce((t,p)=>t+Number(p.cantidad)*Number(p.precio),0),gananciaPotencial=ventaPotencial-valorCosto;
+ document.getElementById("totalProductos").textContent=productos.length;document.getElementById("totalUnidades").textContent=unidades;document.getElementById("valorInventario").textContent="$"+valorCosto.toFixed(2);document.getElementById("ventaPotencial").textContent="$"+ventaPotencial.toFixed(2);document.getElementById("gananciaPotencial").textContent="$"+gananciaPotencial.toFixed(2)
 }
 function actualizarAlertasInventario(){
  const bajos=productos.filter(p=>Number(p.cantidad)<=Number(p.stockMinimo??5)),box=document.getElementById("alertaInventario"),lista=document.getElementById("listaAlertas");
@@ -244,8 +342,112 @@ function actualizarAlertasInventario(){
 }
 document.getElementById("busqueda").addEventListener("input",mostrarProductos);
 
+function abrirVenta(id){
+ const p=productos.find(x=>x.id===id);if(!p)return;
+ if(Number(p.cantidad)<=0)return alert("Este producto no tiene unidades disponibles para vender.");
+ productoVenta=id;
+ document.getElementById("textoVenta").textContent=`${p.nombre} · Disponibles: ${Number(p.cantidad)} · Costo/u.: $${Number(p.costo??0).toFixed(2)}`;
+ document.getElementById("cantidadVenta").value="1";
+ document.getElementById("precioVentaUnitario").value=Number(p.precio??0).toFixed(2);
+ document.getElementById("modalVenta").classList.add("visible");
+ document.getElementById("cantidadVenta").focus()
+}
+function cerrarVenta(){document.getElementById("modalVenta").classList.remove("visible");document.getElementById("formularioVenta").reset();productoVenta=null}
+document.getElementById("formularioVenta").addEventListener("submit",e=>{
+ e.preventDefault();e.stopPropagation();if(procesandoGuardado)return;procesandoGuardado=true;
+ try{
+  const p=productos.find(x=>x.id===productoVenta);if(!p)return cerrarVenta();
+  const cantidad=Number(document.getElementById("cantidadVenta").value),precioUnitario=Number(document.getElementById("precioVentaUnitario").value);
+  const cliente=document.getElementById("clienteVenta").value.trim(),telefono=document.getElementById("telefonoVenta").value.trim(),nota=document.getElementById("notaVenta").value.trim();
+  if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
+  if(!Number.isFinite(precioUnitario)||precioUnitario<0)return alert("Introduce un precio de venta válido.");
+  if(cantidad>Number(p.cantidad))return alert("No puedes vender más unidades de las que existen en inventario.");
+  const costoUnitario=Number(p.costo??0),nuevoSaldo=Number(p.cantidad)-cantidad,fecha=new Date().toISOString();
+  const ventaId=Date.now()+Math.floor(Math.random()*100000);
+  const ingreso=cantidad*precioUnitario,costoTotal=cantidad*costoUnitario,ganancia=ingreso-costoTotal;
+  p.cantidad=nuevoSaldo;
+  ventas.unshift({id:ventaId,productoId:p.id,nombre:p.nombre,sku:p.sku,cantidad,precioUnitario,costoUnitario,ingreso,costoTotal,ganancia,fecha,cliente,telefono,nota});
+  historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:"salida",cantidad,saldo:nuevoSaldo,fecha,detalle:"Venta",ventaId});
+  guardarDatos();guardarHistorial();guardarVentas();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarEstadisticas();cerrarVenta();
+  alert(`Venta registrada.\n\nIngreso: $${ingreso.toFixed(2)}\nGanancia: $${ganancia.toFixed(2)}`)
+ }finally{procesandoGuardado=false}
+});
+function esMismoDia(fechaA,fechaB){const a=new Date(fechaA),b=new Date(fechaB);return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
+function actualizarDashboardVentas(){
+ const ahora=new Date(),inicioHoy=new Date(ahora.getFullYear(),ahora.getMonth(),ahora.getDate()),inicioSemana=new Date(inicioHoy);inicioSemana.setDate(inicioSemana.getDate()-6);const inicioMes=new Date(ahora.getFullYear(),ahora.getMonth(),1);
+ const enPeriodo=(v,inicio)=>{const f=new Date(v.fecha);return !Number.isNaN(f.getTime())&&f>=inicio&&f<=ahora};
+ const resumen=arr=>({ingresos:arr.reduce((t,v)=>t+Number(v.ingreso??0),0),ganancia:arr.reduce((t,v)=>t+Number(v.ganancia??0),0)});
+ const formato=r=>`$${r.ingresos.toFixed(2)} / $${r.ganancia.toFixed(2)}`;
+ document.getElementById("dashboardHoy").textContent=formato(resumen(ventas.filter(v=>enPeriodo(v,inicioHoy))));
+ document.getElementById("dashboardSemana").textContent=formato(resumen(ventas.filter(v=>enPeriodo(v,inicioSemana))));
+ document.getElementById("dashboardMes").textContent=formato(resumen(ventas.filter(v=>enPeriodo(v,inicioMes))));
+ const conteo={};
+ ventas.forEach(v=>{const k=String(v.productoId??v.sku??v.nombre);if(!conteo[k])conteo[k]={nombre:v.nombre||"Producto",unidades:0,ingresos:0};conteo[k].unidades+=Number(v.cantidad??0);conteo[k].ingresos+=Number(v.ingreso??0)});
+ const top=Object.values(conteo).sort((a,b)=>b.unidades-a.unidades||b.ingresos-a.ingresos).slice(0,5);
+ document.getElementById("dashboardMasVendidos").innerHTML=top.length?top.map(x=>`<div class="fila-estadistica"><span>${escapeHtml(x.nombre)}</span><strong>${x.unidades} u. · $${x.ingresos.toFixed(2)}</strong></div>`).join(""):`<div class="fila-estadistica"><span>Aún no hay ventas.</span><strong>—</strong></div>`;
+ const vendidosIds=new Set(ventas.map(v=>String(v.productoId)));
+ const poca=[...productos].filter(p=>Number(p.cantidad)>0).map(p=>{const vs=ventas.filter(v=>String(v.productoId)===String(p.id));return {nombre:p.nombre,cantidad:Number(p.cantidad),vendidas:vs.reduce((t,v)=>t+Number(v.cantidad??0),0)}}).sort((a,b)=>a.vendidas-b.vendidas||b.cantidad-a.cantidad).slice(0,5);
+ document.getElementById("dashboardPocaRotacion").innerHTML=poca.length?poca.map(x=>`<div class="fila-estadistica"><span>${escapeHtml(x.nombre)}</span><strong>${x.vendidas} vend. · ${x.cantidad} stock</strong></div>`).join(""):`<div class="fila-estadistica"><span>No hay productos con stock.</span><strong>—</strong></div>`;
+}
+function actualizarVentas(){
+ actualizarDashboardVentas();
+ const hoy=new Date(),ventasHoyArr=ventas.filter(v=>esMismoDia(v.fecha,hoy));
+ const sumar=(arr,campo)=>arr.reduce((t,v)=>t+Number(v[campo]??0),0);
+ document.getElementById("ventasHoy").textContent=ventasHoyArr.length;
+ document.getElementById("unidadesVendidasHoy").textContent=sumar(ventasHoyArr,"cantidad");
+ document.getElementById("ingresosHoy").textContent="$"+sumar(ventasHoyArr,"ingreso").toFixed(2);
+ document.getElementById("costoVendidoHoy").textContent="$"+sumar(ventasHoyArr,"costoTotal").toFixed(2);
+ document.getElementById("gananciaHoy").textContent="$"+sumar(ventasHoyArr,"ganancia").toFixed(2);
+ document.getElementById("totalVentas").textContent=ventas.length;
+ document.getElementById("totalUnidadesVendidas").textContent=sumar(ventas,"cantidad");
+ document.getElementById("totalIngresosVentas").textContent="$"+sumar(ventas,"ingreso").toFixed(2);
+ document.getElementById("totalCostoVentas").textContent="$"+sumar(ventas,"costoTotal").toFixed(2);
+ document.getElementById("totalGananciaVentas").textContent="$"+sumar(ventas,"ganancia").toFixed(2);
+ mostrarListaVentas()
+}
+function mostrarListaVentas(){
+ const lista=document.getElementById("listaVentas"),q=document.getElementById("busquedaVentas").value.toLowerCase().trim();
+ const arr=ventas.filter(v=>String(v.nombre||"").toLowerCase().includes(q)||String(v.sku||"").toLowerCase().includes(q)||String(v.cliente||"").toLowerCase().includes(q)||String(v.telefono||"").toLowerCase().includes(q));lista.innerHTML="";
+ if(!arr.length){lista.innerHTML=`<div class="sin-productos">${ventas.length?"No encontramos ventas con esa búsqueda.":"No hay ventas registradas todavía."}</div>`;return}
+ arr.forEach(v=>{
+  const f=new Date(v.fecha),el=document.createElement("div");el.className="venta-card";
+  const clienteTxt=v.cliente?`<br>Cliente: <strong>${escapeHtml(v.cliente)}</strong>${v.telefono?` · ${escapeHtml(v.telefono)}`:""}`:"";
+  const notaTxt=v.nota?`<br>Nota: ${escapeHtml(v.nota)}`:"";
+  el.innerHTML=`<div class="venta-superior"><div><h3>${escapeHtml(v.nombre)}</h3><p>SKU: ${escapeHtml(v.sku)}</p></div><div class="venta-total">$${Number(v.ingreso??0).toFixed(2)}</div></div><div class="venta-detalle">Cantidad: <strong>${Number(v.cantidad)}</strong> · Precio/u.: <strong>$${Number(v.precioUnitario??0).toFixed(2)}</strong><br>Costo/u.: <strong>$${Number(v.costoUnitario??0).toFixed(2)}</strong> · Costo total: <strong>$${Number(v.costoTotal??0).toFixed(2)}</strong><br>Ganancia real: <strong class="ganancia-venta">$${Number(v.ganancia??0).toFixed(2)}</strong>${clienteTxt}${notaTxt}<br>${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div><div class="acciones-venta"><button class="boton-recibo-venta" onclick="generarReciboVenta(${v.id})">🧾 Recibo</button><button class="boton-eliminar-venta" onclick="eliminarVenta(${v.id})">↩️ Anular venta</button></div>`;
+  lista.appendChild(el)
+ })
+}
+function generarReciboVenta(id){
+ const v=ventas.find(x=>x.id===id);if(!v)return;
+ const f=new Date(v.fecha),numero=String(v.id).slice(-8);
+ const cliente=escapeHtml(v.cliente||"Cliente general"),telefono=escapeHtml(v.telefono||""),nota=escapeHtml(v.nota||"");
+ const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recibo ${numero}</title><style>
+ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Arial,sans-serif;margin:0;background:#f4f7fb;color:#111}.recibo{max-width:420px;margin:24px auto;background:#fff;padding:28px;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.08)}h1{text-align:center;margin:0;font-size:26px}h2{text-align:center;margin:6px 0 24px;font-size:15px;color:#777;font-weight:500}.fila{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid #eee;font-size:14px}.total{font-size:20px;font-weight:800;color:#168044}.pie{text-align:center;color:#777;font-size:12px;margin-top:22px}.imprimir{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700;font-size:15px}@media print{body{background:#fff}.recibo{box-shadow:none;margin:0;max-width:none}.imprimir{display:none}}
+ </style></head><body><div class="recibo"><h1>Flackunloker</h1><h2>Recibo de venta #${numero}</h2>
+ <div class="fila"><span>Fecha</span><strong>${f.toLocaleDateString("es-PR")} ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div>
+ <div class="fila"><span>Cliente</span><strong>${cliente}${telefono?`<br>${telefono}`:""}</strong></div>
+ <div class="fila"><span>Producto</span><strong>${escapeHtml(v.nombre)}</strong></div>
+ <div class="fila"><span>SKU</span><strong>${escapeHtml(v.sku)}</strong></div>
+ <div class="fila"><span>Cantidad</span><strong>${Number(v.cantidad)}</strong></div>
+ <div class="fila"><span>Precio por unidad</span><strong>$${Number(v.precioUnitario??0).toFixed(2)}</strong></div>
+ <div class="fila total"><span>Total</span><strong>$${Number(v.ingreso??0).toFixed(2)}</strong></div>
+ ${nota?`<div class="fila"><span>Nota</span><strong>${nota}</strong></div>`:""}
+ <div class="pie">Gracias por su compra.</div><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></body></html>`;
+ const w=window.open("","_blank");if(!w)return alert("El navegador bloqueó el recibo. Permite ventanas emergentes para Flackunloker.");
+ w.document.open();w.document.write(contenido);w.document.close()
+}
+function eliminarVenta(id){
+ const v=ventas.find(x=>x.id===id);if(!v)return;
+ if(!confirm(`¿Anular esta venta de ${v.nombre}?\n\nLas ${Number(v.cantidad)} unidad(es) volverán al inventario.`))return;
+ const p=productos.find(x=>x.id===v.productoId);if(p)p.cantidad=Number(p.cantidad)+Number(v.cantidad);
+ ventas=ventas.filter(x=>x.id!==id);historial=historial.filter(m=>m.ventaId!==id);
+ recalcularSaldos();guardarDatos();guardarHistorial();guardarVentas();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarEstadisticas()
+}
+document.getElementById("busquedaVentas").addEventListener("input",mostrarListaVentas);
+function mostrarVentas(){document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="block";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("ventas");actualizarVentas();scrollTop()}
+
 function mostrarHistorial(){
- document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="block";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("historial");actualizarResumenHistorial();mostrarListaHistorial();scrollTop()
+ document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="block";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("historial");actualizarResumenHistorial();mostrarListaHistorial();scrollTop()
 }
 function actualizarResumenHistorial(){
  const entradas=historial.reduce((t,m)=>m.tipo==="entrada"?t+Number(m.cantidad):t,0),salidas=historial.reduce((t,m)=>m.tipo==="salida"?t+Number(m.cantidad):t,0);
@@ -257,8 +459,9 @@ function mostrarListaHistorial(){
  if(!arr.length){lista.innerHTML=`<div class="sin-productos">${historial.length?"No encontramos movimientos con esos filtros.":"No hay movimientos registrados todavía."}</div>`;return}
  arr.forEach(m=>{
   const el=document.createElement("div");el.className="movimiento";const f=new Date(m.fecha),entrada=m.tipo==="entrada";
-  const saldo=m.saldo!==undefined&&m.saldo!==null?Number(m.saldo):"No disponible";
-  el.innerHTML=`<div class="movimiento-superior"><div class="movimiento-info"><h3>${escapeHtml(m.nombre)}</h3><p>SKU: ${escapeHtml(m.sku)}</p></div><div class="movimiento-tipo ${entrada?"entrada":"salida"}">${entrada?"＋ Entrada":"− Salida"}</div></div><div class="movimiento-detalle">Cantidad: <strong>${Number(m.cantidad)}</strong> &nbsp;·&nbsp; ${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}<div class="saldo-movimiento">Saldo después del movimiento: <strong>${saldo}</strong></div></div><div class="acciones-movimiento"><button class="boton-movimiento-editar" onclick="abrirEditarMovimiento(${m.id})">✏️ Editar movimiento</button><button class="boton-movimiento-eliminar" onclick="eliminarMovimiento(${m.id})">🗑️ Eliminar movimiento</button></div>`;
+  const saldo=m.saldo!==undefined&&m.saldo!==null?Number(m.saldo):"No disponible",esVenta=Boolean(m.ventaId);
+  const acciones=esVenta?`<div class="saldo-movimiento">💰 Movimiento generado por una venta. Para revertirlo, elimina la venta desde la sección Ventas.</div>`:`<div class="acciones-movimiento"><button class="boton-movimiento-editar" onclick="abrirEditarMovimiento(${m.id})">✏️ Editar movimiento</button><button class="boton-movimiento-eliminar" onclick="eliminarMovimiento(${m.id})">🗑️ Eliminar movimiento</button></div>`;
+  el.innerHTML=`<div class="movimiento-superior"><div class="movimiento-info"><h3>${escapeHtml(m.nombre)}</h3><p>SKU: ${escapeHtml(m.sku)}</p></div><div class="movimiento-tipo ${entrada?"entrada":"salida"}">${esVenta?"💰 Venta":entrada?"＋ Entrada":"− Salida"}</div></div><div class="movimiento-detalle">Cantidad: <strong>${Number(m.cantidad)}</strong> &nbsp;·&nbsp; ${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}<div class="saldo-movimiento">Saldo después del movimiento: <strong>${saldo}</strong></div></div>${acciones}`;
   lista.appendChild(el)
  })
 }
@@ -302,16 +505,16 @@ function borrarHistorial(){
  historial=[];guardarHistorial();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas()
 }
 
-function mostrarEstadisticas(){document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaEstadisticas").style.display="block";actualizarMenu("estadisticas");actualizarEstadisticas();scrollTop()}
+function mostrarEstadisticas(){document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaEstadisticas").style.display="block";actualizarMenu("estadisticas");actualizarEstadisticas();scrollTop()}
 function actualizarEstadisticas(){
- const entradas=historial.reduce((t,m)=>m.tipo==="entrada"?t+Number(m.cantidad):t,0),salidas=historial.reduce((t,m)=>m.tipo==="salida"?t+Number(m.cantidad):t,0),valor=productos.reduce((t,p)=>t+Number(p.cantidad)*Number(p.precio),0);
- document.getElementById("estadisticaMovimientos").textContent=historial.length;document.getElementById("estadisticaEntradas").textContent=entradas;document.getElementById("estadisticaSalidas").textContent=salidas;document.getElementById("estadisticaBalance").textContent=entradas-salidas;document.getElementById("estadisticaValor").textContent="$"+valor.toFixed(2);
+ const entradas=historial.reduce((t,m)=>m.tipo==="entrada"?t+Number(m.cantidad):t,0),salidas=historial.reduce((t,m)=>m.tipo==="salida"?t+Number(m.cantidad):t,0),valorCosto=productos.reduce((t,p)=>t+Number(p.cantidad)*Number(p.costo??0),0),ventaPotencial=productos.reduce((t,p)=>t+Number(p.cantidad)*Number(p.precio),0),gananciaPotencial=ventaPotencial-valorCosto;
+ document.getElementById("estadisticaMovimientos").textContent=historial.length;document.getElementById("estadisticaEntradas").textContent=entradas;document.getElementById("estadisticaSalidas").textContent=salidas;document.getElementById("estadisticaBalance").textContent=entradas-salidas;document.getElementById("estadisticaValor").textContent="$"+valorCosto.toFixed(2);document.getElementById("estadisticaVentaPotencial").textContent="$"+ventaPotencial.toFixed(2);document.getElementById("estadisticaGananciaPotencial").textContent="$"+gananciaPotencial.toFixed(2);
  const rp=[...productos].sort((a,b)=>Number(b.cantidad)-Number(a.cantidad)).slice(0,5);document.getElementById("rankingProductos").innerHTML=rp.length?rp.map(p=>`<div class="fila-estadistica"><span>${escapeHtml(p.nombre)}</span><strong>${p.cantidad}</strong></div>`).join(""):`<div class="fila-estadistica"><span>No hay productos.</span><strong>—</strong></div>`;
  const conteo={};historial.forEach(m=>{const id=m.productoId;if(!conteo[id])conteo[id]={nombre:m.nombre,movimientos:0};conteo[id].movimientos++});const rm=Object.values(conteo).sort((a,b)=>b.movimientos-a.movimientos).slice(0,5);document.getElementById("rankingMovimientos").innerHTML=rm.length?rm.map(x=>`<div class="fila-estadistica"><span>${escapeHtml(x.nombre)}</span><strong>${x.movimientos} movimiento(s)</strong></div>`).join(""):`<div class="fila-estadistica"><span>No hay movimientos.</span><strong>—</strong></div>`;
  const bajos=productos.filter(p=>Number(p.cantidad)<=Number(p.stockMinimo??5));document.getElementById("rankingStockBajo").innerHTML=bajos.length?bajos.map(p=>`<div class="fila-estadistica"><span>${escapeHtml(p.nombre)}</span><strong>${p.cantidad} / ${Number(p.stockMinimo??5)}</strong></div>`).join(""):`<div class="fila-estadistica"><span>Todo el inventario está por encima del mínimo.</span><strong>✓ OK</strong></div>`
 }
-function actualizarMenu(sec){["botonInventario","botonHistorial","botonEstadisticas"].forEach(id=>document.getElementById(id).classList.remove("activo"));document.getElementById(sec==="inventario"?"botonInventario":sec==="historial"?"botonHistorial":"botonEstadisticas").classList.add("activo")}
-function mostrarInventario(){document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
+function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonEstadisticas"].forEach(id=>document.getElementById(id).classList.remove("activo"));document.getElementById(sec==="inventario"?"botonInventario":sec==="historial"?"botonHistorial":sec==="ventas"?"botonVentas":"botonEstadisticas").classList.add("activo")}
+function mostrarInventario(){document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
 function scrollTop(){window.scrollTo({top:0,behavior:"smooth"})}
 document.addEventListener("visibilitychange",()=>{
  if(document.visibilityState==="visible"){
@@ -319,23 +522,25 @@ document.addEventListener("visibilitychange",()=>{
   recalcularSaldos();
   mostrarProductos();
   actualizarResumenHistorial();
+  actualizarVentas();
   actualizarEstadisticas();
  }
 });
 
 function mostrarEstadoRespaldo(m){const e=document.getElementById("estadoRespaldo");e.textContent=m;e.classList.add("visible")}
-function crearRespaldo(){const datos={aplicacion:"Flackunloker",version:"1.1",fecha:new Date().toISOString(),productos,historial};const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a"),fecha=new Date().toISOString().replace(/[:.]/g,"-");a.href=url;a.download="flackunloker-respaldo-"+fecha+".json";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);mostrarEstadoRespaldo("✅ Respaldo creado correctamente.")}
+function crearRespaldo(){const datos={aplicacion:"Flackunloker",version:"1.2",fecha:new Date().toISOString(),productos,historial,ventas};const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a"),fecha=new Date().toISOString().replace(/[:.]/g,"-");a.href=url;a.download="flackunloker-respaldo-"+fecha+".json";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);mostrarEstadoRespaldo("✅ Respaldo creado correctamente.")}
 function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
 function restaurarRespaldo(event){
  const archivo=event.target.files[0];if(!archivo)return;const lector=new FileReader();
- lector.onload=()=>{try{const datos=JSON.parse(lector.result);if(!datos||datos.aplicacion!=="Flackunloker")return alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial))return alert("El respaldo está incompleto o dañado.");if(!confirm("¿Quieres restaurar este respaldo?\n\nLos productos y el historial actuales serán reemplazados por los datos del respaldo."))return;productos=datos.productos;historial=datos.historial;productos.forEach(p=>{if(p.stockMinimo===undefined||p.stockMinimo===null)p.stockMinimo=5});recalcularSaldos();guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();mostrarEstadoRespaldo("✅ Respaldo restaurado correctamente.");alert("Respaldo restaurado correctamente.")}catch(err){console.error(err);alert("No se pudo leer el respaldo. Comprueba que el archivo sea válido.")}finally{event.target.value=""}};lector.readAsText(archivo)
+ lector.onload=()=>{try{const datos=JSON.parse(lector.result);if(!datos||datos.aplicacion!=="Flackunloker")return alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial))return alert("El respaldo está incompleto o dañado.");if(!confirm("¿Quieres restaurar este respaldo?\n\nLos productos y el historial actuales serán reemplazados por los datos del respaldo."))return;productos=datos.productos;historial=datos.historial;ventas=Array.isArray(datos.ventas)?datos.ventas:[];productos.forEach(p=>{if(p.stockMinimo===undefined||p.stockMinimo===null)p.stockMinimo=5;if(p.costo===undefined||p.costo===null||p.costo==="")p.costo=0;if(p.categoria===undefined||p.categoria===null)p.categoria="";if(p.proveedor===undefined||p.proveedor===null)p.proveedor="";if(p.ubicacion===undefined||p.ubicacion===null)p.ubicacion=""});recalcularSaldos();guardarDatos();guardarHistorial();guardarVentas();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarEstadisticas();mostrarEstadoRespaldo("✅ Respaldo restaurado correctamente.");alert("Respaldo restaurado correctamente.")}catch(err){console.error(err);alert("No se pudo leer el respaldo. Comprueba que el archivo sea válido.")}finally{event.target.value=""}};lector.readAsText(archivo)
 }
 
 document.getElementById("modalProducto").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarFormulario()});
 document.getElementById("modalMovimiento").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarMovimiento()});
+document.getElementById("modalVenta").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarVenta()});
 document.getElementById("modalEditarMovimiento").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarEditarMovimiento()});
 
-recalcularSaldos();mostrarProductos();actualizarResumenHistorial();actualizarEstadisticas();
+recalcularSaldos();mostrarProductos();actualizarResumenHistorial();actualizarVentas();actualizarEstadisticas();
 </script>
 </body>
 </html>
