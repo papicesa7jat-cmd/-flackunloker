@@ -303,7 +303,21 @@ body{
 .auth-user button{margin-top:6px;border:0;border-radius:9px;padding:7px 9px;background:#ffecec;color:#b42318;font-weight:700;font-size:11px}
 @media(max-width:430px){.auth-user{left:8px;bottom:8px;max-width:170px}}
 
-.usuario-card{background:rgba(255,255,255,.95);border:1px solid #d9eafa;border-radius:18px;padding:16px;margin-bottom:11px}.usuario-superior{display:flex;justify-content:space-between;gap:12px}.usuario-superior h3{margin:0 0 5px;font-size:15px}.usuario-superior p{margin:0;color:#667085;font-size:12px}.usuario-rol{padding:7px 10px;border-radius:999px;font-size:11px;font-weight:800}.usuario-rol.admin{background:#eaf4ff;color:#0a84ff}.usuario-rol.employee{background:#edf3f9;color:#475467}.usuario-acciones{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.usuario-acciones button{border:0;border-radius:11px;padding:10px;font-size:12px;font-weight:750}.usuario-hacer-admin{background:#eaf4ff;color:#0a84ff}.usuario-hacer-empleado{background:#fff7e8;color:#a15c00}.usuario-propio{margin-top:9px;font-size:11px;color:#667085}</style>
+.usuario-card{background:rgba(255,255,255,.95);border:1px solid #d9eafa;border-radius:18px;padding:16px;margin-bottom:11px}.usuario-superior{display:flex;justify-content:space-between;gap:12px}.usuario-superior h3{margin:0 0 5px;font-size:15px}.usuario-superior p{margin:0;color:#667085;font-size:12px}.usuario-rol{padding:7px 10px;border-radius:999px;font-size:11px;font-weight:800}.usuario-rol.admin{background:#eaf4ff;color:#0a84ff}.usuario-rol.employee{background:#edf3f9;color:#475467}.usuario-acciones{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.usuario-acciones button{border:0;border-radius:11px;padding:10px;font-size:12px;font-weight:750}.usuario-hacer-admin{background:#eaf4ff;color:#0a84ff}.usuario-hacer-empleado{background:#fff7e8;color:#a15c00}.usuario-propio{margin-top:9px;font-size:11px;color:#667085}
+/* ===== PERMISOS VISUALES DEL EMPLEADO ===== */
+body.rol-empleado [onclick="abrirFormulario()"],
+body.rol-empleado .editar,
+body.rol-empleado .eliminar,
+body.rol-empleado .boton-borrar-historial,
+body.rol-empleado .boton-movimiento-editar,
+body.rol-empleado .boton-movimiento-eliminar,
+body.rol-empleado .boton-eliminar-venta{
+  display:none!important;
+}
+body.rol-empleado .acciones{grid-template-columns:repeat(3,1fr)}
+body.rol-empleado .acciones-movimiento{display:none!important}
+
+</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -860,8 +874,13 @@ async function cargarRolUsuario(user){
 }
 function aplicarPermisosVisuales(){
  const admin=rolSesion==="admin";
+ document.body.classList.toggle("rol-empleado",!admin);
+ document.body.classList.toggle("rol-admin",admin);
  const idsAdmin=["botonGastos","botonCierre","botonReportes","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonEstadisticas","botonUsuarios"];
  idsAdmin.forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=admin?"":"none"});
+ if(typeof mostrarProductos==="function")mostrarProductos();
+ if(typeof mostrarListaHistorial==="function")mostrarListaHistorial();
+ if(typeof actualizarVentas==="function")actualizarVentas();
 }
 async function mostrarAppConSesion(session){
  if(session&&session.user){
@@ -1780,6 +1799,32 @@ document.getElementById("modalRecepcionOrden").addEventListener("click",e=>{if(e
 document.getElementById("modalPagoProveedor").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarPagoProveedor()});
 document.getElementById("modalHistorialPagosProveedor").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarHistorialPagosProveedor()});
 document.getElementById("modalEditarMovimiento").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarEditarMovimiento()});
+
+
+/* ===== BLOQUEO FUNCIONAL PARA EMPLEADOS ===== */
+function requiereAdmin(accion){
+ if(rolSesion==="admin")return true;
+ alert("🔒 "+(accion||"Esta acción")+" está reservada al Administrador.");
+ return false;
+}
+const _flkAbrirFormulario=abrirFormulario;
+abrirFormulario=function(){if(!requiereAdmin("Agregar productos"))return;return _flkAbrirFormulario.apply(this,arguments)};
+const _flkEditarProducto=editarProducto;
+editarProducto=function(){if(!requiereAdmin("Editar productos y costos"))return;return _flkEditarProducto.apply(this,arguments)};
+const _flkEliminarProducto=eliminarProducto;
+eliminarProducto=function(){if(!requiereAdmin("Eliminar productos"))return;return _flkEliminarProducto.apply(this,arguments)};
+const _flkAbrirEditarMovimiento=abrirEditarMovimiento;
+abrirEditarMovimiento=function(){if(!requiereAdmin("Editar movimientos del historial"))return;return _flkAbrirEditarMovimiento.apply(this,arguments)};
+const _flkEliminarMovimiento=eliminarMovimiento;
+eliminarMovimiento=function(){if(!requiereAdmin("Eliminar movimientos del historial"))return;return _flkEliminarMovimiento.apply(this,arguments)};
+const _flkBorrarHistorial=borrarHistorial;
+borrarHistorial=function(){if(!requiereAdmin("Borrar el historial"))return;return _flkBorrarHistorial.apply(this,arguments)};
+const _flkEliminarVenta=eliminarVenta;
+eliminarVenta=function(){if(!requiereAdmin("Anular o eliminar ventas"))return;return _flkEliminarVenta.apply(this,arguments)};
+const _flkCrearRespaldo=crearRespaldo;
+crearRespaldo=function(){if(!requiereAdmin("Crear respaldos administrativos"))return;return _flkCrearRespaldo.apply(this,arguments)};
+const _flkSeleccionarRespaldo=seleccionarRespaldo;
+seleccionarRespaldo=function(){if(!requiereAdmin("Restaurar respaldos"))return;return _flkSeleccionarRespaldo.apply(this,arguments)};
 
 recalcularSaldos();mostrarProductos();actualizarResumenHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarFlujoCaja();actualizarFinanzas();actualizarEstadisticas();
 </script>
