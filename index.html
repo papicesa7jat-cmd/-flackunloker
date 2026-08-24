@@ -44,11 +44,125 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 .finanzas-card.activo strong,.finanzas-card.positivo strong{color:#168044}.finanzas-card.pasivo strong,.finanzas-card.negativo strong{color:#d93025}
 .finanzas-card.azul strong{color:#0a84ff}.finanzas-card.ancha{grid-column:1/-1}
 @media(max-width:430px){.finanzas-balance{grid-template-columns:1fr}.finanzas-card.ancha{grid-column:auto}}
+
+/* ===== FLACKUNLOKER · RENOVACIÓN VISUAL 2026 ===== */
+:root{
+  --azul:#0a84ff;--azul-oscuro:#0055cc;--fondo:#f3f6fb;--card:#fff;
+  --texto:#101828;--muted:#667085;--borde:#e8edf5;--verde:#168044;
+  --rojo:#d93025;--naranja:#a15c00;--radio:20px;
+}
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(circle at 50% -160px,rgba(10,132,255,.15),transparent 420px),
+    var(--fondo);
+  color:var(--texto);
+}
+.contenedor{max-width:720px;padding:20px 18px 145px}
+.encabezado{
+  position:relative;text-align:left;margin:8px 0 24px;padding:18px 20px;
+  border:1px solid rgba(255,255,255,.8);border-radius:26px;
+  background:linear-gradient(135deg,rgba(255,255,255,.96),rgba(244,249,255,.9));
+  box-shadow:0 14px 40px rgba(20,42,80,.08);
+  display:grid;grid-template-columns:58px 1fr;column-gap:14px;align-items:center;
+}
+.logo{
+  width:58px;height:58px;margin:0;border-radius:17px;
+  box-shadow:0 10px 24px rgba(10,132,255,.28);
+  position:relative;overflow:hidden;
+}
+.logo:after{
+  content:"";position:absolute;width:24px;height:24px;border:3px solid rgba(255,255,255,.9);
+  border-radius:8px;left:14px;top:14px;transform:rotate(45deg)
+}
+.titulo{margin:0;font-size:25px;letter-spacing:-.5px}.subtitulo{margin:3px 0 0;color:var(--muted);font-size:13px}
+.resumen{gap:11px;margin-bottom:20px}
+.tarjeta,.producto,.movimiento,.lista-estadisticas,.respaldo-box,.estadistica-card,
+.tarjeta-historial,.venta-card,.cliente-card,.gasto-card,.cierre-card,.alerta-card,
+.centro-alerta,.orden-card,.proveedor-card,.cuenta-proveedor-card,.reporte-controles,.finanzas-card{
+  border:1px solid var(--borde);border-radius:var(--radio);
+  box-shadow:0 8px 28px rgba(20,42,80,.055);
+}
+.tarjeta,.estadistica-card,.finanzas-card{position:relative;overflow:hidden}
+.tarjeta:before,.estadistica-card:before,.finanzas-card:before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#dbe9fa
+}
+.tarjeta.valor:before,.estadistica-card.azul:before,.finanzas-card.azul:before{background:var(--azul)}
+.tarjeta.ganancia:before,.estadistica-card.positiva:before,.finanzas-card.activo:before{background:var(--verde)}
+.estadistica-card.negativa:before,.finanzas-card.pasivo:before{background:var(--rojo)}
+.tarjeta span,.estadistica-card span,.tarjeta-historial span,.finanzas-card span{
+  color:var(--muted);font-weight:600;letter-spacing:.1px
+}
+.tarjeta strong,.estadistica-card strong,.finanzas-card strong{letter-spacing:-.6px}
+.seccion-titulo{margin:25px 2px 13px}.seccion-titulo h2{font-size:21px;letter-spacing:-.35px}
+.boton-agregar,.boton-guardar{
+  background:linear-gradient(135deg,var(--azul),var(--azul-oscuro));
+  box-shadow:0 7px 18px rgba(10,132,255,.22);transition:.18s ease
+}
+button{transition:transform .12s ease,filter .12s ease,box-shadow .12s ease}
+button:active{transform:scale(.97)}
+.busqueda,.busqueda-historial,.filtro-inventario{
+  border:1px solid var(--borde);box-shadow:0 6px 20px rgba(20,42,80,.045)
+}
+.busqueda:focus,.busqueda-historial:focus,.filtro-inventario:focus{
+  border-color:rgba(10,132,255,.45);box-shadow:0 0 0 4px rgba(10,132,255,.08)
+}
+.producto,.venta-card,.cliente-card,.gasto-card,.orden-card,.proveedor-card,.cuenta-proveedor-card{
+  transition:transform .16s ease,box-shadow .16s ease
+}
+.cantidad{border-radius:999px;padding:7px 11px}
+.accion,.boton-recibo-venta,.boton-devolver-venta,.boton-abono-venta,.boton-historial-abonos,
+.boton-eliminar-venta,.boton-cliente,.boton-orden,.boton-proveedor,.boton-cuenta-proveedor{
+  border-radius:12px
+}
+.fila-estadistica{padding:12px 2px;border-color:#edf0f5}
+.formulario{
+  border-radius:26px;border:1px solid rgba(255,255,255,.7);
+  box-shadow:0 24px 70px rgba(0,0,0,.22)
+}
+.modal{backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);background:rgba(15,23,42,.42)}
+.campo input,.campo select{border-color:#dfe5ee;background:#fbfcfe}
+.campo input:focus,.campo select:focus{box-shadow:0 0 0 4px rgba(10,132,255,.08)}
+/* Navegación estilo app */
+.menu{
+  left:50%;right:auto;transform:translateX(-50%);bottom:12px;
+  width:min(calc(100% - 20px),700px);padding:9px;
+  border:1px solid rgba(220,227,237,.95);border-radius:22px;
+  background:rgba(255,255,255,.94);box-shadow:0 14px 40px rgba(20,42,80,.18);
+  gap:5px;scroll-padding:8px;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)
+}
+.menu button{
+  min-height:43px;padding:8px 11px;border-radius:14px;color:#667085;
+  font-weight:650;white-space:nowrap
+}
+.menu .activo{
+  color:var(--azul);background:#eaf4ff;box-shadow:inset 0 0 0 1px rgba(10,132,255,.08)
+}
+/* Scrollbars discretos */
+*{scrollbar-color:#cdd6e4 transparent;scrollbar-width:thin}
+@media(min-width:800px){
+  .contenedor{max-width:1040px;padding-left:28px;padding-right:28px}
+  .resumen,.estadisticas-grid,.finanzas-balance{grid-template-columns:repeat(3,1fr)}
+  .tarjeta.valor,.estadistica-card.ancha,.finanzas-card.ancha{grid-column:auto}
+  .producto:hover,.venta-card:hover,.cliente-card:hover,.gasto-card:hover,.orden-card:hover,.proveedor-card:hover{
+    transform:translateY(-2px);box-shadow:0 13px 34px rgba(20,42,80,.09)
+  }
+}
+@media(max-width:430px){
+  .contenedor{padding:14px 13px 125px}
+  .encabezado{margin-top:4px;padding:15px 16px;border-radius:22px;grid-template-columns:50px 1fr}
+  .logo{width:50px;height:50px;border-radius:15px}.logo:after{width:20px;height:20px;left:12px;top:12px}
+  .titulo{font-size:22px}.subtitulo{font-size:12px}
+  .tarjeta,.estadistica-card,.finanzas-card{padding:15px}
+  .tarjeta strong,.estadistica-card strong,.finanzas-card strong{font-size:21px}
+  .menu{bottom:8px;width:calc(100% - 14px);border-radius:19px}
+}
+
 </style>
 </head>
 <body>
 <div class="contenedor">
-<div class="encabezado"><div class="logo"></div><h1 class="titulo">Flackunloker</h1><p class="subtitulo">Control de inventario</p></div>
+<div class="encabezado"><div class="logo"></div><div><h1 class="titulo">Flackunloker</h1><p class="subtitulo">Inventario · Ventas · Finanzas</p></div></div>
 
 <div id="vistaInventario">
 <div class="resumen">
