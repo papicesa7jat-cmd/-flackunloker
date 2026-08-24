@@ -146,12 +146,13 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <p class="mensaje-movimiento" id="textoVenta">Agrega uno o varios productos al recibo.</p>
 <div class="campo"><label for="clienteVenta">Cliente</label><input id="clienteVenta" type="text" placeholder="Cliente general"></div>
 <div class="campo"><label for="telefonoVenta">Teléfono</label><input id="telefonoVenta" type="tel" placeholder="Opcional"></div>
-<div class="campo"><label for="productoRecibo">Producto</label><select id="productoRecibo"></select></div>
+<div class="campo"><label for="productoRecibo">Producto para agregar</label><select id="productoRecibo"></select><small class="ayuda-campo">Selecciona un producto, indica cantidad y precio, y pulsa “Agregar al recibo”. Luego puedes elegir otro producto y repetir.</small></div>
 <div class="agregar-linea">
 <div class="campo"><label for="precioVentaUnitario">Precio por unidad</label><input id="precioVentaUnitario" type="number" min="0" step="0.01"></div>
 <div class="campo"><label for="cantidadVenta">Cantidad</label><input id="cantidadVenta" type="number" min="1" step="1" value="1"></div>
 </div>
-<button type="button" class="boton-agregar-carrito" onclick="agregarProductoAlRecibo()">＋ Agregar al recibo</button>
+<button type="button" class="boton-agregar-carrito" onclick="agregarProductoAlRecibo()">＋ Agregar producto a ESTE recibo</button>
+<div class="seccion-titulo" style="margin:14px 0 8px"><h2 style="font-size:16px">Productos en este recibo</h2><strong id="contadorCarrito" style="color:#0a84ff">0</strong></div>
 <div id="carritoVenta" class="carrito-venta"></div>
 <div class="campo"><label for="notaVenta">Nota</label><input id="notaVenta" type="text" placeholder="Opcional · Ej. Pago en efectivo / ATH Móvil"></div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarVenta()">Cancelar</button><button type="submit" class="boton-guardar">Guardar recibo</button></div>
@@ -337,7 +338,7 @@ function mostrarProductos(){
   const clase=c===0?"cantidad sin-stock":c<=min?"cantidad stock-bajo":"cantidad";
   const aviso=c===0?'<div class="aviso-producto sin-stock">🔴 Sin stock</div>':c<=min?`<div class="aviso-producto">⚠️ Inventario bajo · Mínimo: ${min}</div>`:"";
   const detalles=[p.categoria?`Categoría: ${escapeHtml(p.categoria)}`:"",p.proveedor?`Proveedor: ${escapeHtml(p.proveedor)}`:"",p.ubicacion?`Ubicación: ${escapeHtml(p.ubicacion)}`:""].filter(Boolean).map(x=>`<p>${x}</p>`).join("");
-  el.innerHTML=`<div class="producto-superior"><div class="producto-info"><h3>${escapeHtml(p.nombre)}</h3><p>SKU: ${escapeHtml(p.sku)}</p>${detalles}</div><div class="${clase}">${c}</div></div><div class="producto-precio">Costo: <strong>$${Number(p.costo??0).toFixed(2)}</strong> &nbsp;·&nbsp; Venta: <strong>$${Number(p.precio).toFixed(2)}</strong><br>Ganancia/u.: <strong>$${(Number(p.precio)-Number(p.costo??0)).toFixed(2)}</strong> &nbsp;·&nbsp; Margen: <strong>${Number(p.precio)>0?(((Number(p.precio)-Number(p.costo??0))/Number(p.precio))*100).toFixed(1):"0.0"}%</strong><br>Valor a costo: <strong>$${(c*Number(p.costo??0)).toFixed(2)}</strong> &nbsp;·&nbsp; Venta potencial: <strong>$${(c*Number(p.precio)).toFixed(2)}</strong></div>${aviso}<div class="acciones"><button class="accion entrada" onclick="abrirMovimiento(${p.id},'entrada')">+ Entrada</button><button class="accion salida" onclick="abrirMovimiento(${p.id},'salida')">− Salida</button><button class="accion vender" onclick="abrirVenta(${p.id})">💰 Vender</button><button class="accion editar" onclick="editarProducto(${p.id})">✏️ Editar</button><button class="accion eliminar" onclick="eliminarProducto(${p.id})">🗑️ Eliminar</button></div>`;
+  el.innerHTML=`<div class="producto-superior"><div class="producto-info"><h3>${escapeHtml(p.nombre)}</h3><p>SKU: ${escapeHtml(p.sku)}</p>${detalles}</div><div class="${clase}">${c}</div></div><div class="producto-precio">Costo: <strong>$${Number(p.costo??0).toFixed(2)}</strong> &nbsp;·&nbsp; Venta: <strong>$${Number(p.precio).toFixed(2)}</strong><br>Ganancia/u.: <strong>$${(Number(p.precio)-Number(p.costo??0)).toFixed(2)}</strong> &nbsp;·&nbsp; Margen: <strong>${Number(p.precio)>0?(((Number(p.precio)-Number(p.costo??0))/Number(p.precio))*100).toFixed(1):"0.0"}%</strong><br>Valor a costo: <strong>$${(c*Number(p.costo??0)).toFixed(2)}</strong> &nbsp;·&nbsp; Venta potencial: <strong>$${(c*Number(p.precio)).toFixed(2)}</strong></div>${aviso}<div class="acciones"><button class="accion entrada" onclick="abrirMovimiento(${p.id},'entrada')">+ Entrada</button><button class="accion salida" onclick="abrirMovimiento(${p.id},'salida')">− Salida</button><button class="accion vender" onclick="abrirVenta(${p.id})">🧾 Recibo</button><button class="accion editar" onclick="editarProducto(${p.id})">✏️ Editar</button><button class="accion eliminar" onclick="eliminarProducto(${p.id})">🗑️ Eliminar</button></div>`;
   lista.appendChild(el)
  });
  actualizarResumen();actualizarAlertasInventario()
@@ -356,12 +357,12 @@ document.getElementById("busqueda").addEventListener("input",mostrarProductos);
 function productosDisponiblesRecibo(){return productos.filter(p=>Number(p.cantidad)>0)}
 function cargarSelectorProductosRecibo(idPreferido=null){
  const sel=document.getElementById("productoRecibo"),arr=productosDisponiblesRecibo();
- sel.innerHTML=arr.length?arr.map(p=>`<option value="${p.id}">${escapeHtml(p.nombre)} · ${Number(p.cantidad)} disp. · $${Number(p.precio??0).toFixed(2)}</option>`).join(""):'<option value="">No hay productos con stock</option>';
+ sel.innerHTML=arr.length?'<option value="">Selecciona otro producto...</option>'+arr.map(p=>`<option value="${p.id}">${escapeHtml(p.nombre)} · ${Number(p.cantidad)} disp. · $${Number(p.precio??0).toFixed(2)}</option>`).join(""):'<option value="">No hay productos con stock</option>';
  if(idPreferido!==null&&arr.some(p=>String(p.id)===String(idPreferido)))sel.value=String(idPreferido);
  actualizarPrecioProductoRecibo()
 }
 function actualizarPrecioProductoRecibo(){
- const id=Number(document.getElementById("productoRecibo").value),p=productos.find(x=>x.id===id);
+ const valor=document.getElementById("productoRecibo").value,id=valor?Number(valor):null,p=productos.find(x=>x.id===id);
  document.getElementById("precioVentaUnitario").value=p?Number(p.precio??0).toFixed(2):"0.00";
 }
 document.getElementById("productoRecibo").addEventListener("change",actualizarPrecioProductoRecibo);
@@ -374,7 +375,8 @@ function abrirVenta(id=null){
 }
 function cerrarVenta(){document.getElementById("modalVenta").classList.remove("visible");document.getElementById("formularioVenta").reset();carritoVenta=[];productoVenta=null}
 function agregarProductoAlRecibo(){
- const id=Number(document.getElementById("productoRecibo").value),p=productos.find(x=>x.id===id);
+ const valor=document.getElementById("productoRecibo").value;if(!valor)return alert("Selecciona el producto que quieres agregar a este recibo.");
+ const id=Number(valor),p=productos.find(x=>x.id===id);
  if(!p)return alert("Selecciona un producto con inventario disponible.");
  const cantidad=Number(document.getElementById("cantidadVenta").value),precioUnitario=Number(document.getElementById("precioVentaUnitario").value);
  if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
@@ -383,14 +385,15 @@ function agregarProductoAlRecibo(){
  if(ya+cantidad>Number(p.cantidad))return alert(`Solo hay ${Number(p.cantidad)} unidad(es) disponibles de ${p.nombre}.`);
  const existente=carritoVenta.find(i=>i.productoId===p.id&&Number(i.precioUnitario)===precioUnitario);
  if(existente)existente.cantidad+=cantidad;else carritoVenta.push({productoId:p.id,nombre:p.nombre,sku:p.sku,cantidad,precioUnitario,costoUnitario:Number(p.costo??0)});
- renderCarritoVenta();document.getElementById("cantidadVenta").value="1"
+ renderCarritoVenta();document.getElementById("cantidadVenta").value="1";document.getElementById("productoRecibo").value="";document.getElementById("precioVentaUnitario").value=""
 }
 function quitarItemRecibo(indice){carritoVenta.splice(indice,1);renderCarritoVenta()}
 function renderCarritoVenta(){
- const box=document.getElementById("carritoVenta");
- if(!carritoVenta.length){box.innerHTML='<div class="carrito-vacio">El recibo está vacío.</div>';return}
+ const box=document.getElementById("carritoVenta"),contador=document.getElementById("contadorCarrito");
+ if(contador)contador.textContent=carritoVenta.length+" producto"+(carritoVenta.length===1?"":"s");
+ if(!carritoVenta.length){box.innerHTML='<div class="carrito-vacio"><strong>Este recibo todavía no tiene productos.</strong><br>Selecciona un producto arriba y pulsa “Agregar producto a ESTE recibo”.</div>';return}
  const total=carritoVenta.reduce((t,i)=>t+Number(i.cantidad)*Number(i.precioUnitario),0);
- box.innerHTML=carritoVenta.map((i,n)=>`<div class="item-carrito"><div><strong>${escapeHtml(i.nombre)}</strong><small>${Number(i.cantidad)} × $${Number(i.precioUnitario).toFixed(2)} · $${(Number(i.cantidad)*Number(i.precioUnitario)).toFixed(2)}</small></div><button type="button" class="quitar-item" onclick="quitarItemRecibo(${n})">Quitar</button></div>`).join("")+`<div class="total-carrito"><span>Total</span><strong>$${total.toFixed(2)}</strong></div>`
+ box.innerHTML=carritoVenta.map((i,n)=>`<div class="item-carrito"><div><strong>${n+1}. ${escapeHtml(i.nombre)}</strong><small>SKU: ${escapeHtml(i.sku||"")}<br>${Number(i.cantidad)} × $${Number(i.precioUnitario).toFixed(2)} = $${(Number(i.cantidad)*Number(i.precioUnitario)).toFixed(2)}</small></div><button type="button" class="quitar-item" onclick="quitarItemRecibo(${n})">Quitar</button></div>`).join("")+`<div class="total-carrito"><span>Total del recibo</span><strong>$${total.toFixed(2)}</strong></div>`
 }
 document.getElementById("formularioVenta").addEventListener("submit",e=>{
  e.preventDefault();e.stopPropagation();if(procesandoGuardado)return;
