@@ -182,9 +182,23 @@ document.getElementById("formularioProducto").addEventListener("submit",e=>{
    if(productos.some(x=>String(x.sku||"").trim().toLowerCase()===skuNorm)){
     alert("Ya existe un producto con ese SKU.");return
    }
-   productos.push({id:Date.now()+Math.floor(Math.random()*100000),nombre,sku,cantidad,precio,stockMinimo});
+   const nuevoProducto={id:Date.now()+Math.floor(Math.random()*100000),nombre,sku,cantidad,precio,stockMinimo};
+   productos.push(nuevoProducto);
+   if(cantidad>0){
+    historial.unshift({
+     id:Date.now()+Math.floor(Math.random()*100000),
+     productoId:nuevoProducto.id,
+     nombre:nuevoProducto.nombre,
+     sku:nuevoProducto.sku,
+     tipo:"entrada",
+     cantidad:cantidad,
+     saldo:cantidad,
+     fecha:new Date().toISOString(),
+     detalle:"Inventario inicial"
+    });
+   }
   }
-  guardarDatos();mostrarProductos();actualizarEstadisticas();cerrarFormulario();
+  guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();cerrarFormulario();
  }finally{procesandoGuardado=false}
 });
 function abrirMovimiento(id,tipo){
