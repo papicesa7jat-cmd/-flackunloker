@@ -43,6 +43,7 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <div class="tarjeta valor"><span>Valor del inventario a costo</span><strong id="valorInventario">$0.00</strong></div>
 <div class="tarjeta valor"><span>Venta potencial</span><strong id="ventaPotencial">$0.00</strong></div>
 <div class="tarjeta valor ganancia"><span>Ganancia potencial</span><strong id="gananciaPotencial">$0.00</strong></div>
+<div class="tarjeta valor ganancia"><span>Ganancia neta real · Todas las operaciones</span><strong id="gananciaNetaTotal">$0.00</strong></div>
 </div>
 <div class="alerta-inventario" id="alertaInventario"><div class="alerta-titulo">⚠️ Inventario bajo</div><div class="alerta-descripcion">Los siguientes productos están en su stock mínimo o por debajo.</div><div id="listaAlertas"></div></div>
 <input id="busqueda" class="busqueda" type="search" placeholder="Buscar por nombre, SKU, categoría, proveedor o ubicación...">
@@ -454,7 +455,9 @@ function mostrarProductos(){
 }
 function actualizarResumen(){
  const unidades=productos.reduce((t,p)=>t+Number(p.cantidad),0),valorCosto=productos.reduce((t,p)=>t+Number(p.cantidad)*Number(p.costo??0),0),ventaPotencial=productos.reduce((t,p)=>t+Number(p.cantidad)*Number(p.precio),0),gananciaPotencial=ventaPotencial-valorCosto;
- document.getElementById("totalProductos").textContent=productos.length;document.getElementById("totalUnidades").textContent=unidades;document.getElementById("valorInventario").textContent="$"+valorCosto.toFixed(2);document.getElementById("ventaPotencial").textContent="$"+ventaPotencial.toFixed(2);document.getElementById("gananciaPotencial").textContent="$"+gananciaPotencial.toFixed(2)
+ const gananciaRealVentas=ventas.reduce((t,v)=>t+Number(v.ganancia||0),0),totalGastos= gastos.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNetaTotal=gananciaRealVentas-totalGastos;
+ document.getElementById("totalProductos").textContent=productos.length;document.getElementById("totalUnidades").textContent=unidades;document.getElementById("valorInventario").textContent="$"+valorCosto.toFixed(2);document.getElementById("ventaPotencial").textContent="$"+ventaPotencial.toFixed(2);document.getElementById("gananciaPotencial").textContent="$"+gananciaPotencial.toFixed(2);
+ const neto=document.getElementById("gananciaNetaTotal");if(neto){neto.textContent=(gananciaNetaTotal<0?"-$":"$")+Math.abs(gananciaNetaTotal).toFixed(2);neto.style.color=gananciaNetaTotal<0?"#d93025":"#168044"}
 }
 function actualizarAlertasInventario(){
  const bajos=productos.filter(p=>Number(p.cantidad)<=Number(p.stockMinimo??5)),box=document.getElementById("alertaInventario"),lista=document.getElementById("listaAlertas");
@@ -722,9 +725,9 @@ document.getElementById("formularioGasto").addEventListener("submit",e=>{
  if(!concepto||!Number.isFinite(cantidad)||cantidad<=0||!fechaLocal)return alert("Completa el concepto, la cantidad y la fecha del gasto.");
  const fecha=new Date(fechaLocal+"T12:00:00").toISOString();
  if(gastoEditandoId!==null){const g=gastos.find(x=>x.id===gastoEditandoId);if(!g)return;Object.assign(g,{concepto,categoria,cantidad,metodo,fechaLocal,fecha,nota})}else gastos.unshift({id:Date.now()+Math.floor(Math.random()*100000),concepto,categoria,cantidad,metodo,fechaLocal,fecha,nota,creado:new Date().toISOString()});
- guardarGastos();actualizarGastos();cerrarGasto()
+ guardarGastos();actualizarGastos();actualizarResumen();cerrarGasto()
 });
-function eliminarGasto(id){const g=gastos.find(x=>x.id===id);if(!g)return;if(!confirm(`¿Eliminar el gasto “${g.concepto}” por $${Number(g.cantidad).toFixed(2)}?`))return;gastos=gastos.filter(x=>x.id!==id);guardarGastos();actualizarGastos()}
+function eliminarGasto(id){const g=gastos.find(x=>x.id===id);if(!g)return;if(!confirm(`¿Eliminar el gasto “${g.concepto}” por $${Number(g.cantidad).toFixed(2)}?`))return;gastos=gastos.filter(x=>x.id!==id);guardarGastos();actualizarGastos();actualizarResumen()}
 function fechaGastoObj(g){return new Date((g.fechaLocal||String(g.fecha||"").slice(0,10))+"T12:00:00")}
 function actualizarFiltrosGastos(){
  const cat=document.getElementById("filtroCategoriaGasto"),mes=document.getElementById("filtroMesGasto"),catPrev=cat.value,mesPrev=mes.value;
