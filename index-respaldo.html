@@ -886,6 +886,8 @@ async function mostrarAppConSesion(session){
  if(session&&session.user){
   document.getElementById("authOverlay").classList.add("oculto");
   await cargarRolUsuario(session.user);
+  await cargarInventarioSupabase();
+  await cargarVentasSupabase();
  }else{
   document.getElementById("authOverlay").classList.remove("oculto");
   document.getElementById("authUsuario").classList.remove("visible");
@@ -954,6 +956,157 @@ let proximoNumeroRecibo=1;
 let gastoEditandoId=null;
 let proveedorEditandoId=null;
 let ordenEditandoId=null;
+
+let inventarioSupabaseListo=false;
+
+function idLocalDesdeLegacy(v,uuid){
+ const n=Number(v);
+ if(v!==null&&v!==undefined&&v!==""&&Number.isFinite(n))return n;
+ let h=0;for(const c of String(uuid||""))h=(h*31+c.charCodeAt(0))>>>0;
+ return 2000000000+h;
+}
+function productoDesdeSupabase(r){
+ return {
+  id:idLocalDesdeLegacy(r.legacy_id,r.id),
+  supabaseId:r.id,
+  nombre:r.name||"",
+  sku:r.sku||"",
+  cantidad:Number(r.stock||0),
+  costo:Number(r.cost||0),
+  precio:Number(r.price||0),
+  categoria:r.category||"",
+  proveedor:r.supplier_name||"",
+  ubicacion:r.location||r.warehouse||"",
+  stockMinimo:Number(r.min_stock||0)
+ }
+}
+function productoHaciaSupabase(p,stock=0){
+ return {
+  legacy_id:String(p.id),
+  sku:String(p.sku||"").trim()||null,
+  name:String(p.nombre||"").trim(),
+  category:String(p.categoria||"").trim()||null,
+  supplier_name:String(p.proveedor||"").trim()||null,
+  location:String(p.ubicacion||"").trim()||null,
+  warehouse:String(p.ubicacion||"").trim()||"Principal",
+  cost:Number(p.costo||0),
+  price:Number(p.precio||0),
+  stock:Number(stock||0),
+  min_stock:Number(p.stockMinimo||0),
+  active:true
+ }
+}
+async function cargarInventarioSupabase(){
+ const locales=Array.isArray(productos)?[...productos]:[];
+ const {data:cloud,error}=await flkSupabase.from("products").select("*").eq("active",true).order("created_at",{ascending:true});
+ if(error){
+  console.error("Supabase inventario:",error);
+  alert("No se pudo cargar el inventario de Supabase. Se conserva la copia local.");
+  return false
+ }
+
+ let remotos=Array.isArray(cloud)?cloud:[];
+
+ // El Administrador completa una migración parcial sin duplicar productos.
+ if(rolSesion==="admin" && locales.length){
+  const porLegacy=new Map(remotos.filter(r=>r.legacy_id!==null&&r.legacy_id!==undefined).map(r=>[String(r.legacy_id),r]));
+  const porSku=new Map(remotos.filter(r=>String(r.sku||"").trim()).map(r=>[String(r.sku||"").trim().toLowerCase(),r]));
+
+  for(const p of locales){
+   const legacy=String(p.id);
+   const sku=String(p.sku||"").trim().toLowerCase();
+   let existente=porLegacy.get(legacy)||(sku?porSku.get(sku):null);
+
+   if(existente){
+    p.supabaseId=existente.id;
+    continue;
+   }
+
+   try{
+    const inicial=Number(p.cantidad||0);
+    const payload=productoHaciaSupabase(p,0);
+    const {data:creado,error:err}=await flkSupabase.from("products").insert(payload).select("*").single();
+
+    if(err){
+     // Si otro registro apareció entre la lectura y el insert, volver a buscarlo.
+     if(String(err.code||"")==="23505"){
+      const {data:hallado}=await flkSupabase.from("products")
+       .select("*")
+       .or(`legacy_id.eq.${legacy}${sku?`,sku.ilike.${sku}`:""}`)
+       .limit(1)
+       .maybeSingle();
+      if(hallado){
+       p.supabaseId=hallado.id;
+       porLegacy.set(legacy,hallado);
+       if(sku)porSku.set(sku,hallado);
+       continue;
+      }
+     }
+     throw err;
+    }
+
+    p.supabaseId=creado.id;
+    porLegacy.set(legacy,creado);
+    if(sku)porSku.set(sku,creado);
+
+    if(inicial>0){
+     const {error:movErr}=await flkSupabase.rpc("adjust_product_stock",{
+      p_product_id:creado.id,
+      p_delta:inicial,
+      p_type:"entrada",
+      p_note:"Migración inicial desde Flackunloker"
+     });
+     if(movErr)throw movErr;
+    }
+   }catch(err){
+    console.error("Migración producto:",p.nombre,err);
+    alert("No se pudo migrar "+p.nombre+": "+(err.message||err));
+    return false;
+   }
+  }
+
+  // Volver a leer el inventario completo después de completar/reanudar migración.
+  const {data:actualizado,error:errorActualizado}=await flkSupabase.from("products").select("*").eq("active",true).order("created_at",{ascending:true});
+  if(errorActualizado){
+   console.error(errorActualizado);
+   return false;
+  }
+  remotos=actualizado||[];
+ }
+
+ productos=remotos.map(productoDesdeSupabase);
+ guardarDatos();
+ inventarioSupabaseListo=true;
+ mostrarProductos();
+ actualizarEstadisticas();
+ return true
+}
+async function guardarProductoSupabase(p,esNuevo=false,stockInicial=0){
+ if(esNuevo){
+  const payload=productoHaciaSupabase(p,0);
+  const {data,error}=await flkSupabase.from("products").insert(payload).select("*").single();
+  if(error)throw error;
+  p.supabaseId=data.id;
+  if(Number(stockInicial)>0){
+   const {data:nuevoStock,error:movErr}=await flkSupabase.rpc("adjust_product_stock",{p_product_id:data.id,p_delta:Number(stockInicial),p_type:"entrada",p_note:"Inventario inicial"});
+   if(movErr)throw movErr;
+   p.cantidad=Number(nuevoStock);
+  }
+  return;
+ }
+ if(!p.supabaseId)throw new Error("Producto sin vínculo con Supabase.");
+ const payload=productoHaciaSupabase(p,p.cantidad);
+ delete payload.legacy_id;
+ delete payload.stock;
+ const {error}=await flkSupabase.from("products").update(payload).eq("id",p.supabaseId);
+ if(error)throw error;
+}
+async function ajustarStockSupabase(p,delta,tipo,nota=""){
+ if(!p.supabaseId)throw new Error("Producto sin vínculo con Supabase.");
+ const {data,error}=await flkSupabase.rpc("adjust_product_stock",{p_product_id:p.supabaseId,p_delta:Number(delta),p_type:tipo,p_note:nota||null});
+ if(error)throw error;
+ return Number(data);
+}
 
 function cargarDatos(){
  try{
@@ -1047,54 +1200,37 @@ function editarProducto(id){
 }
 function cerrarFormulario(){document.getElementById("modalProducto").classList.remove("visible");document.getElementById("formularioProducto").reset();productoEditando=null}
 
-document.getElementById("formularioProducto").addEventListener("submit",e=>{
- e.preventDefault();
- e.stopPropagation();
- if(procesandoGuardado)return;
- procesandoGuardado=true;
+document.getElementById("formularioProducto").addEventListener("submit",async e=>{
+ e.preventDefault();e.stopPropagation();
+ if(procesandoGuardado)return;procesandoGuardado=true;
  try{
-  const nombre=document.getElementById("nombre").value.trim();
-  const sku=document.getElementById("sku").value.trim();
-  const cantidad=Number(document.getElementById("cantidadProducto").value);
-  const costo=Number(document.getElementById("costo").value);
-  const precio=Number(document.getElementById("precio").value);
-  const categoria=document.getElementById("categoria").value.trim();
-  const proveedor=document.getElementById("proveedor").value.trim();
-  const ubicacion=document.getElementById("ubicacion").value.trim();
-  const stockMinimo=Number(document.getElementById("stockMinimo").value);
-  if(!nombre||!sku){alert("Completa el nombre y el SKU.");return}
-  if(cantidad<0||costo<0||precio<0||stockMinimo<0||!Number.isInteger(stockMinimo)){
-   alert("Revisa los valores introducidos.");return
-  }
+  const nombre=document.getElementById("nombre").value.trim(),sku=document.getElementById("sku").value.trim();
+  const cantidad=Number(document.getElementById("cantidadProducto").value),costo=Number(document.getElementById("costo").value),precio=Number(document.getElementById("precio").value);
+  const categoria=document.getElementById("categoria").value.trim(),proveedor=document.getElementById("proveedor").value.trim(),ubicacion=document.getElementById("ubicacion").value.trim(),stockMinimo=Number(document.getElementById("stockMinimo").value);
+  if(!nombre||!sku)return alert("Completa el nombre y el SKU.");
+  if(cantidad<0||costo<0||precio<0||stockMinimo<0||!Number.isInteger(stockMinimo))return alert("Revisa los valores introducidos.");
   const skuNorm=sku.toLowerCase();
   if(productoEditando!==null){
-   const p=productos.find(x=>x.id===productoEditando); if(!p)return;
-   if(productos.some(x=>x.id!==productoEditando&&String(x.sku||"").trim().toLowerCase()===skuNorm)){
-    alert("Ya existe otro producto con ese SKU.");return
+   const p=productos.find(x=>x.id===productoEditando);if(!p)return;
+   if(productos.some(x=>x.id!==productoEditando&&String(x.sku||"").trim().toLowerCase()===skuNorm))return alert("Ya existe otro producto con ese SKU.");
+   const stockAnterior=Number(p.cantidad);
+   p.nombre=nombre;p.sku=sku;p.costo=costo;p.precio=precio;p.categoria=categoria;p.proveedor=proveedor;p.ubicacion=ubicacion;p.stockMinimo=stockMinimo;
+   await guardarProductoSupabase(p,false,0);
+   if(cantidad!==stockAnterior){
+    const delta=cantidad-stockAnterior,tipo=delta>0?"entrada":"salida";
+    p.cantidad=await ajustarStockSupabase(p,delta,tipo,"Ajuste desde edición de producto");
+    historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo,cantidad:Math.abs(delta),saldo:p.cantidad,fecha:new Date().toISOString(),detalle:"Ajuste desde edición"});
    }
-   p.nombre=nombre;p.sku=sku;p.cantidad=cantidad;p.costo=costo;p.precio=precio;p.categoria=categoria;p.proveedor=proveedor;p.ubicacion=ubicacion;p.stockMinimo=stockMinimo;
   }else{
-   if(productos.some(x=>String(x.sku||"").trim().toLowerCase()===skuNorm)){
-    alert("Ya existe un producto con ese SKU.");return
-   }
-   const nuevoProducto={id:Date.now()+Math.floor(Math.random()*100000),nombre,sku,cantidad,costo,precio,categoria,proveedor,ubicacion,stockMinimo};
+   if(productos.some(x=>String(x.sku||"").trim().toLowerCase()===skuNorm))return alert("Ya existe un producto con ese SKU.");
+   const nuevoProducto={id:Date.now()+Math.floor(Math.random()*100000),nombre,sku,cantidad:0,costo,precio,categoria,proveedor,ubicacion,stockMinimo};
+   await guardarProductoSupabase(nuevoProducto,true,cantidad);
    productos.push(nuevoProducto);
-   if(cantidad>0){
-    historial.unshift({
-     id:Date.now()+Math.floor(Math.random()*100000),
-     productoId:nuevoProducto.id,
-     nombre:nuevoProducto.nombre,
-     sku:nuevoProducto.sku,
-     tipo:"entrada",
-     cantidad:cantidad,
-     saldo:cantidad,
-     fecha:new Date().toISOString(),
-     detalle:"Inventario inicial"
-    });
-   }
+   if(cantidad>0)historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:nuevoProducto.id,nombre,sku,tipo:"entrada",cantidad,saldo:nuevoProducto.cantidad,fecha:new Date().toISOString(),detalle:"Inventario inicial"});
   }
   guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();cerrarFormulario();
- }finally{procesandoGuardado=false}
+ }catch(err){console.error(err);alert("Supabase rechazó el cambio: "+(err.message||err))}
+ finally{procesandoGuardado=false}
 });
 function abrirMovimiento(id,tipo){
  const p=productos.find(x=>x.id===id);if(!p)return;productoMovimiento=id;tipoMovimiento=tipo;
@@ -1104,29 +1240,27 @@ function abrirMovimiento(id,tipo){
 }
 function cerrarMovimiento(){document.getElementById("modalMovimiento").classList.remove("visible");document.getElementById("formularioMovimiento").reset();productoMovimiento=null;tipoMovimiento=null}
 
-document.getElementById("formularioMovimiento").addEventListener("submit",e=>{
- e.preventDefault();
- e.stopPropagation();
- if(procesandoGuardado)return;
- procesandoGuardado=true;
+document.getElementById("formularioMovimiento").addEventListener("submit",async e=>{
+ e.preventDefault();e.stopPropagation();
+ if(procesandoGuardado)return;procesandoGuardado=true;
  try{
   const cantidad=Number(document.getElementById("cantidadMovimiento").value);
-  if(!Number.isInteger(cantidad)||cantidad<=0){alert("Introduce una cantidad válida.");return}
+  if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
   const p=productos.find(x=>x.id===productoMovimiento);if(!p){cerrarMovimiento();return}
-  let nuevo=Number(p.cantidad);
-  if(tipoMovimiento==="entrada")nuevo+=cantidad;
-  else{
-   if(cantidad>nuevo){alert("No puedes retirar más unidades de las que existen en inventario.");return}
-   nuevo-=cantidad;
-  }
-  p.cantidad=nuevo;
-  historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:tipoMovimiento,cantidad,saldo:nuevo,fecha:new Date().toISOString()});
+  const delta=tipoMovimiento==="entrada"?cantidad:-cantidad;
+  p.cantidad=await ajustarStockSupabase(p,delta,tipoMovimiento,"Movimiento manual desde Flackunloker");
+  historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:tipoMovimiento,cantidad,saldo:p.cantidad,fecha:new Date().toISOString()});
   guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();cerrarMovimiento();
- }finally{procesandoGuardado=false}
+ }catch(err){console.error(err);alert("Supabase rechazó el movimiento: "+(err.message||err))}
+ finally{procesandoGuardado=false}
 });
-function eliminarProducto(id){
+async function eliminarProducto(id){
+ const p=productos.find(x=>x.id===id);if(!p)return;
  if(!confirm("¿Quieres eliminar este producto?"))return;
- productos=productos.filter(p=>p.id!==id);guardarDatos();mostrarProductos();actualizarEstadisticas()
+ try{
+  if(p.supabaseId){const {error}=await flkSupabase.from("products").delete().eq("id",p.supabaseId);if(error)throw error}
+  productos=productos.filter(x=>x.id!==id);guardarDatos();mostrarProductos();actualizarEstadisticas();
+ }catch(err){console.error(err);alert("Supabase no permitió eliminar el producto: "+(err.message||err))}
 }
 
 function mostrarProductos(){
@@ -1203,28 +1337,177 @@ function renderCarritoVenta(){
  const total=carritoVenta.reduce((t,i)=>t+Number(i.cantidad)*Number(i.precioUnitario),0);
  box.innerHTML=carritoVenta.map((i,n)=>`<div class="item-carrito"><div><strong>${n+1}. ${escapeHtml(i.nombre)}</strong><small>SKU: ${escapeHtml(i.sku||"")}<br>${Number(i.cantidad)} × $${Number(i.precioUnitario).toFixed(2)} = $${(Number(i.cantidad)*Number(i.precioUnitario)).toFixed(2)}</small></div><button type="button" class="quitar-item" onclick="quitarItemRecibo(${n})">Quitar</button></div>`).join("")+`<div class="total-carrito"><span>Total del recibo</span><strong>$${total.toFixed(2)}</strong></div>`
 }
-document.getElementById("formularioVenta").addEventListener("submit",e=>{
+
+
+function ventaDesdeSupabase(v){
+ const items=(v.sale_items||[]).map(i=>{
+  const p=productos.find(x=>x.supabaseId===i.product_id);
+  const cantidad=Number(i.quantity||0),precioUnitario=Number(i.unit_price||0),costoUnitario=Number(i.unit_cost||0);
+  return {
+   productoId:p?p.id:idLocalDesdeLegacy(null,i.product_id),
+   supabaseProductId:i.product_id,
+   nombre:p?p.nombre:"Producto",
+   sku:p?p.sku:"",
+   cantidad,precioUnitario,costoUnitario,
+   ingreso:cantidad*precioUnitario,
+   costo:cantidad*costoUnitario,
+   ganancia:cantidad*(precioUnitario-costoUnitario)
+  }
+ });
+ const pagos=(v.sale_payments||[]).map(p=>({
+  id:idLocalDesdeLegacy(null,p.id),
+  supabaseId:p.id,
+  cantidad:Number(p.amount||0),
+  fecha:p.created_at,
+  metodo:p.payment_method||"cash",
+  nota:p.note||"",
+  saldoAnterior:Number(p.balance_before??0),
+  saldoRestante:Number(p.balance_after??0)
+ }));
+ const legacyNum=Number(v.legacy_id);
+ const id=Number.isFinite(legacyNum)&&v.legacy_id!==null?idLocalDesdeLegacy(v.legacy_id,v.id):idLocalDesdeLegacy(null,v.id);
+ const ingreso=Number(v.total||0),costoTotal=items.reduce((t,i)=>t+i.costo,0);
+ return {
+  id,supabaseId:v.id,
+  numero:v.receipt_number||String(id).slice(-8),
+  numeroConsecutivo:Number(v.receipt_number)||0,
+  items,
+  cantidad:items.reduce((t,i)=>t+i.cantidad,0),
+  ingreso,costoTotal,ganancia:ingreso-costoTotal,
+  fecha:v.created_at,
+  cliente:v.customer_name||"Cliente general",
+  telefono:v.customer_phone||"",
+  metodoPago:v.payment_method||"cash",
+  estadoPago:Number(v.balance_due||0)>0.009?"credito":"pagado",
+  totalPagado:Number(v.paid_amount||0),
+  saldo:Number(v.balance_due||0),
+  pagos,
+  fechaVencimiento:v.due_date||"",
+  nota:v.note||""
+ }
+}
+
+async function cargarVentasSupabase(){
+ const locales=Array.isArray(ventas)?[...ventas]:[];
+ const consulta=()=>flkSupabase.from("sales")
+  .select("*,sale_items(id,product_id,quantity,unit_price,unit_cost),sale_payments(id,amount,payment_method,note,balance_before,balance_after,created_at)")
+  .order("created_at",{ascending:false});
+
+ let {data:cloud,error}=await consulta();
+ if(error){console.error("Supabase ventas:",error);alert("No se pudieron cargar las ventas de Supabase. Se conserva la copia local.");return false}
+
+ if(rolSesion==="admin" && locales.length){
+  const existentes=new Set((cloud||[]).map(v=>String(v.legacy_id||"")).filter(Boolean));
+
+  for(const v of locales){
+   const legacy=String(v.id);
+   if(existentes.has(legacy))continue;
+
+   const items=(Array.isArray(v.items)?v.items:[]).map(i=>({
+    legacy_product_id:String(i.productoId),
+    quantity:Number(i.cantidad||0),
+    unit_price:Number(i.precioUnitario??0),
+    unit_cost:Number(i.costoUnitario??0)
+   })).filter(i=>i.quantity>0);
+
+   if(!items.length)continue;
+
+   const pagos=(Array.isArray(v.pagos)?v.pagos:[]).map(p=>({
+    amount:Number(p.cantidad||0),
+    payment_method:p.metodo||v.metodoPago||"cash",
+    note:p.nota||"",
+    balance_before:Number(p.saldoAnterior??0),
+    balance_after:Number(p.saldoRestante??0),
+    created_at:p.fecha||v.fecha
+   })).filter(p=>p.amount>0);
+
+   const {error:impErr}=await flkSupabase.rpc("flk_import_legacy_sale",{
+    p_legacy_id:legacy,
+    p_receipt_number:String(v.numero||String(v.id).slice(-8)),
+    p_customer_name:v.cliente||"Cliente general",
+    p_customer_phone:v.telefono||null,
+    p_payment_method:v.metodoPago||"cash",
+    p_total:Number(v.ingreso||0),
+    p_paid_amount:Number(v.totalPagado??v.ingreso??0),
+    p_due_date:v.fechaVencimiento||null,
+    p_note:v.nota||null,
+    p_created_at:v.fecha||new Date().toISOString(),
+    p_items:items,
+    p_payments:pagos
+   });
+   if(impErr){
+    console.error("Migración venta:",v.numero||v.id,impErr);
+    alert("No se pudo migrar el recibo #"+(v.numero||v.id)+": "+impErr.message);
+    return false;
+   }
+   existentes.add(legacy);
+  }
+
+  const recarga=await consulta();
+  cloud=recarga.data;error=recarga.error;
+  if(error){console.error(error);return false}
+ }
+
+ ventas=(cloud||[]).map(ventaDesdeSupabase);
+ const maxNumero=ventas.reduce((m,v)=>Math.max(m,Number(v.numeroConsecutivo||0)),0);
+ if(maxNumero>=proximoNumeroRecibo)proximoNumeroRecibo=maxNumero+1;
+ guardarVentas();
+ actualizarVentas();
+ actualizarClientes();
+ actualizarFlujoCaja();
+ actualizarFinanzas();
+ return true
+}
+
+async function registrarVentaSupabase(datos){
+ const items=datos.items.map(i=>{
+  const p=productos.find(x=>x.id===i.productoId);
+  if(!p||!p.supabaseId)throw new Error("El producto "+i.nombre+" todavía no está vinculado con Supabase.");
+  return {product_id:p.supabaseId,quantity:Number(i.cantidad),unit_price:Number(i.precioUnitario)};
+ });
+ const {data,error}=await flkSupabase.rpc("flk_record_sale",{
+  p_legacy_id:String(datos.ventaId),
+  p_receipt_number:String(datos.numero),
+  p_customer_name:datos.cliente||"Cliente general",
+  p_customer_phone:datos.telefono||null,
+  p_payment_method:datos.metodoPago||"cash",
+  p_paid_amount:Number(datos.totalPagado||0),
+  p_due_date:datos.fechaVencimiento||null,
+  p_note:datos.nota||null,
+  p_items:items
+ });
+ if(error)throw error;
+ return data;
+}
+document.getElementById("formularioVenta").addEventListener("submit",async e=>{
  e.preventDefault();e.stopPropagation();if(procesandoGuardado)return;
  if(!carritoVenta.length)return alert("Agrega al menos un producto al recibo.");
  for(const item of carritoVenta){const p=productos.find(x=>x.id===item.productoId);if(!p||Number(item.cantidad)>Number(p.cantidad))return alert(`Revisa el inventario de ${item.nombre}. Ya no hay suficientes unidades.`)}
  procesandoGuardado=true;
  try{
-  const cliente=document.getElementById("clienteVenta").value.trim(),telefono=document.getElementById("telefonoVenta").value.trim(),estadoSolicitado=document.getElementById("estadoPagoVenta").value,metodoPago=document.getElementById("metodoPagoVenta").value,abonoInicial=Number(document.getElementById("abonoInicialVenta").value||0),fechaVencimiento=estadoSolicitado==="credito"?document.getElementById("fechaVencimientoVenta").value:"",nota=document.getElementById("notaVenta").value.trim();
-  if(estadoSolicitado==="credito"&&!cliente)return alert("Para una venta a crédito escribe el nombre del cliente.");
-  if(estadoSolicitado==="credito"&&!fechaVencimiento)return alert("Selecciona la fecha de vencimiento del crédito.");
-  if(!Number.isFinite(abonoInicial)||abonoInicial<0)return alert("El abono inicial no es válido.");
-   const fecha=new Date().toISOString(),ventaId=Date.now()+Math.floor(Math.random()*100000);
-   const items=carritoVenta.map(i=>{const cantidad=Number(i.cantidad),precioUnitario=Number(i.precioUnitario),costoUnitario=Number(i.costoUnitario??0);return {...i,cantidad,precioUnitario,costoUnitario,ingreso:cantidad*precioUnitario,costoTotal:cantidad*costoUnitario,ganancia:cantidad*(precioUnitario-costoUnitario)}});
-   const ingreso=items.reduce((t,i)=>t+i.ingreso,0),costoTotal=items.reduce((t,i)=>t+i.costoTotal,0),ganancia=items.reduce((t,i)=>t+i.ganancia,0),cantidad=items.reduce((t,i)=>t+i.cantidad,0);
-   if(estadoSolicitado==="credito"&&abonoInicial>ingreso)return alert("El abono inicial no puede ser mayor que el total del recibo.");
-   items.forEach(item=>{const p=productos.find(x=>x.id===item.productoId);p.cantidad=Number(p.cantidad)-item.cantidad;historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:"salida",cantidad:item.cantidad,saldo:Number(p.cantidad),fecha,detalle:"Venta · Recibo "+String(ventaId).slice(-8),ventaId})});
-   const numeroConsecutivo=proximoNumeroRecibo++; const numero=String(numeroConsecutivo).padStart(6,"0");
-   const totalPagado=estadoSolicitado==="pagado"?ingreso:abonoInicial,saldo=Math.max(0,ingreso-totalPagado),estadoPago=saldo>0.009?"credito":"pagado";
-   const pagos=estadoSolicitado==="credito"&&abonoInicial>0?[{id:Date.now()+Math.floor(Math.random()*100000),cantidad:abonoInicial,fecha,metodo:metodoPago,nota:"Abono inicial",saldoAnterior:ingreso,saldoRestante:Math.max(0,ingreso-abonoInicial)}]:[];
-   ventas.unshift({id:ventaId,numero,numeroConsecutivo,items,cantidad,ingreso,costoTotal,ganancia,fecha,cliente,telefono,metodoPago,estadoPago,totalPagado,saldo,pagos,fechaVencimiento:saldo>0?fechaVencimiento:"",nota});
-   guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarClientes();actualizarFlujoCaja();actualizarFinanzas();actualizarEstadisticas();cerrarVenta();
-   alert(`Recibo guardado.\n\nProductos: ${items.length}\nUnidades: ${cantidad}\nTotal: $${ingreso.toFixed(2)}${saldo>0?`\nSaldo pendiente: $${saldo.toFixed(2)}`:""}`)
- }finally{procesandoGuardado=false}
+  const cliente=document.getElementById("clienteVenta").value.trim()||"Cliente general",telefono=document.getElementById("telefonoVenta").value.trim(),metodoPago=document.getElementById("metodoPagoVenta").value,estadoSolicitado=document.getElementById("estadoPagoVenta").value,abonoInicial=estadoSolicitado==="credito"?Number(document.getElementById("abonoInicialVenta").value||0):0,fechaVencimiento=estadoSolicitado==="credito"?document.getElementById("fechaVencimientoVenta").value:"",nota=document.getElementById("notaVenta").value.trim(),fecha=new Date().toISOString(),ventaId=Date.now()+Math.floor(Math.random()*100000);
+  const items=carritoVenta.map(i=>{const p=productos.find(x=>x.id===i.productoId),cantidad=Number(i.cantidad),precioUnitario=Number(i.precioUnitario),costoUnitario=Number(p.costo??0);return {productoId:p.id,nombre:p.nombre,sku:p.sku,cantidad,precioUnitario,costoUnitario,ingreso:cantidad*precioUnitario,costo:cantidad*costoUnitario,ganancia:cantidad*(precioUnitario-costoUnitario)}});
+  const cantidad=items.reduce((t,i)=>t+i.cantidad,0),ingreso=items.reduce((t,i)=>t+i.ingreso,0),costoTotal=items.reduce((t,i)=>t+i.costo,0),ganancia=ingreso-costoTotal;
+  if(estadoSolicitado==="credito"&&(!Number.isFinite(abonoInicial)||abonoInicial<0))return alert("Revisa el abono inicial.");
+  if(estadoSolicitado==="credito"&&abonoInicial>ingreso)return alert("El abono inicial no puede ser mayor que el total del recibo.");
+  const numeroConsecutivo=proximoNumeroRecibo++,numero=String(numeroConsecutivo).padStart(6,"0");
+  const totalPagado=estadoSolicitado==="pagado"?ingreso:abonoInicial,saldo=Math.max(0,ingreso-totalPagado),estadoPago=saldo>0.009?"credito":"pagado";
+  const supabaseSaleId=await registrarVentaSupabase({ventaId,numero,items,cliente,telefono,metodoPago,totalPagado,fechaVencimiento:saldo>0?fechaVencimiento:"",nota});
+  await cargarInventarioSupabase();
+  items.forEach(item=>{const p=productos.find(x=>x.id===item.productoId);historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:item.productoId,nombre:item.nombre,sku:item.sku,tipo:"salida",cantidad:item.cantidad,saldo:p?Number(p.cantidad):0,fecha,detalle:"Venta · Recibo "+numero,ventaId})});
+  const pagos=totalPagado>0?[{id:Date.now()+Math.floor(Math.random()*100000),cantidad:totalPagado,fecha,metodo:metodoPago,nota:estadoSolicitado==="credito"?"Abono inicial":"Pago de venta",saldoAnterior:ingreso,saldoRestante:saldo}]:[];
+  ventas.unshift({id:ventaId,supabaseId:supabaseSaleId,numero,numeroConsecutivo,items,cantidad,ingreso,costoTotal,ganancia,fecha,cliente,telefono,metodoPago,estadoPago,totalPagado,saldo,pagos,fechaVencimiento:saldo>0?fechaVencimiento:"",nota});
+  guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();
+  await cargarVentasSupabase();
+  actualizarEstadisticas();cerrarVenta();
+  alert(`Recibo guardado en Supabase.
+
+Productos: ${items.length}
+Unidades: ${cantidad}
+Total: $${ingreso.toFixed(2)}${saldo>0?`
+Saldo pendiente: $${saldo.toFixed(2)}`:""}`)
+ }catch(err){console.error(err);alert("Supabase rechazó la venta: "+(err.message||err))}
+ finally{procesandoGuardado=false}
 });
 function esMismoDia(fechaA,fechaB){const a=new Date(fechaA),b=new Date(fechaB);return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
 function itemsDeVenta(v){return Array.isArray(v.items)?v.items:[]}
@@ -1324,7 +1607,27 @@ document.getElementById("formularioDevolucion").addEventListener("submit",e=>{
 
 function abrirAbono(id){const v=ventas.find(x=>x.id===id);if(!v)return;normalizarCuentaVenta(v);if(v.saldo<=0)return alert("Este recibo ya está pagado.");ventaAbonoId=id;const numero=v.numero||String(v.id).slice(-8);document.getElementById("textoAbono").textContent=`Recibo #${numero} · ${v.cliente||"Cliente general"}`;document.getElementById("cantidadAbono").value=Number(v.saldo).toFixed(2);document.getElementById("cantidadAbono").max=Number(v.saldo).toFixed(2);document.getElementById("ayudaAbono").textContent=`Saldo pendiente: $${Number(v.saldo).toFixed(2)}`;document.getElementById("notaAbono").value="";document.getElementById("modalAbono").classList.add("visible");document.getElementById("cantidadAbono").focus()}
 function cerrarAbono(){document.getElementById("modalAbono").classList.remove("visible");document.getElementById("formularioAbono").reset();ventaAbonoId=null}
-document.getElementById("formularioAbono").addEventListener("submit",e=>{e.preventDefault();if(procesandoGuardado)return;const v=ventas.find(x=>x.id===ventaAbonoId);if(!v)return cerrarAbono();normalizarCuentaVenta(v);const cantidad=Number(document.getElementById("cantidadAbono").value),metodo=document.getElementById("metodoAbono").value,nota=document.getElementById("notaAbono").value.trim();if(!Number.isFinite(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");if(cantidad>Number(v.saldo)+0.009)return alert(`El abono no puede superar el saldo de $${Number(v.saldo).toFixed(2)}.`);procesandoGuardado=true;try{if(!Array.isArray(v.pagos))v.pagos=[];const saldoAnterior=Number(v.saldo),saldoRestante=Math.max(0,saldoAnterior-cantidad),pago={id:Date.now()+Math.floor(Math.random()*100000),cantidad,fecha:new Date().toISOString(),metodo,nota,saldoAnterior,saldoRestante};v.pagos.push(pago);v.totalPagado=Number(v.totalPagado||0)+cantidad;normalizarCuentaVenta(v);guardarVentas();actualizarVentas();actualizarClientes();actualizarFlujoCaja();actualizarFinanzas();cerrarAbono();if(confirm((v.saldo<=0?"✅ Cuenta pagada completamente.":`Abono registrado.\n\nSaldo pendiente: $${Number(v.saldo).toFixed(2)}`)+"\n\n¿Quieres ver el comprobante de este abono?"))generarComprobanteAbono(v.id,pago.id)}finally{procesandoGuardado=false}});
+document.getElementById("formularioAbono").addEventListener("submit",async e=>{
+ e.preventDefault();if(procesandoGuardado)return;
+ const v=ventas.find(x=>x.id===ventaAbonoId);if(!v)return cerrarAbono();
+ normalizarCuentaVenta(v);
+ const cantidad=Number(document.getElementById("cantidadAbono").value),metodo=document.getElementById("metodoAbono").value,nota=document.getElementById("notaAbono").value.trim();
+ if(!Number.isFinite(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
+ if(cantidad>Number(v.saldo)+0.009)return alert(`El abono no puede superar el saldo de $${Number(v.saldo).toFixed(2)}.`);
+ if(!v.supabaseId)return alert("Este recibo todavía no está vinculado con Supabase.");
+ procesandoGuardado=true;
+ try{
+  const {error}=await flkSupabase.rpc("flk_add_sale_payment",{p_sale_id:v.supabaseId,p_amount:cantidad,p_payment_method:metodo,p_note:nota||null});
+  if(error)throw error;
+  await cargarVentasSupabase();
+  const actualizado=ventas.find(x=>x.supabaseId===v.supabaseId);
+  cerrarAbono();
+  alert(actualizado&&actualizado.saldo<=0?"✅ Cuenta pagada completamente.":`Abono guardado en Supabase.
+
+Saldo pendiente: $${Number(actualizado?.saldo||0).toFixed(2)}`);
+ }catch(err){console.error(err);alert("Supabase rechazó el abono: "+(err.message||err))}
+ finally{procesandoGuardado=false}
+});
 function verHistorialAbonos(id){const v=ventas.find(x=>x.id===id);if(!v)return;normalizarCuentaVenta(v);const pagos=[...pagosDeVenta(v)].sort((a,b)=>new Date(b.fecha||0)-new Date(a.fecha||0)||Number(b.id||0)-Number(a.id||0)),numero=v.numero||String(v.id).slice(-8);document.getElementById("textoHistorialAbonos").textContent=`Recibo #${numero} · ${v.cliente||"Cliente general"} · ${pagos.length} abono(s)`;const lista=document.getElementById("listaHistorialAbonos");lista.innerHTML=pagos.length?pagos.map((p,n)=>{const f=new Date(p.fecha);return `<div class="abono-card"><div class="abono-superior"><strong>Abono #${pagos.length-n}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}<br>Método: <strong>${escapeHtml(p.metodo||"No indicado")}</strong><br>Saldo anterior: <strong>$${Number(p.saldoAnterior??0).toFixed(2)}</strong><br>Saldo restante: <strong>$${Number(p.saldoRestante??0).toFixed(2)}</strong>${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><button type="button" class="boton-comprobante" onclick="generarComprobanteAbono(${v.id},${p.id})">🧾 Ver comprobante</button></div>`}).join(""):'<div class="sin-productos">Este recibo todavía no tiene abonos registrados.</div>';document.getElementById("modalHistorialAbonos").classList.add("visible")}
 function cerrarHistorialAbonos(){document.getElementById("modalHistorialAbonos").classList.remove("visible")}
 function generarComprobanteAbono(ventaId,pagoId){const v=ventas.find(x=>x.id===ventaId);if(!v)return;normalizarCuentaVenta(v);const pagos=pagosDeVenta(v),p=pagos.find(x=>x.id===pagoId);if(!p)return alert("No encontramos ese abono.");const numero=v.numero||String(v.id).slice(-8),indice=pagos.findIndex(x=>x.id===pagoId)+1,f=new Date(p.fecha),cliente=escapeHtml(v.cliente||"Cliente general"),telefono=escapeHtml(v.telefono||""),nota=escapeHtml(p.nota||"");const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comprobante de abono</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Arial,sans-serif;margin:0;background:#f4f7fb;color:#111}.recibo{max-width:420px;margin:24px auto;background:#fff;padding:28px;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.08)}h1{text-align:center;margin:0;font-size:26px}h2{text-align:center;margin:6px 0 24px;font-size:15px;color:#777;font-weight:500}.fila{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid #eee;font-size:14px}.total{font-size:20px;font-weight:800;color:#168044}.pie{text-align:center;color:#777;font-size:12px;margin-top:22px}.imprimir{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700;font-size:15px}@media print{body{background:#fff}.recibo{box-shadow:none;margin:0;max-width:none}.imprimir{display:none}}
@@ -1339,11 +1642,11 @@ function eliminarVenta(id){
  ventas=ventas.filter(x=>x.id!==id);historial=historial.filter(m=>m.ventaId!==id);recalcularSaldos();guardarDatos();guardarHistorial();guardarVentas();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarEstadisticas()
 }
 document.getElementById("busquedaVentas").addEventListener("input",mostrarListaVentas);
-function mostrarVentas(){document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="block";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("ventas");actualizarVentas();scrollTop()}
+async function mostrarVentas(){await cargarVentasSupabase();document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="block";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("ventas");actualizarVentas();scrollTop()}
 
 function claveCliente(v){const tel=String(v.telefono||"").trim().toLowerCase();const nom=String(v.cliente||"Cliente general").trim().toLowerCase();return tel?"tel:"+tel:"nom:"+nom}
 function obtenerClientes(){const mapa={};ventas.forEach(v=>{normalizarCuentaVenta(v);const nombre=String(v.cliente||"Cliente general").trim()||"Cliente general",telefono=String(v.telefono||"").trim(),k=claveCliente(v);if(!mapa[k])mapa[k]={clave:k,nombre,telefono,compras:0,total:0,unidades:0,saldoPendiente:0,creditosPendientes:0,saldoVencido:0,creditosVencidos:0,ultima:null,ventas:[]};const c=mapa[k];c.compras++;c.total+=Number(v.ingreso||0);c.unidades+=Number(v.cantidad||0);c.saldoPendiente+=Number(v.saldo||0);if(Number(v.saldo||0)>0){c.creditosPendientes++;const ev=estadoVencimientoVenta(v);if(ev.clave==="vencido"){c.creditosVencidos++;c.saldoVencido+=Number(v.saldo||0)}}c.ventas.push(v);if(!c.ultima||new Date(v.fecha)>new Date(c.ultima))c.ultima=v.fecha});return Object.values(mapa).sort((a,b)=>new Date(b.ultima)-new Date(a.ultima))}
-function mostrarClientes(){document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="block";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("clientes");actualizarClientes();scrollTop()}
+async function mostrarClientes(){await cargarVentasSupabase();document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="block";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("clientes");actualizarClientes();scrollTop()}
 function actualizarClientes(){const clientes=obtenerClientes(),q=document.getElementById("busquedaClientes").value.toLowerCase().trim(),arr=clientes.filter(c=>c.nombre.toLowerCase().includes(q)||c.telefono.toLowerCase().includes(q));document.getElementById("totalClientes").textContent=clientes.length;document.getElementById("comprasClientes").textContent=clientes.reduce((t,c)=>t+c.compras,0);document.getElementById("totalCompradoClientes").textContent="$"+clientes.reduce((t,c)=>t+c.total,0).toFixed(2);document.getElementById("creditosPendientesClientes").textContent=ventas.filter(v=>{normalizarCuentaVenta(v);return v.saldo>0}).length;document.getElementById("creditosVencidosClientes").textContent=ventas.filter(v=>estadoVencimientoVenta(v).clave==="vencido").length;document.getElementById("saldoPorCobrarClientes").textContent="$"+ventas.reduce((t,v)=>{normalizarCuentaVenta(v);return t+Number(v.saldo||0)},0).toFixed(2);document.getElementById("saldoVencidoClientes").textContent="$"+ventas.reduce((t,v)=>estadoVencimientoVenta(v).clave==="vencido"?t+Number(v.saldo||0):t,0).toFixed(2);const lista=document.getElementById("listaClientes");if(!arr.length){lista.innerHTML=`<div class="sin-productos">${clientes.length?"No encontramos clientes con esa búsqueda.":"Los clientes aparecerán aquí automáticamente cuando hagas recibos de venta."}</div>`;return}lista.innerHTML=arr.map(c=>{const f=c.ultima?new Date(c.ultima):null;return `<div class="cliente-card"><div class="cliente-superior"><div><h3>${escapeHtml(c.nombre)}</h3><p>${c.telefono?escapeHtml(c.telefono):"Sin teléfono"}</p></div><div class="cliente-total">$${c.total.toFixed(2)}</div></div><div class="cliente-detalle">Compras: <strong>${c.compras}</strong> · Unidades: <strong>${c.unidades}</strong>${c.saldoPendiente>0?`<br>Por cobrar: <strong>$${c.saldoPendiente.toFixed(2)}</strong> · Créditos: <strong>${c.creditosPendientes}</strong>`:""}${c.saldoVencido>0?`<br><span style="color:#d93025">Vencido: <strong>$${c.saldoVencido.toFixed(2)}</strong> · ${c.creditosVencidos} cuenta(s)</span>`:""}<br>Última compra: <strong>${f?f.toLocaleDateString("es-PR"):"—"}</strong>${c.saldoPendiente>0?`<br>💳 Saldo pendiente: <strong style="color:#c45b19">$${c.saldoPendiente.toFixed(2)}</strong> · ${c.creditosPendientes} cuenta(s)`:"<br>✅ Sin deuda pendiente"}</div><div class="acciones-cliente"><button class="boton-cliente" onclick="verCliente('${encodeURIComponent(c.clave)}')">🧾 Ver compras</button><button class="boton-cliente boton-cliente-venta" onclick="nuevoReciboCliente('${encodeURIComponent(c.clave)}')">＋ Nuevo recibo</button></div></div>`}).join("")}
 function clientePorClave(enc){const k=decodeURIComponent(enc);return obtenerClientes().find(c=>c.clave===k)}
 function verCliente(enc){const c=clientePorClave(enc);if(!c)return;document.getElementById("tituloCliente").textContent=c.nombre;document.getElementById("textoCliente").textContent=(c.telefono?c.telefono+" · ":"")+c.compras+" compra(s) · Total $"+c.total.toFixed(2)+(c.saldoPendiente>0?" · Debe $"+c.saldoPendiente.toFixed(2):" · Sin deuda");document.getElementById("recibosCliente").innerHTML=c.ventas.sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).map(v=>{normalizarCuentaVenta(v);return `<div class="venta-card"><div class="venta-superior"><div><h3>Recibo #${escapeHtml(v.numero||String(v.id).slice(-8))}</h3><p>${new Date(v.fecha).toLocaleDateString("es-PR")}</p>${v.saldo>0?`<span class="estado-pago credito">💳 Debe $${Number(v.saldo).toFixed(2)}</span>`:`<span class="estado-pago pagado">✅ Pagado</span>`}</div><div class="venta-total">$${Number(v.ingreso||0).toFixed(2)}</div></div><div class="acciones-cliente"><button class="boton-recibo-venta" onclick="generarReciboVenta(${v.id})">🧾 Ver recibo</button>${v.saldo>0?`<button class="boton-abono-venta" onclick="cerrarCliente();abrirAbono(${v.id})">💵 Registrar abono</button>`:""}${pagosDeVenta(v).length?`<button class="boton-historial-abonos" onclick="cerrarCliente();verHistorialAbonos(${v.id})">📋 Historial abonos</button>`:""}</div></div>`}).join("");document.getElementById("botonNuevaVentaCliente").onclick=()=>{cerrarCliente();nuevoReciboCliente(enc)};document.getElementById("modalCliente").classList.add("visible")}
