@@ -154,7 +154,7 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <button type="button" class="boton-agregar-carrito" onclick="agregarProductoAlRecibo()">＋ Agregar producto a ESTE recibo</button>
 <div class="seccion-titulo" style="margin:14px 0 8px"><h2 style="font-size:16px">Productos en este recibo</h2><strong id="contadorCarrito" style="color:#0a84ff">0</strong></div>
 <div id="carritoVenta" class="carrito-venta"></div>
-<div class="campo"><label for="notaVenta">Nota</label><input id="notaVenta" type="text" placeholder="Opcional · Ej. Pago en efectivo / ATH Móvil"></div>
+<div class="campo"><label for="metodoPagoVenta">Método de pago</label><select id="metodoPagoVenta"><option value="Efectivo">Efectivo</option><option value="ATH Móvil">ATH Móvil</option><option value="Tarjeta">Tarjeta</option><option value="Otro">Otro</option></select></div>\n<div class="campo"><label for="notaVenta">Nota</label><input id="notaVenta" type="text" placeholder="Opcional"></div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarVenta()">Cancelar</button><button type="submit" class="boton-guardar">Guardar recibo</button></div>
 </form>
 </div>
@@ -184,6 +184,7 @@ let ventas=[];
 let productoEditando=null,productoMovimiento=null,tipoMovimiento=null,movimientoEditandoId=null,productoVenta=null,filtroHistorialActual="todos",filtroCategoriaActual="",filtroUbicacionActual="";
 let procesandoGuardado=false;
 let carritoVenta=[];
+let proximoNumeroRecibo=1;
 
 function cargarDatos(){
  try{
@@ -219,6 +220,7 @@ function guardarDatos(){localStorage.setItem("flackunloker_productos",JSON.strin
 function guardarHistorial(){localStorage.setItem("flackunloker_historial",JSON.stringify(historial))}
 function guardarVentas(){localStorage.setItem("flackunloker_ventas",JSON.stringify(ventas))}
 cargarDatos();
+proximoNumeroRecibo=Math.max(0,...ventas.map(v=>Number(v.numeroConsecutivo||0)))+1;
 function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 
 function valoresUnicos(campo){return [...new Set(productos.map(p=>String(p[campo]||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"}))}
@@ -401,12 +403,13 @@ document.getElementById("formularioVenta").addEventListener("submit",e=>{
  for(const item of carritoVenta){const p=productos.find(x=>x.id===item.productoId);if(!p||Number(item.cantidad)>Number(p.cantidad))return alert(`Revisa el inventario de ${item.nombre}. Ya no hay suficientes unidades.`)}
  procesandoGuardado=true;
  try{
-  const cliente=document.getElementById("clienteVenta").value.trim(),telefono=document.getElementById("telefonoVenta").value.trim(),nota=document.getElementById("notaVenta").value.trim();
+  const cliente=document.getElementById("clienteVenta").value.trim(),telefono=document.getElementById("telefonoVenta").value.trim(),metodoPago=document.getElementById("metodoPagoVenta").value,nota=document.getElementById("notaVenta").value.trim();
   const fecha=new Date().toISOString(),ventaId=Date.now()+Math.floor(Math.random()*100000);
   const items=carritoVenta.map(i=>{const cantidad=Number(i.cantidad),precioUnitario=Number(i.precioUnitario),costoUnitario=Number(i.costoUnitario??0);return {...i,cantidad,precioUnitario,costoUnitario,ingreso:cantidad*precioUnitario,costoTotal:cantidad*costoUnitario,ganancia:cantidad*(precioUnitario-costoUnitario)}});
   items.forEach(item=>{const p=productos.find(x=>x.id===item.productoId);p.cantidad=Number(p.cantidad)-item.cantidad;historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:"salida",cantidad:item.cantidad,saldo:Number(p.cantidad),fecha,detalle:"Venta · Recibo "+String(ventaId).slice(-8),ventaId})});
   const ingreso=items.reduce((t,i)=>t+i.ingreso,0),costoTotal=items.reduce((t,i)=>t+i.costoTotal,0),ganancia=items.reduce((t,i)=>t+i.ganancia,0),cantidad=items.reduce((t,i)=>t+i.cantidad,0);
-  ventas.unshift({id:ventaId,numero:String(ventaId).slice(-8),items,cantidad,ingreso,costoTotal,ganancia,fecha,cliente,telefono,nota});
+  const numeroConsecutivo=proximoNumeroRecibo++; const numero=String(numeroConsecutivo).padStart(6,"0");
+   ventas.unshift({id:ventaId,numero,numeroConsecutivo,items,cantidad,ingreso,costoTotal,ganancia,fecha,cliente,telefono,metodoPago,nota});
   guardarDatos();guardarHistorial();guardarVentas();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarEstadisticas();cerrarVenta();
   alert(`Recibo guardado.\n\nProductos: ${items.length}\nUnidades: ${cantidad}\nTotal: $${ingreso.toFixed(2)}`)
  }finally{procesandoGuardado=false}
@@ -452,7 +455,7 @@ function mostrarListaVentas(){
   const f=new Date(v.fecha),el=document.createElement("div");el.className="venta-card";const numero=v.numero||String(v.id).slice(-8),items=itemsDeVenta(v);
   const cliente=escapeHtml(v.cliente||"Cliente general"),telefono=v.telefono?` · ${escapeHtml(v.telefono)}`:"",nota=v.nota?`<br>Nota: ${escapeHtml(v.nota)}`:"";
   const itemsHtml=items.map(i=>`<div class="recibo-item"><span>${Number(i.cantidad)} × ${escapeHtml(i.nombre)}</span><strong>$${Number(i.ingreso??(Number(i.cantidad)*Number(i.precioUnitario))).toFixed(2)}</strong></div>`).join("");
-  el.innerHTML=`<div class="venta-superior"><div><h3>Recibo #${escapeHtml(numero)}</h3><p>${cliente}${telefono}</p></div><div class="venta-total">$${Number(v.ingreso??0).toFixed(2)}</div></div><div class="recibo-items">${itemsHtml}</div><div class="venta-detalle">Unidades: <strong>${Number(v.cantidad??0)}</strong> · Productos: <strong>${items.length}</strong><br>Ganancia real: <strong class="ganancia-venta">$${Number(v.ganancia??0).toFixed(2)}</strong>${nota}<br>${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div><div class="acciones-venta"><button class="boton-recibo-venta" onclick="generarReciboVenta(${v.id})">🧾 Ver recibo</button><button class="boton-eliminar-venta" onclick="eliminarVenta(${v.id})">↩️ Anular recibo</button></div>`;
+  el.innerHTML=`<div class="venta-superior"><div><h3>Recibo #${escapeHtml(numero)}</h3><p>${cliente}${telefono}</p></div><div class="venta-total">$${Number(v.ingreso??0).toFixed(2)}</div></div><div class="recibo-items">${itemsHtml}</div><div class="venta-detalle">Unidades: <strong>${Number(v.cantidad??0)}</strong> · Productos: <strong>${items.length}</strong><br>Ganancia real: <strong class="ganancia-venta">$${Number(v.ganancia??0).toFixed(2)}</strong>${v.metodoPago?`<br>Método de pago: <strong>${escapeHtml(v.metodoPago)}</strong>`:""}${nota}<br>${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div><div class="acciones-venta"><button class="boton-recibo-venta" onclick="generarReciboVenta(${v.id})">🧾 Ver recibo</button><button class="boton-eliminar-venta" onclick="eliminarVenta(${v.id})">↩️ Anular recibo</button></div>`;
   lista.appendChild(el)
  })
 }
@@ -460,7 +463,7 @@ function generarReciboVenta(id){
  const v=ventas.find(x=>x.id===id);if(!v)return;const f=new Date(v.fecha),numero=v.numero||String(v.id).slice(-8),items=itemsDeVenta(v);
  const cliente=escapeHtml(v.cliente||"Cliente general"),telefono=escapeHtml(v.telefono||""),nota=escapeHtml(v.nota||"");
  const filas=items.map(i=>`<div class="fila"><span>${Number(i.cantidad)} × ${escapeHtml(i.nombre)}<br><small>SKU: ${escapeHtml(i.sku||"")} · $${Number(i.precioUnitario??0).toFixed(2)} c/u</small></span><strong>$${Number(i.ingreso??(Number(i.cantidad)*Number(i.precioUnitario))).toFixed(2)}</strong></div>`).join("");
- const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recibo ${numero}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Arial,sans-serif;margin:0;background:#f4f7fb;color:#111}.recibo{max-width:420px;margin:24px auto;background:#fff;padding:28px;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.08)}h1{text-align:center;margin:0;font-size:26px}h2{text-align:center;margin:6px 0 24px;font-size:15px;color:#777;font-weight:500}.fila{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid #eee;font-size:14px}.fila small{color:#777}.total{font-size:20px;font-weight:800;color:#168044}.pie{text-align:center;color:#777;font-size:12px;margin-top:22px}.imprimir{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700;font-size:15px}@media print{body{background:#fff}.recibo{box-shadow:none;margin:0;max-width:none}.imprimir{display:none}}</style></head><body><div class="recibo"><h1>Flackunloker</h1><h2>Recibo de venta #${numero}</h2><div class="fila"><span>Fecha</span><strong>${f.toLocaleDateString("es-PR")} ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div class="fila"><span>Cliente</span><strong>${cliente}${telefono?`<br>${telefono}`:""}</strong></div>${filas}<div class="fila total"><span>Total</span><strong>$${Number(v.ingreso??0).toFixed(2)}</strong></div>${nota?`<div class="fila"><span>Nota</span><strong>${nota}</strong></div>`:""}<div class="pie">Gracias por su compra.</div><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></body></html>`;
+ const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recibo ${numero}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Arial,sans-serif;margin:0;background:#f4f7fb;color:#111}.recibo{max-width:420px;margin:24px auto;background:#fff;padding:28px;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.08)}h1{text-align:center;margin:0;font-size:26px}h2{text-align:center;margin:6px 0 24px;font-size:15px;color:#777;font-weight:500}.fila{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid #eee;font-size:14px}.fila small{color:#777}.total{font-size:20px;font-weight:800;color:#168044}.pie{text-align:center;color:#777;font-size:12px;margin-top:22px}.imprimir{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700;font-size:15px}@media print{body{background:#fff}.recibo{box-shadow:none;margin:0;max-width:none}.imprimir{display:none}}</style></head><body><div class="recibo"><h1>Flackunloker</h1><h2>Recibo de venta #${numero}<br><small>Gracias por confiar en nosotros</small></h2><div class="fila"><span>Fecha</span><strong>${f.toLocaleDateString("es-PR")} ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div class="fila"><span>Cliente</span><strong>${cliente}${telefono?`<br>${telefono}`:""}</strong></div>${filas}${v.metodoPago?`<div class="fila"><span>Método de pago</span><strong>${escapeHtml(v.metodoPago)}</strong></div>`:""}<div class="fila total"><span>Total</span><strong>$${Number(v.ingreso??0).toFixed(2)}</strong></div>${nota?`<div class="fila"><span>Nota</span><strong>${nota}</strong></div>`:""}<div class="pie">Gracias por su compra.</div><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></body></html>`;
  const w=window.open("","_blank");if(!w)return alert("El navegador bloqueó el recibo. Permite ventanas emergentes para Flackunloker.");w.document.open();w.document.write(contenido);w.document.close()
 }
 function eliminarVenta(id){
