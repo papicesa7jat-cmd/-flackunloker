@@ -1346,6 +1346,8 @@ function ventaDesdeSupabase(v){
   return {
    productoId:p?p.id:idLocalDesdeLegacy(null,i.product_id),
    supabaseProductId:i.product_id,
+   supabaseSaleItemId:i.id,
+   devuelto:Number(i.returned_quantity||0),
    nombre:p?p.nombre:"Producto",
    sku:p?p.sku:"",
    cantidad,precioUnitario,costoUnitario,
@@ -1390,7 +1392,7 @@ function ventaDesdeSupabase(v){
 async function cargarVentasSupabase(){
  const locales=Array.isArray(ventas)?[...ventas]:[];
  const consulta=()=>flkSupabase.from("sales")
-  .select("*,sale_items(id,product_id,quantity,unit_price,unit_cost),sale_payments(id,amount,payment_method,note,balance_before,balance_after,created_at)")
+  .select("*,sale_items(id,product_id,quantity,unit_price,unit_cost),sale_payments(id,amount,payment_method,note,balance_before,balance_after,created_at),sale_returns(id,sale_item_id,product_id,quantity,refund_amount,reason,created_at)")
   .order("created_at",{ascending:false});
 
  let {data:cloud,error}=await consulta();
@@ -1448,7 +1450,17 @@ async function cargarVentasSupabase(){
   if(error){console.error(error);return false}
  }
 
- ventas=(cloud||[]).map(ventaDesdeSupabase);
+ ventas=(cloud||[]).map(v=>{
+  const local=ventaDesdeSupabase(v);
+  const retornos=Array.isArray(v.sale_returns)?v.sale_returns:[];
+  local.devoluciones=retornos.map(r=>({
+   id:idLocalDesdeLegacy(null,r.id),supabaseId:r.id,ventaId:local.id,
+   productoId:(local.items.find(i=>i.supabaseSaleItemId===r.sale_item_id)||{}).productoId,
+   cantidad:Number(r.quantity||0),monto:Number(r.refund_amount||0),motivo:r.reason||"",fecha:r.created_at
+  }));
+  local.items.forEach(i=>{i.devuelto=retornos.filter(r=>r.sale_item_id===i.supabaseSaleItemId).reduce((t,r)=>t+Number(r.quantity||0),0)});
+  return local;
+ });
  const maxNumero=ventas.reduce((m,v)=>Math.max(m,Number(v.numeroConsecutivo||0)),0);
  if(maxNumero>=proximoNumeroRecibo)proximoNumeroRecibo=maxNumero+1;
  guardarVentas();
@@ -1590,19 +1602,26 @@ function actualizarAyudaDevolucion(){
  document.getElementById("ayudaDevolucion").textContent=item?`Máximo: ${Number(item.cantidad)} · Reembolso por unidad: $${Number(item.precioUnitario??0).toFixed(2)}`:""
 }
 document.getElementById("productoDevolucion").addEventListener("change",actualizarAyudaDevolucion);
-document.getElementById("formularioDevolucion").addEventListener("submit",e=>{
- e.preventDefault();if(procesandoGuardado)return;const v=ventas.find(x=>x.id===ventaDevolucionId);if(!v)return cerrarDevolucion();
- const indice=Number(document.getElementById("productoDevolucion").value),item=itemsDeVenta(v)[indice],cantidad=Number(document.getElementById("cantidadDevolucion").value),motivo=document.getElementById("motivoDevolucion").value.trim();
- if(!item)return alert("Selecciona un producto válido.");if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");if(cantidad>Number(item.cantidad))return alert(`Solo puedes devolver hasta ${Number(item.cantidad)} unidad(es) de ${item.nombre}.`);
- const numero=v.numero||String(v.id).slice(-8),reembolso=cantidad*Number(item.precioUnitario??0);
- if(!confirm(`¿Confirmar devolución?\n\nRecibo #${numero}\n${cantidad} × ${item.nombre}\nReembolso: $${reembolso.toFixed(2)}`))return;
- procesandoGuardado=true;try{
-  const p=productos.find(x=>x.id===item.productoId);if(!p)return alert("El producto ya no existe en el inventario. No se puede completar la devolución automáticamente.");
-  p.cantidad=Number(p.cantidad)+cantidad;item.cantidad=Number(item.cantidad)-cantidad;
-  const fecha=new Date().toISOString();if(!Array.isArray(v.devoluciones))v.devoluciones=[];v.devoluciones.push({id:Date.now()+Math.floor(Math.random()*100000),productoId:item.productoId,nombre:item.nombre,sku:item.sku,cantidad,precioUnitario:Number(item.precioUnitario??0),reembolso,fecha,motivo});
-  recalcularTotalesVenta(v);historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:"entrada",cantidad,saldo:Number(p.cantidad),fecha,detalle:"Devolución · Recibo #"+numero,ventaId:v.id,devolucion:true});
-  recalcularSaldos();guardarDatos();guardarHistorial();guardarVentas();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarEstadisticas();cerrarDevolucion();alert(`Devolución registrada.\n\n${cantidad} unidad(es) regresaron al inventario.\nReembolso: $${reembolso.toFixed(2)}`)
- }finally{procesandoGuardado=false}
+document.getElementById("formularioDevolucion").addEventListener("submit",async e=>{
+ e.preventDefault();if(procesandoGuardado)return;
+ const v=ventas.find(x=>x.id===ventaDevolucionId);if(!v)return cerrarDevolucion();
+ const item=v.items.find(i=>i.productoId===productoDevolucionId);if(!item)return cerrarDevolucion();
+ const cantidad=Number(document.getElementById("cantidadDevolucion").value),motivo=(document.getElementById("motivoDevolucion")?.value||"").trim();
+ const disponible=Number(item.cantidad||0)-Number(item.devuelto||0);
+ if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
+ if(cantidad>disponible)return alert("La devolución supera las unidades disponibles.");
+ if(!item.supabaseSaleItemId)return alert("Este artículo del recibo todavía no está vinculado con Supabase.");
+ procesandoGuardado=true;
+ try{
+  const {error}=await flkSupabase.rpc("flk_return_sale_item",{p_sale_item_id:item.supabaseSaleItemId,p_quantity:cantidad,p_reason:motivo||null});
+  if(error)throw error;
+  await cargarInventarioSupabase();
+  await cargarVentasSupabase();
+  actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();
+  cerrarDevolucion();
+  alert("✅ Devolución guardada en Supabase. El inventario y el recibo fueron actualizados.");
+ }catch(err){console.error(err);alert("Supabase rechazó la devolución: "+(err.message||err))}
+ finally{procesandoGuardado=false}
 });
 
 function abrirAbono(id){const v=ventas.find(x=>x.id===id);if(!v)return;normalizarCuentaVenta(v);if(v.saldo<=0)return alert("Este recibo ya está pagado.");ventaAbonoId=id;const numero=v.numero||String(v.id).slice(-8);document.getElementById("textoAbono").textContent=`Recibo #${numero} · ${v.cliente||"Cliente general"}`;document.getElementById("cantidadAbono").value=Number(v.saldo).toFixed(2);document.getElementById("cantidadAbono").max=Number(v.saldo).toFixed(2);document.getElementById("ayudaAbono").textContent=`Saldo pendiente: $${Number(v.saldo).toFixed(2)}`;document.getElementById("notaAbono").value="";document.getElementById("modalAbono").classList.add("visible");document.getElementById("cantidadAbono").focus()}
