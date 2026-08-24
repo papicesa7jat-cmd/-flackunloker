@@ -886,6 +886,7 @@ async function mostrarAppConSesion(session){
  if(session&&session.user){
   document.getElementById("authOverlay").classList.add("oculto");
   await cargarRolUsuario(session.user);
+  await cargarInventarioSupabase();
  }else{
   document.getElementById("authOverlay").classList.remove("oculto");
   document.getElementById("authUsuario").classList.remove("visible");
@@ -954,6 +955,96 @@ let proximoNumeroRecibo=1;
 let gastoEditandoId=null;
 let proveedorEditandoId=null;
 let ordenEditandoId=null;
+
+let inventarioSupabaseListo=false;
+
+function idLocalDesdeLegacy(v,uuid){
+ const n=Number(v);
+ if(v!==null&&v!==undefined&&v!==""&&Number.isFinite(n))return n;
+ let h=0;for(const c of String(uuid||""))h=(h*31+c.charCodeAt(0))>>>0;
+ return 2000000000+h;
+}
+function productoDesdeSupabase(r){
+ return {
+  id:idLocalDesdeLegacy(r.legacy_id,r.id),
+  supabaseId:r.id,
+  nombre:r.name||"",
+  sku:r.sku||"",
+  cantidad:Number(r.stock||0),
+  costo:Number(r.cost||0),
+  precio:Number(r.price||0),
+  categoria:r.category||"",
+  proveedor:r.supplier_name||"",
+  ubicacion:r.location||r.warehouse||"",
+  stockMinimo:Number(r.min_stock||0)
+ }
+}
+function productoHaciaSupabase(p,stock=0){
+ return {
+  legacy_id:String(p.id),
+  sku:String(p.sku||"").trim()||null,
+  name:String(p.nombre||"").trim(),
+  category:String(p.categoria||"").trim()||null,
+  supplier_name:String(p.proveedor||"").trim()||null,
+  location:String(p.ubicacion||"").trim()||null,
+  warehouse:String(p.ubicacion||"").trim()||"Principal",
+  cost:Number(p.costo||0),
+  price:Number(p.precio||0),
+  stock:Number(stock||0),
+  min_stock:Number(p.stockMinimo||0),
+  active:true
+ }
+}
+async function cargarInventarioSupabase(){
+ const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).order("created_at",{ascending:true});
+ if(error){console.error("Supabase inventario:",error);alert("No se pudo cargar el inventario de Supabase. Se conserva la copia local.");return false}
+ if((!data||!data.length)&&productos.length&&rolSesion==="admin"){
+  const locales=[...productos];
+  for(const p of locales){
+   const inicial=Number(p.cantidad||0);
+   const payload=productoHaciaSupabase(p,0);
+   const {data:creado,error:err}=await flkSupabase.from("products").insert(payload).select("id").single();
+   if(err){console.error("Migración producto:",p.nombre,err);alert("No se pudo migrar "+p.nombre+": "+err.message);return false}
+   p.supabaseId=creado.id;
+   if(inicial>0){
+    const {error:movErr}=await flkSupabase.rpc("adjust_product_stock",{p_product_id:creado.id,p_delta:inicial,p_type:"entrada",p_note:"Migración inicial desde Flackunloker"});
+    if(movErr){console.error(movErr);alert("Producto migrado, pero falló el stock inicial de "+p.nombre);return false}
+   }
+  }
+  guardarDatos();
+  return await cargarInventarioSupabase();
+ }
+ productos=(data||[]).map(productoDesdeSupabase);
+ guardarDatos();inventarioSupabaseListo=true;
+ mostrarProductos();actualizarEstadisticas();
+ return true
+}
+async function guardarProductoSupabase(p,esNuevo=false,stockInicial=0){
+ if(esNuevo){
+  const payload=productoHaciaSupabase(p,0);
+  const {data,error}=await flkSupabase.from("products").insert(payload).select("*").single();
+  if(error)throw error;
+  p.supabaseId=data.id;
+  if(Number(stockInicial)>0){
+   const {data:nuevoStock,error:movErr}=await flkSupabase.rpc("adjust_product_stock",{p_product_id:data.id,p_delta:Number(stockInicial),p_type:"entrada",p_note:"Inventario inicial"});
+   if(movErr)throw movErr;
+   p.cantidad=Number(nuevoStock);
+  }
+  return;
+ }
+ if(!p.supabaseId)throw new Error("Producto sin vínculo con Supabase.");
+ const payload=productoHaciaSupabase(p,p.cantidad);
+ delete payload.legacy_id;
+ delete payload.stock;
+ const {error}=await flkSupabase.from("products").update(payload).eq("id",p.supabaseId);
+ if(error)throw error;
+}
+async function ajustarStockSupabase(p,delta,tipo,nota=""){
+ if(!p.supabaseId)throw new Error("Producto sin vínculo con Supabase.");
+ const {data,error}=await flkSupabase.rpc("adjust_product_stock",{p_product_id:p.supabaseId,p_delta:Number(delta),p_type:tipo,p_note:nota||null});
+ if(error)throw error;
+ return Number(data);
+}
 
 function cargarDatos(){
  try{
@@ -1047,54 +1138,37 @@ function editarProducto(id){
 }
 function cerrarFormulario(){document.getElementById("modalProducto").classList.remove("visible");document.getElementById("formularioProducto").reset();productoEditando=null}
 
-document.getElementById("formularioProducto").addEventListener("submit",e=>{
- e.preventDefault();
- e.stopPropagation();
- if(procesandoGuardado)return;
- procesandoGuardado=true;
+document.getElementById("formularioProducto").addEventListener("submit",async e=>{
+ e.preventDefault();e.stopPropagation();
+ if(procesandoGuardado)return;procesandoGuardado=true;
  try{
-  const nombre=document.getElementById("nombre").value.trim();
-  const sku=document.getElementById("sku").value.trim();
-  const cantidad=Number(document.getElementById("cantidadProducto").value);
-  const costo=Number(document.getElementById("costo").value);
-  const precio=Number(document.getElementById("precio").value);
-  const categoria=document.getElementById("categoria").value.trim();
-  const proveedor=document.getElementById("proveedor").value.trim();
-  const ubicacion=document.getElementById("ubicacion").value.trim();
-  const stockMinimo=Number(document.getElementById("stockMinimo").value);
-  if(!nombre||!sku){alert("Completa el nombre y el SKU.");return}
-  if(cantidad<0||costo<0||precio<0||stockMinimo<0||!Number.isInteger(stockMinimo)){
-   alert("Revisa los valores introducidos.");return
-  }
+  const nombre=document.getElementById("nombre").value.trim(),sku=document.getElementById("sku").value.trim();
+  const cantidad=Number(document.getElementById("cantidadProducto").value),costo=Number(document.getElementById("costo").value),precio=Number(document.getElementById("precio").value);
+  const categoria=document.getElementById("categoria").value.trim(),proveedor=document.getElementById("proveedor").value.trim(),ubicacion=document.getElementById("ubicacion").value.trim(),stockMinimo=Number(document.getElementById("stockMinimo").value);
+  if(!nombre||!sku)return alert("Completa el nombre y el SKU.");
+  if(cantidad<0||costo<0||precio<0||stockMinimo<0||!Number.isInteger(stockMinimo))return alert("Revisa los valores introducidos.");
   const skuNorm=sku.toLowerCase();
   if(productoEditando!==null){
-   const p=productos.find(x=>x.id===productoEditando); if(!p)return;
-   if(productos.some(x=>x.id!==productoEditando&&String(x.sku||"").trim().toLowerCase()===skuNorm)){
-    alert("Ya existe otro producto con ese SKU.");return
+   const p=productos.find(x=>x.id===productoEditando);if(!p)return;
+   if(productos.some(x=>x.id!==productoEditando&&String(x.sku||"").trim().toLowerCase()===skuNorm))return alert("Ya existe otro producto con ese SKU.");
+   const stockAnterior=Number(p.cantidad);
+   p.nombre=nombre;p.sku=sku;p.costo=costo;p.precio=precio;p.categoria=categoria;p.proveedor=proveedor;p.ubicacion=ubicacion;p.stockMinimo=stockMinimo;
+   await guardarProductoSupabase(p,false,0);
+   if(cantidad!==stockAnterior){
+    const delta=cantidad-stockAnterior,tipo=delta>0?"entrada":"salida";
+    p.cantidad=await ajustarStockSupabase(p,delta,tipo,"Ajuste desde edición de producto");
+    historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo,cantidad:Math.abs(delta),saldo:p.cantidad,fecha:new Date().toISOString(),detalle:"Ajuste desde edición"});
    }
-   p.nombre=nombre;p.sku=sku;p.cantidad=cantidad;p.costo=costo;p.precio=precio;p.categoria=categoria;p.proveedor=proveedor;p.ubicacion=ubicacion;p.stockMinimo=stockMinimo;
   }else{
-   if(productos.some(x=>String(x.sku||"").trim().toLowerCase()===skuNorm)){
-    alert("Ya existe un producto con ese SKU.");return
-   }
-   const nuevoProducto={id:Date.now()+Math.floor(Math.random()*100000),nombre,sku,cantidad,costo,precio,categoria,proveedor,ubicacion,stockMinimo};
+   if(productos.some(x=>String(x.sku||"").trim().toLowerCase()===skuNorm))return alert("Ya existe un producto con ese SKU.");
+   const nuevoProducto={id:Date.now()+Math.floor(Math.random()*100000),nombre,sku,cantidad:0,costo,precio,categoria,proveedor,ubicacion,stockMinimo};
+   await guardarProductoSupabase(nuevoProducto,true,cantidad);
    productos.push(nuevoProducto);
-   if(cantidad>0){
-    historial.unshift({
-     id:Date.now()+Math.floor(Math.random()*100000),
-     productoId:nuevoProducto.id,
-     nombre:nuevoProducto.nombre,
-     sku:nuevoProducto.sku,
-     tipo:"entrada",
-     cantidad:cantidad,
-     saldo:cantidad,
-     fecha:new Date().toISOString(),
-     detalle:"Inventario inicial"
-    });
-   }
+   if(cantidad>0)historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:nuevoProducto.id,nombre,sku,tipo:"entrada",cantidad,saldo:nuevoProducto.cantidad,fecha:new Date().toISOString(),detalle:"Inventario inicial"});
   }
   guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();cerrarFormulario();
- }finally{procesandoGuardado=false}
+ }catch(err){console.error(err);alert("Supabase rechazó el cambio: "+(err.message||err))}
+ finally{procesandoGuardado=false}
 });
 function abrirMovimiento(id,tipo){
  const p=productos.find(x=>x.id===id);if(!p)return;productoMovimiento=id;tipoMovimiento=tipo;
@@ -1104,29 +1178,27 @@ function abrirMovimiento(id,tipo){
 }
 function cerrarMovimiento(){document.getElementById("modalMovimiento").classList.remove("visible");document.getElementById("formularioMovimiento").reset();productoMovimiento=null;tipoMovimiento=null}
 
-document.getElementById("formularioMovimiento").addEventListener("submit",e=>{
- e.preventDefault();
- e.stopPropagation();
- if(procesandoGuardado)return;
- procesandoGuardado=true;
+document.getElementById("formularioMovimiento").addEventListener("submit",async e=>{
+ e.preventDefault();e.stopPropagation();
+ if(procesandoGuardado)return;procesandoGuardado=true;
  try{
   const cantidad=Number(document.getElementById("cantidadMovimiento").value);
-  if(!Number.isInteger(cantidad)||cantidad<=0){alert("Introduce una cantidad válida.");return}
+  if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
   const p=productos.find(x=>x.id===productoMovimiento);if(!p){cerrarMovimiento();return}
-  let nuevo=Number(p.cantidad);
-  if(tipoMovimiento==="entrada")nuevo+=cantidad;
-  else{
-   if(cantidad>nuevo){alert("No puedes retirar más unidades de las que existen en inventario.");return}
-   nuevo-=cantidad;
-  }
-  p.cantidad=nuevo;
-  historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:tipoMovimiento,cantidad,saldo:nuevo,fecha:new Date().toISOString()});
+  const delta=tipoMovimiento==="entrada"?cantidad:-cantidad;
+  p.cantidad=await ajustarStockSupabase(p,delta,tipoMovimiento,"Movimiento manual desde Flackunloker");
+  historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:tipoMovimiento,cantidad,saldo:p.cantidad,fecha:new Date().toISOString()});
   guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();cerrarMovimiento();
- }finally{procesandoGuardado=false}
+ }catch(err){console.error(err);alert("Supabase rechazó el movimiento: "+(err.message||err))}
+ finally{procesandoGuardado=false}
 });
-function eliminarProducto(id){
+async function eliminarProducto(id){
+ const p=productos.find(x=>x.id===id);if(!p)return;
  if(!confirm("¿Quieres eliminar este producto?"))return;
- productos=productos.filter(p=>p.id!==id);guardarDatos();mostrarProductos();actualizarEstadisticas()
+ try{
+  if(p.supabaseId){const {error}=await flkSupabase.from("products").delete().eq("id",p.supabaseId);if(error)throw error}
+  productos=productos.filter(x=>x.id!==id);guardarDatos();mostrarProductos();actualizarEstadisticas();
+ }catch(err){console.error(err);alert("Supabase no permitió eliminar el producto: "+(err.message||err))}
 }
 
 function mostrarProductos(){
