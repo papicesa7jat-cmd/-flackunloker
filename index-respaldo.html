@@ -94,6 +94,30 @@
     }
 
     /* =========================
+       ALERTA INVENTARIO
+    ========================= */
+
+    .alerta-inventario {
+      display: none;
+      background: #fff4d6;
+      color: #8a5a00;
+      border: 1px solid #f1d58a;
+      border-radius: 15px;
+      padding: 14px;
+      margin-bottom: 18px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .alerta-inventario.visible {
+      display: block;
+    }
+
+    .alerta-inventario strong {
+      color: #6f4600;
+    }
+
+    /* =========================
        BUSQUEDA
     ========================= */
 
@@ -159,6 +183,11 @@
       box-shadow: 0 5px 20px rgba(0, 0, 0, .06);
     }
 
+    .producto-bajo {
+      border: 1px solid #f1d58a;
+      background: #fffdf7;
+    }
+
     .producto-superior {
       display: flex;
       justify-content: space-between;
@@ -190,6 +219,11 @@
       white-space: nowrap;
     }
 
+    .cantidad.baja {
+      background: #fff4d6;
+      color: #a66b00;
+    }
+
     .producto-precio {
       margin-top: 12px;
       color: #555;
@@ -198,6 +232,16 @@
 
     .producto-precio strong {
       color: #111;
+    }
+
+    .alerta-producto {
+      margin-top: 10px;
+      padding: 9px 11px;
+      border-radius: 10px;
+      background: #fff4d6;
+      color: #8a5a00;
+      font-size: 12px;
+      font-weight: 600;
     }
 
     /* =========================
@@ -642,6 +686,14 @@
       </div>
 
 
+      <!-- ALERTA GENERAL -->
+
+      <div
+        id="alertaInventario"
+        class="alerta-inventario"
+      ></div>
+
+
       <input
         id="busqueda"
         class="busqueda"
@@ -688,8 +740,6 @@
 
       </div>
 
-
-      <!-- RESUMEN DEL HISTORIAL -->
 
       <div class="resumen-historial">
 
@@ -842,13 +892,14 @@
       <div class="campo">
 
         <label for="cantidadProducto">
-          Cantidad
+          Cantidad inicial
         </label>
 
         <input
           id="cantidadProducto"
           type="number"
           min="0"
+          step="1"
           placeholder="Ej. 10"
           required
         >
@@ -971,7 +1022,7 @@
 
   <!-- =========================
        MENU INFERIOR
-  ========================= -->
+    ========================= -->
 
   <div class="menu">
 
@@ -1030,6 +1081,14 @@
     let tipoMovimiento = null;
 
     let filtroHistorialActual = "todos";
+
+
+    /*
+       Cantidad que activa la alerta de inventario bajo.
+       Puedes cambiar 5 por el número que quieras.
+    */
+
+    const LIMITE_ALERTA = 5;
 
 
     /* =========================
@@ -1257,18 +1316,33 @@
 
 
           if (
-            cantidad < 0 ||
-            precio < 0
+            !Number.isInteger(cantidad) ||
+            cantidad < 0
           ) {
 
             alert(
-              "La cantidad y el precio no pueden ser negativos."
+              "La cantidad debe ser un número entero igual o mayor que 0."
             );
 
             return;
 
           }
 
+
+          if (precio < 0) {
+
+            alert(
+              "El precio no puede ser negativo."
+            );
+
+            return;
+
+          }
+
+
+          /* =========================
+             EDITAR PRODUCTO
+          ========================= */
 
           if (
             productoEditando !== null
@@ -1303,11 +1377,21 @@
 
             }
 
-          } else {
+          }
+
+          /* =========================
+             CREAR PRODUCTO
+          ========================= */
+
+          else {
+
+            const nuevoId =
+              Date.now();
+
 
             const producto = {
 
-              id: Date.now(),
+              id: nuevoId,
 
               nombre: nombre,
 
@@ -1324,10 +1408,64 @@
               producto
             );
 
+
+            /*
+               NUEVO:
+               Si el producto se crea con
+               cantidad inicial mayor que 0,
+               registramos esa cantidad
+               como entrada inicial.
+            */
+
+            if (cantidad > 0) {
+
+              const movimientoInicial = {
+
+                id:
+                  Date.now() +
+                  Math.floor(
+                    Math.random() * 1000
+                  ),
+
+                productoId:
+                  nuevoId,
+
+                nombre:
+                  nombre,
+
+                sku:
+                  sku,
+
+                tipo:
+                  "entrada",
+
+                cantidad:
+                  cantidad,
+
+                saldo:
+                  cantidad,
+
+                fecha:
+                  new Date().toISOString(),
+
+                inicial:
+                  true
+
+              };
+
+
+              historial.unshift(
+                movimientoInicial
+              );
+
+            }
+
           }
 
 
           guardarDatos();
+
+          guardarHistorial();
 
           mostrarProductos();
 
@@ -1390,7 +1528,9 @@
           "Agregar unidades a: " +
           producto.nombre;
 
-      } else {
+      }
+
+      else {
 
         document
           .getElementById(
@@ -1521,13 +1661,21 @@
 
 
           /*
-             Calculamos primero el nuevo saldo.
+             Saldo ANTES del movimiento.
           */
 
-          let nuevoSaldo =
+          const saldoAnterior =
             Number(
               producto.cantidad
             );
+
+
+          /*
+             Calculamos saldo nuevo.
+          */
+
+          let nuevoSaldo =
+            saldoAnterior;
 
 
           if (
@@ -1548,7 +1696,7 @@
 
             if (
               cantidad >
-              producto.cantidad
+              saldoAnterior
             ) {
 
               alert(
@@ -1575,13 +1723,13 @@
 
 
           /*
-             Registramos movimiento
-             con el saldo resultante.
+             Guardamos movimiento.
           */
 
           const movimiento = {
 
-            id: Date.now(),
+            id:
+              Date.now(),
 
             productoId:
               producto.id,
@@ -1601,8 +1749,14 @@
             saldo:
               nuevoSaldo,
 
+            saldoAnterior:
+              saldoAnterior,
+
             fecha:
-              new Date().toISOString()
+              new Date().toISOString(),
+
+            inicial:
+              false
 
           };
 
@@ -1614,15 +1768,12 @@
 
           guardarDatos();
 
-guardarHistorial();
+          guardarHistorial();
 
-mostrarProductos();
+          mostrarProductos();
 
-actualizarResumenHistorial();
+          cerrarMovimiento();
 
-mostrarListaHistorial();
-
-cerrarMovimiento();
         }
       );
 
@@ -1692,17 +1843,21 @@ cerrarMovimiento();
           function(producto) {
 
             return (
-              producto.nombre
-                .toLowerCase()
-                .includes(
-                  textoBusqueda
-                )
+              String(
+                producto.nombre || ""
+              )
+              .toLowerCase()
+              .includes(
+                textoBusqueda
+              )
               ||
-              producto.sku
-                .toLowerCase()
-                .includes(
-                  textoBusqueda
-                )
+              String(
+                producto.sku || ""
+              )
+              .toLowerCase()
+              .includes(
+                textoBusqueda
+              )
             );
 
           }
@@ -1730,7 +1885,9 @@ cerrarMovimiento();
 
         `;
 
-      } else {
+      }
+
+      else {
 
         productosFiltrados.forEach(
           function(producto) {
@@ -1743,6 +1900,26 @@ cerrarMovimiento();
 
             elemento.className =
               "producto";
+
+
+            const cantidadActual =
+              Number(
+                producto.cantidad
+              );
+
+
+            const inventarioBajo =
+              cantidadActual <=
+              LIMITE_ALERTA;
+
+
+            if (inventarioBajo) {
+
+              elemento.classList.add(
+                "producto-bajo"
+              );
+
+            }
 
 
             elemento.innerHTML = `
@@ -1762,8 +1939,14 @@ cerrarMovimiento();
                 </div>
 
 
-                <div class="cantidad">
-                  ${producto.cantidad}
+                <div
+                  class="cantidad ${
+                    inventarioBajo
+                      ? "baja"
+                      : ""
+                  }"
+                >
+                  ${cantidadActual}
                 </div>
 
               </div>
@@ -1785,12 +1968,25 @@ cerrarMovimiento();
 
                 <strong>
                   $${(
-                    producto.cantidad *
-                    producto.precio
+                    cantidadActual *
+                    Number(
+                      producto.precio
+                    )
                   ).toFixed(2)}
                 </strong>
 
               </div>
+
+
+              ${
+                inventarioBajo
+                  ? `
+                    <div class="alerta-producto">
+                      ⚠️ Inventario bajo: quedan ${cantidadActual} unidades.
+                    </div>
+                  `
+                  : ""
+              }
 
 
               <div class="acciones">
@@ -1924,6 +2120,88 @@ cerrarMovimiento();
         valorInventario.toFixed(
           2
         );
+
+
+      actualizarAlertaInventario();
+
+    }
+
+
+    /* =========================
+       ALERTA INVENTARIO
+    ========================= */
+
+    function actualizarAlertaInventario() {
+
+      const alerta =
+        document.getElementById(
+          "alertaInventario"
+        );
+
+
+      const productosBajos =
+        productos.filter(
+          function(producto) {
+
+            return (
+              Number(
+                producto.cantidad
+              ) <=
+              LIMITE_ALERTA
+            );
+
+          }
+        );
+
+
+      if (
+        productosBajos.length === 0
+      ) {
+
+        alerta.classList.remove(
+          "visible"
+        );
+
+        alerta.innerHTML = "";
+
+        return;
+
+      }
+
+
+      const nombres =
+        productosBajos
+          .map(
+            function(producto) {
+
+              return (
+                producto.nombre +
+                " (" +
+                producto.cantidad +
+                ")"
+              );
+
+            }
+          )
+          .join(", ");
+
+
+      alerta.innerHTML = `
+
+        ⚠️ <strong>Alerta de inventario:</strong>
+        ${productosBajos.length}
+        producto(s) con
+        ${LIMITE_ALERTA}
+        o menos unidades.
+        <br>
+        ${nombres}
+
+      `;
+
+
+      alerta.classList.add(
+        "visible"
+      );
 
     }
 
@@ -2121,14 +2399,16 @@ cerrarMovimiento();
               String(
                 movimiento.nombre ||
                 ""
-              ).toLowerCase();
+              )
+              .toLowerCase();
 
 
             const sku =
               String(
                 movimiento.sku ||
                 ""
-              ).toLowerCase();
+              )
+              .toLowerCase();
 
 
             const coincideTexto =
@@ -2231,46 +2511,49 @@ cerrarMovimiento();
 
           let saldoTexto;
 
-const productoActual =
-  productos.find(function(producto) {
 
-    return producto.id === movimiento.productoId;
+          if (
+            movimiento.saldo !==
+              undefined &&
+            movimiento.saldo !==
+              null
+          ) {
 
-  });
+            saldoTexto = `
+
+              Saldo después del movimiento:
+
+              <strong>
+                ${movimiento.saldo}
+              </strong>
+
+            `;
+
+          }
+
+          else {
+
+            saldoTexto = `
+
+              Saldo después del movimiento:
+
+              <strong>
+                No disponible
+              </strong>
+
+            `;
+
+          }
 
 
-if (
-  movimiento.saldo !== undefined &&
-  movimiento.saldo !== null &&
-  movimiento.saldo !== ""
-) {
-
-  saldoTexto = `
-    Saldo después del movimiento:
-    <strong>
-      ${Number(movimiento.saldo)}
-    </strong>
-  `;
-
-} else if (productoActual) {
-
-  saldoTexto = `
-    Saldo después del movimiento:
-    <strong>
-      ${Number(productoActual.cantidad)}
-    </strong>
-  `;
-
-} else {
-
-  saldoTexto = `
-    Saldo después del movimiento:
-    <strong>
-      No disponible
-    </strong>
-  `;
-
-}
+          const tituloMovimiento =
+            movimiento.inicial
+              ? "Entrada inicial"
+              : (
+                  esEntrada
+                    ? "＋ Entrada"
+                    : "− Salida"
+                );
 
 
           elemento.innerHTML = `
@@ -2298,11 +2581,7 @@ if (
                 }"
               >
 
-                ${
-                  esEntrada
-                    ? "＋ Entrada"
-                    : "− Salida"
-                }
+                ${tituloMovimiento}
 
               </div>
 
@@ -2536,6 +2815,9 @@ if (
         .classList.remove(
           "activo"
         );
+
+
+      mostrarProductos();
 
 
       window.scrollTo({
