@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="es">
 
@@ -58,7 +57,7 @@
     }
 
     /* =========================
-       RESUMEN
+       RESUMEN INVENTARIO
     ========================= */
 
     .resumen {
@@ -255,7 +254,45 @@
     }
 
     /* =========================
-       HISTORIAL
+       RESUMEN HISTORIAL
+    ========================= */
+
+    .resumen-historial {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+
+    .tarjeta-historial {
+      background: #fff;
+      border-radius: 15px;
+      padding: 14px 10px;
+      text-align: center;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, .06);
+    }
+
+    .tarjeta-historial span {
+      display: block;
+      font-size: 11px;
+      color: #777;
+      margin-bottom: 7px;
+    }
+
+    .tarjeta-historial strong {
+      font-size: 20px;
+    }
+
+    .tarjeta-historial.entradas strong {
+      color: #168044;
+    }
+
+    .tarjeta-historial.salidas strong {
+      color: #c45b19;
+    }
+
+    /* =========================
+       FILTROS HISTORIAL
     ========================= */
 
     .filtros-historial {
@@ -279,6 +316,10 @@
       background: #0a84ff;
       color: #fff;
     }
+
+    /* =========================
+       MOVIMIENTOS
+    ========================= */
 
     .movimiento {
       background: #fff;
@@ -332,7 +373,24 @@
       margin-top: 12px;
       color: #555;
       font-size: 13px;
+      line-height: 1.7;
     }
+
+    .saldo-movimiento {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #eee;
+      font-size: 13px;
+      color: #333;
+    }
+
+    .saldo-movimiento strong {
+      color: #0a84ff;
+    }
+
+    /* =========================
+       BORRAR HISTORIAL
+    ========================= */
 
     .boton-borrar-historial {
       width: 100%;
@@ -497,11 +555,20 @@
         padding: 10px 5px;
       }
 
+      .tarjeta-historial {
+        padding: 12px 6px;
+      }
+
+      .tarjeta-historial strong {
+        font-size: 18px;
+      }
+
     }
 
   </style>
 
 </head>
+
 
 <body>
 
@@ -622,6 +689,51 @@
       </div>
 
 
+      <!-- RESUMEN DEL HISTORIAL -->
+
+      <div class="resumen-historial">
+
+        <div class="tarjeta-historial">
+
+          <span>
+            Movimientos
+          </span>
+
+          <strong id="totalMovimientos">
+            0
+          </strong>
+
+        </div>
+
+
+        <div class="tarjeta-historial entradas">
+
+          <span>
+            Entradas
+          </span>
+
+          <strong id="totalEntradas">
+            0
+          </strong>
+
+        </div>
+
+
+        <div class="tarjeta-historial salidas">
+
+          <span>
+            Salidas
+          </span>
+
+          <strong id="totalSalidas">
+            0
+          </strong>
+
+        </div>
+
+      </div>
+
+
       <input
         id="busquedaHistorial"
         class="busqueda-historial"
@@ -640,6 +752,7 @@
           Todos
         </button>
 
+
         <button
           id="filtroEntradas"
           class="filtro-historial"
@@ -647,6 +760,7 @@
         >
           + Entradas
         </button>
+
 
         <button
           id="filtroSalidas"
@@ -770,6 +884,7 @@
           Cancelar
         </button>
 
+
         <button
           type="submit"
           class="boton-guardar"
@@ -838,6 +953,7 @@
         >
           Cancelar
         </button>
+
 
         <button
           type="submit"
@@ -1404,12 +1520,22 @@
           }
 
 
+          /*
+             Calculamos primero el nuevo saldo.
+          */
+
+          let nuevoSaldo =
+            Number(
+              producto.cantidad
+            );
+
+
           if (
             tipoMovimiento ===
             "entrada"
           ) {
 
-            producto.cantidad +=
+            nuevoSaldo +=
               cantidad;
 
           }
@@ -1434,13 +1560,24 @@
             }
 
 
-            producto.cantidad -=
+            nuevoSaldo -=
               cantidad;
 
           }
 
 
-          /* REGISTRAR MOVIMIENTO */
+          /*
+             Actualizamos inventario.
+          */
+
+          producto.cantidad =
+            nuevoSaldo;
+
+
+          /*
+             Registramos movimiento
+             con el saldo resultante.
+          */
 
           const movimiento = {
 
@@ -1460,6 +1597,9 @@
 
             cantidad:
               cantidad,
+
+            saldo:
+              nuevoSaldo,
 
             fecha:
               new Date().toISOString()
@@ -1704,7 +1844,7 @@
 
 
     /* =========================
-       RESUMEN
+       RESUMEN INVENTARIO
     ========================= */
 
     function actualizarResumen() {
@@ -1843,6 +1983,8 @@
         );
 
 
+      actualizarResumenHistorial();
+
       mostrarListaHistorial();
 
 
@@ -1853,6 +1995,102 @@
 
     }
 
+
+    /* =========================
+       RESUMEN HISTORIAL
+    ========================= */
+
+    function actualizarResumenHistorial() {
+
+      const total =
+        historial.length;
+
+
+      const entradas =
+        historial.reduce(
+          function(
+            total,
+            movimiento
+          ) {
+
+            if (
+              movimiento.tipo ===
+              "entrada"
+            ) {
+
+              return (
+                total +
+                Number(
+                  movimiento.cantidad
+                )
+              );
+
+            }
+
+            return total;
+
+          },
+          0
+        );
+
+
+      const salidas =
+        historial.reduce(
+          function(
+            total,
+            movimiento
+          ) {
+
+            if (
+              movimiento.tipo ===
+              "salida"
+            ) {
+
+              return (
+                total +
+                Number(
+                  movimiento.cantidad
+                )
+              );
+
+            }
+
+            return total;
+
+          },
+          0
+        );
+
+
+      document
+        .getElementById(
+          "totalMovimientos"
+        )
+        .textContent =
+        total;
+
+
+      document
+        .getElementById(
+          "totalEntradas"
+        )
+        .textContent =
+        entradas;
+
+
+      document
+        .getElementById(
+          "totalSalidas"
+        )
+        .textContent =
+        salidas;
+
+    }
+
+
+    /* =========================
+       MOSTRAR LISTA HISTORIAL
+    ========================= */
 
     function mostrarListaHistorial() {
 
@@ -1988,6 +2226,35 @@
             "entrada";
 
 
+          let saldoTexto;
+
+
+          if (
+            movimiento.saldo !==
+            undefined &&
+            movimiento.saldo !==
+            null
+          ) {
+
+            saldoTexto = `
+              Saldo después del movimiento:
+              <strong>
+                ${movimiento.saldo}
+              </strong>
+            `;
+
+          } else {
+
+            saldoTexto = `
+              Saldo después del movimiento:
+              <strong>
+                No disponible
+              </strong>
+            `;
+
+          }
+
+
           elemento.innerHTML = `
 
             <div class="movimiento-superior">
@@ -2040,6 +2307,13 @@
 
               ${horaTexto}
 
+
+              <div class="saldo-movimiento">
+
+                ${saldoTexto}
+
+              </div>
+
             </div>
 
           `;
@@ -2056,7 +2330,7 @@
 
 
     /* =========================
-       FILTROS HISTORIAL
+       FILTROS
     ========================= */
 
     function filtrarHistorial(
@@ -2199,6 +2473,8 @@
 
       guardarHistorial();
 
+      actualizarResumenHistorial();
+
       mostrarListaHistorial();
 
     }
@@ -2307,4 +2583,3 @@
 </body>
 
 </html>
-```
