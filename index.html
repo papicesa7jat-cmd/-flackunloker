@@ -25,7 +25,7 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 .filtros-historial{display:flex;gap:8px;margin-bottom:15px}.filtro-historial{flex:1;border:0;border-radius:12px;padding:11px 8px;background:#eee;color:#555;font-weight:600;cursor:pointer}.filtro-historial.activo{background:#0a84ff;color:#fff}.boton-borrar-historial{width:100%;border:0;background:#ffecec;color:#d93025;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:15px}
 .movimiento{padding:17px;margin-bottom:12px}.movimiento-tipo{padding:8px 11px;border-radius:10px;font-weight:700;white-space:nowrap;font-size:13px}.movimiento-tipo.entrada{background:#e9f8ef;color:#168044}.movimiento-tipo.salida{background:#fff1e8;color:#c45b19}.movimiento-detalle{margin-top:12px;color:#555;font-size:13px;line-height:1.7}.saldo-movimiento{margin-top:8px;padding-top:8px;border-top:1px solid #eee}.saldo-movimiento strong{color:#0a84ff}.acciones-movimiento{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-movimiento-editar,.boton-movimiento-eliminar{border:0;border-radius:10px;padding:9px;font-size:12px;font-weight:700;cursor:pointer}.boton-movimiento-editar{background:#eaf4ff;color:#0a84ff}.boton-movimiento-eliminar{background:#ffecec;color:#d93025}
 .estadisticas-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:15px}.estadistica-card{padding:18px}.estadistica-card strong{font-size:24px}.estadistica-card.ancha{grid-column:1/-1}.estadistica-card.azul strong{color:#0a84ff}.estadistica-card.positiva strong{color:#168044}.estadistica-card.negativa strong{color:#c45b19}.lista-estadisticas{padding:17px;margin-bottom:12px}.lista-estadisticas h3{margin:0 0 12px;font-size:16px}.fila-estadistica{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid #eee;font-size:13px}.fila-estadistica:first-child{border-top:0}.fila-estadistica span{color:#555}.fila-estadistica strong{color:#0a84ff;white-space:nowrap}
-.venta-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px}.venta-superior{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.venta-superior h3{margin:0 0 5px;font-size:16px}.venta-superior p{margin:0;color:#777;font-size:13px}.venta-total{font-weight:800;color:#168044;white-space:nowrap}.venta-detalle{margin-top:12px;font-size:13px;line-height:1.7;color:#555}.venta-detalle strong{color:#111}.ganancia-venta{color:#168044!important}.boton-eliminar-venta{width:100%;margin-top:12px;border:0;border-radius:10px;padding:10px;background:#ffecec;color:#d93025;font-weight:700;cursor:pointer}.respaldo-box{padding:18px;margin-bottom:15px}.respaldo-box h3{margin:0 0 8px;font-size:18px}.respaldo-box p{margin:0 0 15px;color:#777;font-size:13px;line-height:1.6}.botones-respaldo{display:grid;grid-template-columns:1fr 1fr;gap:10px}.boton-respaldo{border:0;border-radius:12px;padding:13px 10px;font-size:14px;font-weight:700;cursor:pointer}.boton-crear-respaldo{background:#eaf4ff;color:#0a84ff}.boton-restaurar-respaldo{background:#e9f8ef;color:#168044}.estado-respaldo{margin-top:12px;padding:11px;border-radius:10px;background:#f4f7fb;color:#555;font-size:12px;display:none}.estado-respaldo.visible{display:block}
+.venta-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px}.venta-superior{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.venta-superior h3{margin:0 0 5px;font-size:16px}.venta-superior p{margin:0;color:#777;font-size:13px}.venta-total{font-weight:800;color:#168044;white-space:nowrap}.venta-detalle{margin-top:12px;font-size:13px;line-height:1.7;color:#555}.venta-detalle strong{color:#111}.ganancia-venta{color:#168044!important}.acciones-venta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-recibo-venta,.boton-eliminar-venta{width:100%;border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.boton-recibo-venta{background:#eaf4ff;color:#0a84ff}.boton-eliminar-venta{background:#ffecec;color:#d93025}.respaldo-box{padding:18px;margin-bottom:15px}.respaldo-box h3{margin:0 0 8px;font-size:18px}.respaldo-box p{margin:0 0 15px;color:#777;font-size:13px;line-height:1.6}.botones-respaldo{display:grid;grid-template-columns:1fr 1fr;gap:10px}.boton-respaldo{border:0;border-radius:12px;padding:13px 10px;font-size:14px;font-weight:700;cursor:pointer}.boton-crear-respaldo{background:#eaf4ff;color:#0a84ff}.boton-restaurar-respaldo{background:#e9f8ef;color:#168044}.estado-respaldo{margin-top:12px;padding:11px;border-radius:10px;background:#f4f7fb;color:#555;font-size:12px;display:none}.estado-respaldo.visible{display:block}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;padding:20px;align-items:center;justify-content:center}.modal.visible{display:flex}.formulario{width:100%;max-width:480px;max-height:90vh;overflow-y:auto;background:#fff;border-radius:22px;padding:22px;box-shadow:0 15px 40px rgba(0,0,0,.2)}.formulario h2{margin:0 0 20px;font-size:22px}.campo{margin-bottom:15px}.campo label{display:block;font-size:13px;font-weight:600;margin-bottom:7px}.campo input,.campo select{width:100%;border:1px solid #ddd;outline:none;border-radius:12px;padding:13px;font-size:15px;background:#fff}.campo input:focus,.campo select:focus{border-color:#0a84ff}.ayuda-campo{display:block;margin-top:6px;color:#777;font-size:11px;line-height:1.5}.botones-formulario{display:flex;gap:10px;margin-top:20px}.boton-cancelar,.boton-guardar{flex:1;border:0;border-radius:12px;padding:13px;font-size:15px;font-weight:600;cursor:pointer}.boton-cancelar{background:#eee;color:#333}.boton-guardar{background:#0a84ff;color:#fff}.mensaje-movimiento{margin:0 0 18px;padding:12px;border-radius:12px;background:#eaf4ff;color:#0a84ff;font-size:14px}
 .menu{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #eee;padding:12px 8px;display:flex;justify-content:center;gap:20px;z-index:500}.menu button{border:0;background:none;font-size:12px;color:#777;cursor:pointer;padding:5px}.menu .activo{color:#0a84ff;font-weight:700}
 @media(max-width:430px){.filtros-inventario{grid-template-columns:1fr}.acciones{grid-template-columns:repeat(2,1fr)}.menu{gap:8px}.menu button{font-size:11px}.botones-respaldo{grid-template-columns:1fr}.estadisticas-grid{grid-template-columns:1fr}.estadistica-card.ancha{grid-column:auto}}
@@ -86,7 +86,7 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <div class="estadistica-card ancha"><span>Costo vendido hoy</span><strong id="costoVendidoHoy">$0.00</strong></div>
 <div class="estadistica-card ancha positiva"><span>Ganancia real de hoy</span><strong id="gananciaHoy">$0.00</strong></div>
 </div>
-<input id="busquedaVentas" class="busqueda-historial" type="search" placeholder="Buscar venta por producto o SKU...">
+<input id="busquedaVentas" class="busqueda-historial" type="search" placeholder="Buscar por producto, SKU, cliente o teléfono...">
 <div class="lista-estadisticas"><h3>📈 Totales de ventas registradas</h3>
 <div class="fila-estadistica"><span>Ventas</span><strong id="totalVentas">0</strong></div>
 <div class="fila-estadistica"><span>Unidades vendidas</span><strong id="totalUnidadesVendidas">0</strong></div>
@@ -146,6 +146,9 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 <p class="mensaje-movimiento" id="textoVenta">Venta de producto</p>
 <div class="campo"><label for="cantidadVenta">Cantidad vendida</label><input id="cantidadVenta" type="number" min="1" step="1" required></div>
 <div class="campo"><label for="precioVentaUnitario">Precio de venta por unidad</label><input id="precioVentaUnitario" type="number" min="0" step="0.01" required><small class="ayuda-campo">Puedes usar el precio habitual o cambiarlo para esta venta.</small></div>
+<div class="campo"><label for="clienteVenta">Cliente</label><input id="clienteVenta" type="text" placeholder="Opcional"></div>
+<div class="campo"><label for="telefonoVenta">Teléfono</label><input id="telefonoVenta" type="tel" placeholder="Opcional"></div>
+<div class="campo"><label for="notaVenta">Nota</label><input id="notaVenta" type="text" placeholder="Opcional · Ej. Pago en efectivo"></div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarVenta()">Cancelar</button><button type="submit" class="boton-guardar">Registrar venta</button></div>
 </form>
 </div>
@@ -355,6 +358,7 @@ document.getElementById("formularioVenta").addEventListener("submit",e=>{
  try{
   const p=productos.find(x=>x.id===productoVenta);if(!p)return cerrarVenta();
   const cantidad=Number(document.getElementById("cantidadVenta").value),precioUnitario=Number(document.getElementById("precioVentaUnitario").value);
+  const cliente=document.getElementById("clienteVenta").value.trim(),telefono=document.getElementById("telefonoVenta").value.trim(),nota=document.getElementById("notaVenta").value.trim();
   if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
   if(!Number.isFinite(precioUnitario)||precioUnitario<0)return alert("Introduce un precio de venta válido.");
   if(cantidad>Number(p.cantidad))return alert("No puedes vender más unidades de las que existen en inventario.");
@@ -362,7 +366,7 @@ document.getElementById("formularioVenta").addEventListener("submit",e=>{
   const ventaId=Date.now()+Math.floor(Math.random()*100000);
   const ingreso=cantidad*precioUnitario,costoTotal=cantidad*costoUnitario,ganancia=ingreso-costoTotal;
   p.cantidad=nuevoSaldo;
-  ventas.unshift({id:ventaId,productoId:p.id,nombre:p.nombre,sku:p.sku,cantidad,precioUnitario,costoUnitario,ingreso,costoTotal,ganancia,fecha});
+  ventas.unshift({id:ventaId,productoId:p.id,nombre:p.nombre,sku:p.sku,cantidad,precioUnitario,costoUnitario,ingreso,costoTotal,ganancia,fecha,cliente,telefono,nota});
   historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:"salida",cantidad,saldo:nuevoSaldo,fecha,detalle:"Venta",ventaId});
   guardarDatos();guardarHistorial();guardarVentas();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarEstadisticas();cerrarVenta();
   alert(`Venta registrada.\n\nIngreso: $${ingreso.toFixed(2)}\nGanancia: $${ganancia.toFixed(2)}`)
@@ -403,13 +407,34 @@ function actualizarVentas(){
 }
 function mostrarListaVentas(){
  const lista=document.getElementById("listaVentas"),q=document.getElementById("busquedaVentas").value.toLowerCase().trim();
- const arr=ventas.filter(v=>String(v.nombre||"").toLowerCase().includes(q)||String(v.sku||"").toLowerCase().includes(q));lista.innerHTML="";
+ const arr=ventas.filter(v=>String(v.nombre||"").toLowerCase().includes(q)||String(v.sku||"").toLowerCase().includes(q)||String(v.cliente||"").toLowerCase().includes(q)||String(v.telefono||"").toLowerCase().includes(q));lista.innerHTML="";
  if(!arr.length){lista.innerHTML=`<div class="sin-productos">${ventas.length?"No encontramos ventas con esa búsqueda.":"No hay ventas registradas todavía."}</div>`;return}
  arr.forEach(v=>{
   const f=new Date(v.fecha),el=document.createElement("div");el.className="venta-card";
-  el.innerHTML=`<div class="venta-superior"><div><h3>${escapeHtml(v.nombre)}</h3><p>SKU: ${escapeHtml(v.sku)}</p></div><div class="venta-total">$${Number(v.ingreso??0).toFixed(2)}</div></div><div class="venta-detalle">Cantidad: <strong>${Number(v.cantidad)}</strong> · Precio/u.: <strong>$${Number(v.precioUnitario??0).toFixed(2)}</strong><br>Costo/u.: <strong>$${Number(v.costoUnitario??0).toFixed(2)}</strong> · Costo total: <strong>$${Number(v.costoTotal??0).toFixed(2)}</strong><br>Ganancia real: <strong class="ganancia-venta">$${Number(v.ganancia??0).toFixed(2)}</strong><br>${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div><button class="boton-eliminar-venta" onclick="eliminarVenta(${v.id})">↩️ Anular venta y devolver stock</button>`;
+  const clienteTxt=v.cliente?`<br>Cliente: <strong>${escapeHtml(v.cliente)}</strong>${v.telefono?` · ${escapeHtml(v.telefono)}`:""}`:"";
+  const notaTxt=v.nota?`<br>Nota: ${escapeHtml(v.nota)}`:"";
+  el.innerHTML=`<div class="venta-superior"><div><h3>${escapeHtml(v.nombre)}</h3><p>SKU: ${escapeHtml(v.sku)}</p></div><div class="venta-total">$${Number(v.ingreso??0).toFixed(2)}</div></div><div class="venta-detalle">Cantidad: <strong>${Number(v.cantidad)}</strong> · Precio/u.: <strong>$${Number(v.precioUnitario??0).toFixed(2)}</strong><br>Costo/u.: <strong>$${Number(v.costoUnitario??0).toFixed(2)}</strong> · Costo total: <strong>$${Number(v.costoTotal??0).toFixed(2)}</strong><br>Ganancia real: <strong class="ganancia-venta">$${Number(v.ganancia??0).toFixed(2)}</strong>${clienteTxt}${notaTxt}<br>${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div><div class="acciones-venta"><button class="boton-recibo-venta" onclick="generarReciboVenta(${v.id})">🧾 Recibo</button><button class="boton-eliminar-venta" onclick="eliminarVenta(${v.id})">↩️ Anular venta</button></div>`;
   lista.appendChild(el)
  })
+}
+function generarReciboVenta(id){
+ const v=ventas.find(x=>x.id===id);if(!v)return;
+ const f=new Date(v.fecha),numero=String(v.id).slice(-8);
+ const cliente=escapeHtml(v.cliente||"Cliente general"),telefono=escapeHtml(v.telefono||""),nota=escapeHtml(v.nota||"");
+ const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recibo ${numero}</title><style>
+ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Arial,sans-serif;margin:0;background:#f4f7fb;color:#111}.recibo{max-width:420px;margin:24px auto;background:#fff;padding:28px;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.08)}h1{text-align:center;margin:0;font-size:26px}h2{text-align:center;margin:6px 0 24px;font-size:15px;color:#777;font-weight:500}.fila{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid #eee;font-size:14px}.total{font-size:20px;font-weight:800;color:#168044}.pie{text-align:center;color:#777;font-size:12px;margin-top:22px}.imprimir{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700;font-size:15px}@media print{body{background:#fff}.recibo{box-shadow:none;margin:0;max-width:none}.imprimir{display:none}}
+ </style></head><body><div class="recibo"><h1>Flackunloker</h1><h2>Recibo de venta #${numero}</h2>
+ <div class="fila"><span>Fecha</span><strong>${f.toLocaleDateString("es-PR")} ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div>
+ <div class="fila"><span>Cliente</span><strong>${cliente}${telefono?`<br>${telefono}`:""}</strong></div>
+ <div class="fila"><span>Producto</span><strong>${escapeHtml(v.nombre)}</strong></div>
+ <div class="fila"><span>SKU</span><strong>${escapeHtml(v.sku)}</strong></div>
+ <div class="fila"><span>Cantidad</span><strong>${Number(v.cantidad)}</strong></div>
+ <div class="fila"><span>Precio por unidad</span><strong>$${Number(v.precioUnitario??0).toFixed(2)}</strong></div>
+ <div class="fila total"><span>Total</span><strong>$${Number(v.ingreso??0).toFixed(2)}</strong></div>
+ ${nota?`<div class="fila"><span>Nota</span><strong>${nota}</strong></div>`:""}
+ <div class="pie">Gracias por su compra.</div><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></body></html>`;
+ const w=window.open("","_blank");if(!w)return alert("El navegador bloqueó el recibo. Permite ventanas emergentes para Flackunloker.");
+ w.document.open();w.document.write(contenido);w.document.close()
 }
 function eliminarVenta(id){
  const v=ventas.find(x=>x.id===id);if(!v)return;
