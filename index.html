@@ -1573,8 +1573,8 @@ function mostrarListaVentas(){
   const cliente=escapeHtml(v.cliente||"Cliente general"),telefono=v.telefono?` · ${escapeHtml(v.telefono)}`:"",nota=v.nota?`<br>Nota: ${escapeHtml(v.nota)}`:"",devoluciones=devolucionesDeVenta(v);
   const itemsHtml=items.filter(i=>Number(i.cantidad)>0).map(i=>`<div class="recibo-item"><span>${Number(i.cantidad)} × ${escapeHtml(i.nombre)}</span><strong>$${Number(i.ingreso??(Number(i.cantidad)*Number(i.precioUnitario))).toFixed(2)}</strong></div>`).join("")||'<div class="recibo-item"><span>Todos los artículos fueron devueltos</span><strong>$0.00</strong></div>';
   const devTxt=devoluciones.length?`<br>Devoluciones parciales: <strong>${devoluciones.length}</strong>`:"";
-  const puedeDevolver=items.some(i=>Number(i.cantidad)>0);   normalizarCuentaVenta(v);const ev=estadoVencimientoVenta(v),estadoTxt=`<span class="estado-pago ${ev.clave}">${ev.texto}${v.saldo>0?` · Debe $${Number(v.saldo).toFixed(2)}`:""}</span>`;
-   el.innerHTML=`<div class="venta-superior"><div><h3>Recibo #${escapeHtml(numero)}</h3><p>${cliente}${telefono}</p>${estadoTxt}</div><div class="venta-total">$${Number(v.ingreso??0).toFixed(2)}</div></div><div class="recibo-items">${itemsHtml}</div><div class="venta-detalle">Unidades netas: <strong>${Number(v.cantidad??0)}</strong> · Productos: <strong>${items.filter(i=>Number(i.cantidad)>0).length}</strong><br>Ganancia real: <strong class="ganancia-venta">$${Number(v.ganancia??0).toFixed(2)}</strong><br>Pagado: <strong>$${Number(v.totalPagado||0).toFixed(2)}</strong> · Saldo: <strong>$${Number(v.saldo||0).toFixed(2)}</strong>${v.saldo>0&&v.fechaVencimiento?`<br>Vencimiento: <strong>${new Date(v.fechaVencimiento+"T00:00:00").toLocaleDateString("es-PR")}</strong>`:""}${v.metodoPago?`<br>Método inicial: <strong>${escapeHtml(v.metodoPago)}</strong>`:""}${devTxt}${nota}<br>${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div><div class="acciones-venta"><button class="boton-recibo-venta" onclick="generarReciboVenta(${v.id})">🧾 Ver recibo</button>${v.saldo>0?`<button class="boton-abono-venta" onclick="abrirAbono(${v.id})">💵 Registrar abono</button>`:""}${pagosDeVenta(v).length?`<button class="boton-historial-abonos" onclick="verHistorialAbonos(${v.id})">📋 Historial abonos</button>`:""}${puedeDevolver?`<button class="boton-devolver-venta" onclick="abrirDevolucion(${v.id})">↩️ Devolver producto</button>`:""}<button class="boton-eliminar-venta" onclick="eliminarVenta(${v.id})">⛔ Anular recibo</button></div>`;
+  const puedeDevolver=items.some(i=>(Number(i.cantidad||0)-Number(i.devuelto||0))>0);   normalizarCuentaVenta(v);const ev=estadoVencimientoVenta(v),estadoTxt=`<span class="estado-pago ${ev.clave}">${ev.texto}${v.saldo>0?` · Debe $${Number(v.saldo).toFixed(2)}`:""}</span>`;
+   el.innerHTML=`<div class="venta-superior"><div><h3>Recibo #${escapeHtml(numero)}</h3><p>${cliente}${telefono}</p>${estadoTxt}</div><div class="venta-total">$${Number(v.ingreso??0).toFixed(2)}</div></div><div class="recibo-items">${itemsHtml}</div><div class="venta-detalle">Unidades netas: <strong>${items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0)}</strong> · Productos: <strong>${items.filter(i=>Number(i.cantidad)>0).length}</strong><br>Ganancia real: <strong class="ganancia-venta">$${Number(v.ganancia??0).toFixed(2)}</strong><br>Pagado: <strong>$${Number(v.totalPagado||0).toFixed(2)}</strong> · Saldo: <strong>$${Number(v.saldo||0).toFixed(2)}</strong>${v.saldo>0&&v.fechaVencimiento?`<br>Vencimiento: <strong>${new Date(v.fechaVencimiento+"T00:00:00").toLocaleDateString("es-PR")}</strong>`:""}${v.metodoPago?`<br>Método inicial: <strong>${escapeHtml(v.metodoPago)}</strong>`:""}${devTxt}${nota}<br>${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div><div class="acciones-venta"><button class="boton-recibo-venta" onclick="generarReciboVenta(${v.id})">🧾 Ver recibo</button>${v.saldo>0?`<button class="boton-abono-venta" onclick="abrirAbono(${v.id})">💵 Registrar abono</button>`:""}${pagosDeVenta(v).length?`<button class="boton-historial-abonos" onclick="verHistorialAbonos(${v.id})">📋 Historial abonos</button>`:""}${puedeDevolver?`<button class="boton-devolver-venta" onclick="abrirDevolucion(${v.id})">↩️ Devolver producto</button>`:""}<button class="boton-eliminar-venta" onclick="eliminarVenta(${v.id})">⛔ Anular recibo</button></div>`;
   lista.appendChild(el)
  })
 }
@@ -1590,38 +1590,63 @@ function generarReciboVenta(id){
  const w=window.open("","_blank");if(!w)return alert("El navegador bloqueó el recibo. Permite ventanas emergentes para Flackunloker.");w.document.open();w.document.write(contenido);w.document.close()
 }
 function abrirDevolucion(id){
- const v=ventas.find(x=>x.id===id);if(!v)return;const items=itemsDeVenta(v).filter(i=>Number(i.cantidad)>0),numero=v.numero||String(v.id).slice(-8);
- if(!items.length)return alert("Este recibo ya no tiene productos disponibles para devolver.");
- ventaDevolucionId=id;document.getElementById("textoDevolucion").textContent=`Recibo #${numero} · Selecciona el producto y la cantidad a devolver.`;
- const sel=document.getElementById("productoDevolucion");sel.innerHTML=items.map((i,n)=>`<option value="${itemsDeVenta(v).indexOf(i)}">${escapeHtml(i.nombre)} · ${Number(i.cantidad)} disponible(s) para devolver</option>`).join("");
- document.getElementById("cantidadDevolucion").value="1";document.getElementById("motivoDevolucion").value="";actualizarAyudaDevolucion();document.getElementById("modalDevolucion").classList.add("visible")
+ const v=ventas.find(x=>x.id===id);if(!v)return;
+ const todos=itemsDeVenta(v);
+ const disponibles=todos.map((i,indice)=>({i,indice,disponible:Number(i.cantidad||0)-Number(i.devuelto||0)})).filter(x=>x.disponible>0);
+ const numero=v.numero||String(v.id).slice(-8);
+ if(!disponibles.length)return alert("Este recibo ya no tiene productos disponibles para devolver.");
+ ventaDevolucionId=id;
+ document.getElementById("textoDevolucion").textContent=`Recibo #${numero} · Selecciona el producto y la cantidad a devolver.`;
+ const sel=document.getElementById("productoDevolucion");
+ sel.innerHTML=disponibles.map(x=>`<option value="${x.indice}">${escapeHtml(x.i.nombre)} · ${x.disponible} disponible(s) para devolver</option>`).join("");
+ document.getElementById("cantidadDevolucion").value="1";
+ document.getElementById("motivoDevolucion").value="";
+ actualizarAyudaDevolucion();
+ document.getElementById("modalDevolucion").classList.add("visible")
 }
-function cerrarDevolucion(){document.getElementById("modalDevolucion").classList.remove("visible");document.getElementById("formularioDevolucion").reset();ventaDevolucionId=null}
+function cerrarDevolucion(){
+ document.getElementById("modalDevolucion").classList.remove("visible");
+ document.getElementById("formularioDevolucion").reset();
+ ventaDevolucionId=null
+}
 function actualizarAyudaDevolucion(){
- const v=ventas.find(x=>x.id===ventaDevolucionId);if(!v)return;const indice=Number(document.getElementById("productoDevolucion").value),item=itemsDeVenta(v)[indice];
- document.getElementById("ayudaDevolucion").textContent=item?`Máximo: ${Number(item.cantidad)} · Reembolso por unidad: $${Number(item.precioUnitario??0).toFixed(2)}`:""
+ const v=ventas.find(x=>x.id===ventaDevolucionId);if(!v)return;
+ const indice=Number(document.getElementById("productoDevolucion").value),item=itemsDeVenta(v)[indice];
+ const disponible=item?Number(item.cantidad||0)-Number(item.devuelto||0):0;
+ document.getElementById("ayudaDevolucion").textContent=item?`Máximo: ${disponible} · Reembolso por unidad: $${Number(item.precioUnitario??0).toFixed(2)}`:"";
+ const input=document.getElementById("cantidadDevolucion");
+ if(item)input.max=String(disponible)
 }
 document.getElementById("productoDevolucion").addEventListener("change",actualizarAyudaDevolucion);
 document.getElementById("formularioDevolucion").addEventListener("submit",async e=>{
  e.preventDefault();if(procesandoGuardado)return;
  const v=ventas.find(x=>x.id===ventaDevolucionId);if(!v)return cerrarDevolucion();
- const item=v.items.find(i=>i.productoId===productoDevolucionId);if(!item)return cerrarDevolucion();
- const cantidad=Number(document.getElementById("cantidadDevolucion").value),motivo=(document.getElementById("motivoDevolucion")?.value||"").trim();
+ const indice=Number(document.getElementById("productoDevolucion").value);
+ const item=itemsDeVenta(v)[indice];
+ if(!item)return alert("Selecciona un producto válido del recibo.");
+ const cantidad=Number(document.getElementById("cantidadDevolucion").value);
+ const motivo=(document.getElementById("motivoDevolucion")?.value||"").trim();
  const disponible=Number(item.cantidad||0)-Number(item.devuelto||0);
  if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
- if(cantidad>disponible)return alert("La devolución supera las unidades disponibles.");
+ if(cantidad>disponible)return alert(`Solo quedan ${disponible} unidad(es) disponibles para devolver.`);
  if(!item.supabaseSaleItemId)return alert("Este artículo del recibo todavía no está vinculado con Supabase.");
  procesandoGuardado=true;
  try{
-  const {error}=await flkSupabase.rpc("flk_return_sale_item",{p_sale_item_id:item.supabaseSaleItemId,p_quantity:cantidad,p_reason:motivo||null});
+  const {error}=await flkSupabase.rpc("flk_return_sale_item",{
+   p_sale_item_id:item.supabaseSaleItemId,
+   p_quantity:cantidad,
+   p_reason:motivo||null
+  });
   if(error)throw error;
   await cargarInventarioSupabase();
   await cargarVentasSupabase();
   actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();
   cerrarDevolucion();
-  alert("✅ Devolución guardada en Supabase. El inventario y el recibo fueron actualizados.");
- }catch(err){console.error(err);alert("Supabase rechazó la devolución: "+(err.message||err))}
- finally{procesandoGuardado=false}
+  alert("✅ Devolución guardada en Supabase. El inventario, el recibo y el saldo fueron actualizados.");
+ }catch(err){
+  console.error(err);
+  alert("Supabase rechazó la devolución: "+(err.message||err))
+ }finally{procesandoGuardado=false}
 });
 
 function abrirAbono(id){const v=ventas.find(x=>x.id===id);if(!v)return;normalizarCuentaVenta(v);if(v.saldo<=0)return alert("Este recibo ya está pagado.");ventaAbonoId=id;const numero=v.numero||String(v.id).slice(-8);document.getElementById("textoAbono").textContent=`Recibo #${numero} · ${v.cliente||"Cliente general"}`;document.getElementById("cantidadAbono").value=Number(v.saldo).toFixed(2);document.getElementById("cantidadAbono").max=Number(v.saldo).toFixed(2);document.getElementById("ayudaAbono").textContent=`Saldo pendiente: $${Number(v.saldo).toFixed(2)}`;document.getElementById("notaAbono").value="";document.getElementById("modalAbono").classList.add("visible");document.getElementById("cantidadAbono").focus()}
