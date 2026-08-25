@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v24-recibos-unicos">
+<meta name="flackunloker-offline-version" content="2026-08-25-v25-stock-reconciliado">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1851,7 +1851,7 @@ function flkAplicarProductoLocal(op){
  if(actual){
   const stockActual=Number(actual.cantidad||0);
   Object.assign(actual,d);
-  actual.cantidad=Number(op.payload?.local_stock??stockActual);
+  actual.cantidad=navigator.onLine?stockActual:Number(op.payload?.local_stock??stockActual);
   if(!actual.offlineCreateOperationId)actual.offlineCreateOperationId=d.offlineCreateOperationId;
  }else productos.push(d);
  return true
@@ -1866,13 +1866,17 @@ function flkAplicarPendientesSobreDatos(){
  const q=flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado));
  for(const op of q){
   if(op.tipo==="stock_adjustment"){
-   const p=productos.find(x=>x.supabaseId===op.payload?.product_id);
-   if(p)p.cantidad=Number(p.cantidad||0)+Number(op.payload?.delta||0)
+   if(!navigator.onLine){
+    const p=productos.find(x=>x.supabaseId===op.payload?.product_id || x.offlineCreateOperationId===op.payload?.product_operation_id);
+    if(p)p.cantidad=Number(p.cantidad||0)+Number(op.payload?.delta||0)
+   }
   }
   if(op.tipo==="sale"){
-   for(const i of (op.payload?.items||[])){
-    const p=productos.find(x=>x.supabaseId===i.product_id);
-    if(p)p.cantidad=Number(p.cantidad||0)-Number(i.quantity||0)
+   if(!navigator.onLine){
+    for(const i of (op.payload?.items||[])){
+     const p=productos.find(x=>x.supabaseId===i.product_id || x.offlineCreateOperationId===i.product_operation_id);
+     if(p)p.cantidad=Number(p.cantidad||0)-Number(i.quantity||0)
+    }
    }
    const v=flkVentaLocalDesdeOperacion(op);
    if(v&&!ventas.some(x=>x.offlineOperationId===op.id))ventas.unshift(v)
@@ -2081,6 +2085,22 @@ async function flkProcesarOperacionOffline(op){
 
 let flkOrquestandoSync=false;
 
+async function flkReconciliarInventarioNube(){
+ if(!navigator.onLine)return false;
+ try{
+  const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).order("created_at",{ascending:true});
+  if(error)throw error;
+  productos=(data||[]).map(productoDesdeSupabase);
+  guardarDatos();
+  mostrarProductos();
+  actualizarEstadisticas();
+  return true;
+ }catch(err){
+  console.error("Reconciliación inventario:",err);
+  return false;
+ }
+}
+
 async function flkSupabaseDisponible(timeoutMs=4500){
  if(!navigator.onLine||typeof flkSupabase==="undefined")return false;
  try{
@@ -2114,6 +2134,9 @@ async function flkSincronizarSeguro(){
   // Confirmación final: reconstruir la copia local desde la nube ya actualizada.
   if(typeof flkRecuperacionEmergenciaNube==="function"){
    await flkRecuperacionEmergenciaNube();
+  }
+  if(typeof flkReconciliarInventarioNube==="function"){
+   await flkReconciliarInventarioNube();
   }
 
   flkActualizarEstadoConexion();
@@ -2778,7 +2801,11 @@ async function cargarInventarioSupabase(){
 
  productos=remotos.map(productoDesdeSupabase);
  guardarDatos();
- if(flkPendientesOffline()>0)flkAplicarPendientesSobreDatos();
+
+ // ONLINE: el stock confirmado por Supabase es la fuente de verdad.
+ // No reaplicar aquí movimientos offline pendientes/error/conflicto porque
+ // pueden haber sido procesados ya y duplicar visualmente el inventario.
+ // OFFLINE sigue aplicando la cola en la rama superior de esta función.
  inventarioSupabaseListo=true;
  mostrarProductos();
  actualizarEstadisticas();
