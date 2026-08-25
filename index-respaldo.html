@@ -317,6 +317,67 @@ body.rol-empleado .boton-eliminar-venta{
 body.rol-empleado .acciones{grid-template-columns:repeat(3,1fr)}
 body.rol-empleado .acciones-movimiento{display:none!important}
 
+
+/* ===== FORMULARIO GRANDE: RETIRO / APORTE DE CAJA ===== */
+#modalMovimientoPropietario .modal-contenido{
+  width:min(94vw,560px);
+  padding:28px 24px 26px;
+  border-radius:24px;
+}
+#modalMovimientoPropietario .modal-cabecera{
+  margin-bottom:22px;
+  align-items:center;
+}
+#modalMovimientoPropietario .modal-cabecera h3{
+  font-size:26px;
+  line-height:1.2;
+  margin:0;
+}
+#modalMovimientoPropietario .cerrar{
+  width:46px;
+  height:46px;
+  font-size:30px;
+}
+#modalMovimientoPropietario label{
+  display:block;
+  font-size:17px;
+  font-weight:800;
+  margin:18px 0 9px;
+}
+#modalMovimientoPropietario input,
+#modalMovimientoPropietario textarea{
+  width:100%;
+  min-height:58px;
+  font-size:20px;
+  padding:15px 16px;
+  border-radius:14px;
+}
+#modalMovimientoPropietario textarea{
+  min-height:110px;
+  resize:vertical;
+}
+#modalMovimientoPropietario .guardar{
+  width:100%;
+  min-height:60px;
+  margin-top:24px;
+  font-size:19px;
+  font-weight:900;
+  border-radius:15px;
+}
+#saldoDisponibleMovimiento{
+  background:#eef7ff;
+  border:1px solid #cfe6ff;
+  border-radius:16px;
+  padding:16px;
+  margin:4px 0 18px;
+  font-size:16px;
+}
+#saldoDisponibleMovimiento strong{
+  display:block;
+  font-size:28px;
+  margin-top:4px;
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -585,6 +646,8 @@ body.rol-empleado .acciones-movimiento{display:none!important}
 <div class="reporte-botones"><button class="boton-agregar" onclick="actualizarFlujoCaja()">🔄 Actualizar flujo</button><button class="boton-respaldo boton-crear-respaldo" onclick="imprimirFlujoCaja()">🧾 Ver / imprimir</button></div>
 </div>
 
+<div class="lista-estadisticas"><h3>🏦 Caja física</h3><div class="fila-estadistica"><span>Saldo actual en efectivo</span><strong id="saldoCajaFisica">$0.00</strong></div><div class="acciones" style="margin-top:12px"><button class="accion entrada" type="button" onclick="abrirMovimientoPropietario('contribution')">➕ Aporte</button><button class="accion salida" type="button" onclick="abrirMovimientoPropietario('withdrawal')">🏦 Retirar efectivo</button></div></div>
+
 <div class="estadisticas-grid">
 <div class="estadistica-card ancha positiva"><span>⬇️ Entradas de dinero</span><strong id="flujoEntradas">$0.00</strong></div>
 <div class="estadistica-card ancha negativa"><span>⬆️ Salidas de dinero</span><strong id="flujoSalidas">$0.00</strong></div>
@@ -840,6 +903,7 @@ body.rol-empleado .acciones-movimiento{display:none!important}
  </div>
 </div>
 
+<div class="modal" id="modalMovimientoPropietario"><div class="modal-contenido"><div class="modal-cabecera"><h3 id="tituloMovimientoPropietario">🏦 Movimiento de caja</h3><button class="cerrar" type="button" onclick="cerrarMovimientoPropietario()">×</button></div><div id="saldoDisponibleMovimiento">Efectivo disponible en caja<strong id="saldoDisponibleMovimientoValor">$0.00</strong></div><form id="formularioMovimientoPropietario"><label for="cantidadMovimientoPropietario">Cantidad</label><input id="cantidadMovimientoPropietario" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required><label for="notaMovimientoPropietario">Motivo / nota</label><textarea id="notaMovimientoPropietario" placeholder="Ejemplo: Retiro del dueño al finalizar el día"></textarea><input id="tipoMovimientoPropietario" type="hidden"><button class="guardar" id="botonGuardarMovimientoPropietario" type="submit">Guardar movimiento</button></form></div></div>
 <script>
 
 const FLK_SUPABASE_URL='https://eviwhrqhinhnyccizkfq.supabase.co';
@@ -888,6 +952,10 @@ async function mostrarAppConSesion(session){
   await cargarRolUsuario(session.user);
   await cargarInventarioSupabase();
   await cargarVentasSupabase();
+  await cargarGastosSupabase();
+  await cargarMovimientosCajaSupabase();
+  await cargarComprasSupabase();
+  await cargarCierresSupabase();
  }else{
   document.getElementById("authOverlay").classList.remove("oculto");
   document.getElementById("authUsuario").classList.remove("visible");
@@ -956,6 +1024,7 @@ let proximoNumeroRecibo=1;
 let gastoEditandoId=null;
 let proveedorEditandoId=null;
 let ordenEditandoId=null;
+let movimientosCajaSupabase=[];
 
 let inventarioSupabaseListo=false;
 
@@ -1167,8 +1236,150 @@ function cargarDatos(){
 function guardarDatos(){localStorage.setItem("flackunloker_productos",JSON.stringify(productos))}
 function guardarHistorial(){localStorage.setItem("flackunloker_historial",JSON.stringify(historial))}
 function guardarVentas(){localStorage.setItem("flackunloker_ventas",JSON.stringify(ventas))}
+
+function gastoDesdeSupabase(r){
+ return {
+  id:idLocalDesdeLegacy(r.legacy_id,r.id),
+  supabaseId:r.id,
+  concepto:r.concept||"",
+  categoria:r.category||"Otro",
+  cantidad:Number(r.amount||0),
+  metodo:r.payment_method||"Efectivo",
+  fechaLocal:r.expense_date||"",
+  fecha:(r.expense_date?r.expense_date+"T12:00:00-04:00":r.created_at),
+  nota:r.note||"",
+  creado:r.created_at
+ }
+}
+async function cargarGastosSupabase(){
+ const locales=Array.isArray(gastos)?[...gastos]:[];
+ let {data:cloud,error}=await flkSupabase.from("expenses").select("*").order("expense_date",{ascending:false}).order("created_at",{ascending:false});
+ if(error){
+  console.error("Supabase gastos:",error);
+  alert("No se pudieron cargar los gastos de Supabase. Se conserva la copia local.");
+  return false;
+ }
+
+ if(rolSesion==="admin" && locales.length){
+  const existentes=new Set((cloud||[]).map(g=>String(g.legacy_id||"")).filter(Boolean));
+  for(const g of locales){
+   const legacy=String(g.id);
+   if(existentes.has(legacy))continue;
+   const fechaLocal=g.fechaLocal||String(g.fecha||"").slice(0,10)||fechaLocalISO(new Date());
+   const {error:impErr}=await flkSupabase.rpc("flk_save_expense",{
+    p_expense_id:null,
+    p_legacy_id:legacy,
+    p_concept:g.concepto||"Gasto",
+    p_category:g.categoria||"Otro",
+    p_amount:Number(g.cantidad||0),
+    p_payment_method:g.metodo||"Efectivo",
+    p_expense_date:fechaLocal,
+    p_note:g.nota||null
+   });
+   if(impErr){
+    console.error("Migración gasto:",g.concepto,impErr);
+    alert("No se pudo migrar el gasto “"+(g.concepto||"Gasto")+"”: "+impErr.message);
+    return false;
+   }
+   existentes.add(legacy);
+  }
+  const recarga=await flkSupabase.from("expenses").select("*").order("expense_date",{ascending:false}).order("created_at",{ascending:false});
+  cloud=recarga.data; error=recarga.error;
+  if(error){console.error(error);return false}
+ }
+
+ gastos=(cloud||[]).map(gastoDesdeSupabase);
+ guardarGastos();
+ actualizarGastos();
+ actualizarResumen();
+ if(typeof cargarMovimientosCajaSupabase==="function"){
+  await cargarMovimientosCajaSupabase();
+ }
+ actualizarFlujoCaja();
+ actualizarFinanzas();
+ return true
+}
+
 function guardarGastos(){localStorage.setItem("flackunloker_gastos",JSON.stringify(gastos))}
+
+function cierreDesdeSupabase(c){
+ return {
+  id:idLocalDesdeLegacy(null,c.id),supabaseId:c.id,fechaLocal:c.close_date,
+  recibos:Number(c.receipts_count||0),unidades:Number(c.units_count||0),
+  ventasTotal:Number(c.sales_total||0),costo:Number(c.cost_total||0),
+  gananciaBruta:Number(c.gross_profit||0),gastosTotal:Number(c.expenses_total||0),
+  gananciaNeta:Number(c.net_profit||0),cobrado:Number(c.collected_total||0),
+  efectivo:Number(c.cash_total||0),ath:Number(c.ath_total||0),tarjeta:Number(c.card_total||0),
+  otros:Number(c.other_total||0),credito:Number(c.credit_sales||0),
+  saldoCredito:Number(c.credit_balance||0),gastoEfectivo:Number(c.cash_expenses||0),
+  efectivoNeto:Number(c.net_cash||0),guardado:c.updated_at||c.created_at
+ }
+}
+async function cargarCierresSupabase(){
+ const locales=Array.isArray(cierres)?[...cierres]:[];
+ let {data:cloud,error}=await flkSupabase.from("cash_closures").select("*").order("close_date",{ascending:false});
+ if(error){console.error("Supabase cierres:",error);return false}
+
+ if(rolSesion==="admin" && locales.length){
+  const fechas=new Set((cloud||[]).map(c=>c.close_date));
+  for(const c of locales){
+   if(!c.fechaLocal||fechas.has(c.fechaLocal)||c.supabaseId)continue;
+   const {error:impErr}=await flkSupabase.rpc("flk_save_cash_closure",{
+    p_close_date:c.fechaLocal,p_receipts_count:Number(c.recibos||0),p_units_count:Number(c.unidades||0),
+    p_sales_total:Number(c.ventasTotal||0),p_cost_total:Number(c.costo||0),
+    p_gross_profit:Number(c.gananciaBruta||0),p_expenses_total:Number(c.gastosTotal||0),
+    p_net_profit:Number(c.gananciaNeta||0),p_collected_total:Number(c.cobrado||0),
+    p_cash_total:Number(c.efectivo||0),p_ath_total:Number(c.ath||0),
+    p_card_total:Number(c.tarjeta||0),p_other_total:Number(c.otros||0),
+    p_credit_sales:Number(c.credito||0),p_credit_balance:Number(c.saldoCredito||0),
+    p_cash_expenses:Number(c.gastoEfectivo||0),p_net_cash:Number(c.efectivoNeto||0)
+   });
+   if(impErr){console.error("Migración cierre:",c.fechaLocal,impErr);break}
+   fechas.add(c.fechaLocal);
+  }
+  const recarga=await flkSupabase.from("cash_closures").select("*").order("close_date",{ascending:false});
+  cloud=recarga.data;error=recarga.error;if(error)return false;
+ }
+ cierres=(cloud||[]).map(cierreDesdeSupabase);guardarCierres();mostrarListaCierres();return true
+}
+
 function guardarCierres(){localStorage.setItem("flackunloker_cierres",JSON.stringify(cierres))}
+
+async function cargarComprasSupabase(){
+ const [rs,ro,rp]=await Promise.all([
+  flkSupabase.from("suppliers").select("*").order("name"),
+  flkSupabase.from("purchase_orders").select("*").order("created_at",{ascending:false}),
+  flkSupabase.from("supplier_payments").select("*").order("created_at",{ascending:true})
+ ]);
+ if(rs.error||ro.error||rp.error){console.error(rs.error||ro.error||rp.error);return false}
+ const pagos=rp.data||[];
+ proveedores=(rs.data||[]).map(x=>({id:idLocalDesdeLegacy(x.legacy_id,x.id),supabaseId:x.id,nombre:x.name||"",contacto:x.contact_name||"",telefono:x.phone||"",email:x.email||"",direccion:x.address||"",nota:x.notes||"",creado:x.created_at}));
+ ordenesCompra=(ro.data||[]).map(o=>{
+  const pr=proveedores.find(p=>p.supabaseId===o.supplier_id),prod=productos.find(p=>p.supabaseId===o.product_id);
+  const ps=pagos.filter(p=>p.purchase_order_id===o.id);
+  return {id:idLocalDesdeLegacy(o.legacy_id,o.id),supabaseId:o.id,numero:o.order_number,productoId:prod?.id,nombre:prod?.nombre||"Producto",sku:prod?.sku||"",proveedor:pr?.nombre||"Proveedor",cantidad:Number(o.quantity||0),costoUnitario:Number(o.unit_cost||0),fechaOrden:o.order_date,nota:o.note||"",estado:o.status==="received"?"recibida":o.status==="ordered"?"ordenada":"pendiente",fechaCreacion:o.created_at,fechaOrdenada:o.ordered_at,fechaRecibida:o.received_at,costoTotal:Number(o.total_amount||0),condicionPagoProveedor:o.payment_condition,totalPagadoProveedor:Number(o.paid_amount||0),saldoProveedor:Number(o.balance_due||0),fechaVencimientoProveedor:o.due_date||"",metodoPagoProveedor:o.payment_method||"",pagosProveedor:(()=>{let saldo=Number(o.total_amount||0);return [...ps].sort((a,b)=>new Date(a.payment_date)-new Date(b.payment_date)).map(p=>{const anterior=saldo,cant=Number(p.amount||0);saldo=Math.max(0,saldo-cant);return {id:idLocalDesdeLegacy(null,p.id),supabaseId:p.id,cantidad:cant,fecha:p.payment_date,metodo:p.payment_method||"",nota:p.note||"",saldoAnterior:anterior,saldoRestante:saldo}})})()}
+ });
+ guardarProveedores();guardarOrdenesCompra();actualizarOpcionesOrganizacion();actualizarProveedores();actualizarOrdenesCompra();actualizarCuentasPagar();return true
+}
+async function migrarComprasLocalesSupabase(){
+ if(rolSesion!=="admin")return cargarComprasSupabase();
+ const lp=[...proveedores],lo=[...ordenesCompra];
+ for(const p of lp){
+  if(p.supabaseId)continue;
+  const {error}=await flkSupabase.from("suppliers").upsert({legacy_id:String(p.id),name:p.nombre,contact_name:p.contacto||null,phone:p.telefono||null,email:p.email||null,address:p.direccion||null,notes:p.nota||null},{onConflict:"legacy_id"});
+  if(error)throw error;
+ }
+ await cargarComprasSupabase();
+ for(const o of lo){
+  if(o.supabaseId)continue;
+  const prov=proveedores.find(p=>nombreProveedorNorm(p.nombre)===nombreProveedorNorm(o.proveedor)),prod=productos.find(p=>p.id===o.productoId);
+  if(!prov?.supabaseId||!prod?.supabaseId)continue;
+  const {error}=await flkSupabase.from("purchase_orders").upsert({legacy_id:String(o.id),supplier_id:prov.supabaseId,product_id:prod.supabaseId,quantity:Number(o.cantidad),unit_cost:Number(o.costoUnitario),order_date:o.fechaOrden,status:o.estado==="recibida"?"received":o.estado==="ordenada"?"ordered":"pending",note:o.nota||null,ordered_at:o.fechaOrdenada||null,received_at:o.fechaRecibida||null,payment_condition:o.condicionPagoProveedor||null,payment_method:o.metodoPagoProveedor||null,due_date:o.fechaVencimientoProveedor||null,total_amount:Number(o.costoTotal||Number(o.cantidad)*Number(o.costoUnitario)),paid_amount:Number(o.totalPagadoProveedor||0),balance_due:Number(o.saldoProveedor||0)},{onConflict:"legacy_id"});
+  if(error)throw error;
+ }
+ return cargarComprasSupabase()
+}
+
 function guardarOrdenesCompra(){localStorage.setItem("flackunloker_ordenes_compra",JSON.stringify(ordenesCompra))}
 function guardarProveedores(){localStorage.setItem("flackunloker_proveedores",JSON.stringify(proveedores))}
 cargarDatos();
@@ -1773,14 +1984,57 @@ function abrirGasto(id=null){
  document.getElementById("modalGasto").classList.add("visible");document.getElementById("conceptoGasto").focus()
 }
 function cerrarGasto(){document.getElementById("modalGasto").classList.remove("visible");document.getElementById("formularioGasto").reset();gastoEditandoId=null}
-document.getElementById("formularioGasto").addEventListener("submit",e=>{
- e.preventDefault();const concepto=document.getElementById("conceptoGasto").value.trim(),categoria=document.getElementById("categoriaGasto").value,cantidad=Number(document.getElementById("cantidadGasto").value),metodo=document.getElementById("metodoGasto").value,fechaLocal=document.getElementById("fechaGasto").value,nota=document.getElementById("notaGasto").value.trim();
+document.getElementById("formularioGasto").addEventListener("submit",async e=>{
+ e.preventDefault();
+ if(procesandoGuardado)return;
+ const concepto=document.getElementById("conceptoGasto").value.trim(),
+       categoria=document.getElementById("categoriaGasto").value,
+       cantidad=Number(document.getElementById("cantidadGasto").value),
+       metodo=document.getElementById("metodoGasto").value,
+       fechaLocal=document.getElementById("fechaGasto").value,
+       nota=document.getElementById("notaGasto").value.trim();
  if(!concepto||!Number.isFinite(cantidad)||cantidad<=0||!fechaLocal)return alert("Completa el concepto, la cantidad y la fecha del gasto.");
- const fecha=new Date(fechaLocal+"T12:00:00").toISOString();
- if(gastoEditandoId!==null){const g=gastos.find(x=>x.id===gastoEditandoId);if(!g)return;Object.assign(g,{concepto,categoria,cantidad,metodo,fechaLocal,fecha,nota})}else gastos.unshift({id:Date.now()+Math.floor(Math.random()*100000),concepto,categoria,cantidad,metodo,fechaLocal,fecha,nota,creado:new Date().toISOString()});
- guardarGastos();actualizarGastos();actualizarResumen();cerrarGasto()
+ procesandoGuardado=true;
+ const estabaEditando=gastoEditandoId!==null;
+ try{
+  let g=null,legacy=null,supabaseId=null;
+  if(gastoEditandoId!==null){
+   g=gastos.find(x=>x.id===gastoEditandoId);
+   if(!g)return;
+   legacy=String(g.id);
+   supabaseId=g.supabaseId||null;
+  }else{
+   legacy=String(Date.now()+Math.floor(Math.random()*100000));
+  }
+  const {data,error}=await flkSupabase.rpc("flk_save_expense",{
+   p_expense_id:supabaseId,
+   p_legacy_id:legacy,
+   p_concept:concepto,
+   p_category:categoria||"Otro",
+   p_amount:cantidad,
+   p_payment_method:metodo||"Efectivo",
+   p_expense_date:fechaLocal,
+   p_note:nota||null
+  });
+  if(error)throw error;
+  await cargarGastosSupabase();
+  cerrarGasto();
+  alert(estabaEditando?"Gasto actualizado en Supabase.":"Gasto guardado en Supabase.");
+ }catch(err){
+  console.error(err);
+  alert("Supabase rechazó el gasto: "+(err.message||err));
+ }finally{procesandoGuardado=false}
 });
-function eliminarGasto(id){const g=gastos.find(x=>x.id===id);if(!g)return;if(!confirm(`¿Eliminar el gasto “${g.concepto}” por $${Number(g.cantidad).toFixed(2)}?`))return;gastos=gastos.filter(x=>x.id!==id);guardarGastos();actualizarGastos();actualizarResumen()}
+async function eliminarGasto(id){
+ const g=gastos.find(x=>x.id===id);if(!g)return;
+ if(!confirm(`¿Eliminar el gasto “${g.concepto}” por $${Number(g.cantidad).toFixed(2)}?`))return;
+ if(!g.supabaseId)return alert("Este gasto todavía no está vinculado con Supabase.");
+ try{
+  const {error}=await flkSupabase.rpc("flk_delete_expense",{p_expense_id:g.supabaseId});
+  if(error)throw error;
+  await cargarGastosSupabase();
+ }catch(err){console.error(err);alert("Supabase no permitió eliminar el gasto: "+(err.message||err))}
+}
 function fechaGastoObj(g){return new Date((g.fechaLocal||String(g.fecha||"").slice(0,10))+"T12:00:00")}
 function actualizarFiltrosGastos(){
  const cat=document.getElementById("filtroCategoriaGasto"),mes=document.getElementById("filtroMesGasto"),catPrev=cat.value,mesPrev=mes.value;
@@ -1800,7 +2054,7 @@ function mostrarListaGastos(){
  arr.forEach(g=>{const el=document.createElement("div");el.className="gasto-card";const f=fechaGastoObj(g);el.innerHTML=`<div class="gasto-superior"><div><h3>${escapeHtml(g.concepto)}</h3><p>${escapeHtml(g.categoria||"Otro")}</p></div><div class="gasto-total">-$${Number(g.cantidad||0).toFixed(2)}</div></div><div class="gasto-detalle">Método: <strong>${escapeHtml(g.metodo||"—")}</strong>${g.nota?`<br>Nota: ${escapeHtml(g.nota)}`:""}<br>Fecha: <strong>${f.toLocaleDateString("es-PR")}</strong></div><div class="acciones-gasto"><button class="boton-editar-gasto" onclick="abrirGasto(${g.id})">✏️ Editar</button><button class="boton-eliminar-gasto" onclick="eliminarGasto(${g.id})">🗑️ Eliminar</button></div>`;lista.appendChild(el)})
 }
 document.getElementById("busquedaGastos").addEventListener("input",mostrarListaGastos);
-function mostrarGastos(){document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="block";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("gastos");actualizarGastos();scrollTop()}
+async function mostrarGastos(){await cargarGastosSupabase();document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="block";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("gastos");actualizarGastos();scrollTop()}
 
 function metodoCajaClave(metodo){const m=String(metodo||"").trim().toLowerCase();if(m.includes("efectivo"))return "efectivo";if(m.includes("ath"))return "ath";if(m.includes("tarjeta"))return "tarjeta";return "otros"}
 function resumenCierreFecha(fechaLocal){
@@ -1808,15 +2062,17 @@ function resumenCierreFecha(fechaLocal){
  const gastosDia=gastos.filter(g=>(g.fechaLocal||String(g.fecha||"").slice(0,10))===fechaLocal);
  const recibos=ventasDia.length,unidades=ventasDia.reduce((t,v)=>t+Number(v.cantidad||0),0),ventasTotal=ventasDia.reduce((t,v)=>t+Number(v.ingreso||0),0),costo=ventasDia.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasDia.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosDia.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
  const cobros={efectivo:0,ath:0,tarjeta:0,otros:0};
- ventas.forEach(v=>{
-  normalizarCuentaVenta(v);const pagos=pagosDeVenta(v);
-  if(pagos.length){pagos.forEach(p=>{if(fechaLocalISO(new Date(p.fecha))===fechaLocal)cobros[metodoCajaClave(p.metodo)]+=Number(p.cantidad||0)})}
-  else if(Number(v.totalPagado||0)>0&&fechaLocalISO(new Date(v.fecha))===fechaLocal)cobros[metodoCajaClave(v.metodoPago)]+=Math.min(Number(v.totalPagado||0),Number(v.ingreso||0));
+ const salidasCaja={efectivo:0,ath:0,tarjeta:0,otros:0};
+ (movimientosCajaSupabase||[]).forEach(m=>{
+  if(fechaLocalISO(new Date(m.fecha))!==fechaLocal)return;
+  const clave=metodoCajaClave(m.metodo);
+  if(m.tipo==="entrada")cobros[clave]+=Number(m.cantidad||0);
+  else salidasCaja[clave]+=Number(m.cantidad||0);
  });
  const cobrado=Object.values(cobros).reduce((a,b)=>a+b,0);
  const ventasCredito=ventasDia.filter(v=>{normalizarCuentaVenta(v);return pagosDeVenta(v).length>0||Number(v.saldo||0)>0});
  const credito=ventasCredito.reduce((t,v)=>t+Number(v.ingreso||0),0),saldoCredito=ventasCredito.reduce((t,v)=>t+Number(v.saldo||0),0);
- const gastoEfectivo=gastosDia.filter(g=>metodoCajaClave(g.metodo)==="efectivo").reduce((t,g)=>t+Number(g.cantidad||0),0),efectivoNeto=cobros.efectivo-gastoEfectivo;
+ const gastoEfectivo=salidasCaja.efectivo,efectivoNeto=cobros.efectivo-salidasCaja.efectivo;
  return {fechaLocal,recibos,unidades,ventasTotal,costo,gananciaBruta,gastosTotal,gananciaNeta,cobrado,efectivo:cobros.efectivo,ath:cobros.ath,tarjeta:cobros.tarjeta,otros:cobros.otros,credito,saldoCredito,gastoEfectivo,efectivoNeto}
 }
 function formatoDineroCierre(n){n=Number(n||0);return (n<0?"-$":"$")+Math.abs(n).toFixed(2)}
@@ -1826,13 +2082,41 @@ function actualizarCierre(){
  document.getElementById("cierreRecibosUnidades").textContent=r.recibos+" / "+r.unidades;document.getElementById("cierreVentasHoy").textContent=formatoDineroCierre(r.ventasTotal);document.getElementById("cierreCostoHoy").textContent=formatoDineroCierre(r.costo);document.getElementById("cierreGananciaBrutaHoy").textContent=formatoDineroCierre(r.gananciaBruta);document.getElementById("cierreGastosHoy").textContent=formatoDineroCierre(r.gastosTotal);document.getElementById("cierreGananciaNetaHoy").textContent=formatoDineroCierre(r.gananciaNeta);document.getElementById("cierreCobradoHoy").textContent=formatoDineroCierre(r.cobrado);document.getElementById("cierreEfectivoHoy").textContent=formatoDineroCierre(r.efectivo);document.getElementById("cierreAthHoy").textContent=formatoDineroCierre(r.ath);document.getElementById("cierreTarjetaHoy").textContent=formatoDineroCierre(r.tarjeta);document.getElementById("cierreOtrosHoy").textContent=formatoDineroCierre(r.otros);document.getElementById("cierreCreditoHoy").textContent=formatoDineroCierre(r.credito);document.getElementById("cierreSaldoCreditoHoy").textContent=formatoDineroCierre(r.saldoCredito);document.getElementById("cierreGastoEfectivoHoy").textContent=formatoDineroCierre(r.gastoEfectivo);document.getElementById("cierreEfectivoNetoHoy").textContent=formatoDineroCierre(r.efectivoNeto);
  const existente=cierres.find(c=>c.fechaLocal===fecha),estado=document.getElementById("estadoCierreHoy"),boton=document.getElementById("botonGuardarCierre");if(existente){estado.textContent="🔒 Este día ya tiene un cierre guardado. Puedes actualizarlo si hiciste una corrección posterior.";estado.classList.add("visible");boton.textContent="🔄 Actualizar cierre de hoy"}else{estado.classList.remove("visible");boton.textContent="🔒 Guardar cierre de hoy"}mostrarListaCierres()
 }
-function guardarCierreHoy(){const fecha=fechaLocalISO(new Date()),r=resumenCierreFecha(fecha),indice=cierres.findIndex(c=>c.fechaLocal===fecha);if(indice>=0&&!confirm("Ya existe un cierre para hoy. ¿Quieres reemplazarlo con los valores actuales?"))return;const registro={id:indice>=0?cierres[indice].id:Date.now()+Math.floor(Math.random()*100000),...r,guardado:new Date().toISOString()};if(indice>=0)cierres[indice]=registro;else cierres.unshift(registro);guardarCierres();actualizarCierre();alert(indice>=0?"Cierre de hoy actualizado correctamente.":"Cierre de caja guardado correctamente.")}
+async function guardarCierreHoy(){
+ const fecha=fechaLocalISO(new Date()),r=resumenCierreFecha(fecha),existente=cierres.find(c=>c.fechaLocal===fecha);
+ if(existente&&!confirm("Ya existe un cierre para hoy. ¿Quieres reemplazarlo con los valores actuales?"))return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_save_cash_closure",{
+   p_close_date:fecha,p_receipts_count:Number(r.recibos||0),p_units_count:Number(r.unidades||0),
+   p_sales_total:Number(r.ventasTotal||0),p_cost_total:Number(r.costo||0),
+   p_gross_profit:Number(r.gananciaBruta||0),p_expenses_total:Number(r.gastosTotal||0),
+   p_net_profit:Number(r.gananciaNeta||0),p_collected_total:Number(r.cobrado||0),
+   p_cash_total:Number(r.efectivo||0),p_ath_total:Number(r.ath||0),
+   p_card_total:Number(r.tarjeta||0),p_other_total:Number(r.otros||0),
+   p_credit_sales:Number(r.credito||0),p_credit_balance:Number(r.saldoCredito||0),
+   p_cash_expenses:Number(r.gastoEfectivo||0),p_net_cash:Number(r.efectivoNeto||0)
+  });
+  if(error)throw error;
+  await cargarCierresSupabase();actualizarCierre();
+  alert(existente?"Cierre actualizado en Supabase.":"Cierre de caja guardado en Supabase.");
+ }catch(err){console.error(err);alert("Supabase rechazó el cierre: "+(err.message||err))}
+}
+
 function mostrarListaCierres(){const lista=document.getElementById("listaCierres"),arr=[...cierres].sort((a,b)=>String(b.fechaLocal).localeCompare(String(a.fechaLocal)));if(!arr.length){lista.innerHTML='<div class="sin-productos">Todavía no hay cierres guardados.</div>';return}lista.innerHTML=arr.map(c=>{const f=new Date(c.fechaLocal+"T12:00:00");return `<div class="cierre-card"><div class="venta-superior"><div><h3>Cierre · ${f.toLocaleDateString("es-PR")}</h3><p>Guardado ${new Date(c.guardado||Date.now()).toLocaleString("es-PR")}</p></div><div class="cierre-total">${formatoDineroCierre(c.gananciaNeta)}</div></div><div class="cierre-detalle">Ventas: <strong>${formatoDineroCierre(c.ventasTotal)}</strong> · Gastos: <strong>${formatoDineroCierre(c.gastosTotal)}</strong><br>Ganancia bruta: <strong>${formatoDineroCierre(c.gananciaBruta)}</strong> · Ganancia neta: <strong>${formatoDineroCierre(c.gananciaNeta)}</strong><br>Cobrado: <strong>${formatoDineroCierre(c.cobrado)}</strong> · Efectivo neto: <strong>${formatoDineroCierre(c.efectivoNeto)}</strong><br>Efectivo: ${formatoDineroCierre(c.efectivo)} · ATH: ${formatoDineroCierre(c.ath)} · Tarjeta: ${formatoDineroCierre(c.tarjeta)} · Otros: ${formatoDineroCierre(c.otros)}<br>Crédito: ${formatoDineroCierre(c.credito)} · Saldo pendiente: ${formatoDineroCierre(c.saldoCredito)}</div><div class="cierre-acciones"><button class="boton-cierre" onclick="imprimirCierre(${c.id})">🧾 Ver / imprimir</button><button class="boton-cierre boton-cierre-peligro" onclick="eliminarCierre(${c.id})">🗑️ Eliminar</button></div></div>`}).join("")}
 function imprimirCierre(id){const c=cierres.find(x=>x.id===id);if(!c)return;const f=new Date(c.fechaLocal+"T12:00:00"),contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cierre ${c.fechaLocal}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#f4f7fb;color:#111;margin:0}.hoja{max-width:460px;margin:24px auto;background:#fff;padding:28px;border-radius:18px}.fila{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid #eee}.total{font-size:20px;font-weight:800}.btn{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700}@media print{body{background:#fff}.hoja{margin:0;max-width:none}.btn{display:none}}
 .cuenta-proveedor-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px;border-left:5px solid #f5a623}.cuenta-proveedor-card.vencida{border-left-color:#d93025}.cuenta-proveedor-card.pagada{border-left-color:#168044}.cuenta-proveedor-superior{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.cuenta-proveedor-superior h3{margin:0 0 5px;font-size:16px}.cuenta-proveedor-superior p{margin:0;color:#777;font-size:13px}.cuenta-proveedor-saldo{font-weight:800;color:#d93025;white-space:nowrap}.cuenta-proveedor-detalle{margin-top:12px;font-size:13px;line-height:1.75;color:#555}.acciones-cuenta-proveedor{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-cuenta-proveedor{border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.boton-pagar-proveedor{background:#e9f8ef;color:#168044}.boton-historial-proveedor{background:#eaf4ff;color:#0a84ff}.estado-cuenta{display:inline-block;margin-top:8px;padding:7px 10px;border-radius:10px;font-size:12px;font-weight:800}.estado-cuenta.pendiente{background:#fff7e8;color:#a15c00}.estado-cuenta.vencida{background:#ffecec;color:#d93025}.estado-cuenta.pagada{background:#e9f8ef;color:#168044}
 </style></head><body><div class="hoja"><h1>Flackunloker</h1><h2>Cierre de caja · ${f.toLocaleDateString("es-PR")}</h2><div class="fila"><span>Recibos / Unidades</span><strong>${c.recibos} / ${c.unidades}</strong></div><div class="fila"><span>Ventas</span><strong>${formatoDineroCierre(c.ventasTotal)}</strong></div><div class="fila"><span>Costo mercancía</span><strong>${formatoDineroCierre(c.costo)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>${formatoDineroCierre(c.gananciaBruta)}</strong></div><div class="fila"><span>Gastos</span><strong>${formatoDineroCierre(c.gastosTotal)}</strong></div><div class="fila total"><span>Ganancia neta</span><strong>${formatoDineroCierre(c.gananciaNeta)}</strong></div><div class="fila"><span>Total cobrado</span><strong>${formatoDineroCierre(c.cobrado)}</strong></div><div class="fila"><span>Efectivo</span><strong>${formatoDineroCierre(c.efectivo)}</strong></div><div class="fila"><span>ATH Móvil</span><strong>${formatoDineroCierre(c.ath)}</strong></div><div class="fila"><span>Tarjeta</span><strong>${formatoDineroCierre(c.tarjeta)}</strong></div><div class="fila"><span>Otros</span><strong>${formatoDineroCierre(c.otros)}</strong></div><div class="fila"><span>Ventas a crédito</span><strong>${formatoDineroCierre(c.credito)}</strong></div><div class="fila"><span>Saldo pendiente</span><strong>${formatoDineroCierre(c.saldoCredito)}</strong></div><div class="fila total"><span>Efectivo neto caja</span><strong>${formatoDineroCierre(c.efectivoNeto)}</strong></div><button class="btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></body></html>`;const w=window.open("","_blank");if(!w)return alert("El navegador bloqueó la ventana. Permite ventanas emergentes para ver el cierre.");w.document.open();w.document.write(contenido);w.document.close()}
-function eliminarCierre(id){const c=cierres.find(x=>x.id===id);if(!c)return;if(!confirm("¿Eliminar este cierre guardado? Las ventas y gastos originales no se eliminarán."))return;cierres=cierres.filter(x=>x.id!==id);guardarCierres();actualizarCierre()}
-function mostrarCierre(){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaReportes","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaCierre").style.display="block";actualizarMenu("cierre");actualizarCierre();scrollTop()}
+async function eliminarCierre(id){
+ const c=cierres.find(x=>x.id===id);if(!c)return;
+ if(!confirm("¿Eliminar este cierre guardado? Las ventas y gastos originales no se eliminarán."))return;
+ if(!c.supabaseId)return alert("Este cierre todavía no está vinculado con Supabase.");
+ try{
+  const {error}=await flkSupabase.from("cash_closures").delete().eq("id",c.supabaseId);
+  if(error)throw error;
+  await cargarCierresSupabase();actualizarCierre();
+ }catch(err){console.error(err);alert("Supabase no permitió eliminar el cierre: "+(err.message||err))}
+}
+async function mostrarCierre(){await cargarVentasSupabase();await cargarGastosSupabase();await cargarMovimientosCajaSupabase();await cargarCierresSupabase();["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaReportes","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaCierre").style.display="block";actualizarMenu("cierre");actualizarCierre();scrollTop()}
 
 function fechaLocalDeValor(fecha){if(!fecha)return "";if(/^\d{4}-\d{2}-\d{2}$/.test(String(fecha)))return String(fecha);const d=new Date(fecha);return Number.isNaN(d.getTime())?"":fechaLocalISO(d)}
 function rangoReporteActual(){
@@ -1872,12 +2156,25 @@ function cargarSelectorProveedoresOrden(preferido=""){
 }
 function abrirProveedor(id=null){proveedorEditandoId=id;document.getElementById("formularioProveedor").reset();document.getElementById("tituloProveedorForm").textContent=id===null?"Nuevo proveedor":"Editar proveedor";if(id!==null){const p=proveedores.find(x=>x.id===id);if(!p)return;document.getElementById("nombreProveedor").value=p.nombre||"";document.getElementById("contactoProveedor").value=p.contacto||"";document.getElementById("telefonoProveedor").value=p.telefono||"";document.getElementById("emailProveedor").value=p.email||"";document.getElementById("direccionProveedor").value=p.direccion||"";document.getElementById("notaProveedor").value=p.nota||""}document.getElementById("modalProveedor").classList.add("visible");document.getElementById("nombreProveedor").focus()}
 function cerrarProveedor(){document.getElementById("modalProveedor").classList.remove("visible");document.getElementById("formularioProveedor").reset();proveedorEditandoId=null}
-document.getElementById("formularioProveedor").addEventListener("submit",e=>{e.preventDefault();e.stopPropagation();const nombre=document.getElementById("nombreProveedor").value.trim(),contacto=document.getElementById("contactoProveedor").value.trim(),telefono=document.getElementById("telefonoProveedor").value.trim(),email=document.getElementById("emailProveedor").value.trim(),direccion=document.getElementById("direccionProveedor").value.trim(),nota=document.getElementById("notaProveedor").value.trim();if(!nombre)return alert("Escribe el nombre del proveedor.");if(proveedores.some(p=>p.id!==proveedorEditandoId&&nombreProveedorNorm(p.nombre)===nombreProveedorNorm(nombre)))return alert("Ya existe un proveedor con ese nombre.");if(proveedorEditandoId===null){proveedores.unshift({id:Date.now()+Math.floor(Math.random()*100000),nombre,contacto,telefono,email,direccion,nota,creado:new Date().toISOString()})}else{const p=proveedores.find(x=>x.id===proveedorEditandoId);if(!p)return;const anterior=p.nombre;p.nombre=nombre;p.contacto=contacto;p.telefono=telefono;p.email=email;p.direccion=direccion;p.nota=nota;if(nombreProveedorNorm(anterior)!==nombreProveedorNorm(nombre)){productos.forEach(x=>{if(nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(anterior))x.proveedor=nombre});ordenesCompra.forEach(o=>{if(nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(anterior))o.proveedor=nombre});guardarDatos();guardarOrdenesCompra()}}guardarProveedores();actualizarProveedores();actualizarOpcionesOrganizacion();cerrarProveedor()});
+document.getElementById("formularioProveedor").addEventListener("submit",async e=>{
+ e.preventDefault();e.stopPropagation();
+ const nombre=document.getElementById("nombreProveedor").value.trim(),contacto=document.getElementById("contactoProveedor").value.trim(),telefono=document.getElementById("telefonoProveedor").value.trim(),email=document.getElementById("emailProveedor").value.trim(),direccion=document.getElementById("direccionProveedor").value.trim(),nota=document.getElementById("notaProveedor").value.trim();
+ if(!nombre)return alert("Escribe el nombre del proveedor.");
+ const actual=proveedores.find(x=>x.id===proveedorEditandoId),legacy=actual?String(actual.id):String(Date.now()+Math.floor(Math.random()*100000));
+ const payload={legacy_id:legacy,name:nombre,contact_name:contacto||null,phone:telefono||null,email:email||null,address:direccion||null,notes:nota||null,updated_at:new Date().toISOString()};
+ if(!actual){
+  const repetido=proveedores.find(p=>nombreProveedorNorm(p.nombre)===nombreProveedorNorm(nombre));
+  if(repetido)return alert("Ese proveedor ya existe: "+repetido.nombre);
+ }
+ const q=actual?.supabaseId?flkSupabase.from("suppliers").update(payload).eq("id",actual.supabaseId):flkSupabase.from("suppliers").insert(payload);
+ const {error}=await q;if(error)return alert(error.code==="23505"?"Ese proveedor ya existe.":"Supabase rechazó el proveedor: "+error.message);
+ await cargarComprasSupabase();cerrarProveedor()
+});
 function eliminarProveedor(id){const p=proveedores.find(x=>x.id===id);if(!p)return;const productosAsociados=productos.filter(x=>nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(p.nombre)).length,ordenesAsociadas=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)).length;if(!confirm(`¿Eliminar ${p.nombre} del directorio?\n\nSus ${productosAsociados} producto(s) y ${ordenesAsociadas} orden(es) conservarán el nombre del proveedor como historial.`))return;proveedores=proveedores.filter(x=>x.id!==id);guardarProveedores();actualizarProveedores();actualizarOpcionesOrganizacion()}
 function nuevaOrdenProveedor(id){const p=proveedores.find(x=>x.id===id);if(!p)return;abrirOrdenCompra(null,p.nombre)}
 function mostrarListaProveedores(){const q=document.getElementById("busquedaProveedores").value.toLowerCase().trim(),lista=document.getElementById("listaProveedoresVista");const arr=[...proveedores].filter(p=>[p.nombre,p.contacto,p.telefono,p.email,p.direccion,p.nota].some(v=>String(v||"").toLowerCase().includes(q))).sort((a,b)=>String(a.nombre||"").localeCompare(String(b.nombre||""),"es",{sensitivity:"base"}));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay proveedores con esa búsqueda.</div>';return}lista.innerHTML=arr.map(p=>{const prods=productos.filter(x=>nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(p.nombre)),ords=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)),pend=ords.filter(o=>o.estado!=="recibida").length,rec=ords.filter(o=>o.estado==="recibida"),total=rec.reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),vencidas=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").length;return `<div class="proveedor-card"><div class="proveedor-superior"><div><h3>${escapeHtml(p.nombre)}</h3><p>${p.contacto?`Contacto: ${escapeHtml(p.contacto)}`:"Proveedor registrado"}</p></div><div class="proveedor-total">$${saldo.toFixed(2)} por pagar</div></div><div class="proveedor-detalle">Productos asociados: <strong>${prods.length}</strong><br>Órdenes totales: <strong>${ords.length}</strong> · Pendientes/ordenadas: <strong>${pend}</strong><br>Compras recibidas: <strong>${rec.length}</strong> · Total: <strong>$${total.toFixed(2)}</strong><br>Pagado: <strong>$${pagado.toFixed(2)}</strong> · Saldo: <strong>$${saldo.toFixed(2)}</strong>${vencidas?`<br>🔴 Deudas vencidas: <strong>${vencidas}</strong>`:""}${p.telefono?`<br>Teléfono: <strong>${escapeHtml(p.telefono)}</strong>`:""}${p.email?`<br>Email: <strong>${escapeHtml(p.email)}</strong>`:""}${p.direccion?`<br>Dirección: ${escapeHtml(p.direccion)}`:""}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><div class="acciones-proveedor"><button class="boton-proveedor boton-proveedor-orden" onclick="abrirOrdenCompra(null,'${escapeHtml(p.nombre).replace(/'/g,"&#039;")}')">📦 Nueva orden</button>${saldo>0.009?`<button class="boton-proveedor boton-proveedor-orden" onclick="mostrarCuentasPagar();document.getElementById('filtroProveedorCuentas').value='${escapeHtml(p.nombre).replace(/'/g,"&#039;")}';mostrarListaCuentasPagar()">💳 Ver deuda</button>`:""}<button class="boton-proveedor boton-proveedor-editar" onclick="abrirProveedor(${p.id})">✏️ Editar</button><button class="boton-proveedor boton-proveedor-eliminar" onclick="eliminarProveedor(${p.id})">🗑️ Eliminar</button></div></div>`}).join("")}
 function actualizarProveedores(){const rec=ordenesCompra.filter(o=>o.estado==="recibida"),total=rec.reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),vencido=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").reduce((t,o)=>t+Number(o.saldoProveedor||0),0);document.getElementById("totalProveedores").textContent=proveedores.length;document.getElementById("proveedoresPendientes").textContent=proveedores.filter(p=>ordenesCompra.some(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)&&o.estado!=="recibida")).length;document.getElementById("totalCompradoProveedores").textContent="$"+total.toFixed(2);document.getElementById("totalPagadoProveedores").textContent="$"+pagado.toFixed(2);document.getElementById("saldoPorPagarProveedores").textContent="$"+saldo.toFixed(2);document.getElementById("deudaVencidaProveedores").textContent="$"+vencido.toFixed(2);mostrarListaProveedores()}
-function mostrarProveedores(){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaProveedores").style.display="block";actualizarMenu("proveedores");actualizarProveedores();scrollTop()}
+async function mostrarProveedores(){await cargarComprasSupabase();["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaProveedores").style.display="block";actualizarMenu("proveedores");actualizarProveedores();scrollTop()}
 document.getElementById("busquedaProveedores").addEventListener("input",mostrarListaProveedores);
 
 function numeroOrdenCompra(o){return "OC-"+String(o.numero||o.id).slice(-6)}
@@ -1888,34 +2185,161 @@ function editarOrdenCompra(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o
 function cerrarOrdenCompra(){document.getElementById("modalOrdenCompra").classList.remove("visible");document.getElementById("formularioOrdenCompra").reset();ordenEditandoId=null}
 document.getElementById("productoOrden").addEventListener("change",actualizarDatosProductoOrden);
 document.getElementById("busquedaOrdenes").addEventListener("input",mostrarListaOrdenes);
-document.getElementById("formularioOrdenCompra").addEventListener("submit",e=>{e.preventDefault();e.stopPropagation();const productoId=Number(document.getElementById("productoOrden").value),p=productos.find(x=>x.id===productoId),proveedor=document.getElementById("proveedorOrden").value.trim(),cantidad=Number(document.getElementById("cantidadOrden").value),costoUnitario=Number(document.getElementById("costoUnitarioOrden").value),fechaOrden=document.getElementById("fechaOrden").value,nota=document.getElementById("notaOrden").value.trim();if(!p)return alert("Selecciona un producto válido.");if(!proveedor)return alert("Escribe el proveedor.");if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");if(!Number.isFinite(costoUnitario)||costoUnitario<0)return alert("Introduce un costo válido.");if(!fechaOrden)return alert("Selecciona la fecha de la orden.");if(ordenEditandoId!==null){const o=ordenesCompra.find(x=>x.id===ordenEditandoId);if(!o)return;o.productoId=p.id;o.nombre=p.nombre;o.sku=p.sku;o.proveedor=proveedor;o.cantidad=cantidad;o.costoUnitario=costoUnitario;o.fechaOrden=fechaOrden;o.nota=nota}else{const id=Date.now()+Math.floor(Math.random()*100000);ordenesCompra.unshift({id,numero:ordenesCompra.length+1,productoId:p.id,nombre:p.nombre,sku:p.sku,proveedor,cantidad,costoUnitario,fechaOrden,nota,estado:"pendiente",fechaCreacion:new Date().toISOString(),fechaOrdenada:null,fechaRecibida:null,costoTotal:cantidad*costoUnitario})}guardarOrdenesCompra();actualizarOrdenesCompra();actualizarProveedores();actualizarCentroAlertas();cerrarOrdenCompra()});
-function marcarOrdenada(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;o.estado="ordenada";o.fechaOrdenada=new Date().toISOString();guardarOrdenesCompra();actualizarOrdenesCompra();actualizarProveedores()}
+document.getElementById("formularioOrdenCompra").addEventListener("submit",async e=>{
+ e.preventDefault();e.stopPropagation();
+ const productoId=Number(document.getElementById("productoOrden").value),
+       p=productos.find(x=>x.id===productoId),
+       proveedorNombre=document.getElementById("proveedorOrden").value.trim(),
+       proveedor=proveedores.find(x=>nombreProveedorNorm(x.nombre)===nombreProveedorNorm(proveedorNombre)),
+       cantidad=Number(document.getElementById("cantidadOrden").value),
+       costoUnitario=Number(document.getElementById("costoUnitarioOrden").value),
+       fechaOrden=document.getElementById("fechaOrden").value,
+       nota=document.getElementById("notaOrden").value.trim();
+ if(!p?.supabaseId)return alert("Selecciona un producto sincronizado con Supabase.");
+ if(!proveedor?.supabaseId)return alert("Selecciona un proveedor registrado.");
+ if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
+ if(!Number.isFinite(costoUnitario)||costoUnitario<0)return alert("Introduce un costo válido.");
+ if(!fechaOrden)return alert("Selecciona la fecha de la orden.");
+ const actual=ordenEditandoId!==null?ordenesCompra.find(x=>x.id===ordenEditandoId):null;
+ try{
+  const {error}=await flkSupabase.rpc("flk_save_purchase_order",{
+   p_order_id:actual?.supabaseId||null,
+   p_legacy_id:actual?String(actual.id):String(Date.now()+Math.floor(Math.random()*100000)),
+   p_supplier_id:proveedor.supabaseId,
+   p_product_id:p.supabaseId,
+   p_quantity:cantidad,
+   p_unit_cost:costoUnitario,
+   p_order_date:fechaOrden,
+   p_note:nota||null
+  });
+  if(error)throw error;
+  await cargarComprasSupabase();
+  actualizarCentroAlertas();cerrarOrdenCompra();
+  alert(actual?"Orden actualizada en Supabase.":"Orden creada en Supabase.");
+ }catch(err){console.error(err);alert("Supabase rechazó la orden: "+(err.message||err))}
+});
+async function marcarOrdenada(id){
+ const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida"||!o.supabaseId)return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_mark_purchase_order_ordered",{p_order_id:o.supabaseId});
+  if(error)throw error;
+  await cargarComprasSupabase();
+ }catch(err){console.error(err);alert("Supabase rechazó el cambio: "+(err.message||err))}
+}
 function actualizarCamposCreditoProveedor(){const credito=document.getElementById("condicionPagoProveedor").value==="credito";document.getElementById("campoAbonoProveedor").classList.toggle("visible",credito);document.getElementById("campoVencimientoProveedor").classList.toggle("visible",credito);if(credito&&!document.getElementById("fechaVencimientoProveedor").value){const d=new Date();d.setDate(d.getDate()+30);document.getElementById("fechaVencimientoProveedor").value=fechaLocalISO(d)}if(!credito){document.getElementById("abonoInicialProveedor").value="0";document.getElementById("fechaVencimientoProveedor").value=""}}
 function recibirOrden(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;const p=productos.find(x=>x.id===o.productoId);if(!p)return alert("El producto de esta orden ya no existe en el inventario.");ordenRecepcionId=id;document.getElementById("formularioRecepcionOrden").reset();document.getElementById("condicionPagoProveedor").value="pagado";document.getElementById("textoRecepcionOrden").textContent=`${numeroOrdenCompra(o)} · ${o.proveedor} · Total $${Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)).toFixed(2)}`;actualizarCamposCreditoProveedor();document.getElementById("modalRecepcionOrden").classList.add("visible")}
 function cerrarRecepcionOrden(){document.getElementById("modalRecepcionOrden").classList.remove("visible");document.getElementById("formularioRecepcionOrden").reset();ordenRecepcionId=null}
-document.getElementById("formularioRecepcionOrden").addEventListener("submit",e=>{e.preventDefault();e.stopPropagation();const o=ordenesCompra.find(x=>x.id===ordenRecepcionId);if(!o||o.estado==="recibida")return cerrarRecepcionOrden();const p=productos.find(x=>x.id===o.productoId);if(!p)return alert("El producto de esta orden ya no existe.");const total=Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),condicion=document.getElementById("condicionPagoProveedor").value,metodo=document.getElementById("metodoPagoProveedor").value,abono=condicion==="credito"?Number(document.getElementById("abonoInicialProveedor").value||0):total,vencimiento=condicion==="credito"?document.getElementById("fechaVencimientoProveedor").value:"";if(!Number.isFinite(abono)||abono<0||abono>total)return alert("Revisa el abono inicial.");if(condicion==="credito"&&!vencimiento)return alert("Selecciona la fecha de vencimiento.");const anterior=Number(p.cantidad||0),costoAnterior=Number(p.costo||0),cantidad=Number(o.cantidad||0),costoCompra=Number(o.costoUnitario||0),nuevo=anterior+cantidad;p.cantidad=nuevo;p.costo=nuevo>0?((anterior*costoAnterior)+(cantidad*costoCompra))/nuevo:costoCompra;if(!p.proveedor&&o.proveedor)p.proveedor=o.proveedor;o.estado="recibida";o.fechaRecibida=new Date().toISOString();o.costoTotal=total;o.costoPromedioResultante=p.costo;o.condicionPagoProveedor=abono>=total-0.009?"pagado":"credito";o.totalPagadoProveedor=abono;o.saldoProveedor=Math.max(0,total-abono);o.fechaVencimientoProveedor=o.saldoProveedor>0?vencimiento:"";o.pagosProveedor=abono>0?[{id:Date.now()+Math.floor(Math.random()*100000),cantidad:abono,fecha:o.fechaRecibida,metodo,nota:condicion==="credito"?"Abono inicial":"Pago al recibir",saldoAnterior:total,saldoRestante:Math.max(0,total-abono)}]:[];historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:"entrada",cantidad,saldo:nuevo,fecha:o.fechaRecibida,detalle:`Recepción ${numeroOrdenCompra(o)} · ${o.proveedor}`,ordenCompraId:o.id});guardarDatos();guardarHistorial();guardarOrdenesCompra();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarCentroAlertas();actualizarEstadisticas();cerrarRecepcionOrden();alert(`Orden recibida correctamente.\n\nNuevo inventario: ${nuevo}\nSaldo proveedor: $${Number(o.saldoProveedor).toFixed(2)}`)})
-function eliminarOrdenCompra(id){const o=ordenesCompra.find(x=>x.id===id);if(!o)return;if(o.estado==="recibida")return alert("Una orden recibida no se elimina para conservar el historial de compras.");if(!confirm("¿Quieres eliminar esta orden de compra?"))return;ordenesCompra=ordenesCompra.filter(x=>x.id!==id);guardarOrdenesCompra();actualizarOrdenesCompra();actualizarProveedores();actualizarCentroAlertas()}
+document.getElementById("formularioRecepcionOrden").addEventListener("submit",async e=>{
+ e.preventDefault();e.stopPropagation();
+ const o=ordenesCompra.find(x=>x.id===ordenRecepcionId);if(!o||o.estado==="recibida")return cerrarRecepcionOrden();
+ if(!o.supabaseId)return alert("Esta orden todavía no está sincronizada con Supabase.");
+ const total=Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),
+       condicion=document.getElementById("condicionPagoProveedor").value,
+       metodo=document.getElementById("metodoPagoProveedor").value,
+       abono=condicion==="credito"?Number(document.getElementById("abonoInicialProveedor").value||0):total,
+       vencimiento=condicion==="credito"?document.getElementById("fechaVencimientoProveedor").value:"";
+ if(!Number.isFinite(abono)||abono<0||abono>total)return alert("Revisa el abono inicial.");
+ if(condicion==="credito"&&!vencimiento)return alert("Selecciona la fecha de vencimiento.");
+ try{
+  const {data:nuevoStock,error}=await flkSupabase.rpc("flk_receive_purchase_order",{
+   p_order_id:o.supabaseId,
+   p_payment_condition:condicion==="credito"?"credit":"paid",
+   p_payment_method:metodo,
+   p_initial_payment:abono,
+   p_due_date:vencimiento||null
+  });
+  if(error)throw error;
+  await cargarInventarioSupabase();
+  await cargarComprasSupabase();
+  await cargarMovimientosCajaSupabase();
+  actualizarFlujoCaja();actualizarFinanzas();actualizarCentroAlertas();actualizarEstadisticas();
+  cerrarRecepcionOrden();
+  const actual=ordenesCompra.find(x=>x.supabaseId===o.supabaseId);
+  alert(`Orden recibida en Supabase.\n\nNuevo inventario: ${Number(nuevoStock)}\nSaldo proveedor: $${Number(actual?.saldoProveedor||0).toFixed(2)}`);
+ }catch(err){console.error(err);alert("Supabase rechazó la recepción: "+(err.message||err))}
+});
+async function eliminarOrdenCompra(id){
+ const o=ordenesCompra.find(x=>x.id===id);if(!o)return;
+ if(o.estado==="recibida")return alert("Una orden recibida no se elimina para conservar el historial de compras.");
+ if(!confirm("¿Quieres eliminar esta orden de compra?"))return;
+ if(!o.supabaseId)return alert("Esta orden todavía no está vinculada con Supabase.");
+ try{
+  const {error}=await flkSupabase.rpc("flk_delete_purchase_order",{p_order_id:o.supabaseId});
+  if(error)throw error;
+  await cargarComprasSupabase();actualizarCentroAlertas();
+ }catch(err){console.error(err);alert("Supabase no permitió eliminar la orden: "+(err.message||err))}
+}
 function actualizarFiltrosOrdenes(){const proveedores=[...new Set(ordenesCompra.map(o=>String(o.proveedor||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"})),sel=document.getElementById("filtroProveedorOrden"),prev=sel.value;sel.innerHTML='<option value="">Todos los proveedores</option>'+proveedores.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(proveedores.includes(prev))sel.value=prev}
 function mostrarListaOrdenes(){actualizarFiltrosOrdenes();const q=document.getElementById("busquedaOrdenes").value.toLowerCase().trim(),estado=document.getElementById("filtroEstadoOrden").value,proveedor=document.getElementById("filtroProveedorOrden").value,lista=document.getElementById("listaOrdenes");const arr=ordenesCompra.filter(o=>(!estado||o.estado===estado)&&(!proveedor||o.proveedor===proveedor)&&[o.nombre,o.sku,o.proveedor,numeroOrdenCompra(o)].some(v=>String(v||"").toLowerCase().includes(q)));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay órdenes de compra con esos filtros.</div>';return}lista.innerHTML=arr.map(o=>{const total=Number(o.cantidad||0)*Number(o.costoUnitario||0),estadoTexto=o.estado==="recibida"?"✅ Recibida":o.estado==="ordenada"?"🚚 Ordenada":"⏳ Pendiente",acciones=o.estado==="recibida"?'<div class="acciones-orden"><button class="boton-orden boton-orden-primario" onclick="mostrarHistorial()">📜 Ver historial</button></div>':`<div class="acciones-orden"><button class="boton-orden boton-orden-primario" onclick="editarOrdenCompra(${o.id})">✏️ Editar</button>${o.estado==="pendiente"?`<button class="boton-orden boton-orden-primario" onclick="marcarOrdenada(${o.id})">🚚 Ordenada</button>`:""}<button class="boton-orden boton-orden-recibir" onclick="recibirOrden(${o.id})">✅ Recibir</button><button class="boton-orden boton-orden-eliminar" onclick="eliminarOrdenCompra(${o.id})">🗑️ Eliminar</button></div>`;return `<div class="orden-card"><div class="orden-superior"><div><h3>${escapeHtml(o.nombre)}</h3><p>${numeroOrdenCompra(o)} · SKU: ${escapeHtml(o.sku||"")}</p></div><div class="orden-total">$${total.toFixed(2)}</div></div><span class="estado-orden ${o.estado}">${estadoTexto}</span><div class="orden-detalle">Proveedor: <strong>${escapeHtml(o.proveedor||"—")}</strong><br>Cantidad: <strong>${Number(o.cantidad||0)}</strong> · Costo/u.: <strong>$${Number(o.costoUnitario||0).toFixed(2)}</strong><br>Fecha orden: <strong>${o.fechaOrden?new Date(o.fechaOrden+"T00:00:00").toLocaleDateString("es-PR"):"—"}</strong>${o.fechaRecibida?`<br>Recibida: <strong>${new Date(o.fechaRecibida).toLocaleDateString("es-PR")}</strong>`:""}${o.nota?`<br>Nota: ${escapeHtml(o.nota)}`:""}</div>${acciones}</div>`}).join("")}
 function actualizarOrdenesCompra(){document.getElementById("ordenesPendientes").textContent=ordenesCompra.filter(o=>o.estado==="pendiente").length;document.getElementById("ordenesOrdenadas").textContent=ordenesCompra.filter(o=>o.estado==="ordenada").length;document.getElementById("ordenesRecibidas").textContent=ordenesCompra.filter(o=>o.estado==="recibida").length;document.getElementById("valorOrdenesRecibidas").textContent="$"+ordenesCompra.filter(o=>o.estado==="recibida").reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0).toFixed(2);mostrarListaOrdenes()}
-function mostrarOrdenes(){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaOrdenes").style.display="block";actualizarMenu("ordenes");actualizarOrdenesCompra();scrollTop()}
+async function mostrarOrdenes(){await cargarComprasSupabase();["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaOrdenes").style.display="block";actualizarMenu("ordenes");actualizarOrdenesCompra();scrollTop()}
 
 function estadoCuentaProveedor(o){const saldo=Number(o.saldoProveedor||0);if(saldo<=0.009)return {clave:"pagada",texto:"✅ Pagada"};if(o.fechaVencimientoProveedor){const hoy=new Date(fechaLocalISO(new Date())+"T00:00:00"),v=new Date(o.fechaVencimientoProveedor+"T00:00:00");if(v<hoy)return {clave:"vencida",texto:"🔴 Vencida"}}return {clave:"pendiente",texto:"⏳ Pendiente"}}
 function abrirPagoProveedor(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado!=="recibida"||Number(o.saldoProveedor||0)<=0)return;ordenPagoProveedorId=id;document.getElementById("formularioPagoProveedor").reset();document.getElementById("textoPagoProveedor").textContent=`${o.proveedor} · ${numeroOrdenCompra(o)}`;document.getElementById("cantidadPagoProveedor").max=Number(o.saldoProveedor).toFixed(2);document.getElementById("cantidadPagoProveedor").value=Number(o.saldoProveedor).toFixed(2);document.getElementById("ayudaPagoProveedor").textContent=`Saldo actual: $${Number(o.saldoProveedor).toFixed(2)}`;document.getElementById("modalPagoProveedor").classList.add("visible")}
 function cerrarPagoProveedor(){document.getElementById("modalPagoProveedor").classList.remove("visible");document.getElementById("formularioPagoProveedor").reset();ordenPagoProveedorId=null}
-document.getElementById("formularioPagoProveedor").addEventListener("submit",e=>{e.preventDefault();const o=ordenesCompra.find(x=>x.id===ordenPagoProveedorId);if(!o)return;const cantidad=Number(document.getElementById("cantidadPagoProveedor").value),saldoAnterior=Number(o.saldoProveedor||0),metodo=document.getElementById("metodoPagoCuentaProveedor").value,nota=document.getElementById("notaPagoProveedor").value.trim();if(!Number.isFinite(cantidad)||cantidad<=0||cantidad>saldoAnterior+0.009)return alert("El pago no puede ser mayor que el saldo pendiente.");if(!Array.isArray(o.pagosProveedor))o.pagosProveedor=[];const restante=Math.max(0,saldoAnterior-cantidad);o.pagosProveedor.push({id:Date.now()+Math.floor(Math.random()*100000),cantidad,fecha:new Date().toISOString(),metodo,nota,saldoAnterior,saldoRestante:restante});o.totalPagadoProveedor=Math.min(Number(o.costoTotal||0),Number(o.totalPagadoProveedor||0)+cantidad);o.saldoProveedor=restante;o.condicionPagoProveedor=restante>0.009?"credito":"pagado";if(restante<=0.009){o.saldoProveedor=0;o.fechaVencimientoProveedor=""}guardarOrdenesCompra();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarFlujoCaja();actualizarFinanzas();cerrarPagoProveedor()})
+document.getElementById("formularioPagoProveedor").addEventListener("submit",async e=>{
+ e.preventDefault();
+ const o=ordenesCompra.find(x=>x.id===ordenPagoProveedorId);if(!o)return;
+ const cantidad=Number(document.getElementById("cantidadPagoProveedor").value),
+       saldoAnterior=Number(o.saldoProveedor||0),
+       metodo=document.getElementById("metodoPagoCuentaProveedor").value,
+       nota=document.getElementById("notaPagoProveedor").value.trim();
+ if(!Number.isFinite(cantidad)||cantidad<=0||cantidad>saldoAnterior+0.009)return alert("El pago no puede ser mayor que el saldo pendiente.");
+ if(!o.supabaseId)return alert("Esta cuenta todavía no está vinculada con Supabase.");
+ try{
+  const {error}=await flkSupabase.rpc("flk_add_supplier_payment",{
+   p_order_id:o.supabaseId,
+   p_amount:cantidad,
+   p_payment_method:metodo,
+   p_note:nota||null
+  });
+  if(error)throw error;
+  await cargarComprasSupabase();
+  await cargarMovimientosCajaSupabase();
+  actualizarFlujoCaja();actualizarFinanzas();cerrarPagoProveedor();
+  const actual=ordenesCompra.find(x=>x.supabaseId===o.supabaseId);
+  alert(`Pago guardado en Supabase.\n\nSaldo restante: $${Number(actual?.saldoProveedor||0).toFixed(2)}`);
+ }catch(err){console.error(err);alert("Supabase rechazó el pago: "+(err.message||err))}
+});
 function verHistorialPagosProveedor(id){const o=ordenesCompra.find(x=>x.id===id);if(!o)return;document.getElementById("textoHistorialPagosProveedor").textContent=`${o.proveedor} · ${numeroOrdenCompra(o)} · Total $${Number(o.costoTotal||0).toFixed(2)}`;const pagos=Array.isArray(o.pagosProveedor)?[...o.pagosProveedor].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)):[];document.getElementById("listaHistorialPagosProveedor").innerHTML=pagos.length?pagos.map(p=>`<div class="abono-card"><div class="abono-superior"><strong>${new Date(p.fecha).toLocaleString("es-PR")}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">Método: <strong>${escapeHtml(p.metodo||"—")}</strong><br>Saldo anterior: $${Number(p.saldoAnterior||0).toFixed(2)} · Restante: $${Number(p.saldoRestante||0).toFixed(2)}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div></div>`).join(""):'<div class="sin-productos">No hay pagos registrados.</div>';document.getElementById("modalHistorialPagosProveedor").classList.add("visible")}
 function cerrarHistorialPagosProveedor(){document.getElementById("modalHistorialPagosProveedor").classList.remove("visible")}
 function actualizarFiltroProveedorCuentas(){const sel=document.getElementById("filtroProveedorCuentas");if(!sel)return;const prev=sel.value,nombres=[...new Set(ordenesCompra.filter(o=>o.estado==="recibida").map(o=>String(o.proveedor||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"}));sel.innerHTML='<option value="">Todos los proveedores</option>'+nombres.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");if(nombres.includes(prev))sel.value=prev}
 function mostrarListaCuentasPagar(){actualizarFiltroProveedorCuentas();const lista=document.getElementById("listaCuentasPagar");if(!lista)return;const q=document.getElementById("busquedaCuentasPagar").value.toLowerCase().trim(),filtro=document.getElementById("filtroCuentasPagar").value,prov=document.getElementById("filtroProveedorCuentas").value;let arr=ordenesCompra.filter(o=>o.estado==="recibida"&&(!prov||o.proveedor===prov)&&[o.proveedor,o.nombre,o.sku,numeroOrdenCompra(o)].some(v=>String(v||"").toLowerCase().includes(q)));arr=arr.filter(o=>{const e=estadoCuentaProveedor(o);return filtro==="todas"||(filtro==="pendientes"&&e.clave!=="pagada")||(filtro==="vencidas"&&e.clave==="vencida")||(filtro==="pagadas"&&e.clave==="pagada")});arr.sort((a,b)=>Number(b.saldoProveedor||0)-Number(a.saldoProveedor||0));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay cuentas con esos filtros.</div>';return}lista.innerHTML=arr.map(o=>{const e=estadoCuentaProveedor(o),total=Number(o.costoTotal||0),pagado=Number(o.totalPagadoProveedor||0),saldo=Number(o.saldoProveedor||0);return `<div class="cuenta-proveedor-card ${e.clave}"><div class="cuenta-proveedor-superior"><div><h3>${escapeHtml(o.proveedor||"Proveedor")}</h3><p>${numeroOrdenCompra(o)} · ${escapeHtml(o.nombre)}</p></div><div class="cuenta-proveedor-saldo">$${saldo.toFixed(2)}</div></div><span class="estado-cuenta ${e.clave}">${e.texto}</span><div class="cuenta-proveedor-detalle">Compra total: <strong>$${total.toFixed(2)}</strong><br>Total pagado: <strong>$${pagado.toFixed(2)}</strong><br>Saldo pendiente: <strong>$${saldo.toFixed(2)}</strong>${o.fechaVencimientoProveedor?`<br>Vencimiento: <strong>${new Date(o.fechaVencimientoProveedor+"T00:00:00").toLocaleDateString("es-PR")}</strong>`:""}</div><div class="acciones-cuenta-proveedor">${saldo>0.009?`<button class="boton-cuenta-proveedor boton-pagar-proveedor" onclick="abrirPagoProveedor(${o.id})">💵 Registrar pago</button>`:""}<button class="boton-cuenta-proveedor boton-historial-proveedor" onclick="verHistorialPagosProveedor(${o.id})">📋 Historial</button></div></div>`}).join("")}
 function actualizarCuentasPagar(){const rec=ordenesCompra.filter(o=>o.estado==="recibida"),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),vencido=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").reduce((t,o)=>t+Number(o.saldoProveedor||0),0);if(document.getElementById("cuentasSaldoTotal")){document.getElementById("cuentasSaldoTotal").textContent="$"+saldo.toFixed(2);document.getElementById("cuentasSaldoVencido").textContent="$"+vencido.toFixed(2);document.getElementById("cuentasPendientes").textContent=rec.filter(o=>Number(o.saldoProveedor||0)>0.009).length;document.getElementById("cuentasTotalPagado").textContent="$"+pagado.toFixed(2);mostrarListaCuentasPagar()}}
-function mostrarCuentasPagar(){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaCuentasPagar").style.display="block";actualizarMenu("cuentasPagar");actualizarCuentasPagar();scrollTop()}
+async function mostrarCuentasPagar(){await cargarComprasSupabase();["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaCuentasPagar").style.display="block";actualizarMenu("cuentasPagar");actualizarCuentasPagar();scrollTop()}
 document.getElementById("busquedaCuentasPagar").addEventListener("input",mostrarListaCuentasPagar);
 
 
+
+async function cargarMovimientosCajaSupabase(){
+ const {data,error}=await flkSupabase.from("cash_movements")
+  .select("id,type,amount,description,payment_method,occurred_at,created_at,sale_id")
+  .order("occurred_at",{ascending:true});
+ if(error){
+  console.error("Supabase flujo caja:",error);
+  alert("No se pudo cargar el flujo de caja desde Supabase.");
+  return false;
+ }
+ movimientosCajaSupabase=(data||[]).map(m=>({
+  id:m.id,
+  tipo:m.type==="income"?"entrada":"salida",
+  cantidad:Number(m.amount||0),
+  concepto:m.description||"Movimiento",
+  metodo:normalizarMetodoFlujo(m.payment_method||"Otro"),
+  fecha:m.occurred_at||m.created_at,
+  grupo:String(m.description||"").startsWith("Gasto ·")?"gasto":
+        String(m.description||"").startsWith("Abono ·")?"abono":
+        String(m.description||"").startsWith("Venta ·")?"venta":
+        String(m.description||"").startsWith("Pago proveedor ·")?"proveedor":
+        (String(m.description||"")==="Retiro del propietario"||String(m.description||"")==="Aporte del propietario")?"propietario":
+        String(m.description||"").startsWith("Reembolso devolución ·")?"reembolso":"otro"
+ }));
+ if(typeof actualizarSaldoCajaFisica==="function")actualizarSaldoCajaFisica();
+ return true
+}
 function normalizarMetodoFlujo(m){
  const x=String(m||"Otro").trim().toLowerCase();
- if(x.includes("efectivo"))return "Efectivo";
+ if(x.includes("efectivo")||x==="cash"||x.includes("cash"))return "Efectivo";
  if(x.includes("ath"))return "ATH Móvil";
  if(x.includes("tarjeta"))return "Tarjeta";
  if(x.includes("transfer"))return "Transferencia";
@@ -1937,19 +2361,7 @@ function limitesFlujo(){
  return {desde,hasta,texto}
 }
 function movimientosFlujoCaja(){
- const mov=[];
- ventas.forEach(v=>{
-  const pagos=Array.isArray(v.pagos)?v.pagos:[];
-  if(pagos.length){
-   pagos.forEach(p=>{if(Number(p.cantidad||0)>0)mov.push({tipo:"entrada",grupo:"abono",fecha:p.fecha||v.fecha,cantidad:Number(p.cantidad||0),metodo:normalizarMetodoFlujo(p.metodo||v.metodoPago),concepto:`Cobro cliente · Recibo #${v.numero||String(v.id).slice(-8)} · ${v.cliente||"Cliente general"}`})})
-  }else{
-   const cobrado=Number(v.totalPagado??v.ingreso??0);
-   if(cobrado>0)mov.push({tipo:"entrada",grupo:"venta",fecha:v.fecha,cantidad:cobrado,metodo:normalizarMetodoFlujo(v.metodoPago),concepto:`Venta cobrada · Recibo #${v.numero||String(v.id).slice(-8)} · ${v.cliente||"Cliente general"}`})
-  }
- });
- gastos.forEach(g=>{if(Number(g.cantidad||0)>0)mov.push({tipo:"salida",grupo:"gasto",fecha:g.fecha||g.fechaLocal,cantidad:Number(g.cantidad||0),metodo:normalizarMetodoFlujo(g.metodo),concepto:`Gasto · ${g.concepto||g.categoria||"Gasto"}`})});
- ordenesCompra.filter(o=>o.estado==="recibida").forEach(o=>(Array.isArray(o.pagosProveedor)?o.pagosProveedor:[]).forEach(p=>{if(Number(p.cantidad||0)>0)mov.push({tipo:"salida",grupo:"proveedor",fecha:p.fecha||o.fechaRecibida,cantidad:Number(p.cantidad||0),metodo:normalizarMetodoFlujo(p.metodo),concepto:`Pago proveedor · ${o.proveedor||"Proveedor"} · ${numeroOrdenCompra(o)}`})}));
- return mov
+ return Array.isArray(movimientosCajaSupabase)?movimientosCajaSupabase:[];
 }
 function datosFlujoCaja(){
  const lim=limitesFlujo();if(!lim)return null;
@@ -1964,6 +2376,33 @@ function cambiarPeriodoFlujo(){
  document.getElementById("rangoPersonalizadoFlujo").classList.toggle("oculto",!personalizado);
  actualizarFlujoCaja()
 }
+function saldoCajaFisicaActual(){
+ return (movimientosCajaSupabase||[]).filter(m=>normalizarMetodoFlujo(m.metodo)==="Efectivo").reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0)
+}
+function actualizarSaldoCajaFisica(){
+ const el=document.getElementById("saldoCajaFisica");if(!el)return;
+ const saldo=saldoCajaFisicaActual();
+ el.textContent="$"+(Math.abs(saldo)<0.005?0:saldo).toFixed(2)
+}
+function abrirMovimientoPropietario(tipo){
+ if(rolSesion!=="admin")return alert("Solo el Administrador puede registrar retiros o aportes.");
+ document.getElementById("tipoMovimientoPropietario").value=tipo;
+ document.getElementById("tituloMovimientoPropietario").textContent=tipo==="withdrawal"?"🏦 Retirar efectivo de caja":"➕ Aporte del propietario";
+ document.getElementById("saldoDisponibleMovimientoValor").textContent="$"+saldoCajaFisicaActual().toFixed(2);
+ document.getElementById("cantidadMovimientoPropietario").value="";
+ document.getElementById("notaMovimientoPropietario").value="";
+ document.getElementById("botonGuardarMovimientoPropietario").textContent=tipo==="withdrawal"?"Confirmar retiro":"Guardar aporte";
+ document.getElementById("modalMovimientoPropietario").classList.add("visible");
+ setTimeout(()=>document.getElementById("cantidadMovimientoPropietario").focus(),120)
+}
+function cerrarMovimientoPropietario(){document.getElementById("modalMovimientoPropietario").classList.remove("visible");document.getElementById("formularioMovimientoPropietario").reset()}
+document.getElementById("formularioMovimientoPropietario").addEventListener("submit",async e=>{
+ e.preventDefault();const tipo=document.getElementById("tipoMovimientoPropietario").value,cantidad=Number(document.getElementById("cantidadMovimientoPropietario").value),nota=document.getElementById("notaMovimientoPropietario").value.trim();
+ if(!Number.isFinite(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
+ if(tipo==="withdrawal"&&cantidad>saldoCajaFisicaActual()+0.009)return alert("El retiro supera el efectivo disponible en caja.");
+ try{const {error}=await flkSupabase.rpc("flk_owner_cash_movement",{p_type:tipo,p_amount:cantidad,p_note:nota||null});if(error)throw error;await cargarMovimientosCajaSupabase();actualizarFlujoCaja();actualizarCierre();cerrarMovimientoPropietario();alert(tipo==="withdrawal"?"Retiro guardado en Supabase.":"Aporte guardado en Supabase.")}
+ catch(err){console.error(err);alert("Supabase rechazó el movimiento: "+(err.message||err))}
+});
 function actualizarFlujoCaja(){
  const d=datosFlujoCaja();if(!d)return;
  document.getElementById("textoPeriodoFlujo").value=d.lim.texto;
@@ -1982,7 +2421,10 @@ function actualizarFlujoCaja(){
  const lista=document.getElementById("listaFlujoCaja"),arr=[...d.mov].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
  lista.innerHTML=arr.length?arr.map(m=>`<div class="fila-estadistica"><span>${m.tipo==="entrada"?"⬇️":"⬆️"} ${escapeHtml(m.concepto)}<br><small>${new Date(m.fecha).toLocaleString("es-PR")} · ${escapeHtml(m.metodo)}</small></span><strong style="color:${m.tipo==="entrada"?"#168044":"#d93025"}">${m.tipo==="entrada"?"+":"-"}$${m.cantidad.toFixed(2)}</strong></div>`).join(""):'<div class="fila-estadistica"><span>No hay movimientos de dinero en este período.</span><strong>—</strong></div>'
 }
-function mostrarFlujoCaja(){
+async function mostrarFlujoCaja(){
+ await cargarVentasSupabase();
+ await cargarGastosSupabase();
+ await cargarMovimientosCajaSupabase();
  ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");
  document.getElementById("vistaFlujoCaja").style.display="block";actualizarMenu("flujoCaja");actualizarFlujoCaja();scrollTop()
 }
@@ -2117,6 +2559,9 @@ function mostrarInventario(){document.getElementById("vistaInventario").style.di
 function scrollTop(){window.scrollTo({top:0,behavior:"smooth"})}
 document.addEventListener("visibilitychange",()=>{
  if(document.visibilityState==="visible"){
+  if(typeof flkSupabase!=="undefined"){
+   setTimeout(async()=>{try{await cargarVentasSupabase();await cargarGastosSupabase();await cargarMovimientosCajaSupabase()}catch(e){console.error(e)}},0);
+  }
   cargarDatos();
   recalcularSaldos();
   mostrarProductos();
