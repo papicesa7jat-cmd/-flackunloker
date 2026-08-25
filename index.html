@@ -660,6 +660,63 @@ button:active{transform:none!important}
 }
 </style>
 
+
+<style>
+/* ===== AVISO DE CONEXIÓN DISCRETO ===== */
+#estadoConexionFlk{
+  top:10px !important;
+  right:10px !important;
+  left:auto !important;
+  max-width:42px !important;
+  min-width:42px !important;
+  height:42px !important;
+  padding:0 !important;
+  border-radius:999px !important;
+  overflow:hidden !important;
+  justify-content:center !important;
+  gap:0 !important;
+  transition:none !important;
+}
+#estadoConexionFlk .punto{
+  width:12px !important;
+  height:12px !important;
+  flex:0 0 12px !important;
+}
+#estadoConexionFlk #textoConexionFlk,
+#estadoConexionFlk #pendientesConexionFlk{
+  display:none !important;
+}
+#estadoConexionFlk.flk-expandido{
+  max-width:min(360px,calc(100vw - 20px)) !important;
+  min-width:0 !important;
+  width:auto !important;
+  height:auto !important;
+  padding:9px 13px !important;
+  justify-content:flex-start !important;
+  gap:8px !important;
+}
+#estadoConexionFlk.flk-expandido #textoConexionFlk,
+#estadoConexionFlk.flk-expandido #pendientesConexionFlk{
+  display:inline !important;
+}
+@media(max-width:600px){
+  #estadoConexionFlk{
+    top:8px !important;
+    right:8px !important;
+    width:38px !important;
+    min-width:38px !important;
+    max-width:38px !important;
+    height:38px !important;
+  }
+  #estadoConexionFlk.flk-expandido{
+    width:auto !important;
+    max-width:calc(100vw - 16px) !important;
+    min-width:0 !important;
+    height:auto !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <div id="estadoConexionFlk"><span class="punto"></span><span id="textoConexionFlk">Comprobando conexión…</span><small id="pendientesConexionFlk"></small></div>
@@ -1326,11 +1383,41 @@ function flkPendientesOffline(){
 function flkConflictosOffline(){
  return flkColaOffline().filter(x=>x.estado==="conflicto").length
 }
+
+let flkEstadoConexionAnterior="";
+let flkAvisoConexionTimer=null;
+
+function flkMostrarAvisoConexionTemporal(){
+ const box=document.getElementById("estadoConexionFlk");
+ if(!box)return;
+ box.classList.add("flk-expandido");
+ clearTimeout(flkAvisoConexionTimer);
+ flkAvisoConexionTimer=setTimeout(()=>{
+  box.classList.remove("flk-expandido");
+ },3200);
+}
+
+function flkEstadoConexionClave(estadoEspecial){
+ if(estadoEspecial==="sync")return "sync";
+ if(estadoEspecial==="error")return "error";
+ if(!navigator.onLine)return "offline";
+ const c=flkConflictosOffline();
+ if(c)return "conflicto";
+ const n=flkPendientesOffline();
+ return n?"online-pendiente":"sincronizado";
+}
+
 function flkActualizarEstadoConexion(estadoEspecial){
  const box=document.getElementById("estadoConexionFlk"),txt=document.getElementById("textoConexionFlk"),pen=document.getElementById("pendientesConexionFlk");
  if(!box||!txt||!pen)return;
+ const estadoClave=flkEstadoConexionClave(estadoEspecial);
+ const cambioEstado=estadoClave!==flkEstadoConexionAnterior;
+ flkEstadoConexionAnterior=estadoClave;
+ const estabaExpandido=box.classList.contains("flk-expandido");
  box.className="";
+ if(estabaExpandido)box.classList.add("flk-expandido");
  const n=flkPendientesOffline(),c=flkConflictosOffline();
+ if(cambioEstado)setTimeout(flkMostrarAvisoConexionTemporal,0);
  if(estadoEspecial==="sync"){box.classList.add("sync");txt.textContent="🔄 Sincronizando";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"";return}
  if(c){box.classList.add("error");txt.textContent="⚠️ Conflicto pendiente";pen.textContent=`${c} conflicto${c===1?"":"s"}`;return}
  if(estadoEspecial==="error"){box.classList.add("error");txt.textContent="⚠️ Error de sincronización";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"";return}
@@ -1499,6 +1586,15 @@ async function flkProcesarColaOffline(){
 window.addEventListener("online",()=>{flkActualizarEstadoConexion();flkProcesarColaOffline()});
 window.addEventListener("offline",()=>flkActualizarEstadoConexion());
 document.addEventListener("DOMContentLoaded",()=>{flkDeviceId();flkActualizarEstadoConexion();flkProcesarColaOffline()});
+document.addEventListener("DOMContentLoaded",()=>{
+ const box=document.getElementById("estadoConexionFlk");
+ if(box){
+  box.style.cursor="pointer";
+  box.title="Estado de conexión";
+  box.addEventListener("click",flkMostrarAvisoConexionTemporal);
+ }
+});
+
 
 
 async function abrirRestablecimientoTotal(){
