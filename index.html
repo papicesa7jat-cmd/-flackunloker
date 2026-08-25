@@ -441,10 +441,31 @@ body.rol-empleado .acciones-movimiento{display:none!important}
  }
 }
 
+
+/* ===== ESTADO DE CONEXION / BASE OFFLINE ===== */
+#estadoConexionFlk{
+ position:fixed;right:14px;top:14px;z-index:980;
+ display:flex;align-items:center;gap:8px;
+ max-width:calc(100vw - 28px);
+ padding:9px 13px;border-radius:999px;
+ background:#fff;box-shadow:0 5px 18px rgba(0,0,0,.13);
+ font-size:13px;font-weight:850;border:1px solid #e5e7eb;
+}
+#estadoConexionFlk .punto{width:10px;height:10px;border-radius:50%;background:#16a34a;flex:0 0 auto}
+#estadoConexionFlk.offline .punto{background:#f59e0b}
+#estadoConexionFlk.sync .punto{background:#0a84ff}
+#estadoConexionFlk.error .punto{background:#d93025}
+#estadoConexionFlk small{font-weight:700;color:#667085}
+@media(max-width:600px){
+ #estadoConexionFlk{top:8px;right:8px;padding:8px 10px;font-size:12px}
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+<div id="estadoConexionFlk"><span class="punto"></span><span id="textoConexionFlk">Comprobando conexión…</span><small id="pendientesConexionFlk"></small></div>
+
 
 <div id="authOverlay" class="auth-overlay">
  <div class="auth-box">
@@ -1073,6 +1094,59 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 </div>
 
 <script>
+
+/* ===== INFRAESTRUCTURA OFFLINE FLACKUNLOKER =====
+   Esta versión crea la cola y el indicador. Los módulos se conectarán a ella por etapas. */
+const FLK_OFFLINE_QUEUE_KEY="flackunloker_offline_queue_v1";
+const FLK_DEVICE_KEY="flackunloker_device_id_v1";
+let flkSincronizando=false;
+
+function flkUUID(){
+ if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();
+ return "flk-"+Date.now()+"-"+Math.random().toString(36).slice(2)+"-"+Math.random().toString(36).slice(2)
+}
+function flkDeviceId(){
+ let id=localStorage.getItem(FLK_DEVICE_KEY);
+ if(!id){id=flkUUID();localStorage.setItem(FLK_DEVICE_KEY,id)}
+ return id
+}
+function flkColaOffline(){
+ try{return JSON.parse(localStorage.getItem(FLK_OFFLINE_QUEUE_KEY)||"[]")}catch(e){return []}
+}
+function flkGuardarColaOffline(q){
+ localStorage.setItem(FLK_OFFLINE_QUEUE_KEY,JSON.stringify(q));
+ flkActualizarEstadoConexion()
+}
+function flkEncolarOperacion(tipo,payload){
+ const q=flkColaOffline();
+ const op={id:flkUUID(),tipo,payload,device_id:flkDeviceId(),created_at:new Date().toISOString(),estado:"pendiente",intentos:0};
+ q.push(op);flkGuardarColaOffline(q);return op
+}
+function flkPendientesOffline(){return flkColaOffline().filter(x=>x.estado==="pendiente"||x.estado==="error").length}
+function flkActualizarEstadoConexion(estadoEspecial){
+ const box=document.getElementById("estadoConexionFlk"),txt=document.getElementById("textoConexionFlk"),pen=document.getElementById("pendientesConexionFlk");
+ if(!box||!txt||!pen)return;
+ box.className="";
+ const n=flkPendientesOffline();
+ if(estadoEspecial==="sync"){box.classList.add("sync");txt.textContent="🔄 Sincronizando";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"";return}
+ if(estadoEspecial==="error"){box.classList.add("error");txt.textContent="⚠️ Error de sincronización";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"";return}
+ if(!navigator.onLine){box.classList.add("offline");txt.textContent="🟠 Sin Internet";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"Sin cambios pendientes";return}
+ txt.textContent=n?"🟢 En línea":"🟢 Sincronizado";
+ pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:""
+}
+async function flkProcesarColaOffline(){
+ if(flkSincronizando||!navigator.onLine)return;
+ const q=flkColaOffline();
+ const pendientes=q.filter(x=>x.estado==="pendiente"||x.estado==="error");
+ if(!pendientes.length){flkActualizarEstadoConexion();return}
+ // En esta primera etapa NO enviamos operaciones de negocio automáticamente.
+ // Solo queda lista la infraestructura. Los tipos se habilitarán módulo por módulo.
+ flkActualizarEstadoConexion()
+}
+window.addEventListener("online",()=>{flkActualizarEstadoConexion();flkProcesarColaOffline()});
+window.addEventListener("offline",()=>flkActualizarEstadoConexion());
+document.addEventListener("DOMContentLoaded",()=>{flkDeviceId();flkActualizarEstadoConexion();flkProcesarColaOffline()});
+
 
 async function abrirRestablecimientoTotal(){
  if(rolSesion!=="admin")return alert("Solo el Administrador puede usar el restablecimiento total.");
