@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v13-estadisticas-nitidas">
+<meta name="flackunloker-offline-version" content="2026-08-25-v14-estadisticas-rango">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -4434,6 +4434,50 @@ function imprimirFinanzas(){
 #vistaEstadisticas{
   transform:none !important;
   isolation:isolate;
+}
+</style>
+
+
+<style>
+/* ===== ESTADÍSTICAS · MISMO RANGO QUE EL RESTO DEL SITIO ===== */
+#vistaEstadisticas{
+  width:100% !important;
+  max-width:1040px !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+  padding-left:28px !important;
+  padding-right:28px !important;
+  box-sizing:border-box !important;
+}
+
+#vistaEstadisticas .estadisticas-grid,
+#vistaEstadisticas .lista-estadisticas,
+#vistaEstadisticas .respaldo-box,
+#vistaEstadisticas .seccion-titulo{
+  width:100% !important;
+  max-width:100% !important;
+  box-sizing:border-box !important;
+}
+
+#vistaEstadisticas .estadistica-card{
+  min-width:0 !important;
+  max-width:100% !important;
+}
+
+@media(max-width:799px){
+  #vistaEstadisticas{
+    max-width:720px !important;
+    padding-left:18px !important;
+    padding-right:18px !important;
+  }
+}
+
+@media(max-width:430px){
+  #vistaEstadisticas{
+    max-width:100% !important;
+    padding-left:13px !important;
+    padding-right:13px !important;
+  }
 }
 </style>
 
