@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v42-roles-visual-real">
+<meta name="flackunloker-offline-version" content="2026-08-25-v43-roles-visual-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -863,8 +863,43 @@ body.rol-empleado #panelRestablecimientoTotal{display:none!important;}
 }
 </style>
 
+
+<style id="flk-license-block-style">
+#flkLicenciaBloqueo{
+ position:fixed;inset:0;z-index:12000;
+ display:none;align-items:center;justify-content:center;
+ padding:20px;background:rgba(15,23,42,.72);backdrop-filter:blur(5px);
+}
+#flkLicenciaBloqueo.visible{display:flex}
+#flkLicenciaBloqueo .lic-bloqueo-card{
+ width:min(92vw,460px);background:#fff;border-radius:24px;padding:28px 24px;
+ box-shadow:0 24px 70px rgba(0,0,0,.25);text-align:center;color:#101828;
+}
+#flkLicenciaBloqueo .lic-bloqueo-icono{font-size:42px;margin-bottom:8px}
+#flkLicenciaBloqueo h2{margin:4px 0 10px;font-size:24px}
+#flkLicenciaBloqueo p{margin:7px 0;color:#667085;line-height:1.45}
+#flkLicenciaBloqueo .lic-bloqueo-fecha{font-weight:800;color:#344054}
+#flkLicenciaBloqueo button{
+ width:100%;margin-top:16px;border:0;border-radius:14px;padding:13px 16px;
+ background:#0a84ff;color:#fff;font-weight:800;font-size:15px;cursor:pointer;
+}
+#flkLicenciaBloqueo .lic-secundario{background:#eef4fb;color:#175cd3;margin-top:9px}
+</style>
+
 </head>
 <body>
+
+<div id="flkLicenciaBloqueo" aria-hidden="true">
+ <div class="lic-bloqueo-card">
+  <div class="lic-bloqueo-icono">🔒</div>
+  <h2 id="flkLicenciaBloqueoTitulo">Licencia requerida</h2>
+  <p id="flkLicenciaBloqueoMensaje">Esta instalación necesita una licencia activa para continuar.</p>
+  <p id="flkLicenciaBloqueoFecha" class="lic-bloqueo-fecha"></p>
+  <button type="button" onclick="flkReintentarLicencia()">🔄 Comprobar licencia</button>
+  <button type="button" class="lic-secundario" onclick="flkCerrarSesionDesdeLicencia()">Cerrar sesión</button>
+ </div>
+</div>
+
 
 <div id="flkLicenciaEstado" class="comprobando" title="Estado de licencia" onclick="flkToggleLicenciaDetalle()">
  <span class="lic-punto"></span>
@@ -2479,7 +2514,7 @@ const FLK_LICENSE_KEY="228b72e9-88dd-4c6b-91a1-4a98ff488d0c";
 const FLK_LICENSE_CACHE_KEY="flackunloker_license_cache_v1";
 let flkLicenciaInfo=null;
 let flkLicenciaUltimaValidacion=null;
-let flkLicenciaModoPrueba=true; // v42: informa, pero todavía no bloquea operaciones.
+let flkLicenciaModoPrueba=false; // v43: bloqueo real activado.
 
 let flkModoRecuperacionPassword=false;
 
@@ -3025,6 +3060,43 @@ function flkDiasDesde(fecha){
  if(Number.isNaN(d.getTime()))return Infinity;
  return Math.max(0,(Date.now()-d.getTime())/86400000)
 }
+
+function flkOcultarBloqueoLicencia(){
+ const o=document.getElementById("flkLicenciaBloqueo");
+ if(o){o.classList.remove("visible");o.setAttribute("aria-hidden","true")}
+}
+function flkMostrarBloqueoLicencia(info,motivo=""){
+ const o=document.getElementById("flkLicenciaBloqueo");
+ const titulo=document.getElementById("flkLicenciaBloqueoTitulo");
+ const mensaje=document.getElementById("flkLicenciaBloqueoMensaje");
+ const fecha=document.getElementById("flkLicenciaBloqueoFecha");
+ if(!o||!titulo||!mensaje||!fecha)return;
+ const estado=String(info?.license_status||"").toLowerCase();
+ if(estado==="expired"){
+  titulo.textContent="Licencia vencida";
+  mensaje.textContent="La licencia de Flackunloker ha vencido. Renueva la licencia para continuar utilizando el sistema.";
+ }else if(estado==="suspended"){
+  titulo.textContent="Licencia suspendida";
+  mensaje.textContent="Esta licencia está suspendida. Contacta al proveedor de Flackunloker para reactivarla.";
+ }else if(motivo==="offline-grace-expired"){
+  titulo.textContent="Se requiere conexión a Internet";
+  mensaje.textContent="Se agotó el período autorizado de trabajo offline. Conéctate a Internet para validar la licencia y continuar.";
+ }else{
+  titulo.textContent="No se pudo validar la licencia";
+  mensaje.textContent="Conéctate a Internet para comprobar que esta instalación tiene una licencia activa.";
+ }
+ fecha.textContent=info?.expires_at?"Vencimiento: "+flkFechaLicenciaBonita(info.expires_at):"";
+ o.classList.add("visible");o.setAttribute("aria-hidden","false")
+}
+async function flkReintentarLicencia(){
+ const info=await flkValidarLicencia();
+ return info
+}
+async function flkCerrarSesionDesdeLicencia(){
+ try{await flkSupabase.auth.signOut()}catch(_){}
+ location.reload()
+}
+
 function flkPintarLicencia(info,modo="online"){
  flkLicenciaInfo=info||null;
  const caja=document.getElementById("flkLicenciaEstado");
@@ -3038,6 +3110,7 @@ function flkPintarLicencia(info,modo="online"){
   caja.classList.add("error");
   texto.textContent="Licencia: sin verificar";
   detalle.textContent="No fue posible verificar la licencia.";
+  if(!flkLicenciaModoPrueba)flkMostrarBloqueoLicencia(null,modo);
   return
  }
 
@@ -3046,27 +3119,36 @@ function flkPintarLicencia(info,modo="online"){
  const cliente=info.customer_name||"Instalación";
  const vence=flkFechaLicenciaBonita(info.expires_at);
 
- if(modo==="offline-grace"){
+ if(modo==="offline-grace"&&valida&&estado==="active"){
   caja.classList.add("gracia");
   texto.textContent="Licencia: gracia offline";
- }else if(valida&&estado==="active"){
+  flkOcultarBloqueoLicencia();
+ }else if(valida&&estado==="active"&&modo!=="offline-expired"){
   caja.classList.add("activa");
   texto.textContent="Licencia: activa";
+  flkOcultarBloqueoLicencia();
  }else if(estado==="expired"){
   caja.classList.add("vencida");
   texto.textContent="Licencia: vencida";
+  if(!flkLicenciaModoPrueba)flkMostrarBloqueoLicencia(info,"expired");
  }else if(estado==="suspended"){
   caja.classList.add("suspendida");
   texto.textContent="Licencia: suspendida";
+  if(!flkLicenciaModoPrueba)flkMostrarBloqueoLicencia(info,"suspended");
+ }else if(modo==="offline-expired"){
+  caja.classList.add("error");
+  texto.textContent="Licencia: requiere Internet";
+  if(!flkLicenciaModoPrueba)flkMostrarBloqueoLicencia(info,"offline-grace-expired");
  }else{
   caja.classList.add("error");
   texto.textContent="Licencia: no válida";
+  if(!flkLicenciaModoPrueba)flkMostrarBloqueoLicencia(info,modo);
  }
 
  detalle.textContent=
   cliente+" · Vence: "+vence+
   (modo==="offline-grace"?" · Validación offline dentro del período de gracia":"")+
-  " · v42 en modo prueba (sin bloqueo)."
+  " · Protección de licencia activa."
 }
 function flkToggleLicenciaDetalle(){
  document.getElementById("flkLicenciaEstado")?.classList.toggle("expandido")
