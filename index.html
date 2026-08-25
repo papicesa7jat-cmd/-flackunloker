@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v21-inicio-seguro">
+<meta name="flackunloker-offline-version" content="2026-08-25-v22-estable">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -592,6 +592,7 @@ button:active{transform:none!important}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
 <style>
@@ -2484,14 +2485,10 @@ async function flkRecuperacionEmergenciaNube(){
    return false;
   }
 
-  alert(
-   "Datos recuperados desde Supabase.\n\n"+
-   "Productos: "+productos.length+
-   "\nMovimientos: "+historial.length+
-   "\nVentas: "+ventas.length+
-   "\nGastos: "+gastos.length+
-   "\nÓrdenes: "+ordenesCompra.length+
-   "\nCaja: "+movimientosCajaSupabase.length
+  console.log(
+   "Sincronización Supabase completada:",
+   {productos:productos.length,movimientos:historial.length,ventas:ventas.length,
+    gastos:gastos.length,ordenes:ordenesCompra.length,caja:movimientosCajaSupabase.length}
   );
   return true;
  }catch(e){
