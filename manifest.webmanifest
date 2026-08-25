@@ -1,4 +1,5 @@
 {
+  "id": "./",
   "name": "Flackunloker",
   "short_name": "Flackunloker",
   "description": "Sistema de inventario y ventas Flackunloker",
@@ -8,5 +9,10 @@
   "background_color": "#eef7ff",
   "theme_color": "#0a84ff",
   "orientation": "portrait-primary",
+  "categories": [
+    "business",
+    "productivity"
+  ],
+  "prefer_related_applications": false,
   "icons": []
 }

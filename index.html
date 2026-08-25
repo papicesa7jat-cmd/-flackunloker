@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
+<meta name="flackunloker-offline-version" content="2026-08-25-v8">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -4516,8 +4517,11 @@ recalcularSaldos();mostrarProductos();actualizarResumenHistorial();actualizarVen
 </script>
 <script>
 if("serviceWorker" in navigator){
- window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("./sw.js").catch(err=>console.error("Service Worker:",err));
+ window.addEventListener("load",async()=>{
+  try{
+   const reg=await navigator.serviceWorker.register("./sw.js",{updateViaCache:"none"});
+   if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
+  }catch(err){console.error("Service Worker:",err)}
  });
 }
 </script>
