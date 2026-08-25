@@ -2273,11 +2273,12 @@ async function cargarMovimientosCajaSupabase(){
         (String(m.description||"")==="Retiro del propietario"||String(m.description||"")==="Aporte del propietario")?"propietario":
         String(m.description||"").startsWith("Reembolso devolución ·")?"reembolso":"otro"
  }));
+ if(typeof actualizarSaldoCajaFisica==="function")actualizarSaldoCajaFisica();
  return true
 }
 function normalizarMetodoFlujo(m){
  const x=String(m||"Otro").trim().toLowerCase();
- if(x.includes("efectivo"))return "Efectivo";
+ if(x.includes("efectivo")||x==="cash"||x.includes("cash"))return "Efectivo";
  if(x.includes("ath"))return "ATH Móvil";
  if(x.includes("tarjeta"))return "Tarjeta";
  if(x.includes("transfer"))return "Transferencia";
@@ -2317,7 +2318,11 @@ function cambiarPeriodoFlujo(){
 function saldoCajaFisicaActual(){
  return (movimientosCajaSupabase||[]).filter(m=>normalizarMetodoFlujo(m.metodo)==="Efectivo").reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0)
 }
-function actualizarSaldoCajaFisica(){const el=document.getElementById("saldoCajaFisica");if(el)el.textContent="$"+saldoCajaFisicaActual().toFixed(2)}
+function actualizarSaldoCajaFisica(){
+ const el=document.getElementById("saldoCajaFisica");if(!el)return;
+ const saldo=saldoCajaFisicaActual();
+ el.textContent="$"+(Math.abs(saldo)<0.005?0:saldo).toFixed(2)
+}
 function abrirMovimientoPropietario(tipo){
  if(rolSesion!=="admin")return alert("Solo el Administrador puede registrar retiros o aportes.");
  document.getElementById("tipoMovimientoPropietario").value=tipo;document.getElementById("tituloMovimientoPropietario").textContent=tipo==="withdrawal"?"🏦 Retirar efectivo":"➕ Aporte del propietario";document.getElementById("cantidadMovimientoPropietario").value="";document.getElementById("notaMovimientoPropietario").value="";document.getElementById("modalMovimientoPropietario").classList.add("visible")
