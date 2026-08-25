@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v39-roles-visual-real">
+<meta name="flackunloker-offline-version" content="2026-08-25-v40-roles-visual-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1726,6 +1726,7 @@ function flkAplicarDevolucionLocal(op){
 
  v.ingreso=nuevoTotal;
  v.costoTotal=Math.max(0,Number(v.costoTotal||0)-aplicada*Number(item.costoUnitario||0));
+ v.cantidad=unidadesNetasVenta(v);
  v.ganancia=Number(v.ingreso||0)-Number(v.costoTotal||0);
  v.totalPagado=nuevoPagado;
  v.saldo=Math.max(0,nuevoTotal-nuevoPagado);
@@ -3645,13 +3646,15 @@ function ventaDesdeSupabase(v){
  }));
  const legacyNum=Number(v.legacy_id);
  const id=Number.isFinite(legacyNum)&&v.legacy_id!==null?idLocalDesdeLegacy(v.legacy_id,v.id):idLocalDesdeLegacy(null,v.id);
- const ingreso=Number(v.total||0),costoTotal=items.reduce((t,i)=>t+i.costo,0);
+ const ingreso=Number(v.total||0),
+       cantidadNeta=items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0),
+       costoTotal=items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0))*Number(i.costoUnitario||0),0);
  return {
   id,supabaseId:v.id,
   numero:v.receipt_number||String(id).slice(-8),
   numeroConsecutivo:Number(v.receipt_number)||0,
   items,
-  cantidad:items.reduce((t,i)=>t+i.cantidad,0),
+  cantidad:cantidadNeta,
   ingreso,costoTotal,ganancia:ingreso-costoTotal,
   fecha:v.created_at,
   cliente:v.customer_name||"Cliente general",
@@ -3850,14 +3853,52 @@ Saldo pendiente: $${saldo.toFixed(2)}`:""}`)
 });
 function esMismoDia(fechaA,fechaB){const a=new Date(fechaA),b=new Date(fechaB);return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
 function itemsDeVenta(v){return Array.isArray(v.items)?v.items:[]}
+
+function cantidadNetaItemVenta(i){
+ const vendida=Math.max(0,Number(i?.cantidad||0));
+ const devuelta=Math.max(0,Number(i?.devuelto||0));
+ return Math.max(0,vendida-devuelta)
+}
+function ingresoNetoItemVenta(i){
+ return cantidadNetaItemVenta(i)*Number(i?.precioUnitario||0)
+}
+function costoNetoItemVenta(i){
+ return cantidadNetaItemVenta(i)*Number(i?.costoUnitario||0)
+}
+function unidadesNetasVenta(v){
+ return itemsDeVenta(v).reduce((t,i)=>t+cantidadNetaItemVenta(i),0)
+}
+function costoNetoVenta(v){
+ return itemsDeVenta(v).reduce((t,i)=>t+costoNetoItemVenta(i),0)
+}
+
 function devolucionesDeVenta(v){return Array.isArray(v.devoluciones)?v.devoluciones:[]}
 function pagosDeVenta(v){return Array.isArray(v.pagos)?v.pagos:[]}
 function normalizarCuentaVenta(v){if(!Array.isArray(v.pagos))v.pagos=[];const pagosOrden=[...v.pagos].sort((a,b)=>new Date(a.fecha||0)-new Date(b.fecha||0)||Number(a.id||0)-Number(b.id||0));let saldoSec=Number(v.ingreso||0);pagosOrden.forEach(p=>{p.cantidad=Math.max(0,Number(p.cantidad||0));if(p.saldoAnterior===undefined||p.saldoAnterior===null)p.saldoAnterior=saldoSec;saldoSec=Math.max(0,saldoSec-p.cantidad);if(p.saldoRestante===undefined||p.saldoRestante===null)p.saldoRestante=saldoSec});if(v.totalPagado===undefined||v.totalPagado===null)v.totalPagado=v.estadoPago==="credito"?v.pagos.reduce((t,p)=>t+Number(p.cantidad||0),0):Number(v.ingreso||0);v.totalPagado=Math.max(0,Math.min(Number(v.totalPagado||0),Number(v.ingreso||0)));v.saldo=Math.max(0,Number(v.ingreso||0)-v.totalPagado);v.estadoPago=v.saldo>0.009?"credito":"pagado";if(v.saldo<=0.009){v.saldo=0;v.fechaVencimiento=""}else if(!v.fechaVencimiento){const base=new Date(v.fecha||Date.now());base.setDate(base.getDate()+30);v.fechaVencimiento=fechaLocalISO(base)}return v}
+
+function ventaFueCredito(v){
+ normalizarCuentaVenta(v);
+ if(Number(v.saldo||0)>0.009)return true;
+ const pagos=[...pagosDeVenta(v)].sort((a,b)=>new Date(a.fecha||0)-new Date(b.fecha||0)||Number(a.id||0)-Number(b.id||0));
+ if(!pagos.length)return false;
+ const primero=pagos[0];
+ return Number(primero.saldoRestante||0)>0.009
+}
+
 function estadoVencimientoVenta(v){normalizarCuentaVenta(v);if(v.saldo<=0)return {clave:"pagado",texto:"✅ Pagado",dias:null};const hoy=new Date();hoy.setHours(0,0,0,0);const fv=new Date(v.fechaVencimiento+"T00:00:00");if(Number.isNaN(fv.getTime()))return {clave:"credito",texto:"💳 Crédito",dias:null};const dias=Math.ceil((fv-hoy)/86400000);if(dias<0)return {clave:"vencido",texto:`🔴 Vencido · ${Math.abs(dias)} día${Math.abs(dias)===1?"":"s"}`,dias};if(dias<=7)return {clave:"proximo",texto:dias===0?"🟠 Vence hoy":`🟠 Próximo a vencer · ${dias} día${dias===1?"":"s"}`,dias};return {clave:"credito",texto:`💳 Al día · vence ${fv.toLocaleDateString("es-PR")}`,dias}}
 function recalcularTotalesVenta(v){
  const items=itemsDeVenta(v);
- items.forEach(i=>{i.cantidad=Math.max(0,Number(i.cantidad??0));i.ingreso=i.cantidad*Number(i.precioUnitario??0);i.costoTotal=i.cantidad*Number(i.costoUnitario??0);i.ganancia=i.ingreso-i.costoTotal});
- v.cantidad=items.reduce((t,i)=>t+Number(i.cantidad),0);v.ingreso=items.reduce((t,i)=>t+Number(i.ingreso),0);v.costoTotal=items.reduce((t,i)=>t+Number(i.costoTotal),0);v.ganancia=items.reduce((t,i)=>t+Number(i.ganancia),0);normalizarCuentaVenta(v)
+ items.forEach(i=>{
+  i.cantidad=Math.max(0,Number(i.cantidad??0));
+  i.devuelto=Math.max(0,Math.min(i.cantidad,Number(i.devuelto??0)));
+  i.ingreso=i.cantidad*Number(i.precioUnitario??0);
+  i.costo=i.cantidad*Number(i.costoUnitario??0);
+  i.ganancia=i.ingreso-i.costo
+ });
+ v.cantidad=unidadesNetasVenta(v);
+ v.costoTotal=costoNetoVenta(v);
+ v.ganancia=Number(v.ingreso||0)-v.costoTotal;
+ normalizarCuentaVenta(v)
 }
 function actualizarDashboardVentas(){
  const ahora=new Date(),inicioHoy=new Date(ahora.getFullYear(),ahora.getMonth(),ahora.getDate()),inicioSemana=new Date(inicioHoy);inicioSemana.setDate(inicioSemana.getDate()-6);const inicioMes=new Date(ahora.getFullYear(),ahora.getMonth(),1);
@@ -3869,10 +3910,10 @@ function actualizarDashboardVentas(){
  document.getElementById("dashboardMes").textContent=formato(resumen(ventas.filter(v=>enPeriodo(v,inicioMes))));
  const ganMes=resumen(ventas.filter(v=>enPeriodo(v,inicioMes))).ganancia,gastoMes=gastos.filter(g=>{const f=fechaGastoObj(g);return f>=inicioMes&&f<=ahora}).reduce((t,g)=>t+Number(g.cantidad||0),0);document.getElementById("dashboardNetoMes").textContent=`$${gastoMes.toFixed(2)} / $${(ganMes-gastoMes).toFixed(2)}`;
  const conteo={};
- ventas.forEach(v=>itemsDeVenta(v).forEach(i=>{const k=String(i.productoId??i.sku??i.nombre);if(!conteo[k])conteo[k]={nombre:i.nombre||"Producto",unidades:0,ingresos:0};conteo[k].unidades+=Number(i.cantidad??0);conteo[k].ingresos+=Number(i.ingreso??(Number(i.cantidad)*Number(i.precioUnitario)))}));
+ ventas.forEach(v=>itemsDeVenta(v).forEach(i=>{const k=String(i.productoId??i.sku??i.nombre),netas=cantidadNetaItemVenta(i);if(!conteo[k])conteo[k]={nombre:i.nombre||"Producto",unidades:0,ingresos:0};conteo[k].unidades+=netas;conteo[k].ingresos+=netas*Number(i.precioUnitario||0)}));
  const top=Object.values(conteo).sort((a,b)=>b.unidades-a.unidades||b.ingresos-a.ingresos).slice(0,5);
  document.getElementById("dashboardMasVendidos").innerHTML=top.length?top.map(x=>`<div class="fila-estadistica"><span>${escapeHtml(x.nombre)}</span><strong>${x.unidades} u. · $${x.ingresos.toFixed(2)}</strong></div>`).join(""):`<div class="fila-estadistica"><span>Aún no hay ventas.</span><strong>—</strong></div>`;
- const poca=[...productos].filter(p=>Number(p.cantidad)>0).map(p=>{let vendidas=0;ventas.forEach(v=>itemsDeVenta(v).filter(i=>String(i.productoId)===String(p.id)).forEach(i=>vendidas+=Number(i.cantidad??0)));return {nombre:p.nombre,cantidad:Number(p.cantidad),vendidas}}).sort((a,b)=>a.vendidas-b.vendidas||b.cantidad-a.cantidad).slice(0,5);
+ const poca=[...productos].filter(p=>Number(p.cantidad)>0).map(p=>{let vendidas=0;ventas.forEach(v=>itemsDeVenta(v).filter(i=>String(i.productoId)===String(p.id)).forEach(i=>vendidas+=cantidadNetaItemVenta(i)));return {nombre:p.nombre,cantidad:Number(p.cantidad),vendidas}}).sort((a,b)=>a.vendidas-b.vendidas||b.cantidad-a.cantidad).slice(0,5);
  document.getElementById("dashboardPocaRotacion").innerHTML=poca.length?poca.map(x=>`<div class="fila-estadistica"><span>${escapeHtml(x.nombre)}</span><strong>${x.vendidas} vend. · ${x.cantidad} stock</strong></div>`).join(""):`<div class="fila-estadistica"><span>No hay productos con stock.</span><strong>—</strong></div>`
 }
 function actualizarVentas(){
@@ -3880,12 +3921,12 @@ function actualizarVentas(){
  const hoy=new Date(),ventasHoyArr=ventas.filter(v=>esMismoDia(v.fecha,hoy));
  const sumar=(arr,campo)=>arr.reduce((t,v)=>t+Number(v[campo]??0),0);
  document.getElementById("ventasHoy").textContent=ventasHoyArr.length;
- document.getElementById("unidadesVendidasHoy").textContent=sumar(ventasHoyArr,"cantidad");
+ document.getElementById("unidadesVendidasHoy").textContent=ventasHoyArr.reduce((t,v)=>t+unidadesNetasVenta(v),0);
  document.getElementById("ingresosHoy").textContent="$"+sumar(ventasHoyArr,"ingreso").toFixed(2);
  document.getElementById("costoVendidoHoy").textContent="$"+sumar(ventasHoyArr,"costoTotal").toFixed(2);
  document.getElementById("gananciaHoy").textContent="$"+sumar(ventasHoyArr,"ganancia").toFixed(2);
  document.getElementById("totalVentas").textContent=ventas.length;
- document.getElementById("totalUnidadesVendidas").textContent=sumar(ventas,"cantidad");
+ document.getElementById("totalUnidadesVendidas").textContent=ventas.reduce((t,v)=>t+unidadesNetasVenta(v),0);
  document.getElementById("totalIngresosVentas").textContent="$"+sumar(ventas,"ingreso").toFixed(2);
  document.getElementById("totalCostoVentas").textContent="$"+sumar(ventas,"costoTotal").toFixed(2);
  document.getElementById("totalGananciaVentas").textContent="$"+sumar(ventas,"ganancia").toFixed(2);
@@ -3901,7 +3942,7 @@ function mostrarListaVentas(){
   const itemsHtml=items.filter(i=>Number(i.cantidad)>0).map(i=>`<div class="recibo-item"><span>${Number(i.cantidad)} × ${escapeHtml(i.nombre)}</span><strong>$${Number(i.ingreso??(Number(i.cantidad)*Number(i.precioUnitario))).toFixed(2)}</strong></div>`).join("")||'<div class="recibo-item"><span>Todos los artículos fueron devueltos</span><strong>$0.00</strong></div>';
   const devTxt=devoluciones.length?`<br>Devoluciones parciales: <strong>${devoluciones.length}</strong><br>${devoluciones.map(d=>`<button class="boton-recibo-venta" style="margin-top:7px" onclick="imprimirComprobanteDevolucion(${v.id},\'${d.supabaseId||d.offlineOperationId||d.id||""}\')">🖨️ Devolución ${d.numeroDevolucion?"#"+String(d.numeroDevolucion).padStart(6,"0"):""}</button>`).join(" ")}`:"";
   const puedeDevolver=items.some(i=>(Number(i.cantidad||0)-Number(i.devuelto||0))>0);   normalizarCuentaVenta(v);const ev=estadoVencimientoVenta(v),estadoTxt=`<span class="estado-pago ${ev.clave}">${ev.texto}${v.saldo>0?` · Debe $${Number(v.saldo).toFixed(2)}`:""}</span>`;
-   el.innerHTML=`<div class="venta-superior"><div><h3>Recibo #${escapeHtml(numero)}</h3><p>${cliente}${telefono}</p>${estadoTxt}</div><div class="venta-total">$${Number(v.ingreso??0).toFixed(2)}</div></div><div class="recibo-items">${itemsHtml}</div><div class="venta-detalle">Unidades netas: <strong>${items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0)}</strong> · Productos: <strong>${items.filter(i=>Number(i.cantidad)>0).length}</strong><br>Ganancia real: <strong class="ganancia-venta">$${Number(v.ganancia??0).toFixed(2)}</strong><br>Pagado: <strong>$${Number(v.totalPagado||0).toFixed(2)}</strong> · Saldo: <strong>$${Number(v.saldo||0).toFixed(2)}</strong>${v.saldo>0&&v.fechaVencimiento?`<br>Vencimiento: <strong>${new Date(v.fechaVencimiento+"T00:00:00").toLocaleDateString("es-PR")}</strong>`:""}${v.metodoPago?`<br>Método inicial: <strong>${escapeHtml(v.metodoPago)}</strong>`:""}${devTxt}${nota}<br>${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div><div class="acciones-venta"><button class="boton-recibo-venta" onclick="generarReciboVenta(${v.id})">🧾 Ver recibo</button>${v.saldo>0?`<button class="boton-abono-venta" onclick="abrirAbono(${v.id})">💵 Registrar abono</button>`:""}${pagosDeVenta(v).length?`<button class="boton-historial-abonos" onclick="verHistorialAbonos(${v.id})">📋 Historial abonos</button>`:""}${puedeDevolver?`<button class="boton-devolver-venta" onclick="abrirDevolucion(${v.id})">↩️ Devolver producto</button>`:""}<button class="boton-eliminar-venta" onclick="eliminarVenta(${v.id})">⛔ Anular recibo</button></div>`;
+   el.innerHTML=`<div class="venta-superior"><div><h3>Recibo #${escapeHtml(numero)}</h3><p>${cliente}${telefono}</p>${estadoTxt}</div><div class="venta-total">$${Number(v.ingreso??0).toFixed(2)}</div></div><div class="recibo-items">${itemsHtml}</div><div class="venta-detalle">Unidades netas: <strong>${items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0)}</strong> · Productos netos: <strong>${items.filter(i=>cantidadNetaItemVenta(i)>0).length}</strong><br>Ganancia real: <strong class="ganancia-venta">$${Number(v.ganancia??0).toFixed(2)}</strong><br>Pagado: <strong>$${Number(v.totalPagado||0).toFixed(2)}</strong> · Saldo: <strong>$${Number(v.saldo||0).toFixed(2)}</strong>${v.saldo>0&&v.fechaVencimiento?`<br>Vencimiento: <strong>${new Date(v.fechaVencimiento+"T00:00:00").toLocaleDateString("es-PR")}</strong>`:""}${v.metodoPago?`<br>Método inicial: <strong>${escapeHtml(v.metodoPago)}</strong>`:""}${devTxt}${nota}<br>${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div><div class="acciones-venta"><button class="boton-recibo-venta" onclick="generarReciboVenta(${v.id})">🧾 Ver recibo</button>${v.saldo>0?`<button class="boton-abono-venta" onclick="abrirAbono(${v.id})">💵 Registrar abono</button>`:""}${pagosDeVenta(v).length?`<button class="boton-historial-abonos" onclick="verHistorialAbonos(${v.id})">📋 Historial abonos</button>`:""}${puedeDevolver?`<button class="boton-devolver-venta" onclick="abrirDevolucion(${v.id})">↩️ Devolver producto</button>`:""}<button class="boton-eliminar-venta" onclick="eliminarVenta(${v.id})">⛔ Anular recibo</button></div>`;
   lista.appendChild(el)
  })
 }
@@ -4074,14 +4115,14 @@ function generarComprobanteAbono(ventaId,pagoId){const v=ventas.find(x=>x.id===v
 function eliminarVenta(id){
  const v=ventas.find(x=>x.id===id);if(!v)return;const items=itemsDeVenta(v),numero=v.numero||String(v.id).slice(-8);
  if(!confirm(`¿Anular el recibo #${numero}?\n\nTodas las unidades de este recibo volverán al inventario.`))return;
- items.forEach(i=>{const p=productos.find(x=>x.id===i.productoId);if(p)p.cantidad=Number(p.cantidad)+Number(i.cantidad)});
+ items.forEach(i=>{const p=productos.find(x=>x.id===i.productoId);if(p)p.cantidad=Number(p.cantidad)+cantidadNetaItemVenta(i)});
  ventas=ventas.filter(x=>x.id!==id);historial=historial.filter(m=>m.ventaId!==id);recalcularSaldos();guardarDatos();guardarHistorial();guardarVentas();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarEstadisticas()
 }
 document.getElementById("busquedaVentas").addEventListener("input",mostrarListaVentas);
 async function mostrarVentas(){if(navigator.onLine)setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="block";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("ventas");actualizarVentas();scrollTop()}
 
 function claveCliente(v){const tel=String(v.telefono||"").trim().toLowerCase();const nom=String(v.cliente||"Cliente general").trim().toLowerCase();return tel?"tel:"+tel:"nom:"+nom}
-function obtenerClientes(){const mapa={};ventas.forEach(v=>{normalizarCuentaVenta(v);const nombre=String(v.cliente||"Cliente general").trim()||"Cliente general",telefono=String(v.telefono||"").trim(),k=claveCliente(v);if(!mapa[k])mapa[k]={clave:k,nombre,telefono,compras:0,total:0,unidades:0,saldoPendiente:0,creditosPendientes:0,saldoVencido:0,creditosVencidos:0,ultima:null,ventas:[]};const c=mapa[k];c.compras++;c.total+=Number(v.ingreso||0);c.unidades+=Number(v.cantidad||0);c.saldoPendiente+=Number(v.saldo||0);if(Number(v.saldo||0)>0){c.creditosPendientes++;const ev=estadoVencimientoVenta(v);if(ev.clave==="vencido"){c.creditosVencidos++;c.saldoVencido+=Number(v.saldo||0)}}c.ventas.push(v);if(!c.ultima||new Date(v.fecha)>new Date(c.ultima))c.ultima=v.fecha});return Object.values(mapa).sort((a,b)=>new Date(b.ultima)-new Date(a.ultima))}
+function obtenerClientes(){const mapa={};ventas.forEach(v=>{normalizarCuentaVenta(v);const nombre=String(v.cliente||"Cliente general").trim()||"Cliente general",telefono=String(v.telefono||"").trim(),k=claveCliente(v);if(!mapa[k])mapa[k]={clave:k,nombre,telefono,compras:0,total:0,unidades:0,saldoPendiente:0,creditosPendientes:0,saldoVencido:0,creditosVencidos:0,ultima:null,ventas:[]};const c=mapa[k];c.compras++;c.total+=Number(v.ingreso||0);c.unidades+=unidadesNetasVenta(v);c.saldoPendiente+=Number(v.saldo||0);if(Number(v.saldo||0)>0){c.creditosPendientes++;const ev=estadoVencimientoVenta(v);if(ev.clave==="vencido"){c.creditosVencidos++;c.saldoVencido+=Number(v.saldo||0)}}c.ventas.push(v);if(!c.ultima||new Date(v.fecha)>new Date(c.ultima))c.ultima=v.fecha});return Object.values(mapa).sort((a,b)=>new Date(b.ultima)-new Date(a.ultima))}
 async function mostrarClientes(){if(navigator.onLine)setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="block";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("clientes");actualizarClientes();scrollTop()}
 function actualizarClientes(){const clientes=obtenerClientes(),q=document.getElementById("busquedaClientes").value.toLowerCase().trim(),arr=clientes.filter(c=>c.nombre.toLowerCase().includes(q)||c.telefono.toLowerCase().includes(q));document.getElementById("totalClientes").textContent=clientes.length;document.getElementById("comprasClientes").textContent=clientes.reduce((t,c)=>t+c.compras,0);document.getElementById("totalCompradoClientes").textContent="$"+clientes.reduce((t,c)=>t+c.total,0).toFixed(2);document.getElementById("creditosPendientesClientes").textContent=ventas.filter(v=>{normalizarCuentaVenta(v);return v.saldo>0}).length;document.getElementById("creditosVencidosClientes").textContent=ventas.filter(v=>estadoVencimientoVenta(v).clave==="vencido").length;document.getElementById("saldoPorCobrarClientes").textContent="$"+ventas.reduce((t,v)=>{normalizarCuentaVenta(v);return t+Number(v.saldo||0)},0).toFixed(2);document.getElementById("saldoVencidoClientes").textContent="$"+ventas.reduce((t,v)=>estadoVencimientoVenta(v).clave==="vencido"?t+Number(v.saldo||0):t,0).toFixed(2);const lista=document.getElementById("listaClientes");if(!arr.length){lista.innerHTML=`<div class="sin-productos">${clientes.length?"No encontramos clientes con esa búsqueda.":"Los clientes aparecerán aquí automáticamente cuando hagas recibos de venta."}</div>`;return}lista.innerHTML=arr.map(c=>{const f=c.ultima?new Date(c.ultima):null;return `<div class="cliente-card"><div class="cliente-superior"><div><h3>${escapeHtml(c.nombre)}</h3><p>${c.telefono?escapeHtml(c.telefono):"Sin teléfono"}</p></div><div class="cliente-total">$${c.total.toFixed(2)}</div></div><div class="cliente-detalle">Compras: <strong>${c.compras}</strong> · Unidades: <strong>${c.unidades}</strong>${c.saldoPendiente>0?`<br>Por cobrar: <strong>$${c.saldoPendiente.toFixed(2)}</strong> · Créditos: <strong>${c.creditosPendientes}</strong>`:""}${c.saldoVencido>0?`<br><span style="color:#d93025">Vencido: <strong>$${c.saldoVencido.toFixed(2)}</strong> · ${c.creditosVencidos} cuenta(s)</span>`:""}<br>Última compra: <strong>${f?f.toLocaleDateString("es-PR"):"—"}</strong>${c.saldoPendiente>0?`<br>💳 Saldo pendiente: <strong style="color:#c45b19">$${c.saldoPendiente.toFixed(2)}</strong> · ${c.creditosPendientes} cuenta(s)`:"<br>✅ Sin deuda pendiente"}</div><div class="acciones-cliente"><button class="boton-cliente" onclick="verCliente('${encodeURIComponent(c.clave)}')">🧾 Ver compras</button><button class="boton-cliente boton-cliente-venta" onclick="nuevoReciboCliente('${encodeURIComponent(c.clave)}')">＋ Nuevo recibo</button></div></div>`}).join("")}
 function clientePorClave(enc){const k=decodeURIComponent(enc);return obtenerClientes().find(c=>c.clave===k)}
@@ -4274,21 +4315,25 @@ async function mostrarGastos(){
 
 function metodoCajaClave(metodo){const m=String(metodo||"").trim().toLowerCase();if(m.includes("efectivo"))return "efectivo";if(m.includes("ath"))return "ath";if(m.includes("tarjeta"))return "tarjeta";return "otros"}
 function resumenCierreFecha(fechaLocal){
- const ventasDia=ventas.filter(v=>String(v.fecha||"").slice(0,10)===fechaLocal||fechaLocalISO(new Date(v.fecha))===fechaLocal);
+ const ventasDia=ventas.filter(v=>fechaLocalDeValor(v.fecha)===fechaLocal);
  const gastosDia=gastos.filter(g=>(g.fechaLocal||String(g.fecha||"").slice(0,10))===fechaLocal);
- const recibos=ventasDia.length,unidades=ventasDia.reduce((t,v)=>t+Number(v.cantidad||0),0),ventasTotal=ventasDia.reduce((t,v)=>t+Number(v.ingreso||0),0),costo=ventasDia.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasDia.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosDia.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
+ const recibos=ventasDia.length,unidades=ventasDia.reduce((t,v)=>t+unidadesNetasVenta(v),0),ventasTotal=ventasDia.reduce((t,v)=>t+Number(v.ingreso||0),0),costo=ventasDia.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasDia.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosDia.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
  const cobros={efectivo:0,ath:0,tarjeta:0,otros:0};
- const salidasCaja={efectivo:0,ath:0,tarjeta:0,otros:0};
- (movimientosCajaSupabase||[]).forEach(m=>{
-  if(fechaLocalISO(new Date(m.fecha))!==fechaLocal)return;
-  const clave=metodoCajaClave(m.metodo);
-  if(m.tipo==="entrada")cobros[clave]+=Number(m.cantidad||0);
-  else salidasCaja[clave]+=Number(m.cantidad||0);
+ const movimientosDia=movimientosFlujoCaja().filter(m=>fechaLocalDeValor(m.fecha)===fechaLocal);
+ movimientosDia.forEach(m=>{
+  if(m.tipo!=="entrada"||!["venta","abono"].includes(m.grupo))return;
+  cobros[metodoCajaClave(m.metodo)]+=Number(m.cantidad||0);
  });
  const cobrado=Object.values(cobros).reduce((a,b)=>a+b,0);
- const ventasCredito=ventasDia.filter(v=>{normalizarCuentaVenta(v);return pagosDeVenta(v).length>0||Number(v.saldo||0)>0});
- const credito=ventasCredito.reduce((t,v)=>t+Number(v.ingreso||0),0),saldoCredito=ventasCredito.reduce((t,v)=>t+Number(v.saldo||0),0);
- const gastoEfectivo=salidasCaja.efectivo,efectivoNeto=cobros.efectivo-salidasCaja.efectivo;
+ const ventasCredito=ventasDia.filter(v=>ventaFueCredito(v));
+ const credito=ventasCredito.reduce((t,v)=>t+Number(v.ingreso||0),0),
+       saldoCredito=ventasCredito.reduce((t,v)=>t+Number(v.saldo||0),0);
+ const gastoEfectivo=movimientosDia
+  .filter(m=>m.tipo==="salida"&&m.grupo==="gasto"&&normalizarMetodoFlujo(m.metodo)==="Efectivo")
+  .reduce((t,m)=>t+Number(m.cantidad||0),0);
+ const efectivoNeto=movimientosDia
+  .filter(m=>normalizarMetodoFlujo(m.metodo)==="Efectivo")
+  .reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0);
  return {fechaLocal,recibos,unidades,ventasTotal,costo,gananciaBruta,gastosTotal,gananciaNeta,cobrado,efectivo:cobros.efectivo,ath:cobros.ath,tarjeta:cobros.tarjeta,otros:cobros.otros,credito,saldoCredito,gastoEfectivo,efectivoNeto}
 }
 function formatoDineroCierre(n){n=Number(n||0);return (n<0?"-$":"$")+Math.abs(n).toFixed(2)}
@@ -4344,10 +4389,10 @@ function rangoReporteActual(){
 function cambiarPeriodoReporte(){const personalizado=document.getElementById("periodoReporte").value==="personalizado",box=document.getElementById("rangoPersonalizadoReporte");box.classList.toggle("oculto",!personalizado);if(personalizado){const hoy=fechaLocalISO(new Date());if(!document.getElementById("fechaDesdeReporte").value){const d=new Date();d.setDate(d.getDate()-6);document.getElementById("fechaDesdeReporte").value=fechaLocalISO(d)}if(!document.getElementById("fechaHastaReporte").value)document.getElementById("fechaHastaReporte").value=hoy}actualizarReporte()}
 function datosReporte(){
  const r=rangoReporteActual(),enRango=f=>{const x=fechaLocalDeValor(f);return x&&x>=r.inicio&&x<=r.fin},ventasR=ventas.filter(v=>enRango(v.fecha)),gastosR=gastos.filter(g=>enRango(g.fechaLocal||g.fecha));
- const recibos=ventasR.length,unidades=ventasR.reduce((t,v)=>t+Number(v.cantidad||0),0),ingresos=ventasR.reduce((t,v)=>t+Number(v.ingreso||0),0),costo=ventasR.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasR.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosR.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
+ const recibos=ventasR.length,unidades=ventasR.reduce((t,v)=>t+unidadesNetasVenta(v),0),ingresos=ventasR.reduce((t,v)=>t+Number(v.ingreso||0),0),costo=ventasR.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasR.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosR.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
  const cobros={efectivo:0,ath:0,tarjeta:0,otros:0};ventas.forEach(v=>{normalizarCuentaVenta(v);const ps=pagosDeVenta(v);if(ps.length){ps.forEach(p=>{if(enRango(p.fecha))cobros[metodoCajaClave(p.metodo)]+=Number(p.cantidad||0)})}else if(enRango(v.fecha)&&Number(v.totalPagado||0)>0)cobros[metodoCajaClave(v.metodoPago)]+=Math.min(Number(v.totalPagado||0),Number(v.ingreso||0))});
  const cobrado=Object.values(cobros).reduce((a,b)=>a+b,0),saldoCredito=ventasR.reduce((t,v)=>{normalizarCuentaVenta(v);return t+Number(v.saldo||0)},0),productosR={},categorias={};
- ventasR.forEach(v=>itemsDeVenta(v).forEach(i=>{const k=String(i.productoId??i.sku??i.nombre),cant=Number(i.cantidad||0),ing=Number(i.ingreso??cant*Number(i.precioUnitario||0));if(!productosR[k])productosR[k]={nombre:i.nombre||"Producto",unidades:0,ingresos:0};productosR[k].unidades+=cant;productosR[k].ingresos+=ing}));
+ ventasR.forEach(v=>itemsDeVenta(v).forEach(i=>{const k=String(i.productoId??i.sku??i.nombre),cant=cantidadNetaItemVenta(i),ing=cant*Number(i.precioUnitario||0);if(!productosR[k])productosR[k]={nombre:i.nombre||"Producto",unidades:0,ingresos:0};productosR[k].unidades+=cant;productosR[k].ingresos+=ing}));
  gastosR.forEach(g=>{const k=String(g.categoria||"Otro");categorias[k]=(categorias[k]||0)+Number(g.cantidad||0)});
  return {...r,recibos,unidades,ingresos,costo,gananciaBruta,gastosTotal,gananciaNeta,cobrado,...cobros,saldoCredito,productos:Object.values(productosR).sort((a,b)=>b.unidades-a.unidades||b.ingresos-a.ingresos),categorias:Object.entries(categorias).sort((a,b)=>b[1]-a[1])}
 }
@@ -4733,7 +4778,92 @@ function limitesFlujo(){
  return {desde,hasta,texto}
 }
 function movimientosFlujoCaja(){
- return Array.isArray(movimientosCajaSupabase)?movimientosCajaSupabase:[];
+ const mov=[];
+
+ // Cobros de ventas y abonos: se reconstruyen desde las cuentas de cada recibo.
+ ventas.forEach(v=>{
+  const pagos=pagosDeVenta(v);
+  if(pagos.length){
+   pagos.forEach((p,idx)=>{
+    const fecha=p.fecha||v.fecha||new Date().toISOString();
+    const cercaVenta=Math.abs(new Date(fecha)-new Date(v.fecha||fecha))<10*60*1000;
+    const esInicial=idx===0&&cercaVenta&&Number((p.saldoAnterior??v.ingreso)||0)>=Number(v.ingreso||0)-0.01;
+    mov.push({
+     id:"venta-pago-"+String(p.supabaseId||p.offlineOperationId||p.id||idx),
+     tipo:"entrada",cantidad:Number(p.cantidad||0),
+     concepto:esInicial?"Venta · Recibo "+String(v.numero||v.id):"Abono · Recibo "+String(v.numero||v.id),
+     metodo:normalizarMetodoFlujo(p.metodo||v.metodoPago||"Otro"),
+     fecha,grupo:esInicial?"venta":"abono"
+    })
+   })
+  }else if(Number(v.totalPagado||0)>0){
+   mov.push({
+    id:"venta-fallback-"+String(v.supabaseId||v.offlineOperationId||v.id),
+    tipo:"entrada",cantidad:Math.min(Number(v.totalPagado||0),Number(v.ingreso||0)),
+    concepto:"Venta · Recibo "+String(v.numero||v.id),
+    metodo:normalizarMetodoFlujo(v.metodoPago||"Otro"),
+    fecha:v.fecha||new Date().toISOString(),grupo:"venta"
+   })
+  }
+
+  // Las devoluciones representan salida de dinero; usar el método inicial del recibo
+  // cuando no existe un método específico almacenado en la devolución.
+  devolucionesDeVenta(v).forEach((d,idx)=>{
+   mov.push({
+    id:"reembolso-"+String(d.supabaseId||d.offlineOperationId||d.id||idx),
+    tipo:"salida",cantidad:Number(d.reembolso??d.monto??0),
+    concepto:"Reembolso devolución · Recibo "+String(v.numero||v.id),
+    metodo:normalizarMetodoFlujo(d.metodo||v.metodoPago||"Otro"),
+    fecha:d.fecha||v.fecha||new Date().toISOString(),grupo:"reembolso"
+   })
+  })
+ });
+
+ // Gastos actuales: editar/eliminar offline se refleja de inmediato porque se toma
+ // el estado actual de la tabla local de gastos, no un cash_movement viejo.
+ gastos.forEach(g=>{
+  mov.push({
+   id:"gasto-"+String(g.supabaseId||g.offlineOperationId||g.id),
+   tipo:"salida",cantidad:Number(g.cantidad||0),
+   concepto:"Gasto · "+String(g.concepto||"Gasto"),
+   metodo:normalizarMetodoFlujo(g.metodo||"Otro"),
+   fecha:g.fecha||(g.fechaLocal?g.fechaLocal+"T12:00:00-04:00":new Date().toISOString()),
+   grupo:"gasto"
+  })
+ });
+
+ // Pagos a proveedores.
+ ordenesCompra.filter(o=>o.estado==="recibida").forEach(o=>{
+  const pagos=Array.isArray(o.pagosProveedor)?o.pagosProveedor:[];
+  if(pagos.length){
+   pagos.forEach((p,idx)=>mov.push({
+    id:"proveedor-"+String(p.supabaseId||p.offlineOperationId||p.offlineReceiveOperationId||p.id||idx),
+    tipo:"salida",cantidad:Number(p.cantidad||0),
+    concepto:"Pago proveedor · "+String(o.proveedor||"Proveedor"),
+    metodo:normalizarMetodoFlujo(p.metodo||o.metodoPagoProveedor||"Otro"),
+    fecha:p.fecha||o.fechaRecibida||o.fechaOrden||new Date().toISOString(),
+    grupo:"proveedor"
+   }))
+  }else if(Number(o.totalPagadoProveedor||0)>0){
+   mov.push({
+    id:"proveedor-fallback-"+String(o.supabaseId||o.offlineOperationId||o.id),
+    tipo:"salida",cantidad:Number(o.totalPagadoProveedor||0),
+    concepto:"Pago proveedor · "+String(o.proveedor||"Proveedor"),
+    metodo:normalizarMetodoFlujo(o.metodoPagoProveedor||"Otro"),
+    fecha:o.fechaRecibida||o.fechaOrden||new Date().toISOString(),
+    grupo:"proveedor"
+   })
+  }
+ });
+
+ // Conservar de cash_movements solo operaciones que no se pueden reconstruir
+ // de las tablas anteriores (propietario y movimientos manuales/otros).
+ (Array.isArray(movimientosCajaSupabase)?movimientosCajaSupabase:[]).forEach(m=>{
+  if(["venta","abono","gasto","proveedor","reembolso"].includes(m.grupo))return;
+  mov.push({...m,metodo:normalizarMetodoFlujo(m.metodo)})
+ });
+
+ return mov.filter(m=>Number.isFinite(Number(m.cantidad))&&Number(m.cantidad)>0)
 }
 function datosFlujoCaja(){
  const lim=limitesFlujo();if(!lim)return null;
@@ -4749,7 +4879,7 @@ function cambiarPeriodoFlujo(){
  actualizarFlujoCaja()
 }
 function saldoCajaFisicaActual(){
- return (movimientosCajaSupabase||[]).filter(m=>normalizarMetodoFlujo(m.metodo)==="Efectivo").reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0)
+ return movimientosFlujoCaja().filter(m=>normalizarMetodoFlujo(m.metodo)==="Efectivo").reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0)
 }
 function actualizarSaldoCajaFisica(){
  const el=document.getElementById("saldoCajaFisica");if(!el)return;
@@ -4863,7 +4993,9 @@ function costoVentasMesArrendamiento(mes){
   const d=new Date(v.fecha);
   if(Number.isNaN(d.getTime()))return total;
   const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-  return vm===mes?total+Number(v.costoTotal||0):total;
+  if(vm!==mes)return total;
+  const costoDevuelto=itemsDeVenta(v).reduce((t,i)=>t+Math.max(0,Number(i.devuelto||0))*Number(i.costoUnitario||0),0);
+  return total+Number(v.costoTotal||0)+costoDevuelto;
  },0)
 }
 function cargarConfiguracionArrendamientoMes(){
