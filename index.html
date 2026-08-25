@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v29-roles-visual-definitivo">
+<meta name="flackunloker-offline-version" content="2026-08-25-v30-roles-visual-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -740,6 +740,33 @@ html.flk-offline .cuenta-proveedor-card{
 }
 </style>
 
+
+<style id="flkPermisosEmpleadoV30">
+/* ===== FLACKUNLOKER v30 · PERMISOS EMPLEADO EN HEAD REAL ===== */
+body.rol-empleado .solo-admin{display:none!important;}
+body.rol-empleado #menuPrincipalFondo #botonGastos,
+body.rol-empleado #menuPrincipalFondo #botonCierre,
+body.rol-empleado #menuPrincipalFondo #botonReportes,
+body.rol-empleado #menuPrincipalFondo #botonOrdenes,
+body.rol-empleado #menuPrincipalFondo #botonProveedores,
+body.rol-empleado #menuPrincipalFondo #botonCuentasPagar,
+body.rol-empleado #menuPrincipalFondo #botonFlujoCaja,
+body.rol-empleado #menuPrincipalFondo #botonFinanzas,
+body.rol-empleado #menuPrincipalFondo #botonEstadisticas,
+body.rol-empleado #menuPrincipalFondo #botonUsuarios,
+body.rol-empleado #menuPrincipalFondo .menu-cuadricula button[onclick="abrirFormulario()"]{display:none!important;}
+body.rol-empleado #vistaInventario .boton-agregar,
+body.rol-empleado #listaProductos .accion.entrada,
+body.rol-empleado #listaProductos .accion.salida,
+body.rol-empleado #listaProductos .accion.editar,
+body.rol-empleado #listaProductos .accion.eliminar{display:none!important;}
+body.rol-empleado #listaProductos .acciones{grid-template-columns:1fr!important;}
+body.rol-empleado .boton-borrar-historial,
+body.rol-empleado .boton-movimiento-editar,
+body.rol-empleado .boton-movimiento-eliminar,
+body.rol-empleado .boton-eliminar-venta,
+body.rol-empleado #panelRestablecimientoTotal{display:none!important;}
+</style>
 </head>
 <body>
 <div id="estadoConexionFlk"><span class="punto"></span><span id="textoConexionFlk">Comprobando conexión…</span><small id="pendientesConexionFlk"></small></div>
@@ -1339,7 +1366,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div id="menuPrincipalFondo" class="menu-panel-fondo" onclick="cerrarMenuPrincipal(event)">
  <div class="menu-panel" onclick="event.stopPropagation()">
   <div class="menu-panel-cabecera"><h2>☰ Menú principal</h2><button class="cerrar-menu" onclick="cerrarMenuPrincipal()">✕</button></div>
-  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button id="botonUsuarios" onclick="mostrarUsuarios()">👥 Usuarios</button></div>
+  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button class="solo-admin" onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button class="solo-admin" id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button class="solo-admin" id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button class="solo-admin" id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button class="solo-admin" id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button class="solo-admin" id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button class="solo-admin" id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button class="solo-admin" id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button class="solo-admin" id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button class="solo-admin" id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button class="solo-admin" id="botonUsuarios" onclick="mostrarUsuarios()">👥 Usuarios</button></div>
  </div>
 </div>
 
@@ -2410,6 +2437,7 @@ async function cargarRolUsuario(user){
 }
 function aplicarPermisosVisuales(){
  const admin=rolSesion==="admin";
+ document.querySelectorAll(".solo-admin").forEach(el=>{el.style.setProperty("display",admin?"":"none",admin?"":"important")});
  const resetPanel=document.getElementById("panelRestablecimientoTotal");if(resetPanel)resetPanel.style.display=admin?"block":"none";
  document.body.classList.toggle("rol-empleado",!admin);
  const btnArr=document.getElementById("botonGuardarArrendamiento");if(btnArr)btnArr.style.display=admin?"":"none";
@@ -4869,45 +4897,6 @@ function imprimirFinanzas(){
 }
 </style>
 
-
-<style>
-/* ===== FLACKUNLOKER v29 · PERMISOS VISUALES DEFINITIVOS ===== */
-/* El menú usa display:flex!important; por eso estas reglas también deben usar !important. */
-body.rol-empleado #menuPrincipalFondo #botonGastos,
-body.rol-empleado #menuPrincipalFondo #botonCierre,
-body.rol-empleado #menuPrincipalFondo #botonReportes,
-body.rol-empleado #menuPrincipalFondo #botonOrdenes,
-body.rol-empleado #menuPrincipalFondo #botonProveedores,
-body.rol-empleado #menuPrincipalFondo #botonCuentasPagar,
-body.rol-empleado #menuPrincipalFondo #botonFlujoCaja,
-body.rol-empleado #menuPrincipalFondo #botonFinanzas,
-body.rol-empleado #menuPrincipalFondo #botonEstadisticas,
-body.rol-empleado #menuPrincipalFondo #botonUsuarios,
-body.rol-empleado #menuPrincipalFondo .menu-cuadricula button[onclick="abrirFormulario()"]{
-  display:none!important;
-}
-
-/* Inventario: empleado puede consultar y vender, no administrar stock/productos. */
-body.rol-empleado #vistaInventario .boton-agregar,
-body.rol-empleado #listaProductos .accion.entrada,
-body.rol-empleado #listaProductos .accion.salida,
-body.rol-empleado #listaProductos .accion.editar,
-body.rol-empleado #listaProductos .accion.eliminar{
-  display:none!important;
-}
-body.rol-empleado #listaProductos .acciones{
-  grid-template-columns:1fr!important;
-}
-
-/* Acciones administrativas del historial y anulación de ventas. */
-body.rol-empleado .boton-borrar-historial,
-body.rol-empleado .boton-movimiento-editar,
-body.rol-empleado .boton-movimiento-eliminar,
-body.rol-empleado .boton-eliminar-venta,
-body.rol-empleado #panelRestablecimientoTotal{
-  display:none!important;
-}
-</style>
 </head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el estado financiero.");w.document.write(html);w.document.close()
 }
