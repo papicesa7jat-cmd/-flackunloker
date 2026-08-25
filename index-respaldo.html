@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v36-roles-visual-real">
+<meta name="flackunloker-offline-version" content="2026-08-25-v45-roles-visual-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -813,8 +813,180 @@ body.rol-empleado #panelRestablecimientoTotal{display:none!important;}
 #modalNuevaPassword .recuperar-estado.error{background:#ffecec;color:#b42318}
 </style>
 
+
+<style id="flk-license-style">
+#flkLicenciaEstado{
+ position:fixed;
+ left:50%;
+ top:10px;
+ transform:translateX(-50%);
+ z-index:990;
+ display:flex;
+ align-items:center;
+ gap:7px;
+ max-width:min(92vw,520px);
+ padding:8px 12px;
+ border-radius:999px;
+ border:1px solid #d9e8f6;
+ background:rgba(255,255,255,.97);
+ box-shadow:0 7px 22px rgba(20,42,80,.10);
+ font-size:12px;
+ font-weight:800;
+ color:#475467;
+ cursor:pointer;
+}
+#flkLicenciaEstado .lic-punto{
+ width:9px;height:9px;border-radius:50%;background:#98a2b3;flex:0 0 auto;
+}
+#flkLicenciaEstado.activa .lic-punto{background:#16a34a}
+#flkLicenciaEstado.gracia .lic-punto{background:#f59e0b}
+#flkLicenciaEstado.vencida .lic-punto,
+#flkLicenciaEstado.suspendida .lic-punto,
+#flkLicenciaEstado.error .lic-punto{background:#d93025}
+#flkLicenciaEstado.comprobando .lic-punto{background:#0a84ff}
+#flkLicenciaEstado .lic-detalle{display:none;font-weight:650;color:#667085}
+#flkLicenciaEstado.expandido{
+ border-radius:16px;
+ align-items:flex-start;
+ flex-wrap:wrap;
+ justify-content:center;
+ text-align:center;
+}
+#flkLicenciaEstado.expandido .lic-detalle{display:block;width:100%}
+@media(max-width:600px){
+ #flkLicenciaEstado{
+  top:52px;
+  max-width:calc(100vw - 20px);
+  font-size:11px;
+  padding:7px 10px;
+ }
+}
+</style>
+
+
+<style id="flk-license-block-style">
+#flkLicenciaBloqueo{
+ position:fixed;inset:0;z-index:12000;
+ display:none;align-items:center;justify-content:center;
+ padding:20px;background:rgba(15,23,42,.72);backdrop-filter:blur(5px);
+}
+#flkLicenciaBloqueo.visible{display:flex}
+#flkLicenciaBloqueo .lic-bloqueo-card{
+ width:min(92vw,460px);background:#fff;border-radius:24px;padding:28px 24px;
+ box-shadow:0 24px 70px rgba(0,0,0,.25);text-align:center;color:#101828;
+}
+#flkLicenciaBloqueo .lic-bloqueo-icono{font-size:42px;margin-bottom:8px}
+#flkLicenciaBloqueo h2{margin:4px 0 10px;font-size:24px}
+#flkLicenciaBloqueo p{margin:7px 0;color:#667085;line-height:1.45}
+#flkLicenciaBloqueo .lic-bloqueo-fecha{font-weight:800;color:#344054}
+#flkLicenciaBloqueo button{
+ width:100%;margin-top:16px;border:0;border-radius:14px;padding:13px 16px;
+ background:#0a84ff;color:#fff;font-weight:800;font-size:15px;cursor:pointer;
+}
+#flkLicenciaBloqueo .lic-secundario{background:#eef4fb;color:#175cd3;margin-top:9px}
+</style>
+
+
+<style id="flk-owner-license-panel-style">
+.solo-propietario{display:none!important}
+body.es-propietario .solo-propietario{display:flex!important}
+#vistaLicencias{
+ display:none;
+ width:100%;
+ max-width:760px;
+ margin:0 auto;
+}
+#vistaLicencias .lic-panel{
+ background:#fff;
+ border:1px solid #dce8f4;
+ border-radius:20px;
+ padding:18px;
+ margin-bottom:14px;
+ box-shadow:0 8px 24px rgba(20,42,80,.06);
+}
+#vistaLicencias .lic-grid{
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:10px;
+}
+#vistaLicencias .lic-dato{
+ background:#f7fbff;
+ border:1px solid #e3eef8;
+ border-radius:14px;
+ padding:12px;
+}
+#vistaLicencias .lic-dato span{
+ display:block;
+ color:#667085;
+ font-size:11px;
+ font-weight:700;
+ margin-bottom:4px;
+}
+#vistaLicencias .lic-dato strong{
+ display:block;
+ color:#101828;
+ font-size:14px;
+ overflow-wrap:anywhere;
+}
+#vistaLicencias .lic-acciones{
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:10px;
+ margin-top:14px;
+}
+#vistaLicencias .lic-acciones button{
+ border:0;
+ border-radius:13px;
+ padding:12px;
+ font-weight:800;
+ cursor:pointer;
+}
+#vistaLicencias .lic-renovar{background:#eaf4ff;color:#0a84ff}
+#vistaLicencias .lic-suspender{background:#fff0ef;color:#b42318}
+#vistaLicencias .lic-activar{background:#e9f8ef;color:#168044}
+#vistaLicencias .lic-aviso{
+ margin-top:12px;
+ padding:11px 12px;
+ border-radius:12px;
+ background:#f7f8fa;
+ color:#667085;
+ font-size:12px;
+ line-height:1.45;
+}
+@media(max-width:520px){
+ #vistaLicencias .lic-grid,
+ #vistaLicencias .lic-acciones{grid-template-columns:1fr}
+}
+</style>
+
+
+<style id="flk-owner-visibility-fix">
+#botonLicencias{display:none!important}
+body.es-propietario #menuPrincipalFondo #botonLicencias{display:flex!important}
+body:not(.es-propietario) #botonLicencias{display:none!important}
+</style>
+
 </head>
 <body>
+
+<div id="flkLicenciaBloqueo" aria-hidden="true">
+ <div class="lic-bloqueo-card">
+  <div class="lic-bloqueo-icono">🔒</div>
+  <h2 id="flkLicenciaBloqueoTitulo">Licencia requerida</h2>
+  <p id="flkLicenciaBloqueoMensaje">Esta instalación necesita una licencia activa para continuar.</p>
+  <p id="flkLicenciaBloqueoFecha" class="lic-bloqueo-fecha"></p>
+  <button type="button" onclick="flkReintentarLicencia()">🔄 Comprobar licencia</button>
+  <button type="button" class="lic-secundario" onclick="flkCerrarSesionDesdeLicencia()">Cerrar sesión</button>
+ </div>
+</div>
+
+
+<div id="flkLicenciaEstado" class="comprobando" title="Estado de licencia" onclick="flkToggleLicenciaDetalle()">
+ <span class="lic-punto"></span>
+ <span id="flkLicenciaTexto">Licencia: comprobando…</span>
+ <span id="flkLicenciaDetalle" class="lic-detalle"></span>
+</div>
+
 <div id="estadoConexionFlk"><span class="punto"></span><span id="textoConexionFlk">Comprobando conexión…</span><small id="pendientesConexionFlk"></small></div>
 
 
@@ -1449,11 +1621,44 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   </div>
 </div>
 
+
+<div id="vistaLicencias" style="display:none">
+ <div class="seccion-titulo">
+  <h2>🔐 Licencias</h2>
+  <button class="boton-agregar" type="button" onclick="cargarPanelLicencias()">↻ Actualizar</button>
+ </div>
+
+ <div class="lic-panel">
+  <div class="lic-grid">
+   <div class="lic-dato"><span>Cliente / instalación</span><strong id="licPanelCliente">—</strong></div>
+   <div class="lic-dato"><span>Estado</span><strong id="licPanelEstado">—</strong></div>
+   <div class="lic-dato"><span>Vencimiento</span><strong id="licPanelVencimiento">—</strong></div>
+   <div class="lic-dato"><span>Gracia offline</span><strong id="licPanelGracia">—</strong></div>
+  </div>
+
+  <div class="campo" style="margin-top:16px">
+   <label for="licNuevaFecha">Nueva fecha de vencimiento</label>
+   <input id="licNuevaFecha" type="datetime-local">
+  </div>
+
+  <div class="lic-acciones">
+   <button class="lic-renovar" type="button" onclick="renovarLicenciaPropietario()">📅 Renovar licencia</button>
+   <button class="lic-suspender" id="licBotonSuspender" type="button" onclick="cambiarEstadoLicenciaPropietario('suspended')">⛔ Suspender</button>
+   <button class="lic-activar" id="licBotonActivar" type="button" onclick="cambiarEstadoLicenciaPropietario('active')">✅ Reactivar</button>
+  </div>
+
+  <div class="lic-aviso">
+   Solo la cuenta propietaria del software puede ver y usar este panel.
+   Los demás administradores no pueden renovar ni cambiar el estado de la licencia.
+  </div>
+ </div>
+</div>
+
 <button class="boton-menu-flotante" onclick="abrirMenuPrincipal()">☰ Menú</button>
 <div id="menuPrincipalFondo" class="menu-panel-fondo" onclick="cerrarMenuPrincipal(event)">
  <div class="menu-panel" onclick="event.stopPropagation()">
   <div class="menu-panel-cabecera"><h2>☰ Menú principal</h2><button class="cerrar-menu" onclick="cerrarMenuPrincipal()">✕</button></div>
-  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button class="solo-admin" onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button class="solo-admin" id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button class="solo-admin" id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button class="solo-admin" id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button class="solo-admin" id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button class="solo-admin" id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button class="solo-admin" id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button class="solo-admin" id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button class="solo-admin" id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button class="solo-admin" id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button class="solo-admin" id="botonUsuarios" onclick="mostrarUsuarios()">👥 Usuarios</button></div>
+  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button class="solo-admin" onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button class="solo-admin" id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button class="solo-admin" id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button class="solo-admin" id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button class="solo-admin" id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button class="solo-admin" id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button class="solo-admin" id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button class="solo-admin" id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button class="solo-admin" id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button class="solo-admin" id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button class="solo-admin" id="botonUsuarios" onclick="mostrarUsuarios()">👥 Usuarios</button><button class="solo-propietario" id="botonLicencias" onclick="mostrarLicencias()">🔐 Licencias</button></div>
  </div>
 </div>
 
@@ -1726,6 +1931,7 @@ function flkAplicarDevolucionLocal(op){
 
  v.ingreso=nuevoTotal;
  v.costoTotal=Math.max(0,Number(v.costoTotal||0)-aplicada*Number(item.costoUnitario||0));
+ v.cantidad=unidadesNetasVenta(v);
  v.ganancia=Number(v.ingreso||0)-Number(v.costoTotal||0);
  v.totalPagado=nuevoPagado;
  v.saldo=Math.max(0,nuevoTotal-nuevoPagado);
@@ -2417,6 +2623,12 @@ const flkSupabase=window.supabase.createClient(FLK_SUPABASE_URL,FLK_SUPABASE_KEY
 let modoAuth="login";
 let rolSesion="employee";
 let flkSesionActiva=false;
+const FLK_LICENSE_KEY="228b72e9-88dd-4c6b-91a1-4a98ff488d0c";
+const FLK_LICENSE_CACHE_KEY="flackunloker_license_cache_v1";
+let flkLicenciaInfo=null;
+let flkLicenciaUltimaValidacion=null;
+let flkLicenciaModoPrueba=false; // v43: bloqueo real activado.
+
 let flkModoRecuperacionPassword=false;
 
 function cambiarModoAuth(modo){
@@ -2482,6 +2694,7 @@ function flkPintarSesionLocal(user){
  document.getElementById("authUsuario").classList.add("visible");
  document.getElementById("authOverlay").classList.add("oculto");
  aplicarPermisosVisuales();
+  if(navigator.onLine)setTimeout(()=>flkComprobarPropietarioSoftware(),0);
  if(typeof flkAplicarPendientesSobreDatos==="function")flkAplicarPendientesSobreDatos();
  if(typeof mostrarProductos==="function")mostrarProductos();
  if(typeof actualizarResumenHistorial==="function")actualizarResumenHistorial();
@@ -2743,6 +2956,8 @@ async function mostrarAppConSesion(session){
  }
 }
 async function cerrarSesionFlackunloker(){
+ flkEsPropietarioSoftware=false;
+ document.body.classList.remove("es-propietario");
  flkSesionActiva=false;
  rolSesion="employee";
  document.body.classList.add("rol-empleado");
@@ -2782,6 +2997,10 @@ function flkEstadoRecuperacion(id,texto,tipo=""){
   el.className="recuperar-estado"+(texto?" visible "+tipo:"");
 }
 function abrirRecuperarPassword(){
+  if(!navigator.onLine){
+    alert("Para recuperar o cambiar la contraseña debes estar conectado a Internet.");
+    return;
+  }
   const modal=document.getElementById("modalRecuperarPassword");
   const correo=document.getElementById("correoRecuperacion");
   const correoLogin=document.getElementById("authEmail");
@@ -2811,6 +3030,14 @@ function flkUrlRecuperacion(){
 
 document.getElementById("formularioRecuperarPassword")?.addEventListener("submit",async e=>{
   e.preventDefault();
+  if(!navigator.onLine){
+    flkEstadoRecuperacion(
+      "estadoRecuperacionPassword",
+      "Para recuperar o cambiar la contraseña debes estar conectado a Internet.",
+      "error"
+    );
+    return;
+  }
   const email=(document.getElementById("correoRecuperacion")?.value||"").trim();
   const boton=document.getElementById("botonEnviarRecuperacion");
   if(!email)return;
@@ -2823,23 +3050,65 @@ document.getElementById("formularioRecuperarPassword")?.addEventListener("submit
     if(error)throw error;
     flkEstadoRecuperacion(
       "estadoRecuperacionPassword",
-      "Si el correo pertenece a una cuenta registrada, recibirás un enlace para cambiar la contraseña. Revisa también Spam o Correo no deseado.",
+      "Si el correo pertenece a una cuenta registrada, recibirás un enlace para cambiar la contraseña. Revisa también Spam o Correo no deseado. Evita solicitar varios enlaces seguidos.",
       "ok"
     );
   }catch(err){
     console.error("Recuperación de contraseña:",err);
-    flkEstadoRecuperacion(
-      "estadoRecuperacionPassword",
-      "No se pudo enviar el correo de recuperación. Comprueba la conexión e inténtalo nuevamente.",
-      "error"
-    );
+    const status=Number(err?.status||0);
+    const code=String(err?.code||"");
+    const msg=String(err?.message||"").toLowerCase();
+
+    if(status===429 || code.includes("rate") || msg.includes("rate limit") || msg.includes("too many")){
+      const pareceCooldown=msg.includes("60") || msg.includes("seconds") || msg.includes("second");
+      flkEstadoRecuperacion(
+        "estadoRecuperacionPassword",
+        pareceCooldown
+          ? "Debes esperar antes de solicitar otro enlace. Inténtalo nuevamente cuando termine el tiempo de espera."
+          : "Se alcanzó temporalmente el límite de correos de recuperación de Supabase. Espera un tiempo antes de solicitar otro enlace.",
+        "error"
+      );
+    }else if(!navigator.onLine || msg.includes("fetch") || msg.includes("network")){
+      flkEstadoRecuperacion(
+        "estadoRecuperacionPassword",
+        "No hay conexión con Internet en este momento. Comprueba la conexión e inténtalo nuevamente.",
+        "error"
+      );
+    }else{
+      flkEstadoRecuperacion(
+        "estadoRecuperacionPassword",
+        "Supabase no pudo enviar el correo de recuperación en este momento. Espera un momento e inténtalo otra vez.",
+        "error"
+      );
+    }
   }finally{
-    if(boton){boton.disabled=false;boton.textContent="Enviar enlace";}
+    if(boton){
+      boton.disabled=true;
+      boton.textContent="Espera 60 s";
+      let restante=60;
+      const temporizador=setInterval(()=>{
+        restante--;
+        if(!boton||restante<=0){
+          clearInterval(temporizador);
+          if(boton){boton.disabled=false;boton.textContent="Enviar enlace";}
+        }else{
+          boton.textContent=`Espera ${restante} s`;
+        }
+      },1000);
+    }
   }
 });
 
 document.getElementById("formularioNuevaPassword")?.addEventListener("submit",async e=>{
   e.preventDefault();
+  if(!navigator.onLine){
+    flkEstadoRecuperacion(
+      "estadoNuevaPassword",
+      "Para cambiar la contraseña debes estar conectado a Internet.",
+      "error"
+    );
+    return;
+  }
   const p1=document.getElementById("nuevaPasswordRecuperacion")?.value||"";
   const p2=document.getElementById("confirmarPasswordRecuperacion")?.value||"";
   const boton=document.getElementById("botonGuardarNuevaPassword");
@@ -2872,6 +3141,177 @@ document.getElementById("formularioNuevaPassword")?.addEventListener("submit",as
     if(boton){boton.disabled=false;boton.textContent="Guardar nueva contraseña";}
   }
 });
+
+
+function flkFechaLicenciaBonita(valor){
+ if(!valor)return "—";
+ const d=new Date(valor);
+ if(Number.isNaN(d.getTime()))return String(valor);
+ return d.toLocaleString("es",{
+  year:"numeric",month:"2-digit",day:"2-digit",
+  hour:"2-digit",minute:"2-digit"
+ })
+}
+function flkGuardarCacheLicencia(info){
+ try{
+  const ahora=new Date().toISOString();
+  localStorage.setItem(FLK_LICENSE_CACHE_KEY,JSON.stringify({
+   info,
+   validated_at:ahora
+  }));
+  flkLicenciaUltimaValidacion=ahora
+ }catch(_){}
+}
+function flkLeerCacheLicencia(){
+ try{
+  const raw=localStorage.getItem(FLK_LICENSE_CACHE_KEY);
+  if(!raw)return null;
+  const obj=JSON.parse(raw);
+  if(!obj||!obj.info||!obj.validated_at)return null;
+  return obj
+ }catch(_){return null}
+}
+function flkDiasDesde(fecha){
+ const d=new Date(fecha);
+ if(Number.isNaN(d.getTime()))return Infinity;
+ return Math.max(0,(Date.now()-d.getTime())/86400000)
+}
+
+function flkOcultarBloqueoLicencia(){
+ const o=document.getElementById("flkLicenciaBloqueo");
+ if(o){o.classList.remove("visible");o.setAttribute("aria-hidden","true")}
+}
+function flkMostrarBloqueoLicencia(info,motivo=""){
+ const o=document.getElementById("flkLicenciaBloqueo");
+ const titulo=document.getElementById("flkLicenciaBloqueoTitulo");
+ const mensaje=document.getElementById("flkLicenciaBloqueoMensaje");
+ const fecha=document.getElementById("flkLicenciaBloqueoFecha");
+ if(!o||!titulo||!mensaje||!fecha)return;
+ const estado=String(info?.license_status||"").toLowerCase();
+ if(estado==="expired"){
+  titulo.textContent="Licencia vencida";
+  mensaje.textContent="La licencia de Flackunloker ha vencido. Renueva la licencia para continuar utilizando el sistema.";
+ }else if(estado==="suspended"){
+  titulo.textContent="Licencia suspendida";
+  mensaje.textContent="Esta licencia está suspendida. Contacta al proveedor de Flackunloker para reactivarla.";
+ }else if(motivo==="offline-grace-expired"){
+  titulo.textContent="Se requiere conexión a Internet";
+  mensaje.textContent="Se agotó el período autorizado de trabajo offline. Conéctate a Internet para validar la licencia y continuar.";
+ }else{
+  titulo.textContent="No se pudo validar la licencia";
+  mensaje.textContent="Conéctate a Internet para comprobar que esta instalación tiene una licencia activa.";
+ }
+ fecha.textContent=info?.expires_at?"Vencimiento: "+flkFechaLicenciaBonita(info.expires_at):"";
+ o.classList.add("visible");o.setAttribute("aria-hidden","false")
+}
+async function flkReintentarLicencia(){
+ const info=await flkValidarLicencia();
+ return info
+}
+async function flkCerrarSesionDesdeLicencia(){
+ try{await flkSupabase.auth.signOut()}catch(_){}
+ location.reload()
+}
+
+function flkPintarLicencia(info,modo="online"){
+ flkLicenciaInfo=info||null;
+ const caja=document.getElementById("flkLicenciaEstado");
+ const texto=document.getElementById("flkLicenciaTexto");
+ const detalle=document.getElementById("flkLicenciaDetalle");
+ if(!caja||!texto||!detalle)return;
+
+ caja.classList.remove("activa","gracia","vencida","suspendida","error","comprobando");
+
+ if(!info){
+  caja.classList.add("error");
+  texto.textContent="Licencia: sin verificar";
+  detalle.textContent="No fue posible verificar la licencia.";
+  if(!flkLicenciaModoPrueba)flkMostrarBloqueoLicencia(null,modo);
+  return
+ }
+
+ const estado=String(info.license_status||"").toLowerCase();
+ const valida=!!info.valid;
+ const cliente=info.customer_name||"Instalación";
+ const vence=flkFechaLicenciaBonita(info.expires_at);
+
+ if(modo==="offline-grace"&&valida&&estado==="active"){
+  caja.classList.add("gracia");
+  texto.textContent="Licencia: gracia offline";
+  flkOcultarBloqueoLicencia();
+ }else if(valida&&estado==="active"&&modo!=="offline-expired"){
+  caja.classList.add("activa");
+  texto.textContent="Licencia: activa";
+  flkOcultarBloqueoLicencia();
+ }else if(estado==="expired"){
+  caja.classList.add("vencida");
+  texto.textContent="Licencia: vencida";
+  if(!flkLicenciaModoPrueba)flkMostrarBloqueoLicencia(info,"expired");
+ }else if(estado==="suspended"){
+  caja.classList.add("suspendida");
+  texto.textContent="Licencia: suspendida";
+  if(!flkLicenciaModoPrueba)flkMostrarBloqueoLicencia(info,"suspended");
+ }else if(modo==="offline-expired"){
+  caja.classList.add("error");
+  texto.textContent="Licencia: requiere Internet";
+  if(!flkLicenciaModoPrueba)flkMostrarBloqueoLicencia(info,"offline-grace-expired");
+ }else{
+  caja.classList.add("error");
+  texto.textContent="Licencia: no válida";
+  if(!flkLicenciaModoPrueba)flkMostrarBloqueoLicencia(info,modo);
+ }
+
+ detalle.textContent=
+  cliente+" · Vence: "+vence+
+  (modo==="offline-grace"?" · Validación offline dentro del período de gracia":"")+
+  " · Protección de licencia activa."
+}
+function flkToggleLicenciaDetalle(){
+ document.getElementById("flkLicenciaEstado")?.classList.toggle("expandido")
+}
+async function flkValidarLicencia(){
+ const caja=document.getElementById("flkLicenciaEstado");
+ if(caja){
+  caja.classList.remove("activa","gracia","vencida","suspendida","error");
+  caja.classList.add("comprobando");
+ }
+ const texto=document.getElementById("flkLicenciaTexto");
+ if(texto)texto.textContent="Licencia: comprobando…";
+
+ if(navigator.onLine){
+  try{
+   const {data,error}=await flkSupabase.rpc("flk_check_license",{
+    p_license_key:FLK_LICENSE_KEY
+   });
+   if(error)throw error;
+   const info=Array.isArray(data)?data[0]:data;
+   if(!info)throw new Error("Respuesta de licencia vacía.");
+   flkGuardarCacheLicencia(info);
+   flkPintarLicencia(info,"online");
+   return info
+  }catch(err){
+   console.error("Validación de licencia:",err);
+   // Si falla la red/servidor, intentar la última validación offline.
+  }
+ }
+
+ const cache=flkLeerCacheLicencia();
+ if(cache){
+  const info=cache.info;
+  const gracia=Math.max(0,Number(info.offline_grace_days||0));
+  const dias=flkDiasDesde(cache.validated_at);
+  flkLicenciaUltimaValidacion=cache.validated_at;
+  if(info.valid&&String(info.license_status)==="active"&&dias<=gracia){
+   flkPintarLicencia(info,"offline-grace");
+   return info
+  }
+  flkPintarLicencia(info,"offline-expired");
+  return info
+ }
+
+ flkPintarLicencia(null,"error");
+ return null
+}
 
 flkSupabase.auth.onAuthStateChange((event,session)=>{
  if(event==="PASSWORD_RECOVERY"){
@@ -2919,6 +3359,124 @@ function mostrarUsuarios(){
  if(!navigator.onLine){if(lista)lista.innerHTML='<div class="sin-productos">Gestión de usuarios disponible cuando vuelva la conexión.</div>';return}
  requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(()=>cargarUsuariosAdmin(),40)));
 }
+
+let flkEsPropietarioSoftware=false;
+
+async function flkComprobarPropietarioSoftware(){
+ flkEsPropietarioSoftware=false;
+ document.body.classList.remove("es-propietario");
+ const botonLicInicial=document.getElementById("botonLicencias");
+ if(botonLicInicial)botonLicInicial.style.setProperty("display","none","important");
+ if(!flkSesionActiva||!navigator.onLine)return false;
+ try{
+  const {data,error}=await flkSupabase.rpc("flk_is_software_owner");
+  if(error)throw error;
+  flkEsPropietarioSoftware=!!data;
+  document.body.classList.toggle("es-propietario",flkEsPropietarioSoftware);
+  const botonLic=document.getElementById("botonLicencias");
+  if(botonLic)botonLic.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
+  return flkEsPropietarioSoftware
+ }catch(err){
+  console.error("Comprobación propietario software:",err);
+  document.body.classList.remove("es-propietario");
+  const botonLicError=document.getElementById("botonLicencias");
+  if(botonLicError)botonLicError.style.setProperty("display","none","important");
+  return false
+ }
+}
+
+function mostrarLicencias(){
+ if(!flkEsPropietarioSoftware){
+  alert("Este panel es exclusivo del propietario de Flackunloker.");
+  return
+ }
+ const vistas=[
+  "vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos",
+  "vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores",
+  "vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"
+ ];
+ vistas.forEach(id=>{const el=document.getElementById(id);if(el)el.style.display="none"});
+ const vl=document.getElementById("vistaLicencias");
+ if(vl)vl.style.display="block";
+ document.querySelectorAll("#menuPrincipalFondo .menu-cuadricula button").forEach(b=>b.classList.remove("activo"));
+ document.getElementById("botonLicencias")?.classList.add("activo");
+ cargarPanelLicencias();
+ scrollTop()
+}
+
+async function cargarPanelLicencias(){
+ if(!flkEsPropietarioSoftware)return;
+ try{
+  const {data,error}=await flkSupabase.rpc("flk_check_license",{p_license_key:FLK_LICENSE_KEY});
+  if(error)throw error;
+  const info=Array.isArray(data)?data[0]:data;
+  if(!info)throw new Error("No se recibió información de la licencia.");
+  flkLicenciaInfo=info;
+
+  document.getElementById("licPanelCliente").textContent=info.customer_name||"—";
+  document.getElementById("licPanelEstado").textContent=String(info.license_status||"—").toUpperCase();
+  document.getElementById("licPanelVencimiento").textContent=flkFechaLicenciaBonita(info.expires_at);
+  document.getElementById("licPanelGracia").textContent=String(info.offline_grace_days??0)+" día(s)";
+
+  const d=new Date(info.expires_at);
+  if(!Number.isNaN(d.getTime())){
+   const local=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+   document.getElementById("licNuevaFecha").value=local;
+  }
+
+  const suspendida=String(info.license_status)==="suspended";
+  document.getElementById("licBotonSuspender").style.display=suspendida?"none":"";
+  document.getElementById("licBotonActivar").style.display=suspendida?"":"none";
+ }catch(err){
+  console.error("Panel licencias:",err);
+  alert("No se pudo cargar la información de la licencia.")
+ }
+}
+
+async function renovarLicenciaPropietario(){
+ if(!flkEsPropietarioSoftware)return alert("Solo el propietario puede renovar licencias.");
+ const valor=document.getElementById("licNuevaFecha")?.value;
+ if(!valor)return alert("Selecciona una nueva fecha de vencimiento.");
+ const fecha=new Date(valor);
+ if(Number.isNaN(fecha.getTime())||fecha<=new Date())return alert("La nueva fecha debe ser futura.");
+
+ if(!confirm("¿Renovar esta licencia hasta "+fecha.toLocaleString("es")+"?"))return;
+
+ try{
+  const {error}=await flkSupabase.rpc("flk_renew_license",{
+   p_license_key:FLK_LICENSE_KEY,
+   p_new_expires_at:fecha.toISOString()
+  });
+  if(error)throw error;
+  alert("Licencia renovada correctamente.");
+  await flkValidarLicencia();
+  await cargarPanelLicencias()
+ }catch(err){
+  console.error("Renovar licencia:",err);
+  alert("No se pudo renovar la licencia: "+(err?.message||"Error desconocido"))
+ }
+}
+
+async function cambiarEstadoLicenciaPropietario(nuevoEstado){
+ if(!flkEsPropietarioSoftware)return alert("Solo el propietario puede modificar licencias.");
+ const accion=nuevoEstado==="suspended"?"suspender":"reactivar";
+ if(!confirm("¿Seguro que deseas "+accion+" esta licencia?"))return;
+
+ try{
+  const {error}=await flkSupabase.rpc("flk_set_license_status",{
+   p_license_key:FLK_LICENSE_KEY,
+   p_status:nuevoEstado
+  });
+  if(error)throw error;
+  alert(nuevoEstado==="suspended"?"Licencia suspendida.":"Licencia reactivada.");
+  await flkValidarLicencia();
+  await cargarPanelLicencias()
+ }catch(err){
+  console.error("Estado licencia:",err);
+  alert("No se pudo modificar la licencia: "+(err?.message||"Error desconocido"))
+ }
+}
+
 function abrirMenuPrincipal(){document.getElementById("menuPrincipalFondo").classList.add("visible")}
 function cerrarMenuPrincipal(e){
  if(e&&e.target!==document.getElementById("menuPrincipalFondo"))return;
@@ -3591,13 +4149,15 @@ function ventaDesdeSupabase(v){
  }));
  const legacyNum=Number(v.legacy_id);
  const id=Number.isFinite(legacyNum)&&v.legacy_id!==null?idLocalDesdeLegacy(v.legacy_id,v.id):idLocalDesdeLegacy(null,v.id);
- const ingreso=Number(v.total||0),costoTotal=items.reduce((t,i)=>t+i.costo,0);
+ const ingreso=Number(v.total||0),
+       cantidadNeta=items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0),
+       costoTotal=items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0))*Number(i.costoUnitario||0),0);
  return {
   id,supabaseId:v.id,
   numero:v.receipt_number||String(id).slice(-8),
   numeroConsecutivo:Number(v.receipt_number)||0,
   items,
-  cantidad:items.reduce((t,i)=>t+i.cantidad,0),
+  cantidad:cantidadNeta,
   ingreso,costoTotal,ganancia:ingreso-costoTotal,
   fecha:v.created_at,
   cliente:v.customer_name||"Cliente general",
@@ -3796,14 +4356,52 @@ Saldo pendiente: $${saldo.toFixed(2)}`:""}`)
 });
 function esMismoDia(fechaA,fechaB){const a=new Date(fechaA),b=new Date(fechaB);return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
 function itemsDeVenta(v){return Array.isArray(v.items)?v.items:[]}
+
+function cantidadNetaItemVenta(i){
+ const vendida=Math.max(0,Number(i?.cantidad||0));
+ const devuelta=Math.max(0,Number(i?.devuelto||0));
+ return Math.max(0,vendida-devuelta)
+}
+function ingresoNetoItemVenta(i){
+ return cantidadNetaItemVenta(i)*Number(i?.precioUnitario||0)
+}
+function costoNetoItemVenta(i){
+ return cantidadNetaItemVenta(i)*Number(i?.costoUnitario||0)
+}
+function unidadesNetasVenta(v){
+ return itemsDeVenta(v).reduce((t,i)=>t+cantidadNetaItemVenta(i),0)
+}
+function costoNetoVenta(v){
+ return itemsDeVenta(v).reduce((t,i)=>t+costoNetoItemVenta(i),0)
+}
+
 function devolucionesDeVenta(v){return Array.isArray(v.devoluciones)?v.devoluciones:[]}
 function pagosDeVenta(v){return Array.isArray(v.pagos)?v.pagos:[]}
 function normalizarCuentaVenta(v){if(!Array.isArray(v.pagos))v.pagos=[];const pagosOrden=[...v.pagos].sort((a,b)=>new Date(a.fecha||0)-new Date(b.fecha||0)||Number(a.id||0)-Number(b.id||0));let saldoSec=Number(v.ingreso||0);pagosOrden.forEach(p=>{p.cantidad=Math.max(0,Number(p.cantidad||0));if(p.saldoAnterior===undefined||p.saldoAnterior===null)p.saldoAnterior=saldoSec;saldoSec=Math.max(0,saldoSec-p.cantidad);if(p.saldoRestante===undefined||p.saldoRestante===null)p.saldoRestante=saldoSec});if(v.totalPagado===undefined||v.totalPagado===null)v.totalPagado=v.estadoPago==="credito"?v.pagos.reduce((t,p)=>t+Number(p.cantidad||0),0):Number(v.ingreso||0);v.totalPagado=Math.max(0,Math.min(Number(v.totalPagado||0),Number(v.ingreso||0)));v.saldo=Math.max(0,Number(v.ingreso||0)-v.totalPagado);v.estadoPago=v.saldo>0.009?"credito":"pagado";if(v.saldo<=0.009){v.saldo=0;v.fechaVencimiento=""}else if(!v.fechaVencimiento){const base=new Date(v.fecha||Date.now());base.setDate(base.getDate()+30);v.fechaVencimiento=fechaLocalISO(base)}return v}
+
+function ventaFueCredito(v){
+ normalizarCuentaVenta(v);
+ if(Number(v.saldo||0)>0.009)return true;
+ const pagos=[...pagosDeVenta(v)].sort((a,b)=>new Date(a.fecha||0)-new Date(b.fecha||0)||Number(a.id||0)-Number(b.id||0));
+ if(!pagos.length)return false;
+ const primero=pagos[0];
+ return Number(primero.saldoRestante||0)>0.009
+}
+
 function estadoVencimientoVenta(v){normalizarCuentaVenta(v);if(v.saldo<=0)return {clave:"pagado",texto:"✅ Pagado",dias:null};const hoy=new Date();hoy.setHours(0,0,0,0);const fv=new Date(v.fechaVencimiento+"T00:00:00");if(Number.isNaN(fv.getTime()))return {clave:"credito",texto:"💳 Crédito",dias:null};const dias=Math.ceil((fv-hoy)/86400000);if(dias<0)return {clave:"vencido",texto:`🔴 Vencido · ${Math.abs(dias)} día${Math.abs(dias)===1?"":"s"}`,dias};if(dias<=7)return {clave:"proximo",texto:dias===0?"🟠 Vence hoy":`🟠 Próximo a vencer · ${dias} día${dias===1?"":"s"}`,dias};return {clave:"credito",texto:`💳 Al día · vence ${fv.toLocaleDateString("es-PR")}`,dias}}
 function recalcularTotalesVenta(v){
  const items=itemsDeVenta(v);
- items.forEach(i=>{i.cantidad=Math.max(0,Number(i.cantidad??0));i.ingreso=i.cantidad*Number(i.precioUnitario??0);i.costoTotal=i.cantidad*Number(i.costoUnitario??0);i.ganancia=i.ingreso-i.costoTotal});
- v.cantidad=items.reduce((t,i)=>t+Number(i.cantidad),0);v.ingreso=items.reduce((t,i)=>t+Number(i.ingreso),0);v.costoTotal=items.reduce((t,i)=>t+Number(i.costoTotal),0);v.ganancia=items.reduce((t,i)=>t+Number(i.ganancia),0);normalizarCuentaVenta(v)
+ items.forEach(i=>{
+  i.cantidad=Math.max(0,Number(i.cantidad??0));
+  i.devuelto=Math.max(0,Math.min(i.cantidad,Number(i.devuelto??0)));
+  i.ingreso=i.cantidad*Number(i.precioUnitario??0);
+  i.costo=i.cantidad*Number(i.costoUnitario??0);
+  i.ganancia=i.ingreso-i.costo
+ });
+ v.cantidad=unidadesNetasVenta(v);
+ v.costoTotal=costoNetoVenta(v);
+ v.ganancia=Number(v.ingreso||0)-v.costoTotal;
+ normalizarCuentaVenta(v)
 }
 function actualizarDashboardVentas(){
  const ahora=new Date(),inicioHoy=new Date(ahora.getFullYear(),ahora.getMonth(),ahora.getDate()),inicioSemana=new Date(inicioHoy);inicioSemana.setDate(inicioSemana.getDate()-6);const inicioMes=new Date(ahora.getFullYear(),ahora.getMonth(),1);
@@ -3815,10 +4413,10 @@ function actualizarDashboardVentas(){
  document.getElementById("dashboardMes").textContent=formato(resumen(ventas.filter(v=>enPeriodo(v,inicioMes))));
  const ganMes=resumen(ventas.filter(v=>enPeriodo(v,inicioMes))).ganancia,gastoMes=gastos.filter(g=>{const f=fechaGastoObj(g);return f>=inicioMes&&f<=ahora}).reduce((t,g)=>t+Number(g.cantidad||0),0);document.getElementById("dashboardNetoMes").textContent=`$${gastoMes.toFixed(2)} / $${(ganMes-gastoMes).toFixed(2)}`;
  const conteo={};
- ventas.forEach(v=>itemsDeVenta(v).forEach(i=>{const k=String(i.productoId??i.sku??i.nombre);if(!conteo[k])conteo[k]={nombre:i.nombre||"Producto",unidades:0,ingresos:0};conteo[k].unidades+=Number(i.cantidad??0);conteo[k].ingresos+=Number(i.ingreso??(Number(i.cantidad)*Number(i.precioUnitario)))}));
+ ventas.forEach(v=>itemsDeVenta(v).forEach(i=>{const k=String(i.productoId??i.sku??i.nombre),netas=cantidadNetaItemVenta(i);if(!conteo[k])conteo[k]={nombre:i.nombre||"Producto",unidades:0,ingresos:0};conteo[k].unidades+=netas;conteo[k].ingresos+=netas*Number(i.precioUnitario||0)}));
  const top=Object.values(conteo).sort((a,b)=>b.unidades-a.unidades||b.ingresos-a.ingresos).slice(0,5);
  document.getElementById("dashboardMasVendidos").innerHTML=top.length?top.map(x=>`<div class="fila-estadistica"><span>${escapeHtml(x.nombre)}</span><strong>${x.unidades} u. · $${x.ingresos.toFixed(2)}</strong></div>`).join(""):`<div class="fila-estadistica"><span>Aún no hay ventas.</span><strong>—</strong></div>`;
- const poca=[...productos].filter(p=>Number(p.cantidad)>0).map(p=>{let vendidas=0;ventas.forEach(v=>itemsDeVenta(v).filter(i=>String(i.productoId)===String(p.id)).forEach(i=>vendidas+=Number(i.cantidad??0)));return {nombre:p.nombre,cantidad:Number(p.cantidad),vendidas}}).sort((a,b)=>a.vendidas-b.vendidas||b.cantidad-a.cantidad).slice(0,5);
+ const poca=[...productos].filter(p=>Number(p.cantidad)>0).map(p=>{let vendidas=0;ventas.forEach(v=>itemsDeVenta(v).filter(i=>String(i.productoId)===String(p.id)).forEach(i=>vendidas+=cantidadNetaItemVenta(i)));return {nombre:p.nombre,cantidad:Number(p.cantidad),vendidas}}).sort((a,b)=>a.vendidas-b.vendidas||b.cantidad-a.cantidad).slice(0,5);
  document.getElementById("dashboardPocaRotacion").innerHTML=poca.length?poca.map(x=>`<div class="fila-estadistica"><span>${escapeHtml(x.nombre)}</span><strong>${x.vendidas} vend. · ${x.cantidad} stock</strong></div>`).join(""):`<div class="fila-estadistica"><span>No hay productos con stock.</span><strong>—</strong></div>`
 }
 function actualizarVentas(){
@@ -3826,12 +4424,12 @@ function actualizarVentas(){
  const hoy=new Date(),ventasHoyArr=ventas.filter(v=>esMismoDia(v.fecha,hoy));
  const sumar=(arr,campo)=>arr.reduce((t,v)=>t+Number(v[campo]??0),0);
  document.getElementById("ventasHoy").textContent=ventasHoyArr.length;
- document.getElementById("unidadesVendidasHoy").textContent=sumar(ventasHoyArr,"cantidad");
+ document.getElementById("unidadesVendidasHoy").textContent=ventasHoyArr.reduce((t,v)=>t+unidadesNetasVenta(v),0);
  document.getElementById("ingresosHoy").textContent="$"+sumar(ventasHoyArr,"ingreso").toFixed(2);
  document.getElementById("costoVendidoHoy").textContent="$"+sumar(ventasHoyArr,"costoTotal").toFixed(2);
  document.getElementById("gananciaHoy").textContent="$"+sumar(ventasHoyArr,"ganancia").toFixed(2);
  document.getElementById("totalVentas").textContent=ventas.length;
- document.getElementById("totalUnidadesVendidas").textContent=sumar(ventas,"cantidad");
+ document.getElementById("totalUnidadesVendidas").textContent=ventas.reduce((t,v)=>t+unidadesNetasVenta(v),0);
  document.getElementById("totalIngresosVentas").textContent="$"+sumar(ventas,"ingreso").toFixed(2);
  document.getElementById("totalCostoVentas").textContent="$"+sumar(ventas,"costoTotal").toFixed(2);
  document.getElementById("totalGananciaVentas").textContent="$"+sumar(ventas,"ganancia").toFixed(2);
@@ -3847,7 +4445,7 @@ function mostrarListaVentas(){
   const itemsHtml=items.filter(i=>Number(i.cantidad)>0).map(i=>`<div class="recibo-item"><span>${Number(i.cantidad)} × ${escapeHtml(i.nombre)}</span><strong>$${Number(i.ingreso??(Number(i.cantidad)*Number(i.precioUnitario))).toFixed(2)}</strong></div>`).join("")||'<div class="recibo-item"><span>Todos los artículos fueron devueltos</span><strong>$0.00</strong></div>';
   const devTxt=devoluciones.length?`<br>Devoluciones parciales: <strong>${devoluciones.length}</strong><br>${devoluciones.map(d=>`<button class="boton-recibo-venta" style="margin-top:7px" onclick="imprimirComprobanteDevolucion(${v.id},\'${d.supabaseId||d.offlineOperationId||d.id||""}\')">🖨️ Devolución ${d.numeroDevolucion?"#"+String(d.numeroDevolucion).padStart(6,"0"):""}</button>`).join(" ")}`:"";
   const puedeDevolver=items.some(i=>(Number(i.cantidad||0)-Number(i.devuelto||0))>0);   normalizarCuentaVenta(v);const ev=estadoVencimientoVenta(v),estadoTxt=`<span class="estado-pago ${ev.clave}">${ev.texto}${v.saldo>0?` · Debe $${Number(v.saldo).toFixed(2)}`:""}</span>`;
-   el.innerHTML=`<div class="venta-superior"><div><h3>Recibo #${escapeHtml(numero)}</h3><p>${cliente}${telefono}</p>${estadoTxt}</div><div class="venta-total">$${Number(v.ingreso??0).toFixed(2)}</div></div><div class="recibo-items">${itemsHtml}</div><div class="venta-detalle">Unidades netas: <strong>${items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0)}</strong> · Productos: <strong>${items.filter(i=>Number(i.cantidad)>0).length}</strong><br>Ganancia real: <strong class="ganancia-venta">$${Number(v.ganancia??0).toFixed(2)}</strong><br>Pagado: <strong>$${Number(v.totalPagado||0).toFixed(2)}</strong> · Saldo: <strong>$${Number(v.saldo||0).toFixed(2)}</strong>${v.saldo>0&&v.fechaVencimiento?`<br>Vencimiento: <strong>${new Date(v.fechaVencimiento+"T00:00:00").toLocaleDateString("es-PR")}</strong>`:""}${v.metodoPago?`<br>Método inicial: <strong>${escapeHtml(v.metodoPago)}</strong>`:""}${devTxt}${nota}<br>${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div><div class="acciones-venta"><button class="boton-recibo-venta" onclick="generarReciboVenta(${v.id})">🧾 Ver recibo</button>${v.saldo>0?`<button class="boton-abono-venta" onclick="abrirAbono(${v.id})">💵 Registrar abono</button>`:""}${pagosDeVenta(v).length?`<button class="boton-historial-abonos" onclick="verHistorialAbonos(${v.id})">📋 Historial abonos</button>`:""}${puedeDevolver?`<button class="boton-devolver-venta" onclick="abrirDevolucion(${v.id})">↩️ Devolver producto</button>`:""}<button class="boton-eliminar-venta" onclick="eliminarVenta(${v.id})">⛔ Anular recibo</button></div>`;
+   el.innerHTML=`<div class="venta-superior"><div><h3>Recibo #${escapeHtml(numero)}</h3><p>${cliente}${telefono}</p>${estadoTxt}</div><div class="venta-total">$${Number(v.ingreso??0).toFixed(2)}</div></div><div class="recibo-items">${itemsHtml}</div><div class="venta-detalle">Unidades netas: <strong>${items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0)}</strong> · Productos netos: <strong>${items.filter(i=>cantidadNetaItemVenta(i)>0).length}</strong><br>Ganancia real: <strong class="ganancia-venta">$${Number(v.ganancia??0).toFixed(2)}</strong><br>Pagado: <strong>$${Number(v.totalPagado||0).toFixed(2)}</strong> · Saldo: <strong>$${Number(v.saldo||0).toFixed(2)}</strong>${v.saldo>0&&v.fechaVencimiento?`<br>Vencimiento: <strong>${new Date(v.fechaVencimiento+"T00:00:00").toLocaleDateString("es-PR")}</strong>`:""}${v.metodoPago?`<br>Método inicial: <strong>${escapeHtml(v.metodoPago)}</strong>`:""}${devTxt}${nota}<br>${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div><div class="acciones-venta"><button class="boton-recibo-venta" onclick="generarReciboVenta(${v.id})">🧾 Ver recibo</button>${v.saldo>0?`<button class="boton-abono-venta" onclick="abrirAbono(${v.id})">💵 Registrar abono</button>`:""}${pagosDeVenta(v).length?`<button class="boton-historial-abonos" onclick="verHistorialAbonos(${v.id})">📋 Historial abonos</button>`:""}${puedeDevolver?`<button class="boton-devolver-venta" onclick="abrirDevolucion(${v.id})">↩️ Devolver producto</button>`:""}<button class="boton-eliminar-venta" onclick="eliminarVenta(${v.id})">⛔ Anular recibo</button></div>`;
   lista.appendChild(el)
  })
 }
@@ -4020,14 +4618,14 @@ function generarComprobanteAbono(ventaId,pagoId){const v=ventas.find(x=>x.id===v
 function eliminarVenta(id){
  const v=ventas.find(x=>x.id===id);if(!v)return;const items=itemsDeVenta(v),numero=v.numero||String(v.id).slice(-8);
  if(!confirm(`¿Anular el recibo #${numero}?\n\nTodas las unidades de este recibo volverán al inventario.`))return;
- items.forEach(i=>{const p=productos.find(x=>x.id===i.productoId);if(p)p.cantidad=Number(p.cantidad)+Number(i.cantidad)});
+ items.forEach(i=>{const p=productos.find(x=>x.id===i.productoId);if(p)p.cantidad=Number(p.cantidad)+cantidadNetaItemVenta(i)});
  ventas=ventas.filter(x=>x.id!==id);historial=historial.filter(m=>m.ventaId!==id);recalcularSaldos();guardarDatos();guardarHistorial();guardarVentas();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarEstadisticas()
 }
 document.getElementById("busquedaVentas").addEventListener("input",mostrarListaVentas);
 async function mostrarVentas(){if(navigator.onLine)setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="block";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("ventas");actualizarVentas();scrollTop()}
 
 function claveCliente(v){const tel=String(v.telefono||"").trim().toLowerCase();const nom=String(v.cliente||"Cliente general").trim().toLowerCase();return tel?"tel:"+tel:"nom:"+nom}
-function obtenerClientes(){const mapa={};ventas.forEach(v=>{normalizarCuentaVenta(v);const nombre=String(v.cliente||"Cliente general").trim()||"Cliente general",telefono=String(v.telefono||"").trim(),k=claveCliente(v);if(!mapa[k])mapa[k]={clave:k,nombre,telefono,compras:0,total:0,unidades:0,saldoPendiente:0,creditosPendientes:0,saldoVencido:0,creditosVencidos:0,ultima:null,ventas:[]};const c=mapa[k];c.compras++;c.total+=Number(v.ingreso||0);c.unidades+=Number(v.cantidad||0);c.saldoPendiente+=Number(v.saldo||0);if(Number(v.saldo||0)>0){c.creditosPendientes++;const ev=estadoVencimientoVenta(v);if(ev.clave==="vencido"){c.creditosVencidos++;c.saldoVencido+=Number(v.saldo||0)}}c.ventas.push(v);if(!c.ultima||new Date(v.fecha)>new Date(c.ultima))c.ultima=v.fecha});return Object.values(mapa).sort((a,b)=>new Date(b.ultima)-new Date(a.ultima))}
+function obtenerClientes(){const mapa={};ventas.forEach(v=>{normalizarCuentaVenta(v);const nombre=String(v.cliente||"Cliente general").trim()||"Cliente general",telefono=String(v.telefono||"").trim(),k=claveCliente(v);if(!mapa[k])mapa[k]={clave:k,nombre,telefono,compras:0,total:0,unidades:0,saldoPendiente:0,creditosPendientes:0,saldoVencido:0,creditosVencidos:0,ultima:null,ventas:[]};const c=mapa[k];c.compras++;c.total+=Number(v.ingreso||0);c.unidades+=unidadesNetasVenta(v);c.saldoPendiente+=Number(v.saldo||0);if(Number(v.saldo||0)>0){c.creditosPendientes++;const ev=estadoVencimientoVenta(v);if(ev.clave==="vencido"){c.creditosVencidos++;c.saldoVencido+=Number(v.saldo||0)}}c.ventas.push(v);if(!c.ultima||new Date(v.fecha)>new Date(c.ultima))c.ultima=v.fecha});return Object.values(mapa).sort((a,b)=>new Date(b.ultima)-new Date(a.ultima))}
 async function mostrarClientes(){if(navigator.onLine)setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="block";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("clientes");actualizarClientes();scrollTop()}
 function actualizarClientes(){const clientes=obtenerClientes(),q=document.getElementById("busquedaClientes").value.toLowerCase().trim(),arr=clientes.filter(c=>c.nombre.toLowerCase().includes(q)||c.telefono.toLowerCase().includes(q));document.getElementById("totalClientes").textContent=clientes.length;document.getElementById("comprasClientes").textContent=clientes.reduce((t,c)=>t+c.compras,0);document.getElementById("totalCompradoClientes").textContent="$"+clientes.reduce((t,c)=>t+c.total,0).toFixed(2);document.getElementById("creditosPendientesClientes").textContent=ventas.filter(v=>{normalizarCuentaVenta(v);return v.saldo>0}).length;document.getElementById("creditosVencidosClientes").textContent=ventas.filter(v=>estadoVencimientoVenta(v).clave==="vencido").length;document.getElementById("saldoPorCobrarClientes").textContent="$"+ventas.reduce((t,v)=>{normalizarCuentaVenta(v);return t+Number(v.saldo||0)},0).toFixed(2);document.getElementById("saldoVencidoClientes").textContent="$"+ventas.reduce((t,v)=>estadoVencimientoVenta(v).clave==="vencido"?t+Number(v.saldo||0):t,0).toFixed(2);const lista=document.getElementById("listaClientes");if(!arr.length){lista.innerHTML=`<div class="sin-productos">${clientes.length?"No encontramos clientes con esa búsqueda.":"Los clientes aparecerán aquí automáticamente cuando hagas recibos de venta."}</div>`;return}lista.innerHTML=arr.map(c=>{const f=c.ultima?new Date(c.ultima):null;return `<div class="cliente-card"><div class="cliente-superior"><div><h3>${escapeHtml(c.nombre)}</h3><p>${c.telefono?escapeHtml(c.telefono):"Sin teléfono"}</p></div><div class="cliente-total">$${c.total.toFixed(2)}</div></div><div class="cliente-detalle">Compras: <strong>${c.compras}</strong> · Unidades: <strong>${c.unidades}</strong>${c.saldoPendiente>0?`<br>Por cobrar: <strong>$${c.saldoPendiente.toFixed(2)}</strong> · Créditos: <strong>${c.creditosPendientes}</strong>`:""}${c.saldoVencido>0?`<br><span style="color:#d93025">Vencido: <strong>$${c.saldoVencido.toFixed(2)}</strong> · ${c.creditosVencidos} cuenta(s)</span>`:""}<br>Última compra: <strong>${f?f.toLocaleDateString("es-PR"):"—"}</strong>${c.saldoPendiente>0?`<br>💳 Saldo pendiente: <strong style="color:#c45b19">$${c.saldoPendiente.toFixed(2)}</strong> · ${c.creditosPendientes} cuenta(s)`:"<br>✅ Sin deuda pendiente"}</div><div class="acciones-cliente"><button class="boton-cliente" onclick="verCliente('${encodeURIComponent(c.clave)}')">🧾 Ver compras</button><button class="boton-cliente boton-cliente-venta" onclick="nuevoReciboCliente('${encodeURIComponent(c.clave)}')">＋ Nuevo recibo</button></div></div>`}).join("")}
 function clientePorClave(enc){const k=decodeURIComponent(enc);return obtenerClientes().find(c=>c.clave===k)}
@@ -4220,21 +4818,25 @@ async function mostrarGastos(){
 
 function metodoCajaClave(metodo){const m=String(metodo||"").trim().toLowerCase();if(m.includes("efectivo"))return "efectivo";if(m.includes("ath"))return "ath";if(m.includes("tarjeta"))return "tarjeta";return "otros"}
 function resumenCierreFecha(fechaLocal){
- const ventasDia=ventas.filter(v=>String(v.fecha||"").slice(0,10)===fechaLocal||fechaLocalISO(new Date(v.fecha))===fechaLocal);
+ const ventasDia=ventas.filter(v=>fechaLocalDeValor(v.fecha)===fechaLocal);
  const gastosDia=gastos.filter(g=>(g.fechaLocal||String(g.fecha||"").slice(0,10))===fechaLocal);
- const recibos=ventasDia.length,unidades=ventasDia.reduce((t,v)=>t+Number(v.cantidad||0),0),ventasTotal=ventasDia.reduce((t,v)=>t+Number(v.ingreso||0),0),costo=ventasDia.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasDia.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosDia.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
+ const recibos=ventasDia.length,unidades=ventasDia.reduce((t,v)=>t+unidadesNetasVenta(v),0),ventasTotal=ventasDia.reduce((t,v)=>t+Number(v.ingreso||0),0),costo=ventasDia.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasDia.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosDia.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
  const cobros={efectivo:0,ath:0,tarjeta:0,otros:0};
- const salidasCaja={efectivo:0,ath:0,tarjeta:0,otros:0};
- (movimientosCajaSupabase||[]).forEach(m=>{
-  if(fechaLocalISO(new Date(m.fecha))!==fechaLocal)return;
-  const clave=metodoCajaClave(m.metodo);
-  if(m.tipo==="entrada")cobros[clave]+=Number(m.cantidad||0);
-  else salidasCaja[clave]+=Number(m.cantidad||0);
+ const movimientosDia=movimientosFlujoCaja().filter(m=>fechaLocalDeValor(m.fecha)===fechaLocal);
+ movimientosDia.forEach(m=>{
+  if(m.tipo!=="entrada"||!["venta","abono"].includes(m.grupo))return;
+  cobros[metodoCajaClave(m.metodo)]+=Number(m.cantidad||0);
  });
  const cobrado=Object.values(cobros).reduce((a,b)=>a+b,0);
- const ventasCredito=ventasDia.filter(v=>{normalizarCuentaVenta(v);return pagosDeVenta(v).length>0||Number(v.saldo||0)>0});
- const credito=ventasCredito.reduce((t,v)=>t+Number(v.ingreso||0),0),saldoCredito=ventasCredito.reduce((t,v)=>t+Number(v.saldo||0),0);
- const gastoEfectivo=salidasCaja.efectivo,efectivoNeto=cobros.efectivo-salidasCaja.efectivo;
+ const ventasCredito=ventasDia.filter(v=>ventaFueCredito(v));
+ const credito=ventasCredito.reduce((t,v)=>t+Number(v.ingreso||0),0),
+       saldoCredito=ventasCredito.reduce((t,v)=>t+Number(v.saldo||0),0);
+ const gastoEfectivo=movimientosDia
+  .filter(m=>m.tipo==="salida"&&m.grupo==="gasto"&&normalizarMetodoFlujo(m.metodo)==="Efectivo")
+  .reduce((t,m)=>t+Number(m.cantidad||0),0);
+ const efectivoNeto=movimientosDia
+  .filter(m=>normalizarMetodoFlujo(m.metodo)==="Efectivo")
+  .reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0);
  return {fechaLocal,recibos,unidades,ventasTotal,costo,gananciaBruta,gastosTotal,gananciaNeta,cobrado,efectivo:cobros.efectivo,ath:cobros.ath,tarjeta:cobros.tarjeta,otros:cobros.otros,credito,saldoCredito,gastoEfectivo,efectivoNeto}
 }
 function formatoDineroCierre(n){n=Number(n||0);return (n<0?"-$":"$")+Math.abs(n).toFixed(2)}
@@ -4290,10 +4892,10 @@ function rangoReporteActual(){
 function cambiarPeriodoReporte(){const personalizado=document.getElementById("periodoReporte").value==="personalizado",box=document.getElementById("rangoPersonalizadoReporte");box.classList.toggle("oculto",!personalizado);if(personalizado){const hoy=fechaLocalISO(new Date());if(!document.getElementById("fechaDesdeReporte").value){const d=new Date();d.setDate(d.getDate()-6);document.getElementById("fechaDesdeReporte").value=fechaLocalISO(d)}if(!document.getElementById("fechaHastaReporte").value)document.getElementById("fechaHastaReporte").value=hoy}actualizarReporte()}
 function datosReporte(){
  const r=rangoReporteActual(),enRango=f=>{const x=fechaLocalDeValor(f);return x&&x>=r.inicio&&x<=r.fin},ventasR=ventas.filter(v=>enRango(v.fecha)),gastosR=gastos.filter(g=>enRango(g.fechaLocal||g.fecha));
- const recibos=ventasR.length,unidades=ventasR.reduce((t,v)=>t+Number(v.cantidad||0),0),ingresos=ventasR.reduce((t,v)=>t+Number(v.ingreso||0),0),costo=ventasR.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasR.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosR.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
+ const recibos=ventasR.length,unidades=ventasR.reduce((t,v)=>t+unidadesNetasVenta(v),0),ingresos=ventasR.reduce((t,v)=>t+Number(v.ingreso||0),0),costo=ventasR.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasR.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosR.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
  const cobros={efectivo:0,ath:0,tarjeta:0,otros:0};ventas.forEach(v=>{normalizarCuentaVenta(v);const ps=pagosDeVenta(v);if(ps.length){ps.forEach(p=>{if(enRango(p.fecha))cobros[metodoCajaClave(p.metodo)]+=Number(p.cantidad||0)})}else if(enRango(v.fecha)&&Number(v.totalPagado||0)>0)cobros[metodoCajaClave(v.metodoPago)]+=Math.min(Number(v.totalPagado||0),Number(v.ingreso||0))});
  const cobrado=Object.values(cobros).reduce((a,b)=>a+b,0),saldoCredito=ventasR.reduce((t,v)=>{normalizarCuentaVenta(v);return t+Number(v.saldo||0)},0),productosR={},categorias={};
- ventasR.forEach(v=>itemsDeVenta(v).forEach(i=>{const k=String(i.productoId??i.sku??i.nombre),cant=Number(i.cantidad||0),ing=Number(i.ingreso??cant*Number(i.precioUnitario||0));if(!productosR[k])productosR[k]={nombre:i.nombre||"Producto",unidades:0,ingresos:0};productosR[k].unidades+=cant;productosR[k].ingresos+=ing}));
+ ventasR.forEach(v=>itemsDeVenta(v).forEach(i=>{const k=String(i.productoId??i.sku??i.nombre),cant=cantidadNetaItemVenta(i),ing=cant*Number(i.precioUnitario||0);if(!productosR[k])productosR[k]={nombre:i.nombre||"Producto",unidades:0,ingresos:0};productosR[k].unidades+=cant;productosR[k].ingresos+=ing}));
  gastosR.forEach(g=>{const k=String(g.categoria||"Otro");categorias[k]=(categorias[k]||0)+Number(g.cantidad||0)});
  return {...r,recibos,unidades,ingresos,costo,gananciaBruta,gastosTotal,gananciaNeta,cobrado,...cobros,saldoCredito,productos:Object.values(productosR).sort((a,b)=>b.unidades-a.unidades||b.ingresos-a.ingresos),categorias:Object.entries(categorias).sort((a,b)=>b[1]-a[1])}
 }
@@ -4679,7 +5281,92 @@ function limitesFlujo(){
  return {desde,hasta,texto}
 }
 function movimientosFlujoCaja(){
- return Array.isArray(movimientosCajaSupabase)?movimientosCajaSupabase:[];
+ const mov=[];
+
+ // Cobros de ventas y abonos: se reconstruyen desde las cuentas de cada recibo.
+ ventas.forEach(v=>{
+  const pagos=pagosDeVenta(v);
+  if(pagos.length){
+   pagos.forEach((p,idx)=>{
+    const fecha=p.fecha||v.fecha||new Date().toISOString();
+    const cercaVenta=Math.abs(new Date(fecha)-new Date(v.fecha||fecha))<10*60*1000;
+    const esInicial=idx===0&&cercaVenta&&Number((p.saldoAnterior??v.ingreso)||0)>=Number(v.ingreso||0)-0.01;
+    mov.push({
+     id:"venta-pago-"+String(p.supabaseId||p.offlineOperationId||p.id||idx),
+     tipo:"entrada",cantidad:Number(p.cantidad||0),
+     concepto:esInicial?"Venta · Recibo "+String(v.numero||v.id):"Abono · Recibo "+String(v.numero||v.id),
+     metodo:normalizarMetodoFlujo(p.metodo||v.metodoPago||"Otro"),
+     fecha,grupo:esInicial?"venta":"abono"
+    })
+   })
+  }else if(Number(v.totalPagado||0)>0){
+   mov.push({
+    id:"venta-fallback-"+String(v.supabaseId||v.offlineOperationId||v.id),
+    tipo:"entrada",cantidad:Math.min(Number(v.totalPagado||0),Number(v.ingreso||0)),
+    concepto:"Venta · Recibo "+String(v.numero||v.id),
+    metodo:normalizarMetodoFlujo(v.metodoPago||"Otro"),
+    fecha:v.fecha||new Date().toISOString(),grupo:"venta"
+   })
+  }
+
+  // Las devoluciones representan salida de dinero; usar el método inicial del recibo
+  // cuando no existe un método específico almacenado en la devolución.
+  devolucionesDeVenta(v).forEach((d,idx)=>{
+   mov.push({
+    id:"reembolso-"+String(d.supabaseId||d.offlineOperationId||d.id||idx),
+    tipo:"salida",cantidad:Number(d.reembolso??d.monto??0),
+    concepto:"Reembolso devolución · Recibo "+String(v.numero||v.id),
+    metodo:normalizarMetodoFlujo(d.metodo||v.metodoPago||"Otro"),
+    fecha:d.fecha||v.fecha||new Date().toISOString(),grupo:"reembolso"
+   })
+  })
+ });
+
+ // Gastos actuales: editar/eliminar offline se refleja de inmediato porque se toma
+ // el estado actual de la tabla local de gastos, no un cash_movement viejo.
+ gastos.forEach(g=>{
+  mov.push({
+   id:"gasto-"+String(g.supabaseId||g.offlineOperationId||g.id),
+   tipo:"salida",cantidad:Number(g.cantidad||0),
+   concepto:"Gasto · "+String(g.concepto||"Gasto"),
+   metodo:normalizarMetodoFlujo(g.metodo||"Otro"),
+   fecha:g.fecha||(g.fechaLocal?g.fechaLocal+"T12:00:00-04:00":new Date().toISOString()),
+   grupo:"gasto"
+  })
+ });
+
+ // Pagos a proveedores.
+ ordenesCompra.filter(o=>o.estado==="recibida").forEach(o=>{
+  const pagos=Array.isArray(o.pagosProveedor)?o.pagosProveedor:[];
+  if(pagos.length){
+   pagos.forEach((p,idx)=>mov.push({
+    id:"proveedor-"+String(p.supabaseId||p.offlineOperationId||p.offlineReceiveOperationId||p.id||idx),
+    tipo:"salida",cantidad:Number(p.cantidad||0),
+    concepto:"Pago proveedor · "+String(o.proveedor||"Proveedor"),
+    metodo:normalizarMetodoFlujo(p.metodo||o.metodoPagoProveedor||"Otro"),
+    fecha:p.fecha||o.fechaRecibida||o.fechaOrden||new Date().toISOString(),
+    grupo:"proveedor"
+   }))
+  }else if(Number(o.totalPagadoProveedor||0)>0){
+   mov.push({
+    id:"proveedor-fallback-"+String(o.supabaseId||o.offlineOperationId||o.id),
+    tipo:"salida",cantidad:Number(o.totalPagadoProveedor||0),
+    concepto:"Pago proveedor · "+String(o.proveedor||"Proveedor"),
+    metodo:normalizarMetodoFlujo(o.metodoPagoProveedor||"Otro"),
+    fecha:o.fechaRecibida||o.fechaOrden||new Date().toISOString(),
+    grupo:"proveedor"
+   })
+  }
+ });
+
+ // Conservar de cash_movements solo operaciones que no se pueden reconstruir
+ // de las tablas anteriores (propietario y movimientos manuales/otros).
+ (Array.isArray(movimientosCajaSupabase)?movimientosCajaSupabase:[]).forEach(m=>{
+  if(["venta","abono","gasto","proveedor","reembolso"].includes(m.grupo))return;
+  mov.push({...m,metodo:normalizarMetodoFlujo(m.metodo)})
+ });
+
+ return mov.filter(m=>Number.isFinite(Number(m.cantidad))&&Number(m.cantidad)>0)
 }
 function datosFlujoCaja(){
  const lim=limitesFlujo();if(!lim)return null;
@@ -4695,7 +5382,7 @@ function cambiarPeriodoFlujo(){
  actualizarFlujoCaja()
 }
 function saldoCajaFisicaActual(){
- return (movimientosCajaSupabase||[]).filter(m=>normalizarMetodoFlujo(m.metodo)==="Efectivo").reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0)
+ return movimientosFlujoCaja().filter(m=>normalizarMetodoFlujo(m.metodo)==="Efectivo").reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0)
 }
 function actualizarSaldoCajaFisica(){
  const el=document.getElementById("saldoCajaFisica");if(!el)return;
@@ -4731,6 +5418,7 @@ document.getElementById("formularioMovimientoPropietario").addEventListener("sub
  if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
 });
 function actualizarFlujoCaja(){
+ actualizarSaldoCajaFisica();
  const d=datosFlujoCaja();if(!d)return;
  document.getElementById("textoPeriodoFlujo").value=d.lim.texto;
  document.getElementById("flujoEntradas").textContent="$"+d.entradas.toFixed(2);
@@ -4752,9 +5440,11 @@ function mostrarFlujoCaja(){
  if(!requiereAdmin())return;
  ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaFlujoCaja").style.display="block";actualizarMenu("flujoCaja");scrollTop();
+ actualizarSaldoCajaFisica();
  requestAnimationFrame(()=>actualizarFlujoCaja());
  if(navigator.onLine)setTimeout(async()=>{
   await Promise.allSettled([cargarVentasSupabase(),cargarGastosSupabase(),cargarMovimientosCajaSupabase()]);
+  actualizarSaldoCajaFisica();
   actualizarFlujoCaja();
  },0);
 }
@@ -4809,7 +5499,9 @@ function costoVentasMesArrendamiento(mes){
   const d=new Date(v.fecha);
   if(Number.isNaN(d.getTime()))return total;
   const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-  return vm===mes?total+Number(v.costoTotal||0):total;
+  if(vm!==mes)return total;
+  const costoDevuelto=itemsDeVenta(v).reduce((t,i)=>t+Math.max(0,Number(i.devuelto||0))*Number(i.costoUnitario||0),0);
+  return total+Number(v.costoTotal||0)+costoDevuelto;
  },0)
 }
 function cargarConfiguracionArrendamientoMes(){
@@ -5223,8 +5915,8 @@ function actualizarEstadisticas(){
  const conteo={};historial.forEach(m=>{const id=m.productoId;if(!conteo[id])conteo[id]={nombre:m.nombre,movimientos:0};conteo[id].movimientos++});const rm=Object.values(conteo).sort((a,b)=>b.movimientos-a.movimientos).slice(0,5);document.getElementById("rankingMovimientos").innerHTML=rm.length?rm.map(x=>`<div class="fila-estadistica"><span>${escapeHtml(x.nombre)}</span><strong>${x.movimientos} movimiento(s)</strong></div>`).join(""):`<div class="fila-estadistica"><span>No hay movimientos.</span><strong>—</strong></div>`;
  const bajos=productos.filter(p=>Number(p.cantidad)<=Number(p.stockMinimo??5));document.getElementById("rankingStockBajo").innerHTML=bajos.length?bajos.map(p=>`<div class="fila-estadistica"><span>${escapeHtml(p.nombre)}</span><strong>${p.cantidad} / ${Number(p.stockMinimo??5)}</strong></div>`).join(""):`<div class="fila-estadistica"><span>Todo el inventario está por encima del mínimo.</span><strong>✓ OK</strong></div>`
 }
-function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonEstadisticas","botonUsuarios"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";if(sec!=="cuentasPagar")document.getElementById("vistaCuentasPagar").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",cuentasPagar:"botonCuentasPagar",flujoCaja:"botonFlujoCaja",finanzas:"botonFinanzas",estadisticas:"botonEstadisticas",usuarios:"botonUsuarios"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo")}
-function mostrarInventario(){document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";document.getElementById("vistaFlujoCaja").style.display="none";document.getElementById("vistaFinanzas").style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
+function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonEstadisticas","botonUsuarios","botonLicencias"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";if(sec!=="cuentasPagar")document.getElementById("vistaCuentasPagar").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",cuentasPagar:"botonCuentasPagar",flujoCaja:"botonFlujoCaja",finanzas:"botonFinanzas",estadisticas:"botonEstadisticas",usuarios:"botonUsuarios"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo")}
+function mostrarInventario(){document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";document.getElementById("vistaFlujoCaja").style.display="none";document.getElementById("vistaFinanzas").style.display="none";const vl=document.getElementById("vistaLicencias");if(vl)vl.style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
 function scrollTop(){window.scrollTo({top:0,behavior:"auto"})}
 document.addEventListener("visibilitychange",()=>{
  if(document.visibilityState==="visible"){
@@ -5323,6 +6015,13 @@ seleccionarRespaldo=function(){if(!requiereAdmin("Restaurar respaldos"))return;r
 recalcularSaldos();mostrarProductos();actualizarResumenHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarFlujoCaja();actualizarFinanzas();actualizarEstadisticas();
 </script>
 <script>
+
+window.addEventListener("load",()=>{
+ setTimeout(()=>flkValidarLicencia(),200);
+});
+window.addEventListener("online",()=>setTimeout(()=>flkValidarLicencia(),250));
+window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
+
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
@@ -5350,7 +6049,8 @@ if("serviceWorker" in navigator){
   botonFlujoCaja:()=>mostrarFlujoCaja(),
   botonFinanzas:()=>mostrarFinanzas(),
   botonEstadisticas:()=>mostrarEstadisticas(),
-  botonUsuarios:()=>mostrarUsuarios()
+  botonUsuarios:()=>mostrarUsuarios(),
+   botonLicencias:()=>mostrarLicencias()
  };
 
  document.addEventListener("click",function(e){
