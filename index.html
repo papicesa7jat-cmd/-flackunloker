@@ -2508,7 +2508,7 @@ function actualizarFinanzas(){
  document.getElementById("finMargenNeto").textContent=(d.ventasTotal?d.neta/d.ventasTotal*100:0).toFixed(1)+"%";
  document.getElementById("finRelacion").textContent=d.porPagar>0?(d.porCobrar/d.porPagar).toFixed(2)+"x":(d.porCobrar>0?"Sin deuda":"—")
 }
-function mostrarFinanzas(){
+async function mostrarFinanzas(){await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();
  ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");
  document.getElementById("vistaFinanzas").style.display="block";actualizarMenu("finanzas");actualizarFinanzas();scrollTop()
 }
