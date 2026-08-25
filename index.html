@@ -688,7 +688,7 @@ body.rol-empleado .acciones-movimiento{display:none!important}
 <div class="campo" style="margin:0"><label for="fechaDesdeFinanzas">Desde</label><input id="fechaDesdeFinanzas" type="date" onchange="actualizarFinanzas()"></div>
 <div class="campo" style="margin:0"><label for="fechaHastaFinanzas">Hasta</label><input id="fechaHastaFinanzas" type="date" onchange="actualizarFinanzas()"></div>
 </div>
-<div class="reporte-botones"><button class="boton-agregar" onclick="actualizarFinanzas()">🔄 Actualizar</button><button class="boton-respaldo boton-crear-respaldo" onclick="imprimirFinanzas()">🧾 Ver / imprimir</button></div>
+<div class="reporte-botones"><button class="boton-agregar" onclick="sincronizarYActualizarFinanzas()">🔄 Actualizar</button><button class="boton-respaldo boton-crear-respaldo" onclick="imprimirFinanzas()">🧾 Ver / imprimir</button></div>
 </div>
 
 <div class="lista-estadisticas"><h3>🏦 Posición financiera actual</h3></div>
@@ -2123,7 +2123,7 @@ async function eliminarCierre(id){
   await cargarCierresSupabase();actualizarCierre();
  }catch(err){console.error(err);alert("Supabase no permitió eliminar el cierre: "+(err.message||err))}
 }
-async function mostrarCierre(){await cargarVentasSupabase();await cargarGastosSupabase();await cargarMovimientosCajaSupabase();await cargarCierresSupabase();["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaReportes","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaCierre").style.display="block";actualizarMenu("cierre");actualizarCierre();scrollTop()}
+async function mostrarCierre(){await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();await cargarCierresSupabase();["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaReportes","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaCierre").style.display="block";actualizarMenu("cierre");actualizarCierre();scrollTop()}
 
 function fechaLocalDeValor(fecha){if(!fecha)return "";if(/^\d{4}-\d{2}-\d{2}$/.test(String(fecha)))return String(fecha);const d=new Date(fecha);return Number.isNaN(d.getTime())?"":fechaLocalISO(d)}
 function rangoReporteActual(){
@@ -2502,6 +2502,20 @@ function cambiarPeriodoFinanzas(){
  const p=document.getElementById("periodoFinanzas").value==="personalizado";
  document.getElementById("rangoPersonalizadoFinanzas").classList.toggle("oculto",!p);actualizarFinanzas()
 }
+
+async function sincronizarYActualizarFinanzas(){
+ try{
+  await cargarInventarioSupabase();
+  await cargarVentasSupabase();
+  await cargarGastosSupabase();
+  await cargarComprasSupabase();
+  await cargarMovimientosCajaSupabase();
+  actualizarFinanzas();
+ }catch(err){
+  console.error("Sincronización Finanzas:",err);
+  alert("No se pudieron actualizar todos los datos financieros desde Supabase.")
+ }
+}
 function actualizarFinanzas(){
  const d=datosFinanzas();if(!d)return;
  document.getElementById("textoPeriodoFinanzas").value=d.lim.texto;
@@ -2518,7 +2532,7 @@ function actualizarFinanzas(){
  document.getElementById("finMargenNeto").textContent=(d.ventasTotal?d.neta/d.ventasTotal*100:0).toFixed(1)+"%";
  document.getElementById("finRelacion").textContent=d.porPagar>0?(d.porCobrar/d.porPagar).toFixed(2)+"x":(d.porCobrar>0?"Sin deuda":"—")
 }
-async function mostrarFinanzas(){await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();
+async function mostrarFinanzas(){await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();
  ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");
  document.getElementById("vistaFinanzas").style.display="block";actualizarMenu("finanzas");actualizarFinanzas();scrollTop()
 }
