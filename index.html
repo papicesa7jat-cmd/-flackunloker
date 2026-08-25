@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v55-lista-licencias">
+<meta name="flackunloker-offline-version" content="2026-08-25-v56-licencias-clientes">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1739,11 +1739,21 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
  
 <div class="lic-panel">
  <div class="seccion-titulo" style="margin-top:0">
-  <h3 style="margin:0">📋 Licencias registradas</h3>
+  <h3 style="margin:0">📋 Licencias de clientes</h3>
   <button class="boton-agregar" type="button" onclick="cargarListaLicencias()">↻ Actualizar</button>
  </div>
 
- <div id="licenciasResumen">
+ 
+ <div id="licenciaPropietariaSeparada" style="display:none;background:#f7fbff;border:1px solid #cfe3f7;border-radius:16px;padding:14px;margin:14px 0">
+  <div style="font-size:11px;color:#667085;margin-bottom:4px">Licencia interna</div>
+  <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+   <strong id="licOwnerNombre">Flackunloker - Propietario</strong>
+   <span class="lic-badge active" id="licOwnerEstado">ACTIVA</span>
+  </div>
+  <div id="licOwnerDetalle" style="font-size:11px;color:#667085;margin-top:7px"></div>
+ </div>
+
+<div id="licenciasResumen">
   <div class="lic-resumen-card activa"><span>Activas</span><strong id="licCountActivas">0</strong></div>
   <div class="lic-resumen-card suspendida"><span>Suspendidas</span><strong id="licCountSuspendidas">0</strong></div>
   <div class="lic-resumen-card vencida"><span>Vencidas</span><strong id="licCountVencidas">0</strong></div>
@@ -3714,12 +3724,40 @@ async function cargarListaLicencias(){
   return;
  }
 
- lista.innerHTML='<div class="sin-productos">Cargando licencias...</div>';
+ lista.innerHTML='<div class="sin-productos">Cargando licencias de clientes...</div>';
 
  try{
   const {data,error}=await flkSupabase.rpc("flk_list_licenses");
   if(error)throw error;
-  const arr=Array.isArray(data)?data:[];
+  const todas=Array.isArray(data)?data:[];
+
+  // La licencia interna del propietario se muestra aparte y NO entra
+  // en los contadores ni en la lista comercial de clientes.
+  const esPropietaria=l=>{
+   const nombre=String(l.customer_name||"").trim().toLowerCase();
+   const notas=String(l.notes||"").trim().toLowerCase();
+   return nombre==="flackunloker - propietario" ||
+          notas.includes("licencia interna del propietario");
+  };
+
+  const owner=todas.find(esPropietaria)||null;
+  const arr=todas.filter(l=>!esPropietaria(l));
+
+  const ownerBox=document.getElementById("licenciaPropietariaSeparada");
+  if(ownerBox){
+   if(owner){
+    ownerBox.style.display="block";
+    const est=flkEstadoVisualLicencia(owner);
+    document.getElementById("licOwnerNombre").textContent=owner.customer_name||"Flackunloker - Propietario";
+    const badge=document.getElementById("licOwnerEstado");
+    badge.className="lic-badge "+est;
+    badge.textContent=flkTextoEstadoLicencia(est);
+    document.getElementById("licOwnerDetalle").textContent=
+     "Vencimiento: "+flkFechaLicenciaBonita(owner.expires_at)+" · Propietario multidispositivo";
+   }else{
+    ownerBox.style.display="none";
+   }
+  }
 
   let activas=0,suspendidas=0,vencidas=0;
   arr.forEach(l=>{
@@ -3734,7 +3772,7 @@ async function cargarListaLicencias(){
   document.getElementById("licCountVencidas").textContent=vencidas;
 
   if(!arr.length){
-   lista.innerHTML='<div class="sin-productos">No hay licencias registradas.</div>';
+   lista.innerHTML='<div class="sin-productos">No hay licencias de clientes registradas.</div>';
    return;
   }
 
@@ -3781,7 +3819,7 @@ async function cargarListaLicencias(){
 
  }catch(err){
   console.error("Lista de licencias:",err);
-  lista.innerHTML='<div class="sin-productos">No se pudieron cargar las licencias.</div>';
+  lista.innerHTML='<div class="sin-productos">No se pudieron cargar las licencias de clientes.</div>';
   alert("No se pudo cargar la lista de licencias: "+(err?.message||"Error desconocido"));
  }
 }
