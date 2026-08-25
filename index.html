@@ -592,6 +592,38 @@ button:active{transform:none!important}
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+<style>
+/* ===== GESTIÓN DE USUARIOS: MISMO ANCHO QUE MENÚ PRINCIPAL ===== */
+#vistaUsuarios{
+  width:100%;
+  max-width:760px !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+}
+#vistaUsuarios #listaUsuariosAdmin{
+  width:100%;
+  max-width:none !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+}
+#vistaUsuarios .usuario-card{
+  width:100%;
+  max-width:none !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+}
+#vistaUsuarios .reporte-controles{
+  width:100%;
+  max-width:none !important;
+}
+@media(max-width:780px){
+  #vistaUsuarios{
+    max-width:100% !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <div id="estadoConexionFlk"><span class="punto"></span><span id="textoConexionFlk">Comprobando conexión…</span><small id="pendientesConexionFlk"></small></div>
