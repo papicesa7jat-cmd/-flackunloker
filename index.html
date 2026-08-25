@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v14-estadisticas-rango">
+<meta name="flackunloker-offline-version" content="2026-08-25-v15-estadisticas-uniforme">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -4478,6 +4478,61 @@ function imprimirFinanzas(){
     padding-left:13px !important;
     padding-right:13px !important;
   }
+}
+</style>
+
+
+<style>
+/* ===== ESTADÍSTICAS · BLOQUE INFERIOR AL MISMO ANCHO QUE ARRIBA ===== */
+#vistaEstadisticas{
+  width:100% !important;
+  max-width:1040px !important;
+  margin:0 auto !important;
+  padding-left:28px !important;
+  padding-right:28px !important;
+  box-sizing:border-box !important;
+}
+
+/* Todos los hijos directos respetan exactamente el contenedor */
+#vistaEstadisticas > *{
+  width:100% !important;
+  max-width:100% !important;
+  margin-left:0 !important;
+  margin-right:0 !important;
+  box-sizing:border-box !important;
+}
+
+/* Resumen: Total movimientos, Entradas, Salidas, Balance, valores */
+#vistaEstadisticas .estadisticas-grid{
+  width:100% !important;
+  max-width:100% !important;
+  margin-left:0 !important;
+  margin-right:0 !important;
+  box-sizing:border-box !important;
+}
+
+#vistaEstadisticas .estadistica-card{
+  width:auto !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}
+
+/* Listados inferiores */
+#vistaEstadisticas .lista-estadisticas,
+#vistaEstadisticas .respaldo-box{
+  width:100% !important;
+  max-width:100% !important;
+  margin-left:0 !important;
+  margin-right:0 !important;
+  box-sizing:border-box !important;
+}
+
+@media(max-width:799px){
+ #vistaEstadisticas{padding-left:18px !important;padding-right:18px !important;}
+}
+@media(max-width:430px){
+ #vistaEstadisticas{padding-left:13px !important;padding-right:13px !important;}
 }
 </style>
 
