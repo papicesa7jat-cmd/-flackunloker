@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v8">
+<meta name="flackunloker-offline-version" content="2026-08-25-v9-fastviews">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2852,7 +2852,7 @@ function actualizarOpcionesOrganizacion(){
 function cambiarFiltrosInventario(){filtroCategoriaActual=document.getElementById("filtroCategoria").value;filtroUbicacionActual=document.getElementById("filtroUbicacion").value;mostrarProductos()}
 
 function abrirFormulario(){
- mostrarInventario();productoEditando=null;document.getElementById("tituloFormulario").textContent="Agregar producto";document.getElementById("formularioProducto").reset();document.getElementById("stockMinimo").value=5;document.getElementById("modalProducto").classList.add("visible");document.getElementById("nombre").focus()
+ productoEditando=null;document.getElementById("tituloFormulario").textContent="Agregar producto";document.getElementById("formularioProducto").reset();document.getElementById("stockMinimo").value=5;document.getElementById("modalProducto").classList.add("visible");requestAnimationFrame(()=>document.getElementById("nombre").focus())
 }
 function editarProducto(id){
  const p=productos.find(x=>x.id===id);if(!p)return;
@@ -4363,10 +4363,7 @@ function actualizarFinanzas(){
  document.getElementById("finRelacion").textContent=d.porPagar>0?(d.porCobrar/d.porPagar).toFixed(2)+"x":(d.porCobrar>0?"Sin deuda":"—");
  actualizarEstadoContribucionArrendamiento()
 }
-async function mostrarFinanzas(){if(!navigator.onLine){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});document.getElementById("vistaFinanzas").style.display="block";actualizarMenu("finanzas");actualizarFinanzas();scrollTop();return}await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();await cargarConfiguracionesArrendamiento();
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");
- document.getElementById("vistaFinanzas").style.display="block";actualizarMenu("finanzas");actualizarFinanzas();scrollTop()
-}
+function mostrarFinanzas(){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});document.getElementById("vistaFinanzas").style.display="block";actualizarMenu("finanzas");scrollTop();requestAnimationFrame(()=>actualizarFinanzas());if(navigator.onLine)setTimeout(async()=>{try{await Promise.allSettled([cargarInventarioSupabase(),cargarVentasSupabase(),cargarGastosSupabase(),cargarComprasSupabase(),cargarMovimientosCajaSupabase(),cargarConfiguracionesArrendamiento()]);actualizarFinanzas()}catch(e){}},0)}
 function imprimirFinanzas(){
  const d=datosFinanzas();if(!d)return alert("Selecciona un período válido.");
  const pct=n=>(d.ventasTotal?n/d.ventasTotal*100:0).toFixed(1)+"%";
@@ -4415,9 +4412,9 @@ function actualizarCentroAlertas(){
  ok.innerHTML=d.total?'':'<div class="alertas-vacio"><strong>✅ Todo está al día</strong>No hay productos con stock bajo ni créditos que requieran atención.</div>';
  actualizarIndicadorAlertas()
 }
-async function mostrarAlertas(){if(!navigator.onLine){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaOrdenes","vistaEstadisticas","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});document.getElementById("vistaAlertas").style.display="block";actualizarMenu("alertas");actualizarCentroAlertas();scrollTop();return}await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaAlertas").style.display="block";actualizarMenu("alertas");actualizarCentroAlertas();scrollTop()}
+function mostrarAlertas(){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});document.getElementById("vistaAlertas").style.display="block";actualizarMenu("alertas");scrollTop();requestAnimationFrame(()=>actualizarCentroAlertas());if(navigator.onLine)setTimeout(async()=>{try{await Promise.allSettled([cargarInventarioSupabase(),cargarVentasSupabase(),cargarGastosSupabase(),cargarComprasSupabase(),cargarMovimientosCajaSupabase()]);actualizarCentroAlertas()}catch(e){}},0)}
 
-async function mostrarEstadisticas(){if(!navigator.onLine){document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="block";actualizarMenu("estadisticas");actualizarEstadisticas();scrollTop();return}await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="block";actualizarMenu("estadisticas");actualizarEstadisticas();scrollTop()}
+function mostrarEstadisticas(){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});document.getElementById("vistaEstadisticas").style.display="block";actualizarMenu("estadisticas");scrollTop();requestAnimationFrame(()=>actualizarEstadisticas());if(navigator.onLine)setTimeout(async()=>{try{await Promise.allSettled([cargarInventarioSupabase(),cargarVentasSupabase(),cargarGastosSupabase(),cargarComprasSupabase(),cargarMovimientosCajaSupabase()]);actualizarEstadisticas()}catch(e){}},0)}
 
 async function sincronizarYActualizarEstadisticas(){
  try{
