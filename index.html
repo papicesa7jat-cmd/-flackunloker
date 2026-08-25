@@ -2557,6 +2557,20 @@ function actualizarIndicadorAlertas(){
  badge.innerHTML=d.total?`<span class="boton-alertas-badge">${d.total>99?"99+":d.total}</span>`:"";
  btn.title=d.total?`${d.total} alerta(s) pendiente(s)`:"Sin alertas pendientes"
 }
+
+async function sincronizarYActualizarAlertas(){
+ try{
+  await cargarInventarioSupabase();
+  await cargarVentasSupabase();
+  await cargarGastosSupabase();
+  await cargarComprasSupabase();
+  await cargarMovimientosCajaSupabase();
+  actualizarCentroAlertas();
+ }catch(err){
+  console.error("Sincronización Alertas:",err);
+  alert("No se pudieron actualizar todas las alertas desde Supabase.")
+ }
+}
 function actualizarCentroAlertas(){
  const d=datosCentroAlertas();
  document.getElementById("alertasTotal").textContent=d.total;document.getElementById("alertasSinStock").textContent=d.sinStock.length;document.getElementById("alertasStockBajo").textContent=d.stockBajo.length;document.getElementById("alertasVencidos").textContent=d.vencidos.length;document.getElementById("alertasProximos").textContent=d.proximos.length;
@@ -2568,7 +2582,7 @@ function actualizarCentroAlertas(){
  ok.innerHTML=d.total?'':'<div class="alertas-vacio"><strong>✅ Todo está al día</strong>No hay productos con stock bajo ni créditos que requieran atención.</div>';
  actualizarIndicadorAlertas()
 }
-function mostrarAlertas(){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaAlertas").style.display="block";actualizarMenu("alertas");actualizarCentroAlertas();scrollTop()}
+async function mostrarAlertas(){await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaAlertas").style.display="block";actualizarMenu("alertas");actualizarCentroAlertas();scrollTop()}
 
 async function mostrarEstadisticas(){await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="block";actualizarMenu("estadisticas");actualizarEstadisticas();scrollTop()}
 
