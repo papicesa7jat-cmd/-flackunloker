@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v36-roles-visual-real">
+<meta name="flackunloker-offline-version" content="2026-08-25-v37-roles-visual-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2828,13 +2828,44 @@ document.getElementById("formularioRecuperarPassword")?.addEventListener("submit
     );
   }catch(err){
     console.error("Recuperación de contraseña:",err);
-    flkEstadoRecuperacion(
-      "estadoRecuperacionPassword",
-      "No se pudo enviar el correo de recuperación. Comprueba la conexión e inténtalo nuevamente.",
-      "error"
-    );
+    const status=Number(err?.status||0);
+    const code=String(err?.code||"");
+    const msg=String(err?.message||"").toLowerCase();
+
+    if(status===429 || code.includes("rate") || msg.includes("rate limit") || msg.includes("too many")){
+      flkEstadoRecuperacion(
+        "estadoRecuperacionPassword",
+        "Has solicitado varios enlaces seguidos. Por seguridad, espera al menos 60 segundos antes de volver a intentarlo.",
+        "error"
+      );
+    }else if(!navigator.onLine || msg.includes("fetch") || msg.includes("network")){
+      flkEstadoRecuperacion(
+        "estadoRecuperacionPassword",
+        "No hay conexión con Internet en este momento. Comprueba la conexión e inténtalo nuevamente.",
+        "error"
+      );
+    }else{
+      flkEstadoRecuperacion(
+        "estadoRecuperacionPassword",
+        "Supabase no pudo enviar el correo de recuperación en este momento. Espera un momento e inténtalo otra vez.",
+        "error"
+      );
+    }
   }finally{
-    if(boton){boton.disabled=false;boton.textContent="Enviar enlace";}
+    if(boton){
+      boton.disabled=true;
+      boton.textContent="Espera 60 s";
+      let restante=60;
+      const temporizador=setInterval(()=>{
+        restante--;
+        if(!boton||restante<=0){
+          clearInterval(temporizador);
+          if(boton){boton.disabled=false;boton.textContent="Enviar enlace";}
+        }else{
+          boton.textContent=`Espera ${restante} s`;
+        }
+      },1000);
+    }
   }
 });
 
