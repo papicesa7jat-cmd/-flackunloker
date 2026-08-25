@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v58-multicentro-productos">
+<meta name="flackunloker-offline-version" content="2026-08-25-v59-multicentro-uuid-fix">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1837,6 +1837,14 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 </div>
 
 <script>
+(function(){
+ const raw=localStorage.getItem("flackunloker_business_id_v1");
+ if(raw!==null && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(raw)){
+  localStorage.removeItem("flackunloker_business_id_v1");
+ }
+})();
+</script>
+<script>
 
 /* ===== INFRAESTRUCTURA OFFLINE FLACKUNLOKER =====
    Esta versión crea la cola y el indicador. Los módulos se conectarán a ella por etapas. */
@@ -2584,7 +2592,7 @@ let flkOrquestandoSync=false;
 async function flkReconciliarInventarioNube(){
  if(!navigator.onLine)return false;
  try{
-  const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",FLK_BUSINESS_ID).order("created_at",{ascending:true});
+  const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
   if(error)throw error;
   productos=(data||[]).map(productoDesdeSupabase);
   guardarDatos();
@@ -2918,7 +2926,7 @@ async function flkRecuperacionEmergenciaNube(){
 
   // INVENTARIO
   try{
-   const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",FLK_BUSINESS_ID).order("created_at",{ascending:true});
+   const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
    if(error)throw error;
    productos=(data||[]).map(productoDesdeSupabase);
    guardarDatos();
@@ -4118,24 +4126,61 @@ function productoDesdeSupabase(r){
 }
 
 // =========================================================
-// FLACKUNLOKER v58 · CONTEXTO MULTI-CENTRO
+// FLACKUNLOKER v59 · CONTEXTO MULTI-CENTRO SEGURO
 // =========================================================
-let FLK_BUSINESS_ID=localStorage.getItem("flackunloker_business_id_v1")||null;
+const FLK_BUSINESS_STORAGE_KEY="flackunloker_business_id_v1";
+
+function flkUuidValido(v){
+ return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(v||"").trim());
+}
+
+function flkBusinessGuardado(){
+ const raw=localStorage.getItem(FLK_BUSINESS_STORAGE_KEY);
+ if(!flkUuidValido(raw)){
+  if(raw!==null)localStorage.removeItem(FLK_BUSINESS_STORAGE_KEY);
+  return null;
+ }
+ return raw;
+}
+
+let FLK_BUSINESS_ID=flkBusinessGuardado();
 
 async function flkCargarCentroActual(){
- if(!flkSupabase || !flkSesionActiva || !navigator.onLine)return FLK_BUSINESS_ID;
+ if(!flkSupabase || !flkSesionActiva || !navigator.onLine){
+  FLK_BUSINESS_ID=flkBusinessGuardado();
+  return FLK_BUSINESS_ID;
+ }
+
  const {data,error}=await flkSupabase.rpc("flk_current_business_id");
  if(error)throw error;
- FLK_BUSINESS_ID=data||null;
- if(FLK_BUSINESS_ID)localStorage.setItem("flackunloker_business_id_v1",FLK_BUSINESS_ID);
- return FLK_BUSINESS_ID;
+
+ const id=String(data||"").trim();
+
+ if(!flkUuidValido(id)){
+  FLK_BUSINESS_ID=null;
+  localStorage.removeItem(FLK_BUSINESS_STORAGE_KEY);
+  throw new Error("La cuenta no tiene un centro de trabajo válido asignado.");
+ }
+
+ FLK_BUSINESS_ID=id;
+ localStorage.setItem(FLK_BUSINESS_STORAGE_KEY,id);
+ return id;
 }
 
 async function flkExigirCentroActual(){
- if(FLK_BUSINESS_ID)return FLK_BUSINESS_ID;
- const id=await flkCargarCentroActual();
- if(!id)throw new Error("Esta cuenta no tiene un centro de trabajo activo.");
- return id;
+ if(flkUuidValido(FLK_BUSINESS_ID))return FLK_BUSINESS_ID;
+
+ const guardado=flkBusinessGuardado();
+ if(guardado){
+  FLK_BUSINESS_ID=guardado;
+  return guardado;
+ }
+
+ if(!navigator.onLine){
+  throw new Error("Conéctate a Internet para identificar el centro de trabajo.");
+ }
+
+ return await flkCargarCentroActual();
 }
 
 function productoHaciaSupabase(p,stock=0){
@@ -4152,7 +4197,7 @@ function productoHaciaSupabase(p,stock=0){
   stock:Number(stock||0),
   min_stock:Number(p.stockMinimo||0),
   active:true,
-  business_id:FLK_BUSINESS_ID
+  business_id:flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:null
  }
 }
 async function cargarInventarioSupabase(){
@@ -4161,7 +4206,7 @@ async function cargarInventarioSupabase(){
  if(navigator.onLine&&!flkSesionActiva)return false;
  if(!navigator.onLine){flkAplicarPendientesSobreDatos();mostrarProductos();actualizarEstadisticas();return true}
  const locales=Array.isArray(productos)?[...productos]:[];
- const {data:cloud,error}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",FLK_BUSINESS_ID).order("created_at",{ascending:true});
+ const {data:cloud,error}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
  if(error){
   console.error("Supabase inventario:",error);
   if(!flkSilenciarSiEsConexion(error))alert("No se pudo cargar el inventario de Supabase.");
@@ -4196,7 +4241,7 @@ async function cargarInventarioSupabase(){
      if(String(err.code||"")==="23505"){
       const {data:hallado}=await flkSupabase.from("products")
        .select("*")
-       .eq("business_id",FLK_BUSINESS_ID)
+       .eq("business_id",await flkExigirCentroActual())
        .or(`legacy_id.eq.${legacy}${sku?`,sku.ilike.${sku}`:""}`)
        .limit(1)
        .maybeSingle();
@@ -4231,7 +4276,7 @@ async function cargarInventarioSupabase(){
   }
 
   // Volver a leer el inventario completo después de completar/reanudar migración.
-  const {data:actualizado,error:errorActualizado}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",FLK_BUSINESS_ID).order("created_at",{ascending:true});
+  const {data:actualizado,error:errorActualizado}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
   if(errorActualizado){
    console.error(errorActualizado);
    return false;
