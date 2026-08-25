@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v23-sync-segura">
+<meta name="flackunloker-offline-version" content="2026-08-25-v24-recibos-unicos">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -3307,11 +3307,17 @@ async function cargarVentasSupabase(){
  if(error){console.error("Supabase ventas:",error);if(!flkSilenciarSiEsConexion(error))alert("No se pudieron cargar las ventas de Supabase.");return false}
 
  if(rolSesion==="admin" && locales.length){
-  const existentes=new Set((cloud||[]).map(v=>String(v.legacy_id||"")).filter(Boolean));
+  const existentesLegacy=new Set((cloud||[]).map(v=>String(v.legacy_id||"")).filter(Boolean));
+  const normalizarRecibo=n=>String(n??"").trim().replace(/^#/,"").padStart(6,"0");
+  const existentesRecibo=new Set((cloud||[]).map(v=>normalizarRecibo(v.receipt_number)).filter(Boolean));
 
   for(const v of locales){
    const legacy=String(v.id);
-   if(existentes.has(legacy))continue;
+   const reciboLocal=normalizarRecibo(v.numero||String(v.id).slice(-8));
+
+   // Una venta se considera ya migrada si coincide por ID legado O por número de recibo.
+   // Esto evita volver a insertar un recibo que Supabase ya tiene.
+   if(existentesLegacy.has(legacy)||existentesRecibo.has(reciboLocal))continue;
 
    const items=(Array.isArray(v.items)?v.items:[]).map(i=>({
     legacy_product_id:String(i.productoId),
@@ -3333,7 +3339,7 @@ async function cargarVentasSupabase(){
 
    const {error:impErr}=await flkSupabase.rpc("flk_import_legacy_sale",{
     p_legacy_id:legacy,
-    p_receipt_number:String(v.numero||String(v.id).slice(-8)),
+    p_receipt_number:reciboLocal,
     p_customer_name:v.cliente||"Cliente general",
     p_customer_phone:v.telefono||null,
     p_payment_method:v.metodoPago||"cash",
@@ -3346,11 +3352,20 @@ async function cargarVentasSupabase(){
     p_payments:pagos
    });
    if(impErr){
+    const msg=String(impErr.message||"");
+    // Si otro proceso ya creó ese mismo recibo, no es un fallo de datos:
+    // recargar la nube lo resolverá sin duplicar.
+    if(/sales_receipt_number_uidx|duplicate key value/i.test(msg)){
+     console.warn("Recibo ya existente en Supabase; se omite migración:",reciboLocal);
+     existentesRecibo.add(reciboLocal);
+     continue;
+    }
     console.error("Migración venta:",v.numero||v.id,impErr);
-    alert("No se pudo migrar el recibo #"+(v.numero||v.id)+": "+impErr.message);
+    alert("No se pudo migrar el recibo #"+(v.numero||v.id)+": "+msg);
     return false;
    }
-   existentes.add(legacy);
+   existentesLegacy.add(legacy);
+   existentesRecibo.add(reciboLocal);
   }
 
   const recarga=await consulta();
