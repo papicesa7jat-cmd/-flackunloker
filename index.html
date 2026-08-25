@@ -3507,25 +3507,39 @@ function abrirProveedor(id=null){proveedorEditandoId=id;document.getElementById(
 function cerrarProveedor(){document.getElementById("modalProveedor").classList.remove("visible");document.getElementById("formularioProveedor").reset();proveedorEditandoId=null}
 document.getElementById("formularioProveedor").addEventListener("submit",async e=>{
  e.preventDefault();e.stopPropagation();
- const nombre=document.getElementById("nombreProveedor").value.trim(),contacto=document.getElementById("contactoProveedor").value.trim(),telefono=document.getElementById("telefonoProveedor").value.trim(),email=document.getElementById("emailProveedor").value.trim(),direccion=document.getElementById("direccionProveedor").value.trim(),nota=document.getElementById("notaProveedor").value.trim();
+ const nombre=document.getElementById("nombreProveedor").value.trim(),
+       contacto=document.getElementById("contactoProveedor").value.trim(),
+       telefono=document.getElementById("telefonoProveedor").value.trim(),
+       email=document.getElementById("emailProveedor").value.trim(),
+       direccion=document.getElementById("direccionProveedor").value.trim(),
+       nota=document.getElementById("notaProveedor").value.trim();
  if(!nombre)return alert("Escribe el nombre del proveedor.");
- const actual=proveedores.find(x=>x.id===proveedorEditandoId),legacy=actual?String(actual.id):String(Date.now()+Math.floor(Math.random()*100000));
+
+ const actual=proveedores.find(x=>x.id===proveedorEditandoId);
+ const legacy=actual?String(actual.id):String(Date.now()+Math.floor(Math.random()*100000));
+
  if(!actual){
   const repetido=proveedores.find(p=>nombreProveedorNorm(p.nombre)===nombreProveedorNorm(nombre));
   if(repetido)return alert("Ese proveedor ya existe: "+repetido.nombre);
  }
- if(!navigator.onLine){
-  const op=flkEncolarOperacion("supplier_save",{
-   supplier_id:actual?.supabaseId||null,legacy_id:legacy,local_supplier_id:Number(legacy),
-   name:nombre,contact_name:contacto||null,phone:telefono||null,email:email||null,address:direccion||null,notes:nota||null
-  });
-  flkAplicarProveedorLocal(op);guardarProveedores();actualizarProveedores();actualizarOpcionesOrganizacion();cerrarProveedor();
-  return
- }
- const payload={legacy_id:legacy,name:nombre,contact_name:contacto||null,phone:telefono||null,email:email||null,address:direccion||null,notes:nota||null,updated_at:new Date().toISOString()};
- const q=actual?.supabaseId?flkSupabase.from("suppliers").update(payload).eq("id",actual.supabaseId):flkSupabase.from("suppliers").insert(payload);
- const {error}=await q;if(error){if(flkSilenciarSiEsConexion(error))return;return alert(error.code==="23505"?"Ese proveedor ya existe.":"Supabase rechazó el proveedor: "+error.message)}
- await cargarComprasSupabase();cerrarProveedor()
+
+ const op=flkEncolarOperacion("supplier_save",{
+  supplier_id:actual?.supabaseId||null,
+  legacy_id:legacy,
+  local_supplier_id:Number(legacy),
+  name:nombre,
+  contact_name:contacto||null,
+  phone:telefono||null,
+  email:email||null,
+  address:direccion||null,
+  notes:nota||null
+ });
+ flkAplicarProveedorLocal(op);
+ guardarProveedores();
+ actualizarProveedores();
+ actualizarOpcionesOrganizacion();
+ cerrarProveedor();
+ if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
 });
 function eliminarProveedor(id){const p=proveedores.find(x=>x.id===id);if(!p)return;const productosAsociados=productos.filter(x=>nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(p.nombre)).length,ordenesAsociadas=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)).length;if(!confirm(`¿Eliminar ${p.nombre} del directorio?\n\nSus ${productosAsociados} producto(s) y ${ordenesAsociadas} orden(es) conservarán el nombre del proveedor como historial.`))return;proveedores=proveedores.filter(x=>x.id!==id);guardarProveedores();actualizarProveedores();actualizarOpcionesOrganizacion()}
 function nuevaOrdenProveedor(id){const p=proveedores.find(x=>x.id===id);if(!p)return;abrirOrdenCompra(null,p.nombre)}
@@ -3544,6 +3558,7 @@ document.getElementById("productoOrden").addEventListener("change",actualizarDat
 document.getElementById("busquedaOrdenes").addEventListener("input",mostrarListaOrdenes);
 document.getElementById("formularioOrdenCompra").addEventListener("submit",async e=>{
  e.preventDefault();e.stopPropagation();
+
  const productoId=Number(document.getElementById("productoOrden").value),
        p=productos.find(x=>x.id===productoId),
        proveedorNombre=document.getElementById("proveedorOrden").value.trim(),
@@ -3552,95 +3567,107 @@ document.getElementById("formularioOrdenCompra").addEventListener("submit",async
        costoUnitario=Number(document.getElementById("costoUnitarioOrden").value),
        fechaOrden=document.getElementById("fechaOrden").value,
        nota=document.getElementById("notaOrden").value.trim();
+
  if(!p?.supabaseId)return alert("Selecciona un producto que ya tenga vínculo con Supabase.");
  if(!proveedor)return alert("Selecciona un proveedor registrado.");
  if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
  if(!Number.isFinite(costoUnitario)||costoUnitario<0)return alert("Introduce un costo válido.");
  if(!fechaOrden)return alert("Selecciona la fecha de la orden.");
+
  const actual=ordenEditandoId!==null?ordenesCompra.find(x=>x.id===ordenEditandoId):null;
  const legacy=actual?String(actual.id):String(Date.now()+Math.floor(Math.random()*100000));
 
- if(!navigator.onLine){
-  if(!proveedor.supabaseId&&!proveedor.offlineOperationId)return alert("Este proveedor aún no tiene una referencia segura para sincronizar.");
-  const op=flkEncolarOperacion("purchase_order_save",{
-   order_id:actual?.supabaseId||null,
-   order_operation_id:actual?.offlineOperationId||null,
-   legacy_id:legacy,local_order_id:Number(legacy),
-   supplier_id:proveedor.supabaseId||null,
-   supplier_operation_id:proveedor.offlineOperationId||null,
-   supplier_name:proveedor.nombre,
-   product_id:p.supabaseId,local_product_id:p.id,
-   quantity:cantidad,unit_cost:costoUnitario,order_date:fechaOrden,note:nota||null
-  });
-  flkAplicarOrdenLocal(op);guardarOrdenesCompra();actualizarOrdenesCompra();actualizarProveedores();actualizarCentroAlertas();cerrarOrdenCompra();
-  return
+ if(!proveedor.supabaseId&&!proveedor.offlineOperationId){
+  return alert("Guarda primero el proveedor para crear una referencia local segura.");
  }
 
- if(!proveedor.supabaseId)return alert("Selecciona un proveedor sincronizado con Supabase.");
- try{
-  const {error}=await flkSupabase.rpc("flk_save_purchase_order",{
-   p_order_id:actual?.supabaseId||null,p_legacy_id:legacy,p_supplier_id:proveedor.supabaseId,
-   p_product_id:p.supabaseId,p_quantity:cantidad,p_unit_cost:costoUnitario,p_order_date:fechaOrden,p_note:nota||null
-  });
-  if(error)throw error;
-  await cargarComprasSupabase();actualizarCentroAlertas();cerrarOrdenCompra();
-  alert(actual?"Orden actualizada en Supabase.":"Orden creada en Supabase.");
- }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó la orden: "+(err.message||err))}
+ const op=flkEncolarOperacion("purchase_order_save",{
+  order_id:actual?.supabaseId||null,
+  order_operation_id:actual?.offlineOperationId||null,
+  legacy_id:legacy,
+  local_order_id:Number(legacy),
+  supplier_id:proveedor.supabaseId||null,
+  supplier_operation_id:proveedor.offlineOperationId||null,
+  supplier_name:proveedor.nombre,
+  product_id:p.supabaseId,
+  local_product_id:p.id,
+  quantity:cantidad,
+  unit_cost:costoUnitario,
+  order_date:fechaOrden,
+  note:nota||null
+ });
+
+ flkAplicarOrdenLocal(op);
+ guardarOrdenesCompra();
+ actualizarOrdenesCompra();
+ actualizarProveedores();
+ actualizarCentroAlertas();
+ cerrarOrdenCompra();
+ if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
 });
 async function marcarOrdenada(id){
- const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;
- if(!navigator.onLine){
-  if(!o.supabaseId&&!o.offlineOperationId)return;
-  const op=flkEncolarOperacion("purchase_order_ordered",{order_id:o.supabaseId||null,order_operation_id:o.offlineOperationId||null,local_order_id:o.id});
-  flkAplicarOrdenOrdenadaLocal(op);guardarOrdenesCompra();actualizarOrdenesCompra();actualizarProveedores();return
- }
- if(!o.supabaseId)return alert("Esta orden todavía no está sincronizada con Supabase.");
- try{
-  const {error}=await flkSupabase.rpc("flk_mark_purchase_order_ordered",{p_order_id:o.supabaseId});
-  if(error)throw error;await cargarComprasSupabase();
- }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el cambio: "+(err.message||err))}
+ const o=ordenesCompra.find(x=>x.id===id);
+ if(!o||o.estado==="recibida")return;
+ if(!o.supabaseId&&!o.offlineOperationId)return alert("Esta orden todavía no tiene una referencia segura.");
+
+ const op=flkEncolarOperacion("purchase_order_ordered",{
+  order_id:o.supabaseId||null,
+  order_operation_id:o.offlineOperationId||null,
+  local_order_id:o.id
+ });
+ flkAplicarOrdenOrdenadaLocal(op);
+ guardarOrdenesCompra();
+ actualizarOrdenesCompra();
+ actualizarProveedores();
+ if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
 }
 function actualizarCamposCreditoProveedor(){const credito=document.getElementById("condicionPagoProveedor").value==="credito";document.getElementById("campoAbonoProveedor").classList.toggle("visible",credito);document.getElementById("campoVencimientoProveedor").classList.toggle("visible",credito);if(credito&&!document.getElementById("fechaVencimientoProveedor").value){const d=new Date();d.setDate(d.getDate()+30);document.getElementById("fechaVencimientoProveedor").value=fechaLocalISO(d)}if(!credito){document.getElementById("abonoInicialProveedor").value="0";document.getElementById("fechaVencimientoProveedor").value=""}}
 function recibirOrden(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;const p=productos.find(x=>x.id===o.productoId);if(!p)return alert("El producto de esta orden ya no existe en el inventario.");ordenRecepcionId=id;document.getElementById("formularioRecepcionOrden").reset();document.getElementById("condicionPagoProveedor").value="pagado";document.getElementById("textoRecepcionOrden").textContent=`${numeroOrdenCompra(o)} · ${o.proveedor} · Total $${Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)).toFixed(2)}`;actualizarCamposCreditoProveedor();document.getElementById("modalRecepcionOrden").classList.add("visible")}
 function cerrarRecepcionOrden(){document.getElementById("modalRecepcionOrden").classList.remove("visible");document.getElementById("formularioRecepcionOrden").reset();ordenRecepcionId=null}
 document.getElementById("formularioRecepcionOrden").addEventListener("submit",async e=>{
  e.preventDefault();e.stopPropagation();
- const o=ordenesCompra.find(x=>x.id===ordenRecepcionId);if(!o||o.estado==="recibida")return cerrarRecepcionOrden();
+ const o=ordenesCompra.find(x=>x.id===ordenRecepcionId);
+ if(!o||o.estado==="recibida")return cerrarRecepcionOrden();
+
  const total=Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),
        condicion=document.getElementById("condicionPagoProveedor").value,
        metodo=document.getElementById("metodoPagoProveedor").value,
        abono=condicion==="credito"?Number(document.getElementById("abonoInicialProveedor").value||0):total,
        vencimiento=condicion==="credito"?document.getElementById("fechaVencimientoProveedor").value:"";
+
  if(!Number.isFinite(abono)||abono<0||abono>total)return alert("Revisa el abono inicial.");
  if(condicion==="credito"&&!vencimiento)return alert("Selecciona la fecha de vencimiento.");
+ if(!o.supabaseId&&!o.offlineOperationId)return alert("Esta orden no tiene una referencia segura para sincronizar.");
 
- if(!navigator.onLine){
-  if(!o.supabaseId&&!o.offlineOperationId)return alert("Esta orden no tiene una referencia segura para sincronizar.");
-  const op=flkEncolarOperacion("purchase_order_receive",{
-   order_id:o.supabaseId||null,order_operation_id:o.offlineOperationId||null,local_order_id:o.id,
-   product_id:(productos.find(x=>x.id===o.productoId)||{}).supabaseId||null,
-   payment_condition:condicion==="credito"?"credit":"paid",payment_method:metodo,
-   initial_payment:abono,due_date:vencimiento||null,local_payment_id:Date.now()+Math.floor(Math.random()*100000)
-  });
-  flkAplicarRecepcionOrdenLocal(op);
-  guardarDatos();guardarHistorial();guardarOrdenesCompra();
-  mostrarProductos();actualizarOrdenesCompra();actualizarCuentasPagar();actualizarProveedores();
-  actualizarResumenHistorial();mostrarListaHistorial();actualizarFlujoCaja();actualizarFinanzas();actualizarCentroAlertas();actualizarEstadisticas();
-  cerrarRecepcionOrden();return
- }
+ const prod=productos.find(x=>x.id===o.productoId);
+ const op=flkEncolarOperacion("purchase_order_receive",{
+  order_id:o.supabaseId||null,
+  order_operation_id:o.offlineOperationId||null,
+  local_order_id:o.id,
+  product_id:prod?.supabaseId||null,
+  payment_condition:condicion==="credito"?"credit":"paid",
+  payment_method:metodo,
+  initial_payment:abono,
+  due_date:vencimiento||null,
+  local_payment_id:Date.now()+Math.floor(Math.random()*100000)
+ });
 
- if(!o.supabaseId)return alert("Esta orden todavía no está sincronizada con Supabase.");
- try{
-  const {data:nuevoStock,error}=await flkSupabase.rpc("flk_receive_purchase_order",{
-   p_order_id:o.supabaseId,p_payment_condition:condicion==="credito"?"credit":"paid",
-   p_payment_method:metodo,p_initial_payment:abono,p_due_date:vencimiento||null
-  });
-  if(error)throw error;
-  await cargarInventarioSupabase();await cargarHistorialSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();
-  actualizarFlujoCaja();actualizarFinanzas();actualizarCentroAlertas();actualizarEstadisticas();cerrarRecepcionOrden();
-  const actual=ordenesCompra.find(x=>x.supabaseId===o.supabaseId);
-  alert(`Orden recibida en Supabase.\n\nNuevo inventario: ${Number(nuevoStock)}\nSaldo proveedor: $${Number(actual?.saldoProveedor||0).toFixed(2)}`);
- }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó la recepción: "+(err.message||err))}
+ flkAplicarRecepcionOrdenLocal(op);
+ guardarDatos();
+ guardarHistorial();
+ guardarOrdenesCompra();
+ mostrarProductos();
+ actualizarOrdenesCompra();
+ actualizarCuentasPagar();
+ actualizarProveedores();
+ actualizarResumenHistorial();
+ mostrarListaHistorial();
+ actualizarFlujoCaja();
+ actualizarFinanzas();
+ actualizarCentroAlertas();
+ actualizarEstadisticas();
+ cerrarRecepcionOrden();
+ if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
 });
 async function eliminarOrdenCompra(id){
  const o=ordenesCompra.find(x=>x.id===id);if(!o)return;
@@ -3668,27 +3695,30 @@ document.getElementById("formularioPagoProveedor").addEventListener("submit",asy
        saldoAnterior=Number(o.saldoProveedor||0),
        metodo=document.getElementById("metodoPagoCuentaProveedor").value,
        nota=document.getElementById("notaPagoProveedor").value.trim();
- if(!Number.isFinite(cantidad)||cantidad<=0||cantidad>saldoAnterior+0.009)return alert("El pago no puede ser mayor que el saldo pendiente.");
 
- if(!navigator.onLine){
-  if(!o.supabaseId&&!o.offlineOperationId)return alert("Esta cuenta no tiene una referencia segura para sincronizar.");
-  const op=flkEncolarOperacion("supplier_payment",{
-   order_id:o.supabaseId||null,order_operation_id:o.offlineOperationId||null,local_order_id:o.id,
-   local_payment_id:Date.now()+Math.floor(Math.random()*100000),
-   amount:cantidad,payment_method:metodo,note:nota||null
-  });
-  flkAplicarPagoProveedorLocal(op);guardarOrdenesCompra();actualizarCuentasPagar();actualizarProveedores();actualizarFlujoCaja();actualizarFinanzas();cerrarPagoProveedor();return
+ if(!Number.isFinite(cantidad)||cantidad<=0||cantidad>saldoAnterior+0.009){
+  return alert("El pago no puede ser mayor que el saldo pendiente.");
  }
+ if(!o.supabaseId&&!o.offlineOperationId)return alert("Esta cuenta no tiene una referencia segura para sincronizar.");
 
- if(!o.supabaseId)return alert("Esta cuenta todavía no está vinculada con Supabase.");
- try{
-  const {error}=await flkSupabase.rpc("flk_add_supplier_payment",{p_order_id:o.supabaseId,p_amount:cantidad,p_payment_method:metodo,p_note:nota||null});
-  if(error)throw error;
-  await cargarComprasSupabase();await cargarMovimientosCajaSupabase();
-  actualizarFlujoCaja();actualizarFinanzas();cerrarPagoProveedor();
-  const actual=ordenesCompra.find(x=>x.supabaseId===o.supabaseId);
-  alert(`Pago guardado en Supabase.\n\nSaldo restante: $${Number(actual?.saldoProveedor||0).toFixed(2)}`);
- }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el pago: "+(err.message||err))}
+ const op=flkEncolarOperacion("supplier_payment",{
+  order_id:o.supabaseId||null,
+  order_operation_id:o.offlineOperationId||null,
+  local_order_id:o.id,
+  local_payment_id:Date.now()+Math.floor(Math.random()*100000),
+  amount:cantidad,
+  payment_method:metodo,
+  note:nota||null
+ });
+
+ flkAplicarPagoProveedorLocal(op);
+ guardarOrdenesCompra();
+ actualizarCuentasPagar();
+ actualizarProveedores();
+ actualizarFlujoCaja();
+ actualizarFinanzas();
+ cerrarPagoProveedor();
+ if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
 });
 function verHistorialPagosProveedor(id){const o=ordenesCompra.find(x=>x.id===id);if(!o)return;document.getElementById("textoHistorialPagosProveedor").textContent=`${o.proveedor} · ${numeroOrdenCompra(o)} · Total $${Number(o.costoTotal||0).toFixed(2)}`;const pagos=Array.isArray(o.pagosProveedor)?[...o.pagosProveedor].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)):[];document.getElementById("listaHistorialPagosProveedor").innerHTML=pagos.length?pagos.map(p=>`<div class="abono-card"><div class="abono-superior"><strong>${new Date(p.fecha).toLocaleString("es-PR")}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">Método: <strong>${escapeHtml(p.metodo||"—")}</strong><br>Saldo anterior: $${Number(p.saldoAnterior||0).toFixed(2)} · Restante: $${Number(p.saldoRestante||0).toFixed(2)}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div></div>`).join(""):'<div class="sin-productos">No hay pagos registrados.</div>';document.getElementById("modalHistorialPagosProveedor").classList.add("visible")}
 function cerrarHistorialPagosProveedor(){document.getElementById("modalHistorialPagosProveedor").classList.remove("visible")}
