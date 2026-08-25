@@ -585,6 +585,8 @@ body.rol-empleado .acciones-movimiento{display:none!important}
 <div class="reporte-botones"><button class="boton-agregar" onclick="actualizarFlujoCaja()">🔄 Actualizar flujo</button><button class="boton-respaldo boton-crear-respaldo" onclick="imprimirFlujoCaja()">🧾 Ver / imprimir</button></div>
 </div>
 
+<div class="lista-estadisticas"><h3>🏦 Caja física</h3><div class="fila-estadistica"><span>Saldo actual en efectivo</span><strong id="saldoCajaFisica">$0.00</strong></div><div class="acciones" style="margin-top:12px"><button class="accion entrada" type="button" onclick="abrirMovimientoPropietario('contribution')">➕ Aporte</button><button class="accion salida" type="button" onclick="abrirMovimientoPropietario('withdrawal')">🏦 Retirar efectivo</button></div></div>
+
 <div class="estadisticas-grid">
 <div class="estadistica-card ancha positiva"><span>⬇️ Entradas de dinero</span><strong id="flujoEntradas">$0.00</strong></div>
 <div class="estadistica-card ancha negativa"><span>⬆️ Salidas de dinero</span><strong id="flujoSalidas">$0.00</strong></div>
@@ -840,6 +842,7 @@ body.rol-empleado .acciones-movimiento{display:none!important}
  </div>
 </div>
 
+<div class="modal" id="modalMovimientoPropietario"><div class="modal-contenido"><div class="modal-cabecera"><h3 id="tituloMovimientoPropietario">🏦 Movimiento de caja</h3><button class="cerrar" type="button" onclick="cerrarMovimientoPropietario()">×</button></div><form id="formularioMovimientoPropietario"><label>Cantidad</label><input id="cantidadMovimientoPropietario" type="number" min="0.01" step="0.01" required><label>Nota</label><textarea id="notaMovimientoPropietario" placeholder="Motivo o detalle opcional"></textarea><input id="tipoMovimientoPropietario" type="hidden"><button class="guardar" type="submit">Guardar movimiento</button></form></div></div>
 <script>
 
 const FLK_SUPABASE_URL='https://eviwhrqhinhnyccizkfq.supabase.co';
@@ -2267,6 +2270,7 @@ async function cargarMovimientosCajaSupabase(){
         String(m.description||"").startsWith("Abono ·")?"abono":
         String(m.description||"").startsWith("Venta ·")?"venta":
         String(m.description||"").startsWith("Pago proveedor ·")?"proveedor":
+        (String(m.description||"")==="Retiro del propietario"||String(m.description||"")==="Aporte del propietario")?"propietario":
         String(m.description||"").startsWith("Reembolso devolución ·")?"reembolso":"otro"
  }));
  return true
@@ -2310,6 +2314,22 @@ function cambiarPeriodoFlujo(){
  document.getElementById("rangoPersonalizadoFlujo").classList.toggle("oculto",!personalizado);
  actualizarFlujoCaja()
 }
+function saldoCajaFisicaActual(){
+ return (movimientosCajaSupabase||[]).filter(m=>normalizarMetodoFlujo(m.metodo)==="Efectivo").reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0)
+}
+function actualizarSaldoCajaFisica(){const el=document.getElementById("saldoCajaFisica");if(el)el.textContent="$"+saldoCajaFisicaActual().toFixed(2)}
+function abrirMovimientoPropietario(tipo){
+ if(rolSesion!=="admin")return alert("Solo el Administrador puede registrar retiros o aportes.");
+ document.getElementById("tipoMovimientoPropietario").value=tipo;document.getElementById("tituloMovimientoPropietario").textContent=tipo==="withdrawal"?"🏦 Retirar efectivo":"➕ Aporte del propietario";document.getElementById("cantidadMovimientoPropietario").value="";document.getElementById("notaMovimientoPropietario").value="";document.getElementById("modalMovimientoPropietario").classList.add("visible")
+}
+function cerrarMovimientoPropietario(){document.getElementById("modalMovimientoPropietario").classList.remove("visible");document.getElementById("formularioMovimientoPropietario").reset()}
+document.getElementById("formularioMovimientoPropietario").addEventListener("submit",async e=>{
+ e.preventDefault();const tipo=document.getElementById("tipoMovimientoPropietario").value,cantidad=Number(document.getElementById("cantidadMovimientoPropietario").value),nota=document.getElementById("notaMovimientoPropietario").value.trim();
+ if(!Number.isFinite(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
+ if(tipo==="withdrawal"&&cantidad>saldoCajaFisicaActual()+0.009)return alert("El retiro supera el efectivo disponible en caja.");
+ try{const {error}=await flkSupabase.rpc("flk_owner_cash_movement",{p_type:tipo,p_amount:cantidad,p_note:nota||null});if(error)throw error;await cargarMovimientosCajaSupabase();actualizarFlujoCaja();actualizarCierre();cerrarMovimientoPropietario();alert(tipo==="withdrawal"?"Retiro guardado en Supabase.":"Aporte guardado en Supabase.")}
+ catch(err){console.error(err);alert("Supabase rechazó el movimiento: "+(err.message||err))}
+});
 function actualizarFlujoCaja(){
  const d=datosFlujoCaja();if(!d)return;
  document.getElementById("textoPeriodoFlujo").value=d.lim.texto;
