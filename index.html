@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v40-roles-visual-real">
+<meta name="flackunloker-offline-version" content="2026-08-25-v41-roles-visual-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -4915,6 +4915,7 @@ document.getElementById("formularioMovimientoPropietario").addEventListener("sub
  if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
 });
 function actualizarFlujoCaja(){
+ actualizarSaldoCajaFisica();
  const d=datosFlujoCaja();if(!d)return;
  document.getElementById("textoPeriodoFlujo").value=d.lim.texto;
  document.getElementById("flujoEntradas").textContent="$"+d.entradas.toFixed(2);
@@ -4936,9 +4937,11 @@ function mostrarFlujoCaja(){
  if(!requiereAdmin())return;
  ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaFlujoCaja").style.display="block";actualizarMenu("flujoCaja");scrollTop();
+ actualizarSaldoCajaFisica();
  requestAnimationFrame(()=>actualizarFlujoCaja());
  if(navigator.onLine)setTimeout(async()=>{
   await Promise.allSettled([cargarVentasSupabase(),cargarGastosSupabase(),cargarMovimientosCajaSupabase()]);
+  actualizarSaldoCajaFisica();
   actualizarFlujoCaja();
  },0);
 }
