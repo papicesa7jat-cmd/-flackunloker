@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v49-roles-visual-real">
+<meta name="flackunloker-offline-version" content="2026-08-25-v50-roles-visual-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -3481,19 +3481,27 @@ function mostrarLicencias(){
 
 async function cargarPanelLicencias(){
  if(!flkEsPropietarioSoftware)return;
+
  try{
-  const {data,error}=await flkSupabase.rpc("flk_check_license",{
-   p_license_key:FLK_LICENSE_KEY
-  });
-  if(error)throw error;
-  const info=Array.isArray(data)?data[0]:data;
-  if(!info)throw new Error("No se recibió información de la licencia.");
-  flkLicenciaInfo=info;
+  // La licencia principal ya fue validada al iniciar la aplicación.
+  // Reutilizamos esa información para no hacer una segunda llamada RPC
+  // innecesaria que puede fallar por permisos o conectividad.
+  let info=flkLicenciaInfo;
+
+  if(!info){
+   const cache=flkLeerCacheLicencia();
+   if(cache?.info)info=cache.info;
+  }
+
+  if(!info){
+   throw new Error("La aplicación todavía no tiene datos de la licencia principal.");
+  }
 
   document.getElementById("licPanelCliente").textContent=info.customer_name||"—";
-  document.getElementById("licPanelEstado").textContent=String(info.license_status||"—").toUpperCase();
+  document.getElementById("licPanelEstado").textContent=String(info.license_status||info.status||"active").toUpperCase();
   document.getElementById("licPanelVencimiento").textContent=flkFechaLicenciaBonita(info.expires_at);
   document.getElementById("licPanelGracia").textContent=String(info.offline_grace_days??0)+" día(s)";
+
   const devEl=document.getElementById("licPanelDispositivo");
   if(devEl)devEl.textContent=flkEsPropietarioSoftware
    ? "Propietario · multidispositivo"
@@ -3502,18 +3510,24 @@ async function cargarPanelLicencias(){
   const d=new Date(info.expires_at);
   if(!Number.isNaN(d.getTime())){
    const local=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
-   document.getElementById("licNuevaFecha").value=local;
+   const campoFecha=document.getElementById("licNuevaFecha");
+   if(campoFecha)campoFecha.value=local;
   }
 
-  const suspendida=String(info.license_status)==="suspended";
-  document.getElementById("licBotonSuspender").style.display=suspendida?"none":"";
-  document.getElementById("licBotonActivar").style.display=suspendida?"":"none";
+  const estado=String(info.license_status||info.status||"active");
+  const suspendida=estado==="suspended";
+  const bs=document.getElementById("licBotonSuspender");
+  const ba=document.getElementById("licBotonActivar");
+  if(bs)bs.style.display=suspendida?"none":"";
+  if(ba)ba.style.display=suspendida?"":"none";
  }catch(err){
   console.error("Panel licencias:",err);
-  alert("No se pudo cargar la información de la licencia.")
+  // No bloquear la creación de licencias de terceros por un fallo
+  // de lectura del resumen de la licencia principal.
+  const cliente=document.getElementById("licPanelCliente");
+  if(cliente)cliente.textContent="Información no disponible";
  }
 }
-
 
 async function crearLicenciaTercero(){
  if(!flkEsPropietarioSoftware)return alert("Solo el propietario puede crear licencias.");
@@ -3568,7 +3582,7 @@ async function crearLicenciaTercero(){
   alert("Licencia creada correctamente. Guarda o copia la clave mostrada en el panel.")
  }catch(err){
   console.error("Crear licencia:",err);
-  alert("No se pudo crear la licencia: "+(err?.message||"Error desconocido"))
+  alert("No se pudo crear la licencia.\n\nDetalle: "+(err?.message||err?.details||"Error desconocido"))
  }finally{
   if(boton){boton.disabled=false;boton.textContent="➕ Crear licencia";}
  }
