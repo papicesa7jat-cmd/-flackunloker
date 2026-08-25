@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v35-roles-visual-real">
+<meta name="flackunloker-offline-version" content="2026-08-25-v36-roles-visual-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2417,6 +2417,7 @@ const flkSupabase=window.supabase.createClient(FLK_SUPABASE_URL,FLK_SUPABASE_KEY
 let modoAuth="login";
 let rolSesion="employee";
 let flkSesionActiva=false;
+let flkModoRecuperacionPassword=false;
 
 function cambiarModoAuth(modo){
  modoAuth=modo;
@@ -2497,7 +2498,7 @@ function flkPintarSesionLocal(user){
  if(typeof actualizarEstadisticas==="function")actualizarEstadisticas();
 }
 async function flkActualizarNubeDespuesArranque(){
- if(!navigator.onLine||!flkSesionActiva)return false;
+ if(!navigator.onLine||!flkSesionActiva||flkModoRecuperacionPassword)return false;
  const tareas=[
   cargarInventarioSupabase,cargarHistorialSupabase,cargarVentasSupabase,cargarGastosSupabase,
   cargarMovimientosCajaSupabase,cargarComprasSupabase,cargarCierresSupabase
@@ -2542,7 +2543,7 @@ function aplicarPermisosVisuales(){
 let flkModoRecuperacionNube=false;
 
 async function flkRecuperacionEmergenciaNube(){
- if(flkModoRecuperacionNube||!navigator.onLine)return false;
+ if(flkModoRecuperacionNube||!navigator.onLine||flkModoRecuperacionPassword)return false;
  flkModoRecuperacionNube=true;
  const fallos=[];
  try{
@@ -2717,6 +2718,11 @@ async function flkRecuperacionEmergenciaNube(){
 }
 
 async function mostrarAppConSesion(session){
+ if(flkModoRecuperacionPassword){
+  flkSesionActiva=!!session?.user;
+  document.getElementById("authOverlay")?.classList.add("oculto");
+  return;
+ }
  if(session&&session.user){
   flkSesionActiva=true;
   flkGuardarSesionLocal(session);
@@ -2850,6 +2856,7 @@ document.getElementById("formularioNuevaPassword")?.addEventListener("submit",as
     if(error)throw error;
     flkEstadoRecuperacion("estadoNuevaPassword","Contraseña actualizada correctamente. Ya puedes iniciar sesión con la nueva contraseña.","ok");
     setTimeout(async()=>{
+      flkModoRecuperacionPassword=false;
       try{await flkSupabase.auth.signOut()}catch(_){}
       flkSesionActiva=false;
       flkLimpiarSesionLocal();
@@ -2868,6 +2875,7 @@ document.getElementById("formularioNuevaPassword")?.addEventListener("submit",as
 
 flkSupabase.auth.onAuthStateChange((event,session)=>{
  if(event==="PASSWORD_RECOVERY"){
+  flkModoRecuperacionPassword=true;
   flkSesionActiva=true;
   setTimeout(()=>abrirNuevaPassword(),0);
   return;
@@ -2981,6 +2989,7 @@ function productoHaciaSupabase(p,stock=0){
  }
 }
 async function cargarInventarioSupabase(){
+ if(flkModoRecuperacionPassword)return false;
  if(navigator.onLine&&!flkSesionActiva)return false;
  if(!navigator.onLine){flkAplicarPendientesSobreDatos();mostrarProductos();actualizarEstadisticas();return true}
  const locales=Array.isArray(productos)?[...productos]:[];
@@ -3190,6 +3199,7 @@ function movimientoDesdeSupabase(m){
  }
 }
 async function cargarHistorialSupabase(){
+ if(flkModoRecuperacionPassword)return false;
  if(navigator.onLine&&!flkSesionActiva)return false;
  const {data,error}=await flkSupabase.from("stock_movements")
   .select("id,product_id,movement_type,quantity,stock_after,note,created_at")
@@ -3224,6 +3234,7 @@ function gastoDesdeSupabase(r){
  }
 }
 async function cargarGastosSupabase(){
+ if(flkModoRecuperacionPassword)return false;
  if(navigator.onLine&&!flkSesionActiva)return false;
  if(!navigator.onLine){
   flkAplicarPendientesSobreDatos();
@@ -3296,6 +3307,7 @@ function cierreDesdeSupabase(c){
  }
 }
 async function cargarCierresSupabase(){
+ if(flkModoRecuperacionPassword)return false;
  if(navigator.onLine&&!flkSesionActiva)return false;
  if(!navigator.onLine){flkAplicarPendientesSobreDatos();mostrarListaCierres();return true}
  const locales=Array.isArray(cierres)?[...cierres]:[];
@@ -3328,6 +3340,7 @@ async function cargarCierresSupabase(){
 function guardarCierres(){localStorage.setItem("flackunloker_cierres",JSON.stringify(cierres))}
 
 async function cargarComprasSupabase(){
+ if(flkModoRecuperacionPassword)return false;
  if(navigator.onLine&&!flkSesionActiva)return false;
  if(!navigator.onLine){
   flkAplicarPendientesSobreDatos();
@@ -3600,6 +3613,7 @@ function ventaDesdeSupabase(v){
 }
 
 async function cargarVentasSupabase(){
+ if(flkModoRecuperacionPassword)return false;
  if(navigator.onLine&&!flkSesionActiva)return false;
  if(!navigator.onLine){
   flkAplicarPendientesSobreDatos();
@@ -4611,6 +4625,7 @@ document.getElementById("busquedaCuentasPagar").addEventListener("input",mostrar
 
 
 async function cargarMovimientosCajaSupabase(){
+ if(flkModoRecuperacionPassword)return false;
  if(navigator.onLine&&!flkSesionActiva)return false;
  if(!navigator.onLine){flkAplicarPendientesSobreDatos();if(typeof actualizarSaldoCajaFisica==="function")actualizarSaldoCajaFisica();return true}
  const {data,error}=await flkSupabase.from("cash_movements")
@@ -5213,7 +5228,7 @@ function mostrarInventario(){document.getElementById("vistaInventario").style.di
 function scrollTop(){window.scrollTo({top:0,behavior:"auto"})}
 document.addEventListener("visibilitychange",()=>{
  if(document.visibilityState==="visible"){
-  if(typeof flkSupabase!=="undefined" && flkSesionActiva){
+  if(typeof flkSupabase!=="undefined" && flkSesionActiva && !flkModoRecuperacionPassword){
    setTimeout(async()=>{
     if(!flkSesionActiva)return;
     try{
