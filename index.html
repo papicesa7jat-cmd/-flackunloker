@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v43-roles-visual-real">
+<meta name="flackunloker-offline-version" content="2026-08-25-v44-roles-visual-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -886,6 +886,79 @@ body.rol-empleado #panelRestablecimientoTotal{display:none!important;}
 #flkLicenciaBloqueo .lic-secundario{background:#eef4fb;color:#175cd3;margin-top:9px}
 </style>
 
+
+<style id="flk-owner-license-panel-style">
+.solo-propietario{display:none!important}
+body.es-propietario .solo-propietario{display:flex!important}
+#vistaLicencias{
+ display:none;
+ width:100%;
+ max-width:760px;
+ margin:0 auto;
+}
+#vistaLicencias .lic-panel{
+ background:#fff;
+ border:1px solid #dce8f4;
+ border-radius:20px;
+ padding:18px;
+ margin-bottom:14px;
+ box-shadow:0 8px 24px rgba(20,42,80,.06);
+}
+#vistaLicencias .lic-grid{
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:10px;
+}
+#vistaLicencias .lic-dato{
+ background:#f7fbff;
+ border:1px solid #e3eef8;
+ border-radius:14px;
+ padding:12px;
+}
+#vistaLicencias .lic-dato span{
+ display:block;
+ color:#667085;
+ font-size:11px;
+ font-weight:700;
+ margin-bottom:4px;
+}
+#vistaLicencias .lic-dato strong{
+ display:block;
+ color:#101828;
+ font-size:14px;
+ overflow-wrap:anywhere;
+}
+#vistaLicencias .lic-acciones{
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:10px;
+ margin-top:14px;
+}
+#vistaLicencias .lic-acciones button{
+ border:0;
+ border-radius:13px;
+ padding:12px;
+ font-weight:800;
+ cursor:pointer;
+}
+#vistaLicencias .lic-renovar{background:#eaf4ff;color:#0a84ff}
+#vistaLicencias .lic-suspender{background:#fff0ef;color:#b42318}
+#vistaLicencias .lic-activar{background:#e9f8ef;color:#168044}
+#vistaLicencias .lic-aviso{
+ margin-top:12px;
+ padding:11px 12px;
+ border-radius:12px;
+ background:#f7f8fa;
+ color:#667085;
+ font-size:12px;
+ line-height:1.45;
+}
+@media(max-width:520px){
+ #vistaLicencias .lic-grid,
+ #vistaLicencias .lic-acciones{grid-template-columns:1fr}
+}
+</style>
+
 </head>
 <body>
 
@@ -1541,11 +1614,44 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   </div>
 </div>
 
+
+<div id="vistaLicencias" style="display:none">
+ <div class="seccion-titulo">
+  <h2>🔐 Licencias</h2>
+  <button class="boton-agregar" type="button" onclick="cargarPanelLicencias()">↻ Actualizar</button>
+ </div>
+
+ <div class="lic-panel">
+  <div class="lic-grid">
+   <div class="lic-dato"><span>Cliente / instalación</span><strong id="licPanelCliente">—</strong></div>
+   <div class="lic-dato"><span>Estado</span><strong id="licPanelEstado">—</strong></div>
+   <div class="lic-dato"><span>Vencimiento</span><strong id="licPanelVencimiento">—</strong></div>
+   <div class="lic-dato"><span>Gracia offline</span><strong id="licPanelGracia">—</strong></div>
+  </div>
+
+  <div class="campo" style="margin-top:16px">
+   <label for="licNuevaFecha">Nueva fecha de vencimiento</label>
+   <input id="licNuevaFecha" type="datetime-local">
+  </div>
+
+  <div class="lic-acciones">
+   <button class="lic-renovar" type="button" onclick="renovarLicenciaPropietario()">📅 Renovar licencia</button>
+   <button class="lic-suspender" id="licBotonSuspender" type="button" onclick="cambiarEstadoLicenciaPropietario('suspended')">⛔ Suspender</button>
+   <button class="lic-activar" id="licBotonActivar" type="button" onclick="cambiarEstadoLicenciaPropietario('active')">✅ Reactivar</button>
+  </div>
+
+  <div class="lic-aviso">
+   Solo la cuenta propietaria del software puede ver y usar este panel.
+   Los demás administradores no pueden renovar ni cambiar el estado de la licencia.
+  </div>
+ </div>
+</div>
+
 <button class="boton-menu-flotante" onclick="abrirMenuPrincipal()">☰ Menú</button>
 <div id="menuPrincipalFondo" class="menu-panel-fondo" onclick="cerrarMenuPrincipal(event)">
  <div class="menu-panel" onclick="event.stopPropagation()">
   <div class="menu-panel-cabecera"><h2>☰ Menú principal</h2><button class="cerrar-menu" onclick="cerrarMenuPrincipal()">✕</button></div>
-  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button class="solo-admin" onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button class="solo-admin" id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button class="solo-admin" id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button class="solo-admin" id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button class="solo-admin" id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button class="solo-admin" id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button class="solo-admin" id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button class="solo-admin" id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button class="solo-admin" id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button class="solo-admin" id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button class="solo-admin" id="botonUsuarios" onclick="mostrarUsuarios()">👥 Usuarios</button></div>
+  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button class="solo-admin" onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button class="solo-admin" id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button class="solo-admin" id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button class="solo-admin" id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button class="solo-admin" id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button class="solo-admin" id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button class="solo-admin" id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button class="solo-admin" id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button class="solo-admin" id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button class="solo-admin" id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button class="solo-admin" id="botonUsuarios" onclick="mostrarUsuarios()">👥 Usuarios</button><button class="solo-propietario" id="botonLicencias" onclick="mostrarLicencias()">🔐 Licencias</button></div>
  </div>
 </div>
 
@@ -2581,6 +2687,7 @@ function flkPintarSesionLocal(user){
  document.getElementById("authUsuario").classList.add("visible");
  document.getElementById("authOverlay").classList.add("oculto");
  aplicarPermisosVisuales();
+  if(navigator.onLine)setTimeout(()=>flkComprobarPropietarioSoftware(),0);
  if(typeof flkAplicarPendientesSobreDatos==="function")flkAplicarPendientesSobreDatos();
  if(typeof mostrarProductos==="function")mostrarProductos();
  if(typeof actualizarResumenHistorial==="function")actualizarResumenHistorial();
@@ -2842,6 +2949,8 @@ async function mostrarAppConSesion(session){
  }
 }
 async function cerrarSesionFlackunloker(){
+ flkEsPropietarioSoftware=false;
+ document.body.classList.remove("es-propietario");
  flkSesionActiva=false;
  rolSesion="employee";
  document.body.classList.add("rol-empleado");
@@ -3243,6 +3352,117 @@ function mostrarUsuarios(){
  if(!navigator.onLine){if(lista)lista.innerHTML='<div class="sin-productos">Gestión de usuarios disponible cuando vuelva la conexión.</div>';return}
  requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(()=>cargarUsuariosAdmin(),40)));
 }
+
+let flkEsPropietarioSoftware=false;
+
+async function flkComprobarPropietarioSoftware(){
+ flkEsPropietarioSoftware=false;
+ document.body.classList.remove("es-propietario");
+ if(!flkSesionActiva||!navigator.onLine)return false;
+ try{
+  const {data,error}=await flkSupabase.rpc("flk_is_software_owner");
+  if(error)throw error;
+  flkEsPropietarioSoftware=!!data;
+  document.body.classList.toggle("es-propietario",flkEsPropietarioSoftware);
+  return flkEsPropietarioSoftware
+ }catch(err){
+  console.error("Comprobación propietario software:",err);
+  return false
+ }
+}
+
+function mostrarLicencias(){
+ if(!flkEsPropietarioSoftware){
+  alert("Este panel es exclusivo del propietario de Flackunloker.");
+  return
+ }
+ const vistas=[
+  "vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos",
+  "vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores",
+  "vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"
+ ];
+ vistas.forEach(id=>{const el=document.getElementById(id);if(el)el.style.display="none"});
+ const vl=document.getElementById("vistaLicencias");
+ if(vl)vl.style.display="block";
+ document.querySelectorAll("#menuPrincipalFondo .menu-cuadricula button").forEach(b=>b.classList.remove("activo"));
+ document.getElementById("botonLicencias")?.classList.add("activo");
+ cargarPanelLicencias();
+ scrollTop()
+}
+
+async function cargarPanelLicencias(){
+ if(!flkEsPropietarioSoftware)return;
+ try{
+  const {data,error}=await flkSupabase.rpc("flk_check_license",{p_license_key:FLK_LICENSE_KEY});
+  if(error)throw error;
+  const info=Array.isArray(data)?data[0]:data;
+  if(!info)throw new Error("No se recibió información de la licencia.");
+  flkLicenciaInfo=info;
+
+  document.getElementById("licPanelCliente").textContent=info.customer_name||"—";
+  document.getElementById("licPanelEstado").textContent=String(info.license_status||"—").toUpperCase();
+  document.getElementById("licPanelVencimiento").textContent=flkFechaLicenciaBonita(info.expires_at);
+  document.getElementById("licPanelGracia").textContent=String(info.offline_grace_days??0)+" día(s)";
+
+  const d=new Date(info.expires_at);
+  if(!Number.isNaN(d.getTime())){
+   const local=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+   document.getElementById("licNuevaFecha").value=local;
+  }
+
+  const suspendida=String(info.license_status)==="suspended";
+  document.getElementById("licBotonSuspender").style.display=suspendida?"none":"";
+  document.getElementById("licBotonActivar").style.display=suspendida?"":"none";
+ }catch(err){
+  console.error("Panel licencias:",err);
+  alert("No se pudo cargar la información de la licencia.")
+ }
+}
+
+async function renovarLicenciaPropietario(){
+ if(!flkEsPropietarioSoftware)return alert("Solo el propietario puede renovar licencias.");
+ const valor=document.getElementById("licNuevaFecha")?.value;
+ if(!valor)return alert("Selecciona una nueva fecha de vencimiento.");
+ const fecha=new Date(valor);
+ if(Number.isNaN(fecha.getTime())||fecha<=new Date())return alert("La nueva fecha debe ser futura.");
+
+ if(!confirm("¿Renovar esta licencia hasta "+fecha.toLocaleString("es")+"?"))return;
+
+ try{
+  const {error}=await flkSupabase.rpc("flk_renew_license",{
+   p_license_key:FLK_LICENSE_KEY,
+   p_new_expires_at:fecha.toISOString()
+  });
+  if(error)throw error;
+  alert("Licencia renovada correctamente.");
+  await flkValidarLicencia();
+  await cargarPanelLicencias()
+ }catch(err){
+  console.error("Renovar licencia:",err);
+  alert("No se pudo renovar la licencia: "+(err?.message||"Error desconocido"))
+ }
+}
+
+async function cambiarEstadoLicenciaPropietario(nuevoEstado){
+ if(!flkEsPropietarioSoftware)return alert("Solo el propietario puede modificar licencias.");
+ const accion=nuevoEstado==="suspended"?"suspender":"reactivar";
+ if(!confirm("¿Seguro que deseas "+accion+" esta licencia?"))return;
+
+ try{
+  const {error}=await flkSupabase.rpc("flk_set_license_status",{
+   p_license_key:FLK_LICENSE_KEY,
+   p_status:nuevoEstado
+  });
+  if(error)throw error;
+  alert(nuevoEstado==="suspended"?"Licencia suspendida.":"Licencia reactivada.");
+  await flkValidarLicencia();
+  await cargarPanelLicencias()
+ }catch(err){
+  console.error("Estado licencia:",err);
+  alert("No se pudo modificar la licencia: "+(err?.message||"Error desconocido"))
+ }
+}
+
 function abrirMenuPrincipal(){document.getElementById("menuPrincipalFondo").classList.add("visible")}
 function cerrarMenuPrincipal(e){
  if(e&&e.target!==document.getElementById("menuPrincipalFondo"))return;
@@ -5681,8 +5901,8 @@ function actualizarEstadisticas(){
  const conteo={};historial.forEach(m=>{const id=m.productoId;if(!conteo[id])conteo[id]={nombre:m.nombre,movimientos:0};conteo[id].movimientos++});const rm=Object.values(conteo).sort((a,b)=>b.movimientos-a.movimientos).slice(0,5);document.getElementById("rankingMovimientos").innerHTML=rm.length?rm.map(x=>`<div class="fila-estadistica"><span>${escapeHtml(x.nombre)}</span><strong>${x.movimientos} movimiento(s)</strong></div>`).join(""):`<div class="fila-estadistica"><span>No hay movimientos.</span><strong>—</strong></div>`;
  const bajos=productos.filter(p=>Number(p.cantidad)<=Number(p.stockMinimo??5));document.getElementById("rankingStockBajo").innerHTML=bajos.length?bajos.map(p=>`<div class="fila-estadistica"><span>${escapeHtml(p.nombre)}</span><strong>${p.cantidad} / ${Number(p.stockMinimo??5)}</strong></div>`).join(""):`<div class="fila-estadistica"><span>Todo el inventario está por encima del mínimo.</span><strong>✓ OK</strong></div>`
 }
-function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonEstadisticas","botonUsuarios"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";if(sec!=="cuentasPagar")document.getElementById("vistaCuentasPagar").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",cuentasPagar:"botonCuentasPagar",flujoCaja:"botonFlujoCaja",finanzas:"botonFinanzas",estadisticas:"botonEstadisticas",usuarios:"botonUsuarios"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo")}
-function mostrarInventario(){document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";document.getElementById("vistaFlujoCaja").style.display="none";document.getElementById("vistaFinanzas").style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
+function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonEstadisticas","botonUsuarios","botonLicencias"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";if(sec!=="cuentasPagar")document.getElementById("vistaCuentasPagar").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",cuentasPagar:"botonCuentasPagar",flujoCaja:"botonFlujoCaja",finanzas:"botonFinanzas",estadisticas:"botonEstadisticas",usuarios:"botonUsuarios"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo")}
+function mostrarInventario(){document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";document.getElementById("vistaFlujoCaja").style.display="none";document.getElementById("vistaFinanzas").style.display="none";const vl=document.getElementById("vistaLicencias");if(vl)vl.style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
 function scrollTop(){window.scrollTo({top:0,behavior:"auto"})}
 document.addEventListener("visibilitychange",()=>{
  if(document.visibilityState==="visible"){
@@ -5815,7 +6035,8 @@ if("serviceWorker" in navigator){
   botonFlujoCaja:()=>mostrarFlujoCaja(),
   botonFinanzas:()=>mostrarFinanzas(),
   botonEstadisticas:()=>mostrarEstadisticas(),
-  botonUsuarios:()=>mostrarUsuarios()
+  botonUsuarios:()=>mostrarUsuarios(),
+   botonLicencias:()=>mostrarLicencias()
  };
 
  document.addEventListener("click",function(e){
