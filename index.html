@@ -958,6 +958,7 @@ async function mostrarAppConSesion(session){
   document.getElementById("authOverlay").classList.add("oculto");
   await cargarRolUsuario(session.user);
   await cargarInventarioSupabase();
+  await cargarHistorialSupabase();
   await cargarVentasSupabase();
   await cargarGastosSupabase();
   await cargarMovimientosCajaSupabase();
@@ -1241,6 +1242,40 @@ function cargarDatos(){
  guardarProveedores();
 }
 function guardarDatos(){localStorage.setItem("flackunloker_productos",JSON.stringify(productos))}
+
+function movimientoDesdeSupabase(m){
+ const p=productos.find(x=>x.supabaseId===m.product_id);
+ const nota=String(m.note||"");
+ return {
+  id:idLocalDesdeLegacy(null,m.id),
+  supabaseId:m.id,
+  productoId:p?p.id:idLocalDesdeLegacy(null,m.product_id),
+  nombre:p?p.nombre:"Producto",
+  sku:p?p.sku:"",
+  tipo:m.movement_type==="entrada"?"entrada":"salida",
+  cantidad:Number(m.quantity||0),
+  saldo:Number(m.stock_after||0),
+  fecha:m.created_at,
+  detalle:nota,
+  esSistema:/^(Venta|Devolución|Recepción de orden|Migración inicial)/i.test(nota)
+ }
+}
+async function cargarHistorialSupabase(){
+ const {data,error}=await flkSupabase.from("stock_movements")
+  .select("id,product_id,movement_type,quantity,stock_after,note,created_at")
+  .order("created_at",{ascending:false});
+ if(error){
+  console.error("Supabase historial:",error);
+  alert("No se pudo cargar el historial desde Supabase.");
+  return false;
+ }
+ historial=(data||[]).map(movimientoDesdeSupabase);
+ guardarHistorial();
+ actualizarResumenHistorial();
+ mostrarListaHistorial();
+ return true
+}
+
 function guardarHistorial(){localStorage.setItem("flackunloker_historial",JSON.stringify(historial))}
 function guardarVentas(){localStorage.setItem("flackunloker_ventas",JSON.stringify(ventas))}
 
@@ -1446,7 +1481,8 @@ document.getElementById("formularioProducto").addEventListener("submit",async e=
    productos.push(nuevoProducto);
    if(cantidad>0)historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:nuevoProducto.id,nombre,sku,tipo:"entrada",cantidad,saldo:nuevoProducto.cantidad,fecha:new Date().toISOString(),detalle:"Inventario inicial"});
   }
-  guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();cerrarFormulario();
+  await cargarHistorialSupabase();
+  guardarDatos();mostrarProductos();actualizarEstadisticas();cerrarFormulario();
  }catch(err){console.error(err);alert("Supabase rechazó el cambio: "+(err.message||err))}
  finally{procesandoGuardado=false}
 });
@@ -1467,8 +1503,8 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
   const p=productos.find(x=>x.id===productoMovimiento);if(!p){cerrarMovimiento();return}
   const delta=tipoMovimiento==="entrada"?cantidad:-cantidad;
   p.cantidad=await ajustarStockSupabase(p,delta,tipoMovimiento,"Movimiento manual desde Flackunloker");
-  historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:tipoMovimiento,cantidad,saldo:p.cantidad,fecha:new Date().toISOString()});
-  guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();cerrarMovimiento();
+  await cargarHistorialSupabase();
+  guardarDatos();mostrarProductos();actualizarEstadisticas();cerrarMovimiento();
  }catch(err){console.error(err);alert("Supabase rechazó el movimiento: "+(err.message||err))}
  finally{procesandoGuardado=false}
 });
@@ -1866,6 +1902,7 @@ document.getElementById("formularioDevolucion").addEventListener("submit",async 
   });
   if(error)throw error;
   await cargarInventarioSupabase();
+  await cargarHistorialSupabase();
   await cargarVentasSupabase();
   actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();
   cerrarDevolucion();
@@ -1925,7 +1962,9 @@ function cerrarCliente(){document.getElementById("modalCliente").classList.remov
 function nuevoReciboCliente(enc){const c=clientePorClave(enc);if(!c)return;abrirVenta();document.getElementById("clienteVenta").value=c.nombre==="Cliente general"?"":c.nombre;document.getElementById("telefonoVenta").value=c.telefono||""}
 document.getElementById("busquedaClientes").addEventListener("input",actualizarClientes);
 
-function mostrarHistorial(){
+async function mostrarHistorial(){
+ await cargarInventarioSupabase();
+ await cargarHistorialSupabase();
  document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="block";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("historial");actualizarResumenHistorial();mostrarListaHistorial();scrollTop()
 }
 function actualizarResumenHistorial(){
@@ -1938,9 +1977,11 @@ function mostrarListaHistorial(){
  if(!arr.length){lista.innerHTML=`<div class="sin-productos">${historial.length?"No encontramos movimientos con esos filtros.":"No hay movimientos registrados todavía."}</div>`;return}
  arr.forEach(m=>{
   const el=document.createElement("div");el.className="movimiento";const f=new Date(m.fecha),entrada=m.tipo==="entrada";
-  const saldo=m.saldo!==undefined&&m.saldo!==null?Number(m.saldo):"No disponible",esVenta=Boolean(m.ventaId);
-  const acciones=esVenta?`<div class="saldo-movimiento">💰 Movimiento generado por una venta. Para revertirlo, elimina la venta desde la sección Ventas.</div>`:`<div class="acciones-movimiento"><button class="boton-movimiento-editar" onclick="abrirEditarMovimiento(${m.id})">✏️ Editar movimiento</button><button class="boton-movimiento-eliminar" onclick="eliminarMovimiento(${m.id})">🗑️ Eliminar movimiento</button></div>`;
-  el.innerHTML=`<div class="movimiento-superior"><div class="movimiento-info"><h3>${escapeHtml(m.nombre)}</h3><p>SKU: ${escapeHtml(m.sku)}</p></div><div class="movimiento-tipo ${entrada?"entrada":"salida"}">${esVenta?"💰 Venta":entrada?"＋ Entrada":"− Salida"}</div></div><div class="movimiento-detalle">Cantidad: <strong>${Number(m.cantidad)}</strong> &nbsp;·&nbsp; ${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}<div class="saldo-movimiento">Saldo después del movimiento: <strong>${saldo}</strong></div></div>${acciones}`;
+  const saldo=m.saldo!==undefined&&m.saldo!==null?Number(m.saldo):"No disponible";
+  const detalle=m.detalle?`<br>Origen: <strong>${escapeHtml(m.detalle)}</strong>`:"";
+  const etiqueta=/Venta/i.test(m.detalle||"")?"💰 Venta":/Devolución/i.test(m.detalle||"")?"↩️ Devolución":/Recepción de orden/i.test(m.detalle||"")?"📦 Compra":entrada?"＋ Entrada":"− Salida";
+  const acciones=m.supabaseId?`<div class="saldo-movimiento">🔒 Registro guardado en Supabase. Para corregir inventario, registra un nuevo movimiento de Entrada o Salida.</div>`:"";
+  el.innerHTML=`<div class="movimiento-superior"><div class="movimiento-info"><h3>${escapeHtml(m.nombre)}</h3><p>SKU: ${escapeHtml(m.sku)}</p></div><div class="movimiento-tipo ${entrada?"entrada":"salida"}">${etiqueta}</div></div><div class="movimiento-detalle">Cantidad: <strong>${Number(m.cantidad)}</strong> &nbsp;·&nbsp; ${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}${detalle}<div class="saldo-movimiento">Saldo después del movimiento: <strong>${saldo}</strong></div></div>${acciones}`;
   lista.appendChild(el)
  })
 }
@@ -1957,7 +1998,9 @@ function recalcularSaldos(){
  orden.forEach(m=>{if(porProducto[m.productoId]===undefined)porProducto[m.productoId]=0;porProducto[m.productoId]+=m.tipo==="entrada"?Number(m.cantidad):-Number(m.cantidad);m.saldo=porProducto[m.productoId]});
 }
 function abrirEditarMovimiento(id){
- const m=historial.find(x=>x.id===id);if(!m)return;movimientoEditandoId=id;
+ const m=historial.find(x=>x.id===id);if(!m)return;
+ if(m.supabaseId)return alert("Los movimientos guardados en Supabase no se editan. Registra una Entrada o Salida de ajuste.");
+ movimientoEditandoId=id;
  document.getElementById("tipoMovimientoEditar").value=m.tipo;document.getElementById("cantidadMovimientoEditar").value=Number(m.cantidad);document.getElementById("textoEditarMovimiento").textContent=`${m.nombre} · SKU: ${m.sku}`;document.getElementById("modalEditarMovimiento").classList.add("visible")
 }
 function cerrarEditarMovimiento(){document.getElementById("modalEditarMovimiento").classList.remove("visible");document.getElementById("formularioEditarMovimiento").reset();movimientoEditandoId=null}
@@ -1972,6 +2015,7 @@ document.getElementById("formularioEditarMovimiento").addEventListener("submit",
 });
 function eliminarMovimiento(id){
  const m=historial.find(x=>x.id===id);if(!m)return;
+ if(m.supabaseId)return alert("Los movimientos de Supabase forman parte del historial permanente y no se eliminan.");
  const p=obtenerProductoMovimiento(m);if(!p)return alert("El producto de este movimiento ya no existe.");
  const efecto=m.tipo==="entrada"?Number(m.cantidad):-Number(m.cantidad),resultado=Number(p.cantidad)-efecto;
  if(resultado<0)return alert("No se puede eliminar este movimiento porque dejaría el inventario en negativo.");
@@ -1979,9 +2023,7 @@ function eliminarMovimiento(id){
  p.cantidad=resultado;historial=historial.filter(x=>x.id!==id);recalcularSaldos();guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas()
 }
 function borrarHistorial(){
- if(!historial.length)return alert("No hay movimientos para borrar.");
- if(!confirm("¿Quieres borrar todo el historial?\n\nEsta acción NO cambiará las cantidades del inventario."))return;
- historial=[];guardarHistorial();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas()
+ alert("El historial sincronizado en Supabase es permanente. No se borra para conservar la trazabilidad del inventario.");
 }
 
 function fechaGastoPredeterminada(){return fechaLocalISO(new Date())}
@@ -2257,6 +2299,7 @@ document.getElementById("formularioRecepcionOrden").addEventListener("submit",as
   });
   if(error)throw error;
   await cargarInventarioSupabase();
+  await cargarHistorialSupabase();
   await cargarComprasSupabase();
   await cargarMovimientosCajaSupabase();
   actualizarFlujoCaja();actualizarFinanzas();actualizarCentroAlertas();actualizarEstadisticas();
@@ -2506,6 +2549,7 @@ function cambiarPeriodoFinanzas(){
 async function sincronizarYActualizarFinanzas(){
  try{
   await cargarInventarioSupabase();
+  await cargarHistorialSupabase();
   await cargarVentasSupabase();
   await cargarGastosSupabase();
   await cargarComprasSupabase();
@@ -2561,6 +2605,7 @@ function actualizarIndicadorAlertas(){
 async function sincronizarYActualizarAlertas(){
  try{
   await cargarInventarioSupabase();
+  await cargarHistorialSupabase();
   await cargarVentasSupabase();
   await cargarGastosSupabase();
   await cargarComprasSupabase();
@@ -2589,6 +2634,7 @@ async function mostrarEstadisticas(){await cargarInventarioSupabase();await carg
 async function sincronizarYActualizarEstadisticas(){
  try{
   await cargarInventarioSupabase();
+  await cargarHistorialSupabase();
   await cargarVentasSupabase();
   await cargarGastosSupabase();
   await cargarComprasSupabase();
