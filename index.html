@@ -180,17 +180,21 @@ button:active{transform:scale(.97)}
 .menu-panel-cabecera h2{margin:0;font-size:21px}.cerrar-menu{
  width:38px;height:38px;border:0;border-radius:12px;background:#e9eef6;color:#344054;font-size:18px;cursor:pointer
 }
-.menu-cuadricula{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.menu-cuadricula{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:stretch;justify-content:center}
 .menu-cuadricula button{
  min-height:67px;border:1px solid #e4eaf2;border-radius:16px;background:#fff;color:#475467;
- padding:10px 7px;font-size:12px;font-weight:750;cursor:pointer;box-shadow:0 5px 16px rgba(20,42,80,.04)
+ padding:10px 8px;font-size:12px;font-weight:750;cursor:pointer;box-shadow:0 5px 16px rgba(20,42,80,.04);display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.25;white-space:normal;min-width:0
 }
 .menu-cuadricula button.activo{background:#eaf4ff;color:#0a84ff;border-color:#cce5ff}
+@media(max-width:600px){
+ .menu-cuadricula{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .menu-cuadricula button{font-size:12px;min-height:62px;padding:9px 7px}
+}
 @media(max-width:430px){
  .boton-menu-flotante{right:12px;bottom:12px;padding:13px 16px;border-radius:16px}
  .menu-panel-fondo{padding:10px}.menu-panel{border-radius:24px;padding:15px;max-height:88vh}
- .menu-cuadricula{grid-template-columns:repeat(3,1fr);gap:8px}
- .menu-cuadricula button{font-size:11px;min-height:64px;padding:8px 5px}
+ .menu-cuadricula{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .menu-cuadricula button{font-size:11.5px;min-height:60px;padding:8px 6px}
 }
 
 
@@ -379,68 +383,17 @@ body.rol-empleado .acciones-movimiento{display:none!important}
 }
 
 
-/* ===== ACCESO VISIBLE AL RESTABLECIMIENTO ===== */
-#panelRestablecimientoTotal{
-  position:fixed;
-  left:18px;
-  bottom:92px;
-  z-index:850;
-  width:min(340px,calc(100vw - 36px));
-  padding:18px;
-  background:#fff;
-  border:2px solid #ffd0cc !important;
-  border-radius:20px;
-  box-shadow:0 12px 32px rgba(0,0,0,.16);
-}
-#panelRestablecimientoTotal h3{
-  margin:0 0 8px;
-  font-size:20px;
-  line-height:1.25;
-  color:#b42318;
-}
-#panelRestablecimientoTotal p{
-  font-size:14px !important;
-  color:#475467 !important;
-}
-#panelRestablecimientoTotal .boton-agregar{
-  min-height:54px;
-  font-size:16px;
-  border-radius:14px;
-  font-weight:900;
-}
-#modalRestablecimientoTotal .modal-contenido{
-  width:min(94vw,580px) !important;
-  padding:30px 26px !important;
-  border-radius:24px;
-}
-#modalRestablecimientoTotal label{
-  display:block;
-  margin:17px 0 8px;
-  font-size:17px;
-  font-weight:800;
-}
-#modalRestablecimientoTotal input{
-  width:100%;
-  min-height:58px;
-  font-size:20px;
-  padding:14px 16px;
-  border-radius:14px;
-}
-#modalRestablecimientoTotal .guardar{
-  width:100%;
-  min-height:58px;
-  margin-top:22px;
-  font-size:18px;
-  border-radius:14px;
-}
-@media(max-width:600px){
- #panelRestablecimientoTotal{
-   left:12px;
-   bottom:82px;
-   width:calc(100vw - 24px);
- }
-}
-
+/* ===== RESTABLECIMIENTO DISCRETO / DESPLEGABLE ===== */
+#panelRestablecimientoTotal{position:fixed;left:14px;bottom:86px;z-index:850;width:52px;height:52px;padding:0;overflow:hidden;background:#fff;border:2px solid #ffd0cc !important;border-radius:16px;box-shadow:0 10px 26px rgba(0,0,0,.14);cursor:pointer}
+#panelRestablecimientoTotal::before{content:"⚠️";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px}
+#panelRestablecimientoTotal h3,#panelRestablecimientoTotal p,#panelRestablecimientoTotal .boton-agregar{display:none}
+@media(hover:hover) and (pointer:fine){#panelRestablecimientoTotal:hover{width:min(340px,calc(100vw - 28px));height:auto;padding:18px;cursor:default}#panelRestablecimientoTotal:hover::before{display:none}#panelRestablecimientoTotal:hover h3,#panelRestablecimientoTotal:hover p,#panelRestablecimientoTotal:hover .boton-agregar{display:block}}
+#panelRestablecimientoTotal:focus,#panelRestablecimientoTotal:focus-within{width:min(340px,calc(100vw - 28px));height:auto;padding:18px;cursor:default;outline:none}
+#panelRestablecimientoTotal:focus::before,#panelRestablecimientoTotal:focus-within::before{display:none}
+#panelRestablecimientoTotal:focus h3,#panelRestablecimientoTotal:focus p,#panelRestablecimientoTotal:focus .boton-agregar,#panelRestablecimientoTotal:focus-within h3,#panelRestablecimientoTotal:focus-within p,#panelRestablecimientoTotal:focus-within .boton-agregar{display:block}
+#panelRestablecimientoTotal h3{margin:0 0 8px;font-size:20px;line-height:1.25;color:#b42318}#panelRestablecimientoTotal p{font-size:14px !important;color:#475467 !important}#panelRestablecimientoTotal .boton-agregar{min-height:54px;font-size:16px;border-radius:14px;font-weight:900}
+#modalRestablecimientoTotal .modal-contenido{width:min(94vw,580px) !important;padding:30px 26px !important;border-radius:24px}#modalRestablecimientoTotal label{display:block;margin:17px 0 8px;font-size:17px;font-weight:800}#modalRestablecimientoTotal input{width:100%;min-height:58px;font-size:20px;padding:14px 16px;border-radius:14px}#modalRestablecimientoTotal .guardar{width:100%;min-height:58px;margin-top:22px;font-size:18px;border-radius:14px}
+@media(max-width:600px){#panelRestablecimientoTotal{left:10px;bottom:76px;width:48px;height:48px;border-radius:15px}#panelRestablecimientoTotal:focus,#panelRestablecimientoTotal:focus-within{width:calc(100vw - 20px);padding:16px}}
 
 /* ===== ESTADO DE CONEXION / BASE OFFLINE ===== */
 #estadoConexionFlk{
@@ -498,7 +451,7 @@ button:active{transform:none!important}
  </div>
 </div>
 
-<div class="lista-estadisticas" id="panelRestablecimientoTotal" style="display:none;border:1px solid #ffd5d2">
+<div class="lista-estadisticas" id="panelRestablecimientoTotal" tabindex="0" aria-label="Restablecimiento total" style="display:none;border:1px solid #ffd5d2">
  <h3>⚠️ Restablecer Flackunloker</h3>
  <p style="margin:0 0 14px">
   <strong>Solo Administrador.</strong> Deja el sistema como nuevo sin borrar las cuentas de acceso.
