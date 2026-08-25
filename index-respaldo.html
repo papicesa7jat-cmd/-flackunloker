@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
+<meta name="flackunloker-offline-version" content="2026-08-25-v8">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1828,6 +1829,38 @@ function flkAplicarEliminarCierreLocal(op){
  return true
 }
 
+function flkProductoLocalDesdeOperacion(op){
+ const p=op.payload||{};
+ return {
+  id:Number(p.local_product_id||p.legacy_id||Date.now()+Math.floor(Math.random()*100000)),
+  supabaseId:p.product_id||null,
+  offlineCreateOperationId:p.product_operation_id||op.id,
+  offlineOperationId:op.id,
+  offlinePendiente:true,
+  nombre:p.name||"Producto",sku:p.sku||"",
+  cantidad:Number(p.local_stock??p.initial_stock??0),
+  costo:Number(p.cost||0),precio:Number(p.price||0),
+  categoria:p.category||"",proveedor:p.supplier_name||"",ubicacion:p.location||"",
+  stockMinimo:Number(p.min_stock||0)
+ }
+}
+function flkAplicarProductoLocal(op){
+ const d=flkProductoLocalDesdeOperacion(op);
+ let actual=productos.find(x=>(d.supabaseId&&x.supabaseId===d.supabaseId)||String(x.id)===String(d.id)||(d.offlineCreateOperationId&&x.offlineCreateOperationId===d.offlineCreateOperationId));
+ if(actual){
+  const stockActual=Number(actual.cantidad||0);
+  Object.assign(actual,d);
+  actual.cantidad=Number(op.payload?.local_stock??stockActual);
+  if(!actual.offlineCreateOperationId)actual.offlineCreateOperationId=d.offlineCreateOperationId;
+ }else productos.push(d);
+ return true
+}
+function flkAplicarEliminarProductoLocal(op){
+ const p=op.payload||{};
+ productos=productos.filter(x=>!(p.product_id&&x.supabaseId===p.product_id)&&!(p.product_operation_id&&x.offlineCreateOperationId===p.product_operation_id)&&!(p.local_product_id&&String(x.id)===String(p.local_product_id)));
+ return true
+}
+
 function flkAplicarPendientesSobreDatos(){
  const q=flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado));
  for(const op of q){
@@ -1867,6 +1900,8 @@ function flkAplicarPendientesSobreDatos(){
   if(op.tipo==="owner_cash_movement")flkAplicarMovimientoPropietarioLocal(op);
   if(op.tipo==="cash_closure_save")flkAplicarCierreLocal(op);
   if(op.tipo==="cash_closure_delete")flkAplicarEliminarCierreLocal(op);
+  if(op.tipo==="product_save")flkAplicarProductoLocal(op);
+  if(op.tipo==="product_delete")flkAplicarEliminarProductoLocal(op);
  }
  guardarDatos();guardarVentas();guardarGastos();guardarHistorial();guardarProveedores();guardarOrdenesCompra();guardarCierres();guardarMovimientosCajaLocal();
  if(typeof mostrarProductos==="function")mostrarProductos();
@@ -1874,10 +1909,28 @@ function flkAplicarPendientesSobreDatos(){
  if(typeof actualizarGastos==="function")actualizarGastos();
 }
 async function flkProcesarOperacionOffline(op){
+ if(op.tipo==="product_save"){
+  const p=op.payload||{};
+  const {error}=await flkSupabase.rpc("flk_save_product_offline",{
+   p_operation_id:op.id,p_product_id:p.product_id||null,p_product_operation_id:p.product_operation_id||null,
+   p_legacy_id:p.legacy_id||null,p_sku:p.sku||"",p_name:p.name||"Producto",p_category:p.category||null,
+   p_cost:Number(p.cost||0),p_price:Number(p.price||0),p_min_stock:Number(p.min_stock||0),
+   p_supplier_name:p.supplier_name||null,p_location:p.location||null,p_initial_stock:Number(p.initial_stock||0)
+  });
+  if(error)throw error;return
+ }
+ if(op.tipo==="product_delete"){
+  const p=op.payload||{};
+  const {error}=await flkSupabase.rpc("flk_delete_product_offline",{
+   p_operation_id:op.id,p_product_id:p.product_id||null,p_product_operation_id:p.product_operation_id||null
+  });
+  if(error)throw error;return
+ }
  if(op.tipo==="stock_adjustment"){
   const {error}=await flkSupabase.rpc("flk_adjust_stock_offline",{
    p_operation_id:op.id,
-   p_product_id:op.payload.product_id,
+   p_product_id:op.payload.product_id||null,
+   p_product_operation_id:op.payload.product_operation_id||null,
    p_delta:Number(op.payload.delta),
    p_type:op.payload.type||null,
    p_note:op.payload.note||"Movimiento offline sincronizado"
@@ -2064,7 +2117,20 @@ async function flkProcesarColaOffline(){
   flkActualizarEstadoConexion(q.some(x=>x.estado==="error")?"error":null)
  }
 }
-window.addEventListener("online",()=>{flkActualizarEstadoConexion();flkProcesarColaOffline()});
+window.addEventListener("online",async()=>{
+ flkActualizarEstadoConexion();
+ try{
+  const {data}=await flkSupabase.auth.getSession();
+  if(data?.session?.user){
+   flkGuardarSesionLocal(data.session);
+   await cargarRolUsuario(data.session.user);
+   await flkActualizarNubeDespuesArranque();
+  }else{
+   flkLimpiarSesionLocal();
+   document.getElementById("authOverlay").classList.remove("oculto");
+  }
+ }catch(err){console.error(err)}
+});
 window.addEventListener("offline",()=>flkActualizarEstadoConexion());
 
 function flkActualizarModoRendimiento(){
@@ -2150,12 +2216,89 @@ function mostrarMensajeAuth(texto,tipo){
  const e=document.getElementById("authMensaje");
  e.textContent=texto;e.className="auth-msg"+(texto?" visible "+tipo:"");
 }
-async function cargarRolUsuario(user){
- rolSesion="employee";
+
+const FLK_SESSION_CACHE_KEY="flackunloker_session_cache_v1";
+const FLK_ROLE_CACHE_KEY="flackunloker_role_cache_v1";
+
+function flkGuardarSesionLocal(session){
  try{
-  const {data}=await flkSupabase.from("profiles").select("role").eq("id",user.id).maybeSingle();
-  if(data&&data.role)rolSesion=data.role;
+  if(!session?.user)return;
+  localStorage.setItem(FLK_SESSION_CACHE_KEY,JSON.stringify({
+   user:{id:session.user.id||"",email:session.user.email||""},
+   saved_at:new Date().toISOString()
+  }));
  }catch(e){}
+}
+function flkSesionLocal(){
+ try{
+  const x=JSON.parse(localStorage.getItem(FLK_SESSION_CACHE_KEY)||"null");
+  return x?.user?.id?x:null
+ }catch(e){return null}
+}
+function flkGuardarRolLocal(userId,role){
+ try{
+  if(userId&&role)localStorage.setItem(FLK_ROLE_CACHE_KEY,JSON.stringify({user_id:userId,role,saved_at:new Date().toISOString()}))
+ }catch(e){}
+}
+function flkRolLocal(userId){
+ try{
+  const x=JSON.parse(localStorage.getItem(FLK_ROLE_CACHE_KEY)||"null");
+  return x&&x.user_id===userId&&["admin","employee"].includes(x.role)?x.role:null
+ }catch(e){return null}
+}
+function flkLimpiarSesionLocal(){
+ try{
+  localStorage.removeItem(FLK_SESSION_CACHE_KEY);
+  localStorage.removeItem(FLK_ROLE_CACHE_KEY);
+ }catch(e){}
+}
+function flkPintarSesionLocal(user){
+ const rolGuardado=flkRolLocal(user?.id);
+ rolSesion=rolGuardado||"employee";
+ document.getElementById("authUsuarioEmail").textContent=user?.email||"Usuario";
+ document.getElementById("authUsuarioRol").textContent=rolSesion==="admin"?"👑 Administrador":"👤 Empleado";
+ document.getElementById("authUsuario").classList.add("visible");
+ document.getElementById("authOverlay").classList.add("oculto");
+ aplicarPermisosVisuales();
+ if(typeof flkAplicarPendientesSobreDatos==="function")flkAplicarPendientesSobreDatos();
+ if(typeof mostrarProductos==="function")mostrarProductos();
+ if(typeof actualizarResumenHistorial==="function")actualizarResumenHistorial();
+ if(typeof mostrarListaHistorial==="function")mostrarListaHistorial();
+ if(typeof actualizarVentas==="function")actualizarVentas();
+ if(typeof actualizarClientes==="function")actualizarClientes();
+ if(typeof actualizarGastos==="function")actualizarGastos();
+ if(typeof actualizarCierre==="function")actualizarCierre();
+ if(typeof actualizarOrdenesCompra==="function")actualizarOrdenesCompra();
+ if(typeof actualizarProveedores==="function")actualizarProveedores();
+ if(typeof actualizarCuentasPagar==="function")actualizarCuentasPagar();
+ if(typeof actualizarFlujoCaja==="function")actualizarFlujoCaja();
+ if(typeof actualizarFinanzas==="function")actualizarFinanzas();
+ if(typeof actualizarEstadisticas==="function")actualizarEstadisticas();
+}
+async function flkActualizarNubeDespuesArranque(){
+ if(!navigator.onLine)return false;
+ const tareas=[
+  cargarInventarioSupabase,cargarHistorialSupabase,cargarVentasSupabase,cargarGastosSupabase,
+  cargarMovimientosCajaSupabase,cargarComprasSupabase,cargarCierresSupabase
+ ];
+ for(const fn of tareas){
+  try{await fn()}catch(err){if(!flkSilenciarSiEsConexion(err))console.error(err)}
+ }
+ try{await flkProcesarColaOffline()}catch(err){console.error(err)}
+ return true
+}
+
+async function cargarRolUsuario(user){
+ rolSesion=flkRolLocal(user?.id)||"employee";
+ if(navigator.onLine){
+  try{
+   const {data,error}=await flkSupabase.from("profiles").select("role").eq("id",user.id).maybeSingle();
+   if(!error&&data&&data.role){
+    rolSesion=data.role;
+    flkGuardarRolLocal(user.id,rolSesion);
+   }
+  }catch(e){}
+ }
  document.getElementById("authUsuarioEmail").textContent=user.email||"Usuario";
  document.getElementById("authUsuarioRol").textContent=rolSesion==="admin"?"👑 Administrador":"👤 Empleado";
  document.getElementById("authUsuario").classList.add("visible");
@@ -2175,23 +2318,27 @@ function aplicarPermisosVisuales(){
 }
 async function mostrarAppConSesion(session){
  if(session&&session.user){
+  flkGuardarSesionLocal(session);
   document.getElementById("authOverlay").classList.add("oculto");
+  flkPintarSesionLocal(session.user);
   await cargarRolUsuario(session.user);
-  await cargarInventarioSupabase();
-  await cargarHistorialSupabase();
-  await cargarVentasSupabase();
-  await cargarGastosSupabase();
-  await cargarMovimientosCajaSupabase();
-  await cargarComprasSupabase();
-  await cargarCierresSupabase();
-  await flkProcesarColaOffline();
+  if(navigator.onLine)setTimeout(()=>flkActualizarNubeDespuesArranque(),0);
  }else{
+  const cache=flkSesionLocal();
+  if(!navigator.onLine&&cache?.user){
+   flkPintarSesionLocal(cache.user);
+   flkActualizarEstadoConexion();
+   return
+  }
   document.getElementById("authOverlay").classList.remove("oculto");
   document.getElementById("authUsuario").classList.remove("visible");
  }
 }
 async function cerrarSesionFlackunloker(){
- await flkSupabase.auth.signOut();
+ flkLimpiarSesionLocal();
+ if(navigator.onLine){
+  try{await flkSupabase.auth.signOut()}catch(e){}
+ }
  document.getElementById("authOverlay").classList.remove("oculto");
  document.getElementById("authUsuario").classList.remove("visible");
  cambiarModoAuth("login");
@@ -2215,17 +2362,35 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
  }
 });
 flkSupabase.auth.onAuthStateChange((event,session)=>{
+ if(event==="SIGNED_OUT"&&navigator.onLine){
+  flkLimpiarSesionLocal();
+ }
  setTimeout(()=>mostrarAppConSesion(session),0);
 });
-(async()=>{
- const {data}=await flkSupabase.auth.getSession();
- await mostrarAppConSesion(data.session);
+(()=>{
+ const cache=flkSesionLocal();
+ if(cache?.user)flkPintarSesionLocal(cache.user);
+ if(!navigator.onLine){
+  if(!cache?.user){
+   document.getElementById("authOverlay").classList.remove("oculto");
+  }
+  flkActualizarEstadoConexion();
+  return
+ }
+ setTimeout(async()=>{
+  try{
+   const {data}=await flkSupabase.auth.getSession();
+   await mostrarAppConSesion(data.session);
+  }catch(err){
+   if(cache?.user)flkPintarSesionLocal(cache.user);
+  }
+ },0);
 })();
 
 
 async function cargarUsuariosAdmin(){const lista=document.getElementById("listaUsuariosAdmin");if(rolSesion!=="admin"){lista.innerHTML='<div class="sin-productos">Acceso reservado al Administrador.</div>';return}if(!navigator.onLine){lista.innerHTML='<div class="sin-productos">Usuarios disponibles cuando vuelva la conexión.</div>';flkActualizarEstadoConexion();return}lista.innerHTML='<div class="sin-productos">Cargando usuarios...</div>';const {data,error}=await flkSupabase.from("profiles").select("id,email,full_name,role,created_at").order("created_at",{ascending:true});if(error){if(flkSilenciarSiEsConexion(error)){lista.innerHTML='<div class="sin-productos">Usuarios disponibles cuando vuelva la conexión.</div>';return}lista.innerHTML='<div class="sin-productos">No se pudieron cargar los usuarios: '+escapeHtml(error.message)+'</div>';return}const {data:ses}=await flkSupabase.auth.getSession(),miId=ses?.session?.user?.id||"";lista.innerHTML=data?.length?data.map(u=>{const propio=u.id===miId,admin=u.role==="admin";return `<div class="usuario-card"><div class="usuario-superior"><div><h3>${escapeHtml(u.full_name||u.email||"Usuario")}</h3><p>${escapeHtml(u.email||"")}</p></div><span class="usuario-rol ${admin?"admin":"employee"}">${admin?"👑 Administrador":"👤 Empleado"}</span></div>${propio?'<div class="usuario-propio">Esta es tu cuenta. Tu propio rol está protegido.</div>':`<div class="usuario-acciones"><button class="usuario-hacer-admin" ${admin?"disabled":""} onclick="cambiarRolUsuario('${u.id}','admin')">👑 Hacer Admin</button><button class="usuario-hacer-empleado" ${!admin?"disabled":""} onclick="cambiarRolUsuario('${u.id}','employee')">👤 Hacer Empleado</button></div>`}</div>`}).join(""):'<div class="sin-productos">No hay perfiles registrados.</div>'}
 async function cambiarRolUsuario(id,rol){if(rolSesion!=="admin")return alert("Acceso denegado.");if(!confirm("¿Cambiar esta cuenta a "+(rol==="admin"?"Administrador":"Empleado")+"?"))return;const {error}=await flkSupabase.rpc("admin_set_user_role",{target_user:id,new_role:rol});if(error)return alert("No se pudo cambiar el rol: "+error.message);await cargarUsuariosAdmin();alert("Rol actualizado correctamente.")}
-function mostrarUsuarios(){if(rolSesion!=="admin")return alert("Esta sección es solo para Administradores.");["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});document.getElementById("vistaUsuarios").style.display="block";actualizarMenu("usuarios");cargarUsuariosAdmin();scrollTop()}
+function mostrarUsuarios(){if(rolSesion!=="admin")return alert("Esta sección es solo para Administradores.");["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});document.getElementById("vistaUsuarios").style.display="block";actualizarMenu("usuarios");scrollTop();if(!navigator.onLine){const lista=document.getElementById("listaUsuariosAdmin");if(lista)lista.innerHTML='<div class="sin-productos">Gestión de usuarios disponible cuando vuelva la conexión.</div>';return}setTimeout(()=>cargarUsuariosAdmin(),0)}
 function abrirMenuPrincipal(){document.getElementById("menuPrincipalFondo").classList.add("visible")}
 function cerrarMenuPrincipal(e){
  if(e&&e.target!==document.getElementById("menuPrincipalFondo"))return;
@@ -2296,6 +2461,7 @@ function productoHaciaSupabase(p,stock=0){
  }
 }
 async function cargarInventarioSupabase(){
+ if(!navigator.onLine){flkAplicarPendientesSobreDatos();mostrarProductos();actualizarEstadisticas();return true}
  const locales=Array.isArray(productos)?[...productos]:[];
  const {data:cloud,error}=await flkSupabase.from("products").select("*").eq("active",true).order("created_at",{ascending:true});
  if(error){
@@ -2312,6 +2478,7 @@ async function cargarInventarioSupabase(){
   const porSku=new Map(remotos.filter(r=>String(r.sku||"").trim()).map(r=>[String(r.sku||"").trim().toLowerCase(),r]));
 
   for(const p of locales){
+   if(p.offlinePendiente||p.offlineCreateOperationId)continue;
    const legacy=String(p.id);
    const sku=String(p.sku||"").trim().toLowerCase();
    let existente=porLegacy.get(legacy)||(sku?porSku.get(sku):null);
@@ -2375,6 +2542,7 @@ async function cargarInventarioSupabase(){
 
  productos=remotos.map(productoDesdeSupabase);
  guardarDatos();
+ if(flkPendientesOffline()>0)flkAplicarPendientesSobreDatos();
  inventarioSupabaseListo=true;
  mostrarProductos();
  actualizarEstadisticas();
@@ -2401,11 +2569,11 @@ async function guardarProductoSupabase(p,esNuevo=false,stockInicial=0){
  if(error)throw error;
 }
 async function ajustarStockSupabase(p,delta,tipo,nota=""){
- if(!p.supabaseId)throw new Error("Producto sin vínculo con Supabase.");
- if(!navigator.onLine){
+ if(!p.supabaseId&&!p.offlineCreateOperationId)throw new Error("Producto sin referencia de sincronización.");
+ if(!navigator.onLine||!p.supabaseId){
   const nuevo=Number(p.cantidad||0)+Number(delta);
   if(nuevo<0)throw new Error("Inventario insuficiente para "+p.nombre);
-  flkEncolarOperacion("stock_adjustment",{product_id:p.supabaseId,delta:Number(delta),type:tipo,note:nota||"Movimiento manual offline"});
+  flkEncolarOperacion("stock_adjustment",{product_id:p.supabaseId||null,product_operation_id:p.offlineCreateOperationId||null,local_product_id:p.id,delta:Number(delta),type:tipo,note:nota||"Movimiento manual offline"});
   return nuevo
  }
  const {data,error}=await flkSupabase.rpc("adjust_product_stock",{p_product_id:p.supabaseId,p_delta:Number(delta),p_type:tipo,p_note:nota||null});
@@ -2706,24 +2874,25 @@ document.getElementById("formularioProducto").addEventListener("submit",async e=
   if(productoEditando!==null){
    const p=productos.find(x=>x.id===productoEditando);if(!p)return;
    if(productos.some(x=>x.id!==productoEditando&&String(x.sku||"").trim().toLowerCase()===skuNorm))return alert("Ya existe otro producto con ese SKU.");
-   const stockAnterior=Number(p.cantidad);
-   p.nombre=nombre;p.sku=sku;p.costo=costo;p.precio=precio;p.categoria=categoria;p.proveedor=proveedor;p.ubicacion=ubicacion;p.stockMinimo=stockMinimo;
-   await guardarProductoSupabase(p,false,0);
+   const stockAnterior=Number(p.cantidad||0),createRef=p.offlineCreateOperationId||null;
+   const op=flkEncolarOperacion("product_save",{product_id:p.supabaseId||null,product_operation_id:!p.supabaseId?createRef:null,legacy_id:String(p.id),local_product_id:p.id,sku,name:nombre,category:categoria||null,cost:costo,price:precio,min_stock:stockMinimo,supplier_name:proveedor||null,location:ubicacion||null,initial_stock:0,local_stock:stockAnterior});
+   p.nombre=nombre;p.sku=sku;p.costo=costo;p.precio=precio;p.categoria=categoria;p.proveedor=proveedor;p.ubicacion=ubicacion;p.stockMinimo=stockMinimo;p.offlineOperationId=op.id;p.offlinePendiente=true;
+   if(createRef)p.offlineCreateOperationId=createRef;
    if(cantidad!==stockAnterior){
     const delta=cantidad-stockAnterior,tipo=delta>0?"entrada":"salida";
     p.cantidad=await ajustarStockSupabase(p,delta,tipo,"Ajuste desde edición de producto");
-    historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo,cantidad:Math.abs(delta),saldo:p.cantidad,fecha:new Date().toISOString(),detalle:"Ajuste desde edición"});
+    historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo,cantidad:Math.abs(delta),saldo:p.cantidad,fecha:new Date().toISOString(),detalle:"🟠 Ajuste pendiente de sincronización"});
    }
   }else{
    if(productos.some(x=>String(x.sku||"").trim().toLowerCase()===skuNorm))return alert("Ya existe un producto con ese SKU.");
-   const nuevoProducto={id:Date.now()+Math.floor(Math.random()*100000),nombre,sku,cantidad:0,costo,precio,categoria,proveedor,ubicacion,stockMinimo};
-   await guardarProductoSupabase(nuevoProducto,true,cantidad);
-   productos.push(nuevoProducto);
-   if(cantidad>0)historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:nuevoProducto.id,nombre,sku,tipo:"entrada",cantidad,saldo:nuevoProducto.cantidad,fecha:new Date().toISOString(),detalle:"Inventario inicial"});
+   const id=Date.now()+Math.floor(Math.random()*100000);
+   const op=flkEncolarOperacion("product_save",{product_id:null,product_operation_id:null,legacy_id:String(id),local_product_id:id,sku,name:nombre,category:categoria||null,cost:costo,price:precio,min_stock:stockMinimo,supplier_name:proveedor||null,location:ubicacion||null,initial_stock:cantidad,local_stock:cantidad});
+   productos.push({id,nombre,sku,cantidad,costo,precio,categoria,proveedor,ubicacion,stockMinimo,supabaseId:null,offlineCreateOperationId:op.id,offlineOperationId:op.id,offlinePendiente:true});
+   if(cantidad>0)historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:id,nombre,sku,tipo:"entrada",cantidad,saldo:cantidad,fecha:new Date().toISOString(),detalle:"🟠 Inventario inicial pendiente de sincronización"});
   }
-  await cargarHistorialSupabase();
-  guardarDatos();mostrarProductos();actualizarEstadisticas();cerrarFormulario();
- }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el cambio: "+(err.message||err))}
+  guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();cerrarFormulario();
+  if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
+ }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("No se pudo guardar el producto: "+(err.message||err))}
  finally{procesandoGuardado=false}
 });
 function abrirMovimiento(id,tipo){
@@ -2756,12 +2925,10 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
 async function eliminarProducto(id){
  const p=productos.find(x=>x.id===id);if(!p)return;
  if(!confirm("¿Quieres eliminar este producto?"))return;
- try{
-  if(p.supabaseId){const {error}=await flkSupabase.from("products").delete().eq("id",p.supabaseId);if(error)throw error}
-  productos=productos.filter(x=>x.id!==id);guardarDatos();mostrarProductos();actualizarEstadisticas();
- }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase no permitió eliminar el producto: "+(err.message||err))}
+ flkEncolarOperacion("product_delete",{product_id:p.supabaseId||null,product_operation_id:p.offlineCreateOperationId||null,local_product_id:p.id});
+ productos=productos.filter(x=>x.id!==id);guardarDatos();mostrarProductos();actualizarEstadisticas();
+ if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
 }
-
 function mostrarProductos(){
  const lista=document.getElementById("listaProductos"),q=document.getElementById("busqueda").value.toLowerCase().trim();
  actualizarOpcionesOrganizacion();
@@ -2980,10 +3147,10 @@ async function cargarVentasSupabase(){
 async function registrarVentaSupabase(datos){
  const items=datos.items.map(i=>{
   const p=productos.find(x=>x.id===i.productoId);
-  if(!p||!p.supabaseId)throw new Error("El producto "+i.nombre+" todavía no está vinculado con Supabase.");
-  return {product_id:p.supabaseId,quantity:Number(i.cantidad),unit_price:Number(i.precioUnitario)};
+  if(!p||(!p.supabaseId&&!p.offlineCreateOperationId))throw new Error("El producto "+i.nombre+" no tiene referencia de sincronización.");
+  return {product_id:p.supabaseId||null,product_operation_id:p.offlineCreateOperationId||null,quantity:Number(i.cantidad),unit_price:Number(i.precioUnitario)};
  });
- if(!navigator.onLine){
+ if(!navigator.onLine||items.some(i=>!i.product_id&&i.product_operation_id)){
   const op=flkEncolarOperacion("sale",{
    customer_name:datos.cliente||"Cliente general",
    customer_phone:datos.telefono||null,
@@ -3984,6 +4151,10 @@ function actualizarFlujoCaja(){
  lista.innerHTML=arr.length?arr.map(m=>`<div class="fila-estadistica"><span>${m.tipo==="entrada"?"⬇️":"⬆️"} ${escapeHtml(m.concepto)}<br><small>${new Date(m.fecha).toLocaleString("es-PR")} · ${escapeHtml(m.metodo)}</small></span><strong style="color:${m.tipo==="entrada"?"#168044":"#d93025"}">${m.tipo==="entrada"?"+":"-"}$${m.cantidad.toFixed(2)}</strong></div>`).join(""):'<div class="fila-estadistica"><span>No hay movimientos de dinero en este período.</span><strong>—</strong></div>'
 }
 async function mostrarFlujoCaja(){
+ if(!navigator.onLine){
+  ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+  document.getElementById("vistaFlujoCaja").style.display="block";actualizarMenu("flujoCaja");actualizarFlujoCaja();scrollTop();return
+ }
  if(navigator.onLine){
   setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);
   setTimeout(()=>cargarGastosSupabase().catch(()=>{}),0);
@@ -4192,7 +4363,7 @@ function actualizarFinanzas(){
  document.getElementById("finRelacion").textContent=d.porPagar>0?(d.porCobrar/d.porPagar).toFixed(2)+"x":(d.porCobrar>0?"Sin deuda":"—");
  actualizarEstadoContribucionArrendamiento()
 }
-async function mostrarFinanzas(){await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();await cargarConfiguracionesArrendamiento();
+async function mostrarFinanzas(){if(!navigator.onLine){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});document.getElementById("vistaFinanzas").style.display="block";actualizarMenu("finanzas");actualizarFinanzas();scrollTop();return}await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();await cargarConfiguracionesArrendamiento();
  ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");
  document.getElementById("vistaFinanzas").style.display="block";actualizarMenu("finanzas");actualizarFinanzas();scrollTop()
 }
@@ -4244,9 +4415,9 @@ function actualizarCentroAlertas(){
  ok.innerHTML=d.total?'':'<div class="alertas-vacio"><strong>✅ Todo está al día</strong>No hay productos con stock bajo ni créditos que requieran atención.</div>';
  actualizarIndicadorAlertas()
 }
-async function mostrarAlertas(){await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaAlertas").style.display="block";actualizarMenu("alertas");actualizarCentroAlertas();scrollTop()}
+async function mostrarAlertas(){if(!navigator.onLine){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaOrdenes","vistaEstadisticas","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});document.getElementById("vistaAlertas").style.display="block";actualizarMenu("alertas");actualizarCentroAlertas();scrollTop();return}await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaAlertas").style.display="block";actualizarMenu("alertas");actualizarCentroAlertas();scrollTop()}
 
-async function mostrarEstadisticas(){await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="block";actualizarMenu("estadisticas");actualizarEstadisticas();scrollTop()}
+async function mostrarEstadisticas(){if(!navigator.onLine){document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="block";actualizarMenu("estadisticas");actualizarEstadisticas();scrollTop();return}await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="block";actualizarMenu("estadisticas");actualizarEstadisticas();scrollTop()}
 
 async function sincronizarYActualizarEstadisticas(){
  try{
@@ -4346,8 +4517,11 @@ recalcularSaldos();mostrarProductos();actualizarResumenHistorial();actualizarVen
 </script>
 <script>
 if("serviceWorker" in navigator){
- window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("./sw.js").catch(err=>console.error("Service Worker:",err));
+ window.addEventListener("load",async()=>{
+  try{
+   const reg=await navigator.serviceWorker.register("./sw.js",{updateViaCache:"none"});
+   if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
+  }catch(err){console.error("Service Worker:",err)}
  });
 }
 </script>
