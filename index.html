@@ -1352,6 +1352,24 @@ function flkVentaLocalDesdeOperacion(op){
   offlinePendiente:true
  }
 }
+function flkGastoLocalDesdeOperacion(op){
+ const d=op.payload||{};
+ const legacy=String(d.legacy_id||"");
+ return {
+  id:idLocalDesdeLegacy(legacy,d.expense_id||op.id),
+  supabaseId:d.expense_id||null,
+  offlineOperationId:op.id,
+  offlinePendiente:true,
+  concepto:d.concept||"Gasto",
+  categoria:d.category||"Otro",
+  cantidad:Number(d.amount||0),
+  metodo:d.payment_method||"Efectivo",
+  fechaLocal:d.expense_date||fechaLocalISO(new Date()),
+  fecha:(d.expense_date||fechaLocalISO(new Date()))+"T12:00:00-04:00",
+  nota:d.note||"",
+  creado:op.created_at||new Date().toISOString()
+ }
+}
 function flkAplicarPendientesSobreDatos(){
  const q=flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado));
  for(const op of q){
@@ -1367,10 +1385,25 @@ function flkAplicarPendientesSobreDatos(){
    const v=flkVentaLocalDesdeOperacion(op);
    if(v&&!ventas.some(x=>x.offlineOperationId===op.id))ventas.unshift(v)
   }
+  if(op.tipo==="expense_save"){
+   const g=flkGastoLocalDesdeOperacion(op);
+   const idx=gastos.findIndex(x=>
+    (g.supabaseId&&x.supabaseId===g.supabaseId) ||
+    String(x.id)===String(g.id) ||
+    x.offlineOperationId===op.id
+   );
+   if(idx>=0)gastos[idx]={...gastos[idx],...g};
+   else gastos.unshift(g)
+  }
+  if(op.tipo==="expense_delete"){
+   const sid=op.payload?.expense_id;
+   gastos=gastos.filter(x=>x.supabaseId!==sid)
+  }
  }
- guardarDatos();guardarVentas();
+ guardarDatos();guardarVentas();guardarGastos();
  if(typeof mostrarProductos==="function")mostrarProductos();
  if(typeof actualizarVentas==="function")actualizarVentas();
+ if(typeof actualizarGastos==="function")actualizarGastos();
 }
 async function flkProcesarOperacionOffline(op){
  if(op.tipo==="stock_adjustment"){
@@ -1395,6 +1428,30 @@ async function flkProcesarOperacionOffline(op){
    p_due_date:p.due_date||null,
    p_note:p.note||null,
    p_items:p.items||[]
+  });
+  if(error)throw error;
+  return
+ }
+ if(op.tipo==="expense_save"){
+  const p=op.payload||{};
+  const {error}=await flkSupabase.rpc("flk_save_expense_offline",{
+   p_operation_id:op.id,
+   p_expense_id:p.expense_id||null,
+   p_legacy_id:p.legacy_id||null,
+   p_concept:p.concept||"Gasto",
+   p_category:p.category||"Otro",
+   p_amount:Number(p.amount||0),
+   p_payment_method:p.payment_method||"Efectivo",
+   p_expense_date:p.expense_date||null,
+   p_note:p.note||null
+  });
+  if(error)throw error;
+  return
+ }
+ if(op.tipo==="expense_delete"){
+  const {error}=await flkSupabase.rpc("flk_delete_expense_offline",{
+   p_operation_id:op.id,
+   p_expense_id:op.payload?.expense_id
   });
   if(error)throw error;
   return
@@ -1430,6 +1487,7 @@ async function flkProcesarColaOffline(){
    if(typeof cargarInventarioSupabase==="function")await cargarInventarioSupabase();
    if(typeof cargarHistorialSupabase==="function")await cargarHistorialSupabase();
    if(typeof cargarVentasSupabase==="function")await cargarVentasSupabase();
+   if(typeof cargarGastosSupabase==="function")await cargarGastosSupabase();
    if(typeof cargarMovimientosCajaSupabase==="function")await cargarMovimientosCajaSupabase();
    flkAplicarPendientesSobreDatos()
   }
@@ -1878,6 +1936,12 @@ function gastoDesdeSupabase(r){
  }
 }
 async function cargarGastosSupabase(){
+ if(!navigator.onLine){
+  flkAplicarPendientesSobreDatos();
+  actualizarGastos();
+  actualizarResumen();
+  return true
+ }
  const locales=Array.isArray(gastos)?[...gastos]:[];
  let {data:cloud,error}=await flkSupabase.from("expenses").select("*").order("expense_date",{ascending:false}).order("created_at",{ascending:false});
  if(error){
@@ -2670,6 +2734,27 @@ document.getElementById("formularioGasto").addEventListener("submit",async e=>{
   }else{
    legacy=String(Date.now()+Math.floor(Math.random()*100000));
   }
+  if(!navigator.onLine){
+   const payload={
+    expense_id:supabaseId,
+    legacy_id:legacy,
+    concept:concepto,
+    category:categoria||"Otro",
+    amount:cantidad,
+    payment_method:metodo||"Efectivo",
+    expense_date:fechaLocal,
+    note:nota||null
+   };
+   const op=flkEncolarOperacion("expense_save",payload);
+   const local=flkGastoLocalDesdeOperacion(op);
+   const idx=gastos.findIndex(x=>x.id===local.id || (supabaseId&&x.supabaseId===supabaseId));
+   if(idx>=0)gastos[idx]={...gastos[idx],...local};
+   else gastos.unshift(local);
+   guardarGastos();actualizarGastos();actualizarResumen();actualizarFlujoCaja();actualizarFinanzas();
+   cerrarGasto();
+   alert(estabaEditando?"Gasto actualizado localmente. Se sincronizará cuando regrese Internet.":"Gasto guardado localmente. Se sincronizará cuando regrese Internet.");
+   return
+  }
   const {data,error}=await flkSupabase.rpc("flk_save_expense",{
    p_expense_id:supabaseId,
    p_legacy_id:legacy,
@@ -2692,6 +2777,21 @@ document.getElementById("formularioGasto").addEventListener("submit",async e=>{
 async function eliminarGasto(id){
  const g=gastos.find(x=>x.id===id);if(!g)return;
  if(!confirm(`¿Eliminar el gasto “${g.concepto}” por $${Number(g.cantidad).toFixed(2)}?`))return;
+
+ if(!navigator.onLine){
+  if(!g.supabaseId){
+   let q=flkColaOffline();
+   q=q.filter(op=>!(op.tipo==="expense_save" && String(op.payload?.legacy_id||"")===String(g.id)));
+   flkGuardarColaOffline(q);
+  }else{
+   flkEncolarOperacion("expense_delete",{expense_id:g.supabaseId});
+  }
+  gastos=gastos.filter(x=>x.id!==id);
+  guardarGastos();actualizarGastos();actualizarResumen();actualizarFlujoCaja();actualizarFinanzas();
+  alert("Gasto eliminado localmente. El cambio se sincronizará cuando regrese Internet.");
+  return
+ }
+
  if(!g.supabaseId)return alert("Este gasto todavía no está vinculado con Supabase.");
  try{
   const {error}=await flkSupabase.rpc("flk_delete_expense",{p_expense_id:g.supabaseId});
