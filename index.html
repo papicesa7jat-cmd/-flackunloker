@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v16-estadisticas-estructura">
+<meta name="flackunloker-offline-version" content="2026-08-25-v17-recuperacion-datos">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2124,7 +2124,8 @@ window.addEventListener("online",async()=>{
   if(data?.session?.user){
    flkGuardarSesionLocal(data.session);
    await cargarRolUsuario(data.session.user);
-   await flkActualizarNubeDespuesArranque();
+   await flkRecuperarDatosDesdeSupabase();
+   await flkProcesarColaOffline();
   }else{
    flkLimpiarSesionLocal();
    document.getElementById("authOverlay").classList.remove("oculto");
@@ -2316,13 +2317,75 @@ function aplicarPermisosVisuales(){
  if(typeof mostrarListaHistorial==="function")mostrarListaHistorial();
  if(typeof actualizarVentas==="function")actualizarVentas();
 }
+
+let flkRecuperacionDatosEnCurso=false;
+
+async function flkRecuperarDatosDesdeSupabase(){
+ if(flkRecuperacionDatosEnCurso||!navigator.onLine)return false;
+ flkRecuperacionDatosEnCurso=true;
+ try{
+  const {data:ses,error:sesErr}=await flkSupabase.auth.getSession();
+  if(sesErr||!ses?.session?.user)return false;
+
+  const resultados=await Promise.allSettled([
+   cargarInventarioSupabase(),
+   cargarHistorialSupabase(),
+   cargarVentasSupabase(),
+   cargarGastosSupabase(),
+   cargarMovimientosCajaSupabase(),
+   cargarComprasSupabase(),
+   cargarCierresSupabase()
+  ]);
+
+  // Volver a aplicar operaciones locales que todavía no hayan subido.
+  if(typeof flkAplicarPendientesSobreDatos==="function")flkAplicarPendientesSobreDatos();
+
+  // Persistir nuevamente la copia local recuperada.
+  guardarDatos();
+  guardarHistorial();
+  guardarVentas();
+  guardarGastos();
+  guardarCierres();
+  guardarProveedores();
+  guardarOrdenesCompra();
+  if(typeof guardarMovimientosCajaLocal==="function")guardarMovimientosCajaLocal();
+
+  // Refrescar todas las vistas/resúmenes.
+  mostrarProductos();
+  actualizarResumenHistorial();
+  mostrarListaHistorial();
+  actualizarVentas();
+  actualizarClientes();
+  actualizarGastos();
+  actualizarCierre();
+  actualizarOrdenesCompra();
+  actualizarProveedores();
+  actualizarCuentasPagar();
+  actualizarFlujoCaja();
+  actualizarFinanzas();
+  actualizarEstadisticas();
+
+  return resultados.some(r=>r.status==="fulfilled"&&r.value!==false);
+ }catch(err){
+  console.error("Recuperación de datos:",err);
+  return false;
+ }finally{
+  flkRecuperacionDatosEnCurso=false;
+ }
+}
+
 async function mostrarAppConSesion(session){
  if(session&&session.user){
   flkGuardarSesionLocal(session);
   document.getElementById("authOverlay").classList.add("oculto");
   flkPintarSesionLocal(session.user);
   await cargarRolUsuario(session.user);
-  if(navigator.onLine)setTimeout(()=>flkActualizarNubeDespuesArranque(),0);
+  if(navigator.onLine){
+   setTimeout(async()=>{
+    await flkRecuperarDatosDesdeSupabase();
+    await flkProcesarColaOffline();
+   },80);
+  }
  }else{
   const cache=flkSesionLocal();
   if(!navigator.onLine&&cache?.user){
