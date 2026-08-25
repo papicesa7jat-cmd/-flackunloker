@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v17-recuperacion-datos">
+<meta name="flackunloker-offline-version" content="2026-08-25-v18-recuperacion-directa">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2124,7 +2124,7 @@ window.addEventListener("online",async()=>{
   if(data?.session?.user){
    flkGuardarSesionLocal(data.session);
    await cargarRolUsuario(data.session.user);
-   await flkRecuperarDatosDesdeSupabase();
+   await flkCargaDirectaSupabase();
    await flkProcesarColaOffline();
   }else{
    flkLimpiarSesionLocal();
@@ -2318,59 +2318,170 @@ function aplicarPermisosVisuales(){
  if(typeof actualizarVentas==="function")actualizarVentas();
 }
 
-let flkRecuperacionDatosEnCurso=false;
+let flkCargaDirectaEnCurso=false;
 
-async function flkRecuperarDatosDesdeSupabase(){
- if(flkRecuperacionDatosEnCurso||!navigator.onLine)return false;
- flkRecuperacionDatosEnCurso=true;
+async function flkCargaDirectaSupabase(){
+ if(flkCargaDirectaEnCurso||!navigator.onLine)return false;
+ flkCargaDirectaEnCurso=true;
+
+ const fallos=[];
  try{
   const {data:ses,error:sesErr}=await flkSupabase.auth.getSession();
-  if(sesErr||!ses?.session?.user)return false;
+  if(sesErr)throw sesErr;
+  if(!ses?.session?.user){
+   document.getElementById("authOverlay").classList.remove("oculto");
+   return false;
+  }
 
-  const resultados=await Promise.allSettled([
-   cargarInventarioSupabase(),
-   cargarHistorialSupabase(),
-   cargarVentasSupabase(),
-   cargarGastosSupabase(),
-   cargarMovimientosCajaSupabase(),
-   cargarComprasSupabase(),
-   cargarCierresSupabase()
-  ]);
+  // 1. INVENTARIO: solo lectura, sin migrar nada.
+  try{
+   const {data,error}=await flkSupabase.from("products")
+    .select("*").eq("active",true).order("created_at",{ascending:true});
+   if(error)throw error;
+   productos=(data||[]).map(productoDesdeSupabase);
+   guardarDatos();
+  }catch(err){console.error("Carga directa inventario",err);fallos.push("Inventario")}
 
-  // Volver a aplicar operaciones locales que todavía no hayan subido.
+  // 2. HISTORIAL.
+  try{
+   const {data,error}=await flkSupabase.from("stock_movements")
+    .select("id,product_id,movement_type,quantity,stock_after,note,created_at")
+    .order("created_at",{ascending:false});
+   if(error)throw error;
+   historial=(data||[]).map(movimientoDesdeSupabase);
+   guardarHistorial();
+  }catch(err){console.error("Carga directa historial",err);fallos.push("Historial")}
+
+  // 3. VENTAS, PAGOS Y DEVOLUCIONES.
+  try{
+   const {data,error}=await flkSupabase.from("sales")
+    .select("*,sale_items(id,product_id,quantity,unit_price,unit_cost),sale_payments(id,amount,payment_method,note,balance_before,balance_after,created_at),sale_returns(id,return_number,sale_item_id,product_id,quantity,refund_amount,reason,created_at)")
+    .order("created_at",{ascending:false});
+   if(error)throw error;
+
+   ventas=(data||[]).map(v=>{
+    const local=ventaDesdeSupabase(v);
+    const retornos=Array.isArray(v.sale_returns)?v.sale_returns:[];
+    local.devoluciones=retornos.map(r=>({
+     id:idLocalDesdeLegacy(null,r.id),supabaseId:r.id,numeroDevolucion:r.return_number,ventaId:local.id,
+     productoId:(local.items.find(i=>i.supabaseSaleItemId===r.sale_item_id)||{}).productoId,
+     cantidad:Number(r.quantity||0),monto:Number(r.refund_amount||0),
+     motivo:r.reason||"",fecha:r.created_at
+    }));
+    local.items.forEach(i=>{
+     i.devuelto=retornos.filter(r=>r.sale_item_id===i.supabaseSaleItemId)
+      .reduce((t,r)=>t+Number(r.quantity||0),0)
+    });
+    return local
+   });
+   const maxNumero=ventas.reduce((m,v)=>Math.max(m,Number(v.numeroConsecutivo||0)),0);
+   if(maxNumero>=proximoNumeroRecibo)proximoNumeroRecibo=maxNumero+1;
+   guardarVentas();
+  }catch(err){console.error("Carga directa ventas",err);fallos.push("Ventas")}
+
+  // 4. GASTOS.
+  try{
+   const {data,error}=await flkSupabase.from("expenses")
+    .select("*").order("expense_date",{ascending:false}).order("created_at",{ascending:false});
+   if(error)throw error;
+   gastos=(data||[]).map(gastoDesdeSupabase);
+   guardarGastos();
+  }catch(err){console.error("Carga directa gastos",err);fallos.push("Gastos")}
+
+  // 5. PROVEEDORES, ORDENES Y PAGOS.
+  try{
+   const [rs,ro,rp]=await Promise.all([
+    flkSupabase.from("suppliers").select("*").order("name"),
+    flkSupabase.from("purchase_orders").select("*").order("created_at",{ascending:false}),
+    flkSupabase.from("supplier_payments").select("*").order("created_at",{ascending:true})
+   ]);
+   if(rs.error)throw rs.error;if(ro.error)throw ro.error;if(rp.error)throw rp.error;
+   const pagos=rp.data||[];
+   proveedores=(rs.data||[]).map(x=>({
+    id:idLocalDesdeLegacy(x.legacy_id,x.id),supabaseId:x.id,nombre:x.name||"",
+    contacto:x.contact_name||"",telefono:x.phone||"",email:x.email||"",
+    direccion:x.address||"",nota:x.notes||"",creado:x.created_at
+   }));
+   ordenesCompra=(ro.data||[]).map(o=>{
+    const pr=proveedores.find(p=>p.supabaseId===o.supplier_id);
+    const prod=productos.find(p=>p.supabaseId===o.product_id);
+    const ps=pagos.filter(p=>p.purchase_order_id===o.id);
+    return {
+     id:idLocalDesdeLegacy(o.legacy_id,o.id),supabaseId:o.id,numero:o.order_number,
+     productoId:prod?.id,nombre:prod?.nombre||"Producto",sku:prod?.sku||"",
+     proveedor:pr?.nombre||"Proveedor",cantidad:Number(o.quantity||0),
+     costoUnitario:Number(o.unit_cost||0),fechaOrden:o.order_date,nota:o.note||"",
+     estado:o.status==="received"?"recibida":o.status==="ordered"?"ordenada":"pendiente",
+     fechaCreacion:o.created_at,fechaOrdenada:o.ordered_at,fechaRecibida:o.received_at,
+     costoTotal:Number(o.total_amount||0),condicionPagoProveedor:o.payment_condition,
+     totalPagadoProveedor:Number(o.paid_amount||0),saldoProveedor:Number(o.balance_due||0),
+     fechaVencimientoProveedor:o.due_date||"",metodoPagoProveedor:o.payment_method||"",
+     pagosProveedor:(()=>{
+      let saldo=Number(o.total_amount||0);
+      return [...ps].sort((a,b)=>new Date(a.payment_date)-new Date(b.payment_date)).map(p=>{
+       const anterior=saldo,cant=Number(p.amount||0);saldo=Math.max(0,saldo-cant);
+       return {id:idLocalDesdeLegacy(null,p.id),supabaseId:p.id,cantidad:cant,
+        fecha:p.payment_date,metodo:p.payment_method||"",nota:p.note||"",
+        saldoAnterior:anterior,saldoRestante:saldo}
+      })
+     })()
+    }
+   });
+   guardarProveedores();guardarOrdenesCompra();
+  }catch(err){console.error("Carga directa compras",err);fallos.push("Compras")}
+
+  // 6. CAJA.
+  try{
+   const {data,error}=await flkSupabase.from("cash_movements")
+    .select("id,type,amount,description,payment_method,occurred_at,created_at,sale_id")
+    .order("occurred_at",{ascending:true});
+   if(error)throw error;
+   movimientosCajaSupabase=(data||[]).map(m=>({
+    id:m.id,tipo:m.type==="income"?"entrada":"salida",cantidad:Number(m.amount||0),
+    concepto:m.description||"Movimiento",metodo:normalizarMetodoFlujo(m.payment_method||"Otro"),
+    fecha:m.occurred_at||m.created_at,
+    grupo:String(m.description||"").startsWith("Gasto ·")?"gasto":
+      String(m.description||"").startsWith("Abono ·")?"abono":
+      String(m.description||"").startsWith("Venta ·")?"venta":
+      String(m.description||"").startsWith("Pago proveedor ·")?"proveedor":
+      (String(m.description||"")==="Retiro del propietario"||String(m.description||"")==="Aporte del propietario")?"propietario":
+      String(m.description||"").startsWith("Reembolso devolución ·")?"reembolso":"otro"
+   }));
+   guardarMovimientosCajaLocal();
+  }catch(err){console.error("Carga directa caja",err);fallos.push("Caja")}
+
+  // 7. CIERRES.
+  try{
+   const {data,error}=await flkSupabase.from("cash_closures")
+    .select("*").order("close_date",{ascending:false});
+   if(error)throw error;
+   cierres=(data||[]).map(cierreDesdeSupabase);
+   guardarCierres();
+  }catch(err){console.error("Carga directa cierres",err);fallos.push("Cierres")}
+
+  // Reaplicar solo operaciones offline todavía pendientes.
   if(typeof flkAplicarPendientesSobreDatos==="function")flkAplicarPendientesSobreDatos();
 
-  // Persistir nuevamente la copia local recuperada.
-  guardarDatos();
-  guardarHistorial();
-  guardarVentas();
-  guardarGastos();
-  guardarCierres();
-  guardarProveedores();
-  guardarOrdenesCompra();
-  if(typeof guardarMovimientosCajaLocal==="function")guardarMovimientosCajaLocal();
-
-  // Refrescar todas las vistas/resúmenes.
+  // Pintar todo con lo recién recuperado.
   mostrarProductos();
-  actualizarResumenHistorial();
-  mostrarListaHistorial();
-  actualizarVentas();
-  actualizarClientes();
-  actualizarGastos();
-  actualizarCierre();
-  actualizarOrdenesCompra();
-  actualizarProveedores();
-  actualizarCuentasPagar();
-  actualizarFlujoCaja();
-  actualizarFinanzas();
-  actualizarEstadisticas();
+  actualizarResumenHistorial();mostrarListaHistorial();
+  actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();
+  actualizarOpcionesOrganizacion();actualizarProveedores();actualizarOrdenesCompra();
+  actualizarCuentasPagar();actualizarFlujoCaja();actualizarFinanzas();actualizarEstadisticas();
 
-  return resultados.some(r=>r.status==="fulfilled"&&r.value!==false);
+  if(fallos.length){
+   alert("Se recuperaron los datos disponibles, pero falló la carga de: "+fallos.join(", ")+".");
+  }else{
+   console.log("Flackunloker recuperado desde Supabase:",
+    productos.length+" productos, "+historial.length+" movimientos, "+ventas.length+" ventas");
+  }
+  return fallos.length===0;
  }catch(err){
-  console.error("Recuperación de datos:",err);
+  console.error("Carga directa general",err);
+  alert("No se pudo recuperar la información desde Supabase: "+(err.message||err));
   return false;
  }finally{
-  flkRecuperacionDatosEnCurso=false;
+  flkCargaDirectaEnCurso=false;
  }
 }
 
@@ -2382,9 +2493,9 @@ async function mostrarAppConSesion(session){
   await cargarRolUsuario(session.user);
   if(navigator.onLine){
    setTimeout(async()=>{
-    await flkRecuperarDatosDesdeSupabase();
+    await flkCargaDirectaSupabase();
     await flkProcesarColaOffline();
-   },80);
+   },120);
   }
  }else{
   const cache=flkSesionLocal();
