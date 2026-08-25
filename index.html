@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v20-inicio-corregido">
+<meta name="flackunloker-offline-version" content="2026-08-25-v21-inicio-seguro">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2253,6 +2253,11 @@ function flkLimpiarSesionLocal(){
  }catch(e){}
 }
 function flkPintarSesionLocal(user){
+ if(document.readyState!=="complete"){
+  window.addEventListener("load",()=>flkPintarSesionLocal(user),{once:true});
+  return;
+ }
+
  const rolGuardado=flkRolLocal(user?.id);
  rolSesion=rolGuardado||"employee";
  document.getElementById("authUsuarioEmail").textContent=user?.email||"Usuario";
@@ -2534,13 +2539,13 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
   const nombre=document.getElementById("authNombre").value.trim();
   const {data,error}=await flkSupabase.auth.signUp({email,password,options:{data:{full_name:nombre}}});
   if(error){mostrarMensajeAuth(error.message,"error");return}
-  if(data.session){await window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});mostrarMensajeAuth("","");}
+  if(data.session){window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});mostrarMensajeAuth("","");}
   else mostrarMensajeAuth("Cuenta creada. Revisa tu correo para confirmar el registro y luego inicia sesión.","ok");
  }else{
   const {data,error}=await flkSupabase.auth.signInWithPassword({email,password});
   if(error){mostrarMensajeAuth("Correo o contraseña incorrectos, o la cuenta aún no está confirmada.","error");return}
   mostrarMensajeAuth("","");
-  await window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});
+  window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});
  }
 });
 flkSupabase.auth.onAuthStateChange((event,session)=>{
@@ -2551,7 +2556,7 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
 });
 (()=>{
  const cache=flkSesionLocal();
- if(cache?.user)flkPintarSesionLocal(cache.user);
+ if(cache?.user)window.addEventListener("load",()=>flkPintarSesionLocal(cache.user),{once:true});
  if(!navigator.onLine){
   if(!cache?.user){
    document.getElementById("authOverlay").classList.remove("oculto");
@@ -2562,9 +2567,9 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
  setTimeout(async()=>{
   try{
    const {data}=await flkSupabase.auth.getSession();
-   await window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});
+   window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});
   }catch(err){
-   if(cache?.user)flkPintarSesionLocal(cache.user);
+   if(cache?.user)window.addEventListener("load",()=>flkPintarSesionLocal(cache.user),{once:true});
   }
  },0);
 })();
