@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v46-roles-visual-real">
+<meta name="flackunloker-offline-version" content="2026-08-25-v47-roles-visual-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1651,7 +1651,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 
   <div class="lic-aviso">
    Solo la cuenta propietaria del software puede ver y usar este panel.
-   Los demás administradores no pueden renovar ni cambiar el estado de la licencia.
+   Tu cuenta propietaria puede acceder desde varios dispositivos. Las licencias de terceros permanecen vinculadas a su dispositivo autorizado.
   </div>
  </div>
 </div>
@@ -3310,15 +3310,32 @@ async function flkValidarLicencia(){
 
  if(navigator.onLine){
   try{
-   const deviceId=flkObtenerDeviceId();
-   if(!deviceId)throw new Error("No se pudo generar el identificador de este dispositivo.");
-   const {data,error}=await flkSupabase.rpc("flk_activate_license_device",{
-    p_license_key:FLK_LICENSE_KEY,
-    p_device_id:deviceId
-   });
+   // La cuenta propietaria del software es multidispositivo.
+   // Para todos los demás usuarios se mantiene el vínculo estricto al device_id.
+   let esOwner=false;
+   try{
+    const {data:ownerData,error:ownerError}=await flkSupabase.rpc("flk_is_software_owner");
+    if(!ownerError)esOwner=!!ownerData;
+   }catch(_){}
+
+   let data,error;
+   if(esOwner){
+    ({data,error}=await flkSupabase.rpc("flk_check_license",{
+     p_license_key:FLK_LICENSE_KEY
+    }));
+   }else{
+    const deviceId=flkObtenerDeviceId();
+    if(!deviceId)throw new Error("No se pudo generar el identificador de este dispositivo.");
+    ({data,error}=await flkSupabase.rpc("flk_activate_license_device",{
+     p_license_key:FLK_LICENSE_KEY,
+     p_device_id:deviceId
+    }));
+   }
+
    if(error)throw error;
    const info=Array.isArray(data)?data[0]:data;
    if(!info)throw new Error("Respuesta de licencia vacía.");
+   info.software_owner=esOwner;
    flkGuardarCacheLicencia(info);
    flkPintarLicencia(info,"online");
    return info
@@ -3440,10 +3457,8 @@ function mostrarLicencias(){
 async function cargarPanelLicencias(){
  if(!flkEsPropietarioSoftware)return;
  try{
-  const deviceId=flkObtenerDeviceId();
-  const {data,error}=await flkSupabase.rpc("flk_activate_license_device",{
-   p_license_key:FLK_LICENSE_KEY,
-   p_device_id:deviceId
+  const {data,error}=await flkSupabase.rpc("flk_check_license",{
+   p_license_key:FLK_LICENSE_KEY
   });
   if(error)throw error;
   const info=Array.isArray(data)?data[0]:data;
@@ -3455,7 +3470,9 @@ async function cargarPanelLicencias(){
   document.getElementById("licPanelVencimiento").textContent=flkFechaLicenciaBonita(info.expires_at);
   document.getElementById("licPanelGracia").textContent=String(info.offline_grace_days??0)+" día(s)";
   const devEl=document.getElementById("licPanelDispositivo");
-  if(devEl)devEl.textContent=flkObtenerDeviceId()||"—";
+  if(devEl)devEl.textContent=flkEsPropietarioSoftware
+   ? "Propietario · multidispositivo"
+   : (flkObtenerDeviceId()||"—");
 
   const d=new Date(info.expires_at);
   if(!Number.isNaN(d.getTime())){
