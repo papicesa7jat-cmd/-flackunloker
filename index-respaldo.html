@@ -51,7 +51,7 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
   --texto:#101828;--muted:#667085;--borde:#e8edf5;--verde:#168044;
   --rojo:#d93025;--naranja:#a15c00;--radio:20px;
 }
-html{scroll-behavior:smooth}
+html{scroll-behavior:auto}
 body{
   background:
     radial-gradient(circle at 50% -160px,rgba(10,132,255,.15),transparent 420px),
@@ -173,24 +173,28 @@ button:active{transform:scale(.97)}
 .menu-panel-fondo.visible{display:flex}
 .menu-panel{
  width:min(100%,620px);max-height:82vh;overflow-y:auto;background:#f8faff;border-radius:28px;
- padding:18px;box-shadow:0 24px 70px rgba(0,0,0,.25);animation:subirMenu .2s ease
+ padding:18px;box-shadow:0 24px 70px rgba(0,0,0,.25);animation:none
 }
 @keyframes subirMenu{from{transform:translateY(25px);opacity:.5}to{transform:none;opacity:1}}
 .menu-panel-cabecera{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}
 .menu-panel-cabecera h2{margin:0;font-size:21px}.cerrar-menu{
  width:38px;height:38px;border:0;border-radius:12px;background:#e9eef6;color:#344054;font-size:18px;cursor:pointer
 }
-.menu-cuadricula{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.menu-cuadricula{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:stretch;justify-content:center}
 .menu-cuadricula button{
  min-height:67px;border:1px solid #e4eaf2;border-radius:16px;background:#fff;color:#475467;
- padding:10px 7px;font-size:12px;font-weight:750;cursor:pointer;box-shadow:0 5px 16px rgba(20,42,80,.04)
+ padding:10px 8px;font-size:12px;font-weight:750;cursor:pointer;box-shadow:0 5px 16px rgba(20,42,80,.04);display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.25;white-space:normal;min-width:0
 }
 .menu-cuadricula button.activo{background:#eaf4ff;color:#0a84ff;border-color:#cce5ff}
+@media(max-width:600px){
+ .menu-cuadricula{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .menu-cuadricula button{font-size:12px;min-height:62px;padding:9px 7px}
+}
 @media(max-width:430px){
  .boton-menu-flotante{right:12px;bottom:12px;padding:13px 16px;border-radius:16px}
  .menu-panel-fondo{padding:10px}.menu-panel{border-radius:24px;padding:15px;max-height:88vh}
- .menu-cuadricula{grid-template-columns:repeat(3,1fr);gap:8px}
- .menu-cuadricula button{font-size:11px;min-height:64px;padding:8px 5px}
+ .menu-cuadricula{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .menu-cuadricula button{font-size:11.5px;min-height:60px;padding:8px 6px}
 }
 
 
@@ -378,10 +382,220 @@ body.rol-empleado .acciones-movimiento{display:none!important}
   margin-top:4px;
 }
 
+
+/* ===== RESTABLECIMIENTO DISCRETO / DESPLEGABLE ===== */
+#panelRestablecimientoTotal{position:fixed;left:14px;bottom:86px;z-index:850;width:52px;height:52px;padding:0;overflow:hidden;background:#fff;border:2px solid #ffd0cc !important;border-radius:16px;box-shadow:0 10px 26px rgba(0,0,0,.14);cursor:pointer}
+#panelRestablecimientoTotal::before{content:"⚠️";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px}
+#panelRestablecimientoTotal h3,#panelRestablecimientoTotal p,#panelRestablecimientoTotal .boton-agregar{display:none}
+@media(hover:hover) and (pointer:fine){#panelRestablecimientoTotal:hover{width:min(340px,calc(100vw - 28px));height:auto;padding:18px;cursor:default}#panelRestablecimientoTotal:hover::before{display:none}#panelRestablecimientoTotal:hover h3,#panelRestablecimientoTotal:hover p,#panelRestablecimientoTotal:hover .boton-agregar{display:block}}
+#panelRestablecimientoTotal:focus,#panelRestablecimientoTotal:focus-within{width:min(340px,calc(100vw - 28px));height:auto;padding:18px;cursor:default;outline:none}
+#panelRestablecimientoTotal:focus::before,#panelRestablecimientoTotal:focus-within::before{display:none}
+#panelRestablecimientoTotal:focus h3,#panelRestablecimientoTotal:focus p,#panelRestablecimientoTotal:focus .boton-agregar,#panelRestablecimientoTotal:focus-within h3,#panelRestablecimientoTotal:focus-within p,#panelRestablecimientoTotal:focus-within .boton-agregar{display:block}
+#panelRestablecimientoTotal h3{margin:0 0 8px;font-size:20px;line-height:1.25;color:#b42318}#panelRestablecimientoTotal p{font-size:14px !important;color:#475467 !important}#panelRestablecimientoTotal .boton-agregar{min-height:54px;font-size:16px;border-radius:14px;font-weight:900}
+#modalRestablecimientoTotal .modal-contenido{width:min(94vw,580px) !important;padding:30px 26px !important;border-radius:24px}#modalRestablecimientoTotal label{display:block;margin:17px 0 8px;font-size:17px;font-weight:800}#modalRestablecimientoTotal input{width:100%;min-height:58px;font-size:20px;padding:14px 16px;border-radius:14px}#modalRestablecimientoTotal .guardar{width:100%;min-height:58px;margin-top:22px;font-size:18px;border-radius:14px}
+@media(max-width:600px){#panelRestablecimientoTotal{left:10px;bottom:76px;width:48px;height:48px;border-radius:15px}#panelRestablecimientoTotal:focus,#panelRestablecimientoTotal:focus-within{width:calc(100vw - 20px);padding:16px}}
+
+/* ===== ESTADO DE CONEXION / BASE OFFLINE ===== */
+#estadoConexionFlk{
+ position:fixed;right:14px;top:14px;z-index:980;
+ display:flex;align-items:center;gap:8px;
+ max-width:calc(100vw - 28px);
+ padding:9px 13px;border-radius:999px;
+ background:#fff;box-shadow:0 5px 18px rgba(0,0,0,.13);
+ font-size:13px;font-weight:850;border:1px solid #e5e7eb;
+}
+#estadoConexionFlk .punto{width:10px;height:10px;border-radius:50%;background:#16a34a;flex:0 0 auto}
+#estadoConexionFlk.offline .punto{background:#f59e0b}
+#estadoConexionFlk.sync .punto{background:#0a84ff}
+#estadoConexionFlk.error .punto{background:#d93025}
+#estadoConexionFlk small{font-weight:700;color:#667085}
+@media(max-width:600px){
+ #estadoConexionFlk{top:8px;right:8px;padding:8px 10px;font-size:12px}
+}
+
+
+/* ===== MODO SIN MAREO: navegación inmediata ===== */
+html{scroll-behavior:auto!important}
+*,*::before,*::after{scroll-behavior:auto!important}
+.menu-panel{animation:none!important}
+button,.boton-agregar,.boton-guardar,.producto,.venta-card,.cliente-card,.gasto-card,.orden-card,.proveedor-card,.cuenta-proveedor-card{transition:none!important}
+button:active{transform:none!important}
+
+
+/* ===== MENÚ PRINCIPAL · CENTRADO Y ORGANIZADO DEFINITIVO ===== */
+.menu-panel-fondo{
+  align-items:center!important;
+  justify-content:center!important;
+}
+.menu-panel{
+  width:min(94vw,680px)!important;
+  margin:auto!important;
+  padding:20px!important;
+  border-radius:26px!important;
+}
+.menu-panel-cabecera{
+  position:relative!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:44px!important;
+  margin-bottom:16px!important;
+  text-align:center!important;
+}
+.menu-panel-cabecera h2{
+  width:100%!important;
+  margin:0!important;
+  padding:0 48px!important;
+  text-align:center!important;
+  font-size:21px!important;
+}
+.menu-panel-cabecera .cerrar-menu{
+  position:absolute!important;
+  right:0!important;
+  top:50%!important;
+  transform:translateY(-50%)!important;
+  margin:0!important;
+}
+.menu-cuadricula{
+  width:100%!important;
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:10px!important;
+  align-items:stretch!important;
+  justify-items:stretch!important;
+  margin:0 auto!important;
+}
+.menu-cuadricula button{
+  width:100%!important;
+  min-width:0!important;
+  min-height:72px!important;
+  padding:10px 7px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+  line-height:1.25!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+}
+.menu-cuadricula button #badgeAlertas{
+  margin-left:3px!important;
+}
+@media(max-width:600px){
+  .menu-panel-fondo{padding:10px!important;}
+  .menu-panel{width:min(96vw,520px)!important;padding:16px!important;border-radius:22px!important;}
+  .menu-panel-cabecera{margin-bottom:14px!important;}
+  .menu-panel-cabecera h2{font-size:19px!important;}
+  .menu-cuadricula{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;}
+  .menu-cuadricula button{min-height:64px!important;font-size:12px!important;padding:9px 6px!important;}
+}
+@media(max-width:360px){
+  .menu-panel{padding:13px!important;}
+  .menu-cuadricula{gap:7px!important;}
+  .menu-cuadricula button{min-height:60px!important;font-size:11px!important;}
+}
+
+/* ===== GESTIÓN DE USUARIOS · CENTRADA Y ORGANIZADA ===== */
+#vistaUsuarios{
+  width:100%;
+  max-width:700px;
+  margin:0 auto;
+  padding-left:4px;
+  padding-right:4px;
+}
+#vistaUsuarios .seccion-titulo{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  text-align:center;
+  margin-left:auto;
+  margin-right:auto;
+}
+#vistaUsuarios .seccion-titulo h2{
+  width:100%;
+  margin:0;
+  text-align:center;
+}
+#vistaUsuarios .seccion-titulo .boton-agregar{
+  width:min(220px,100%);
+  min-height:44px;
+  margin:0 auto;
+}
+#vistaUsuarios .reporte-controles{
+  width:100%;
+  max-width:620px;
+  margin:0 auto 15px;
+  text-align:center;
+}
+#vistaUsuarios .reporte-periodo{
+  margin:0;
+  text-align:center;
+}
+#vistaUsuarios #listaUsuariosAdmin{
+  width:100%;
+  max-width:620px;
+  margin:0 auto;
+}
+#vistaUsuarios .usuario-card{
+  width:100%;
+  margin:0 auto 12px;
+  text-align:center;
+}
+#vistaUsuarios .usuario-superior{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  text-align:center;
+}
+#vistaUsuarios .usuario-superior > div{
+  width:100%;
+  min-width:0;
+}
+#vistaUsuarios .usuario-superior h3,
+#vistaUsuarios .usuario-superior p{
+  text-align:center;
+  overflow-wrap:anywhere;
+}
+#vistaUsuarios .usuario-rol{
+  align-self:center;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+#vistaUsuarios .usuario-acciones{
+  width:100%;
+  max-width:460px;
+  margin:14px auto 0;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+#vistaUsuarios .usuario-acciones button{
+  width:100%;
+  min-height:44px;
+}
+#vistaUsuarios .usuario-propio{
+  text-align:center;
+}
+#vistaUsuarios .sin-productos{
+  text-align:center;
+}
+@media(max-width:430px){
+  #vistaUsuarios{max-width:100%;padding-left:0;padding-right:0}
+  #vistaUsuarios .usuario-acciones{grid-template-columns:1fr}
+  #vistaUsuarios .seccion-titulo .boton-agregar{width:100%;max-width:280px}
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 </head>
 <body>
+<div id="estadoConexionFlk"><span class="punto"></span><span id="textoConexionFlk">Comprobando conexión…</span><small id="pendientesConexionFlk"></small></div>
+
 
 <div id="authOverlay" class="auth-overlay">
  <div class="auth-box">
@@ -402,6 +616,14 @@ body.rol-empleado .acciones-movimiento{display:none!important}
   </form>
   <div id="authMensaje" class="auth-msg"></div>
  </div>
+</div>
+
+<div class="lista-estadisticas" id="panelRestablecimientoTotal" tabindex="0" aria-label="Restablecimiento total" style="display:none;border:1px solid #ffd5d2">
+ <h3>⚠️ Restablecer Flackunloker</h3>
+ <p style="margin:0 0 14px">
+  <strong>Solo Administrador.</strong> Deja el sistema como nuevo sin borrar las cuentas de acceso.
+ </p>
+ <button class="boton-agregar" type="button" onclick="abrirRestablecimientoTotal()" style="background:#d93025;width:100%">🔐 Abrir restablecimiento total</button>
 </div>
 <div id="authUsuario" class="auth-user">
  <strong id="authUsuarioEmail">—</strong>
@@ -571,6 +793,30 @@ body.rol-empleado .acciones-movimiento{display:none!important}
 <div class="lista-estadisticas"><h3>💸 Gastos por categoría</h3><div id="reporteCategoriasGasto"></div></div>
 </div>
 
+<div class="lista-estadisticas" id="reporteArrendamientoContribucion">
+ <h3>🏢 Informe mensual de arrendamiento por contribución</h3>
+ <p style="margin:0 0 14px;color:#667085;font-size:13px;line-height:1.55">
+  Selecciona el mes para revisar e imprimir el cálculo de arrendamiento según la configuración guardada en Supabase.
+ </p>
+ <div class="reporte-controles-grid">
+  <div class="campo" style="margin:0">
+   <label for="mesInformeArrendamiento">Mes</label>
+   <input id="mesInformeArrendamiento" type="month" onchange="actualizarInformeArrendamiento()">
+  </div>
+  <div class="campo" style="margin:0;display:flex;align-items:end">
+   <button class="boton-agregar" style="width:100%;min-height:47px" onclick="imprimirInformeArrendamiento()">🧾 Ver / imprimir informe</button>
+  </div>
+ </div>
+ <div style="margin-top:15px">
+  <div class="fila-estadistica"><span>Ventas brutas del mes</span><strong id="repArrVentas">$0.00</strong></div>
+  <div class="fila-estadistica"><span>Modalidad</span><strong id="repArrModalidad">—</strong></div>
+  <div class="fila-estadistica"><span>Valor configurado</span><strong id="repArrValor">—</strong></div>
+  <div class="fila-estadistica"><span>Arrendamiento calculado</span><strong id="repArrMonto">$0.00</strong></div>
+  <div class="fila-estadistica"><span>Ganancia bruta del mes</span><strong id="repArrGanancia">$0.00</strong></div>
+  <div class="fila-estadistica"><span>Ganancia bruta después del arrendamiento</span><strong id="repArrResultado">$0.00</strong></div>
+ </div>
+</div>
+
 <div id="vistaAlertas" style="display:none">
 <div class="seccion-titulo"><h2>🔔 Centro de alertas</h2></div>
 <div class="alertas-resumen">
@@ -713,6 +959,45 @@ body.rol-empleado .acciones-movimiento{display:none!important}
 <div class="fila-estadistica"><span>Ganancia bruta</span><strong id="finBruta">$0.00</strong></div>
 <div class="fila-estadistica"><span>Gastos</span><strong id="finGastos">$0.00</strong></div>
 <div class="fila-estadistica"><span>💰 Ganancia neta</span><strong id="finNeta">$0.00</strong></div>
+</div>
+
+
+<div class="lista-estadisticas" id="estadoContribucionArrendamiento">
+<h3>🏢 Estado por Contribución · Arrendamiento mensual</h3>
+<p style="margin:0 0 14px;color:#667085;font-size:13px;line-height:1.55">
+Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje de las ventas brutas del mes o como una renta fija mensual. Este cálculo no registra por sí solo una salida de caja.
+</p>
+
+<div class="reporte-controles-grid">
+ <div class="campo" style="margin:0">
+  <label for="mesArrendamiento">Mes</label>
+  <input id="mesArrendamiento" type="month" onchange="cargarConfiguracionArrendamientoMes()">
+ </div>
+ <div class="campo" style="margin:0">
+  <label for="modoArrendamiento">Modalidad</label>
+  <select id="modoArrendamiento" onchange="actualizarEstadoContribucionArrendamiento()">
+   <option value="percent">% sobre ventas brutas</option>
+   <option value="fixed">Pago fijo mensual</option>
+  </select>
+ </div>
+</div>
+
+<div class="reporte-controles-grid" style="margin-top:10px">
+ <div class="campo" style="margin:0">
+  <label id="labelValorArrendamiento" for="valorArrendamiento">Porcentaje (%)</label>
+  <input id="valorArrendamiento" type="number" min="0" max="100" step="0.01" value="0" oninput="actualizarEstadoContribucionArrendamiento()">
+ </div>
+ <div class="campo" style="margin:0;display:flex;align-items:end">
+  <button id="botonGuardarArrendamiento" class="boton-agregar" style="width:100%;min-height:47px" onclick="guardarConfiguracionArrendamiento()">💾 Guardar arrendamiento</button>
+ </div>
+</div>
+
+<div style="margin-top:16px">
+ <div class="fila-estadistica"><span>Ventas brutas del mes</span><strong id="contribVentasBrutas">$0.00</strong></div>
+ <div class="fila-estadistica"><span id="contribDetalleArrendamiento">Arrendamiento calculado</span><strong id="contribArrendamiento">$0.00</strong></div>
+ <div class="fila-estadistica"><span>Ganancia bruta del mes</span><strong id="contribGananciaBruta">$0.00</strong></div>
+ <div class="fila-estadistica"><span>Ganancia bruta después de arrendamiento</span><strong id="contribResultado">$0.00</strong></div>
+</div>
 </div>
 
 <div class="lista-estadisticas"><h3>💵 Liquidez / Flujo del período</h3>
@@ -911,7 +1196,229 @@ body.rol-empleado .acciones-movimiento{display:none!important}
 </div>
 
 <div class="modal" id="modalMovimientoPropietario"><div class="modal-contenido"><div class="modal-cabecera"><h3 id="tituloMovimientoPropietario">🏦 Movimiento de caja</h3><button class="cerrar" type="button" onclick="cerrarMovimientoPropietario()">×</button></div><div id="saldoDisponibleMovimiento">Efectivo disponible en caja<strong id="saldoDisponibleMovimientoValor">$0.00</strong></div><form id="formularioMovimientoPropietario"><label for="cantidadMovimientoPropietario">Cantidad</label><input id="cantidadMovimientoPropietario" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required><label for="notaMovimientoPropietario">Motivo / nota</label><textarea id="notaMovimientoPropietario" placeholder="Ejemplo: Retiro del dueño al finalizar el día"></textarea><input id="tipoMovimientoPropietario" type="hidden"><button class="guardar" id="botonGuardarMovimientoPropietario" type="submit">Guardar movimiento</button></form></div></div>
+
+<div class="modal" id="modalRestablecimientoTotal">
+ <div class="modal-contenido" style="width:min(94vw,560px);padding:26px">
+  <div class="modal-cabecera"><h3 style="font-size:24px">⚠️ Restablecimiento total</h3><button class="cerrar" type="button" onclick="cerrarRestablecimientoTotal()">×</button></div>
+  <div id="bloqueConfigurarPin">
+   <p style="line-height:1.55">Primero establece un PIN secreto de <strong>6 dígitos</strong>. No se guarda de forma visible.</p>
+   <label>Nuevo PIN de 6 dígitos</label>
+   <input id="nuevoPinReset" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
+   <label>Repetir PIN</label>
+   <input id="confirmarPinReset" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
+   <button class="guardar" type="button" onclick="guardarPinReset()">Guardar PIN</button>
+  </div>
+  <div id="bloqueEjecutarReset" style="display:none">
+   <div style="background:#fff3f2;border:1px solid #ffd5d2;border-radius:14px;padding:14px;line-height:1.55;margin-bottom:16px">
+    <strong>Esta acción es irreversible.</strong><br>
+    Se borrarán inventario, ventas, recibos, devoluciones, clientes, gastos, caja, cierres, proveedores, compras, pagos, reparaciones, historial y configuraciones operativas.
+   </div>
+   <label>PIN de 6 dígitos</label>
+   <input id="pinEjecutarReset" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
+   <label>Escribe RESTABLECER para confirmar</label>
+   <input id="textoConfirmarReset" type="text" autocomplete="off" placeholder="RESTABLECER">
+   <button type="button" onclick="ejecutarRestablecimientoTotal()" style="width:100%;min-height:58px;margin-top:20px;border:0;border-radius:14px;background:#d93025;color:white;font-size:18px;font-weight:900">🗑️ Borrar todos los datos operativos</button>
+   <button type="button" onclick="mostrarCambioPinReset()" style="width:100%;margin-top:12px;background:none;border:0;color:#0a84ff;font-weight:700">Cambiar PIN de seguridad</button>
+  </div>
+ </div>
+</div>
+
 <script>
+
+/* ===== INFRAESTRUCTURA OFFLINE FLACKUNLOKER =====
+   Esta versión crea la cola y el indicador. Los módulos se conectarán a ella por etapas. */
+const FLK_OFFLINE_QUEUE_KEY="flackunloker_offline_queue_v1";
+const FLK_DEVICE_KEY="flackunloker_device_id_v1";
+let flkSincronizando=false;
+
+function flkUUID(){
+ if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();
+ return "flk-"+Date.now()+"-"+Math.random().toString(36).slice(2)+"-"+Math.random().toString(36).slice(2)
+}
+function flkDeviceId(){
+ let id=localStorage.getItem(FLK_DEVICE_KEY);
+ if(!id){id=flkUUID();localStorage.setItem(FLK_DEVICE_KEY,id)}
+ return id
+}
+function flkColaOffline(){
+ try{return JSON.parse(localStorage.getItem(FLK_OFFLINE_QUEUE_KEY)||"[]")}catch(e){return []}
+}
+function flkGuardarColaOffline(q){
+ localStorage.setItem(FLK_OFFLINE_QUEUE_KEY,JSON.stringify(q));
+ flkActualizarEstadoConexion()
+}
+function flkEncolarOperacion(tipo,payload){
+ const q=flkColaOffline();
+ const op={id:flkUUID(),tipo,payload,device_id:flkDeviceId(),created_at:new Date().toISOString(),estado:"pendiente",intentos:0};
+ q.push(op);flkGuardarColaOffline(q);return op
+}
+function flkPendientesOffline(){
+ return flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado)).length
+}
+function flkConflictosOffline(){
+ return flkColaOffline().filter(x=>x.estado==="conflicto").length
+}
+function flkActualizarEstadoConexion(estadoEspecial){
+ const box=document.getElementById("estadoConexionFlk"),txt=document.getElementById("textoConexionFlk"),pen=document.getElementById("pendientesConexionFlk");
+ if(!box||!txt||!pen)return;
+ box.className="";
+ const n=flkPendientesOffline(),c=flkConflictosOffline();
+ if(estadoEspecial==="sync"){box.classList.add("sync");txt.textContent="🔄 Sincronizando";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"";return}
+ if(c){box.classList.add("error");txt.textContent="⚠️ Conflicto pendiente";pen.textContent=`${c} conflicto${c===1?"":"s"}`;return}
+ if(estadoEspecial==="error"){box.classList.add("error");txt.textContent="⚠️ Error de sincronización";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"";return}
+ if(!navigator.onLine){box.classList.add("offline");txt.textContent="🟠 Sin Internet";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"Sin cambios pendientes";return}
+ txt.textContent=n?"🟢 En línea":"🟢 Sincronizado";
+ pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:""
+}
+function flkVentaLocalDesdeOperacion(op){
+ const d=op.payload?.local_sale;if(!d)return null;
+ return {
+  id:d.ventaId,offlineOperationId:op.id,supabaseId:null,
+  numero:d.numero,numeroConsecutivo:Number(d.numeroConsecutivo||0),
+  items:d.items||[],cantidad:Number(d.cantidad||0),ingreso:Number(d.ingreso||0),
+  costoTotal:Number(d.costoTotal||0),ganancia:Number(d.ganancia||0),
+  fecha:d.fecha,cliente:d.cliente||"Cliente general",telefono:d.telefono||"",
+  metodoPago:d.metodoPago||"Efectivo",estadoPago:d.estadoPago||"pagado",
+  totalPagado:Number(d.totalPagado||0),saldo:Number(d.saldo||0),
+  pagos:d.pagos||[],fechaVencimiento:d.fechaVencimiento||"",nota:d.nota||"",
+  offlinePendiente:true
+ }
+}
+function flkAplicarPendientesSobreDatos(){
+ const q=flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado));
+ for(const op of q){
+  if(op.tipo==="stock_adjustment"){
+   const p=productos.find(x=>x.supabaseId===op.payload?.product_id);
+   if(p)p.cantidad=Number(p.cantidad||0)+Number(op.payload?.delta||0)
+  }
+  if(op.tipo==="sale"){
+   for(const i of (op.payload?.items||[])){
+    const p=productos.find(x=>x.supabaseId===i.product_id);
+    if(p)p.cantidad=Number(p.cantidad||0)-Number(i.quantity||0)
+   }
+   const v=flkVentaLocalDesdeOperacion(op);
+   if(v&&!ventas.some(x=>x.offlineOperationId===op.id))ventas.unshift(v)
+  }
+ }
+ guardarDatos();guardarVentas();
+ if(typeof mostrarProductos==="function")mostrarProductos();
+ if(typeof actualizarVentas==="function")actualizarVentas();
+}
+async function flkProcesarOperacionOffline(op){
+ if(op.tipo==="stock_adjustment"){
+  const {error}=await flkSupabase.rpc("flk_adjust_stock_offline",{
+   p_operation_id:op.id,
+   p_product_id:op.payload.product_id,
+   p_delta:Number(op.payload.delta),
+   p_type:op.payload.type||null,
+   p_note:op.payload.note||"Movimiento offline sincronizado"
+  });
+  if(error)throw error;
+  return
+ }
+ if(op.tipo==="sale"){
+  const p=op.payload;
+  const {error}=await flkSupabase.rpc("flk_record_sale_offline",{
+   p_operation_id:op.id,
+   p_customer_name:p.customer_name||"Cliente general",
+   p_customer_phone:p.customer_phone||null,
+   p_payment_method:p.payment_method||"Efectivo",
+   p_paid_amount:Number(p.paid_amount||0),
+   p_due_date:p.due_date||null,
+   p_note:p.note||null,
+   p_items:p.items||[]
+  });
+  if(error)throw error;
+  return
+ }
+ throw new Error("Tipo de operación offline no soportado: "+op.tipo)
+}
+async function flkProcesarColaOffline(){
+ if(flkSincronizando||!navigator.onLine||typeof flkSupabase==="undefined")return;
+ const {data:{session}}=await flkSupabase.auth.getSession();
+ if(!session)return;
+ let q=flkColaOffline(),pendientes=q.filter(x=>x.estado==="pendiente"||x.estado==="error");
+ if(!pendientes.length){flkActualizarEstadoConexion();return}
+ flkSincronizando=true;flkActualizarEstadoConexion("sync");
+ let huboCambios=false;
+ for(const op of pendientes){
+  try{
+   op.intentos=Number(op.intentos||0)+1;
+   await flkProcesarOperacionOffline(op);
+   op.estado="sincronizado";op.synced_at=new Date().toISOString();op.ultimo_error="";
+   huboCambios=true
+  }catch(err){
+   const msg=String(err?.message||err);
+   op.ultimo_error=msg;
+   op.estado=/inventario insuficiente|producto no encontrado|duplicate key|conflict/i.test(msg)?"conflicto":"error";
+   console.error("Operación offline",op.id,msg)
+  }
+  flkGuardarColaOffline(q)
+ }
+ q=q.filter(x=>x.estado!=="sincronizado");
+ flkGuardarColaOffline(q);
+ try{
+  if(huboCambios){
+   if(typeof cargarInventarioSupabase==="function")await cargarInventarioSupabase();
+   if(typeof cargarHistorialSupabase==="function")await cargarHistorialSupabase();
+   if(typeof cargarVentasSupabase==="function")await cargarVentasSupabase();
+   if(typeof cargarMovimientosCajaSupabase==="function")await cargarMovimientosCajaSupabase();
+   flkAplicarPendientesSobreDatos()
+  }
+ }finally{
+  flkSincronizando=false;
+  flkActualizarEstadoConexion(q.some(x=>x.estado==="error")?"error":null)
+ }
+}
+window.addEventListener("online",()=>{flkActualizarEstadoConexion();flkProcesarColaOffline()});
+window.addEventListener("offline",()=>flkActualizarEstadoConexion());
+document.addEventListener("DOMContentLoaded",()=>{flkDeviceId();flkActualizarEstadoConexion();flkProcesarColaOffline()});
+
+
+async function abrirRestablecimientoTotal(){
+ if(rolSesion!=="admin")return alert("Solo el Administrador puede usar el restablecimiento total.");
+ document.getElementById("modalRestablecimientoTotal").classList.add("visible");
+ const {data,error}=await flkSupabase.rpc("flk_reset_pin_configured");
+ if(error)return alert("No se pudo verificar la seguridad: "+error.message);
+ document.getElementById("bloqueConfigurarPin").style.display=data?"none":"block";
+ document.getElementById("bloqueEjecutarReset").style.display=data?"block":"none";
+}
+function cerrarRestablecimientoTotal(){
+ document.getElementById("modalRestablecimientoTotal").classList.remove("visible");
+ ["nuevoPinReset","confirmarPinReset","pinEjecutarReset","textoConfirmarReset"].forEach(id=>{const e=document.getElementById(id);if(e)e.value=""})
+}
+function mostrarCambioPinReset(){
+ document.getElementById("bloqueConfigurarPin").style.display="block";
+ document.getElementById("bloqueEjecutarReset").style.display="none";
+}
+async function guardarPinReset(){
+ const a=document.getElementById("nuevoPinReset").value,b=document.getElementById("confirmarPinReset").value;
+ if(!/^\d{6}$/.test(a))return alert("El PIN debe tener exactamente 6 dígitos.");
+ if(a!==b)return alert("Los dos PIN no coinciden.");
+ const {error}=await flkSupabase.rpc("flk_set_reset_pin",{p_pin:a});
+ if(error)return alert("Supabase rechazó el PIN: "+error.message);
+ document.getElementById("nuevoPinReset").value="";document.getElementById("confirmarPinReset").value="";
+ document.getElementById("bloqueConfigurarPin").style.display="none";document.getElementById("bloqueEjecutarReset").style.display="block";
+ alert("PIN de restablecimiento configurado correctamente.");
+}
+async function ejecutarRestablecimientoTotal(){
+ const pin=document.getElementById("pinEjecutarReset").value;
+ const texto=document.getElementById("textoConfirmarReset").value.trim().toUpperCase();
+ if(!/^\d{6}$/.test(pin))return alert("Introduce tu PIN de 6 dígitos.");
+ if(texto!=="RESTABLECER")return alert("Para confirmar debes escribir exactamente RESTABLECER.");
+ if(!confirm("ÚLTIMA CONFIRMACIÓN: se borrarán permanentemente todos los datos operativos. ¿Continuar?"))return;
+ const {error}=await flkSupabase.rpc("flk_full_system_reset",{p_pin:pin,p_confirmation:"RESTABLECER"});
+ if(error)return alert("No se pudo restablecer el sistema: "+error.message);
+ localStorage.removeItem("flackunloker_productos");
+ localStorage.removeItem("flackunloker_historial");
+ localStorage.removeItem("flackunloker_ventas");
+ localStorage.removeItem("flackunloker_clientes");
+ localStorage.removeItem("flackunloker_gastos");
+ localStorage.removeItem("flackunloker_cierres");
+ alert("Restablecimiento completado. Flackunloker quedó sin datos operativos.");
+ location.reload();
+}
+
 
 const FLK_SUPABASE_URL='https://eviwhrqhinhnyccizkfq.supabase.co';
 const FLK_SUPABASE_KEY='sb_publishable_KgcL58HbkZ66Cguhs5JT0A_V2xAoL7h';
@@ -945,7 +1452,9 @@ async function cargarRolUsuario(user){
 }
 function aplicarPermisosVisuales(){
  const admin=rolSesion==="admin";
+ const resetPanel=document.getElementById("panelRestablecimientoTotal");if(resetPanel)resetPanel.style.display=admin?"block":"none";
  document.body.classList.toggle("rol-empleado",!admin);
+ const btnArr=document.getElementById("botonGuardarArrendamiento");if(btnArr)btnArr.style.display=admin?"":"none";
  document.body.classList.toggle("rol-admin",admin);
  const idsAdmin=["botonGastos","botonCierre","botonReportes","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonEstadisticas","botonUsuarios"];
  idsAdmin.forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=admin?"":"none"});
@@ -964,6 +1473,7 @@ async function mostrarAppConSesion(session){
   await cargarMovimientosCajaSupabase();
   await cargarComprasSupabase();
   await cargarCierresSupabase();
+  await flkProcesarColaOffline();
  }else{
   document.getElementById("authOverlay").classList.remove("oculto");
   document.getElementById("authUsuario").classList.remove("visible");
@@ -1180,6 +1690,12 @@ async function guardarProductoSupabase(p,esNuevo=false,stockInicial=0){
 }
 async function ajustarStockSupabase(p,delta,tipo,nota=""){
  if(!p.supabaseId)throw new Error("Producto sin vínculo con Supabase.");
+ if(!navigator.onLine){
+  const nuevo=Number(p.cantidad||0)+Number(delta);
+  if(nuevo<0)throw new Error("Inventario insuficiente para "+p.nombre);
+  flkEncolarOperacion("stock_adjustment",{product_id:p.supabaseId,delta:Number(delta),type:tipo,note:nota||"Movimiento manual offline"});
+  return nuevo
+ }
  const {data,error}=await flkSupabase.rpc("adjust_product_stock",{p_product_id:p.supabaseId,p_delta:Number(delta),p_type:tipo,p_note:nota||null});
  if(error)throw error;
  return Number(data);
@@ -1503,8 +2019,13 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
   const p=productos.find(x=>x.id===productoMovimiento);if(!p){cerrarMovimiento();return}
   const delta=tipoMovimiento==="entrada"?cantidad:-cantidad;
   p.cantidad=await ajustarStockSupabase(p,delta,tipoMovimiento,"Movimiento manual desde Flackunloker");
-  await cargarHistorialSupabase();
+  if(navigator.onLine)await cargarHistorialSupabase();
+  else{
+   historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:tipoMovimiento,cantidad,saldo:p.cantidad,fecha:new Date().toISOString(),detalle:"🟠 Pendiente de sincronización"});
+   guardarHistorial();actualizarResumenHistorial();mostrarListaHistorial()
+  }
   guardarDatos();mostrarProductos();actualizarEstadisticas();cerrarMovimiento();
+  if(!navigator.onLine)alert("Movimiento guardado localmente. Se sincronizará cuando regrese Internet.");
  }catch(err){console.error(err);alert("Supabase rechazó el movimiento: "+(err.message||err))}
  finally{procesandoGuardado=false}
 });
@@ -1722,6 +2243,7 @@ async function cargarVentasSupabase(){
  actualizarClientes();
  actualizarFlujoCaja();
  actualizarFinanzas();
+ if(flkPendientesOffline()>0)flkAplicarPendientesSobreDatos();
  return true
 }
 
@@ -1731,6 +2253,19 @@ async function registrarVentaSupabase(datos){
   if(!p||!p.supabaseId)throw new Error("El producto "+i.nombre+" todavía no está vinculado con Supabase.");
   return {product_id:p.supabaseId,quantity:Number(i.cantidad),unit_price:Number(i.precioUnitario)};
  });
+ if(!navigator.onLine){
+  const op=flkEncolarOperacion("sale",{
+   customer_name:datos.cliente||"Cliente general",
+   customer_phone:datos.telefono||null,
+   payment_method:datos.metodoPago||"Efectivo",
+   paid_amount:Number(datos.totalPagado||0),
+   due_date:datos.fechaVencimiento||null,
+   note:datos.nota||null,
+   items,
+   local_sale:{...datos}
+  });
+  return "offline:"+op.id
+ }
  const {data,error}=await flkSupabase.rpc("flk_record_sale",{
   p_legacy_id:String(datos.ventaId),
   p_receipt_number:String(datos.numero),
@@ -1758,15 +2293,27 @@ document.getElementById("formularioVenta").addEventListener("submit",async e=>{
   if(estadoSolicitado==="credito"&&abonoInicial>ingreso)return alert("El abono inicial no puede ser mayor que el total del recibo.");
   const numeroConsecutivo=proximoNumeroRecibo++,numero=String(numeroConsecutivo).padStart(6,"0");
   const totalPagado=estadoSolicitado==="pagado"?ingreso:abonoInicial,saldo=Math.max(0,ingreso-totalPagado),estadoPago=saldo>0.009?"credito":"pagado";
-  const supabaseSaleId=await registrarVentaSupabase({ventaId,numero,items,cliente,telefono,metodoPago,totalPagado,fechaVencimiento:saldo>0?fechaVencimiento:"",nota});
-  await cargarInventarioSupabase();
-  items.forEach(item=>{const p=productos.find(x=>x.id===item.productoId);historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:item.productoId,nombre:item.nombre,sku:item.sku,tipo:"salida",cantidad:item.cantidad,saldo:p?Number(p.cantidad):0,fecha,detalle:"Venta · Recibo "+numero,ventaId})});
   const pagos=totalPagado>0?[{id:Date.now()+Math.floor(Math.random()*100000),cantidad:totalPagado,fecha,metodo:metodoPago,nota:estadoSolicitado==="credito"?"Abono inicial":"Pago de venta",saldoAnterior:ingreso,saldoRestante:saldo}]:[];
-  ventas.unshift({id:ventaId,supabaseId:supabaseSaleId,numero,numeroConsecutivo,items,cantidad,ingreso,costoTotal,ganancia,fecha,cliente,telefono,metodoPago,estadoPago,totalPagado,saldo,pagos,fechaVencimiento:saldo>0?fechaVencimiento:"",nota});
+  const datosVenta={ventaId,numero,numeroConsecutivo,items,cantidad,ingreso,costoTotal,ganancia,fecha,cliente,telefono,metodoPago,estadoPago,totalPagado,saldo,pagos,fechaVencimiento:saldo>0?fechaVencimiento:"",nota};
+  const supabaseSaleId=await registrarVentaSupabase(datosVenta);
+  const ventaOffline=String(supabaseSaleId).startsWith("offline:");
+  if(ventaOffline){
+   items.forEach(item=>{const p=productos.find(x=>x.id===item.productoId);if(p)p.cantidad=Number(p.cantidad)-Number(item.cantidad);historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:item.productoId,nombre:item.nombre,sku:item.sku,tipo:"salida",cantidad:item.cantidad,saldo:p?Number(p.cantidad):0,fecha,detalle:"🟠 Venta pendiente · Recibo local "+numero,ventaId})});
+  }else{
+   await cargarInventarioSupabase();
+   items.forEach(item=>{const p=productos.find(x=>x.id===item.productoId);historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:item.productoId,nombre:item.nombre,sku:item.sku,tipo:"salida",cantidad:item.cantidad,saldo:p?Number(p.cantidad):0,fecha,detalle:"Venta · Recibo "+numero,ventaId})});
+  }
+  ventas.unshift({...datosVenta,supabaseId:ventaOffline?null:supabaseSaleId,offlineOperationId:ventaOffline?String(supabaseSaleId).slice(8):null,offlinePendiente:ventaOffline});
   guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();
-  await cargarVentasSupabase();
+  if(!ventaOffline)await cargarVentasSupabase();
   actualizarEstadisticas();cerrarVenta();
-  alert(`Recibo guardado en Supabase.
+  alert(ventaOffline?`🟠 Recibo guardado localmente.
+
+Productos: ${items.length}
+Unidades: ${cantidad}
+Total: $${ingreso.toFixed(2)}
+
+Se sincronizará automáticamente cuando regrese Internet.`:`Recibo guardado en Supabase.
 
 Productos: ${items.length}
 Unidades: ${cantidad}
@@ -2193,7 +2740,71 @@ function actualizarReporte(){
 function imprimirReporte(){const d=datosReporte(),prod=d.productos.length?d.productos.map(x=>`<div class="fila"><span>${escapeHtml(x.nombre)} · ${x.unidades} u.</span><strong>${formatoDineroCierre(x.ingresos)}</strong></div>`).join(""):'<div class="fila"><span>Sin ventas</span><strong>—</strong></div>',cats=d.categorias.length?d.categorias.map(([n,v])=>`<div class="fila"><span>${escapeHtml(n)}</span><strong>${formatoDineroCierre(v)}</strong></div>`).join(""):'<div class="fila"><span>Sin gastos</span><strong>—</strong></div>',contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reporte Flackunloker</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#f4f7fb;color:#111;margin:0}.hoja{max-width:520px;margin:24px auto;background:#fff;padding:28px;border-radius:18px}.fila{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid #eee}.total{font-size:20px;font-weight:800}.btn{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700}@media print{body{background:#fff}.hoja{margin:0;max-width:none}.btn{display:none}}
 .cuenta-proveedor-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px;border-left:5px solid #f5a623}.cuenta-proveedor-card.vencida{border-left-color:#d93025}.cuenta-proveedor-card.pagada{border-left-color:#168044}.cuenta-proveedor-superior{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.cuenta-proveedor-superior h3{margin:0 0 5px;font-size:16px}.cuenta-proveedor-superior p{margin:0;color:#777;font-size:13px}.cuenta-proveedor-saldo{font-weight:800;color:#d93025;white-space:nowrap}.cuenta-proveedor-detalle{margin-top:12px;font-size:13px;line-height:1.75;color:#555}.acciones-cuenta-proveedor{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-cuenta-proveedor{border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.boton-pagar-proveedor{background:#e9f8ef;color:#168044}.boton-historial-proveedor{background:#eaf4ff;color:#0a84ff}.estado-cuenta{display:inline-block;margin-top:8px;padding:7px 10px;border-radius:10px;font-size:12px;font-weight:800}.estado-cuenta.pendiente{background:#fff7e8;color:#a15c00}.estado-cuenta.vencida{background:#ffecec;color:#d93025}.estado-cuenta.pagada{background:#e9f8ef;color:#168044}
 </style></head><body><div class="hoja"><h1>Flackunloker</h1><h2>Reporte · ${escapeHtml(d.texto)}</h2><div class="fila"><span>Recibos / Unidades</span><strong>${d.recibos} / ${d.unidades}</strong></div><div class="fila"><span>Ingresos por ventas</span><strong>${formatoDineroCierre(d.ingresos)}</strong></div><div class="fila"><span>Costo mercancía</span><strong>${formatoDineroCierre(d.costo)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>${formatoDineroCierre(d.gananciaBruta)}</strong></div><div class="fila"><span>Gastos</span><strong>${formatoDineroCierre(d.gastosTotal)}</strong></div><div class="fila total"><span>Ganancia neta</span><strong>${formatoDineroCierre(d.gananciaNeta)}</strong></div><div class="fila"><span>Total cobrado</span><strong>${formatoDineroCierre(d.cobrado)}</strong></div><div class="fila"><span>Efectivo / ATH</span><strong>${formatoDineroCierre(d.efectivo)} / ${formatoDineroCierre(d.ath)}</strong></div><div class="fila"><span>Tarjeta / Otros</span><strong>${formatoDineroCierre(d.tarjeta)} / ${formatoDineroCierre(d.otros)}</strong></div><div class="fila"><span>Saldo pendiente créditos</span><strong>${formatoDineroCierre(d.saldoCredito)}</strong></div><h3>Productos vendidos</h3>${prod}<h3>Gastos por categoría</h3>${cats}<button class="btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></body></html>`;const w=window.open("","_blank");if(!w)return alert("El navegador bloqueó la ventana. Permite ventanas emergentes para ver el reporte.");w.document.open();w.document.write(contenido);w.document.close()}
-async function mostrarReportes(){await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaReportes").style.display="block";actualizarMenu("reportes");actualizarReporte();scrollTop()}
+
+function datosInformeArrendamiento(mes){
+ const conf=configuracionArrendamientoMes(mes);
+ const modo=conf?.mode||"percent";
+ const valor=Number(conf?.value||0);
+ const ventasBrutas=ventasBrutasMesArrendamiento(mes);
+ const costo=costoVentasMesArrendamiento(mes);
+ const gananciaBruta=ventasBrutas-costo;
+ const arrendamiento=modo==="percent"?ventasBrutas*(valor/100):valor;
+ const resultado=gananciaBruta-arrendamiento;
+ return {mes,modo,valor,ventasBrutas,costo,gananciaBruta,arrendamiento,resultado}
+}
+function textoMesInforme(mes){
+ if(!mes)return "";
+ const [y,m]=mes.split("-").map(Number);
+ return new Date(y,m-1,1).toLocaleDateString("es-PR",{month:"long",year:"numeric"})
+}
+function actualizarInformeArrendamiento(){
+ const input=document.getElementById("mesInformeArrendamiento");
+ if(!input)return;
+ if(!input.value)input.value=mesActualArrendamiento();
+ const d=datosInformeArrendamiento(input.value);
+ const money=n=>"$"+Number(n||0).toFixed(2);
+ const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val};
+ set("repArrVentas",money(d.ventasBrutas));
+ set("repArrModalidad",d.modo==="percent"?"% sobre ventas brutas":"Pago fijo mensual");
+ set("repArrValor",d.modo==="percent"?d.valor.toFixed(2)+"%":money(d.valor));
+ set("repArrMonto",money(d.arrendamiento));
+ set("repArrGanancia",money(d.gananciaBruta));
+ set("repArrResultado",money(d.resultado));
+ const res=document.getElementById("repArrResultado");
+ if(res)res.style.color=d.resultado<0?"#d93025":"#168044";
+}
+function imprimirInformeArrendamiento(){
+ const input=document.getElementById("mesInformeArrendamiento");
+ if(!input?.value)return alert("Selecciona un mes.");
+ const d=datosInformeArrendamiento(input.value),money=n=>"$"+Number(n||0).toFixed(2);
+ const modalidad=d.modo==="percent"?"Porcentaje sobre ventas brutas":"Pago fijo mensual";
+ const valor=d.modo==="percent"?d.valor.toFixed(2)+"%":money(d.valor);
+ const mesTxt=textoMesInforme(d.mes);
+ const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Informe Arrendamiento ${mesTxt}</title><style>
+ body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0;color:#111}.hoja{max-width:760px;margin:24px auto;background:#fff;padding:32px;border-radius:18px}
+ h1{text-align:center;margin:0 0 4px;font-size:26px}h2{text-align:center;margin:0 0 24px;font-size:17px;color:#555}
+ .fila{display:flex;justify-content:space-between;gap:20px;padding:12px 0;border-bottom:1px solid #e5e7eb}.fila strong{text-align:right}
+ .resultado{font-size:18px;font-weight:bold}.nota{margin-top:22px;padding:14px;background:#f7fbff;border-radius:12px;font-size:12px;color:#555;line-height:1.55}
+ .imprimir{width:100%;margin-top:24px;padding:13px;border:0;border-radius:10px;background:#0a84ff;color:#fff;font-weight:bold}
+ @media print{body{background:#fff}.hoja{margin:0;max-width:none}.imprimir{display:none}}
+ </style></head><body><div class="hoja">
+ <h1>Flackunloker</h1><h2>Informe mensual de arrendamiento por contribución · ${mesTxt}</h2>
+ <div class="fila"><span>Ventas brutas del mes</span><strong>${money(d.ventasBrutas)}</strong></div>
+ <div class="fila"><span>Costo de mercancía vendida</span><strong>${money(d.costo)}</strong></div>
+ <div class="fila"><span>Ganancia bruta</span><strong>${money(d.gananciaBruta)}</strong></div>
+ <div class="fila"><span>Modalidad de arrendamiento</span><strong>${modalidad}</strong></div>
+ <div class="fila"><span>Valor configurado</span><strong>${valor}</strong></div>
+ <div class="fila"><span>Arrendamiento calculado</span><strong>${money(d.arrendamiento)}</strong></div>
+ <div class="fila resultado"><span>Ganancia bruta después del arrendamiento</span><strong>${money(d.resultado)}</strong></div>
+ <div class="nota">Este informe calcula el arrendamiento según la configuración mensual guardada en Supabase. El cálculo es informativo y no registra por sí solo una salida de caja.</div>
+ <button class="imprimir" onclick="window.print()">🖨️ Imprimir informe</button>
+ </div></body></html>`;
+ const w=window.open("","_blank");
+ if(!w)return alert("Permite ventanas emergentes para ver el informe.");
+ w.document.write(html);w.document.close()
+}
+
+async function mostrarReportes(){await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();await cargarConfiguracionesArrendamiento();setTimeout(actualizarInformeArrendamiento,0);["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaReportes").style.display="block";actualizarMenu("reportes");actualizarReporte();scrollTop()}
 
 
 function nombreProveedorNorm(v){return String(v||"").trim().toLowerCase()}
@@ -2486,6 +3097,105 @@ function imprimirFlujoCaja(){
 }
 
 
+
+let configuracionesArrendamientoMensual=[];
+
+function mesActualArrendamiento(){
+ const d=new Date();
+ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+}
+function primerDiaMesArrendamiento(mes){
+ return mes&&/^\d{4}-\d{2}$/.test(mes)?mes+"-01":null
+}
+async function cargarConfiguracionesArrendamiento(){
+ const {data,error}=await flkSupabase.from("monthly_lease_settings").select("month_start,mode,value,updated_at").order("month_start",{ascending:false});
+ if(error){
+  console.error("Supabase arrendamiento:",error);
+  return false;
+ }
+ configuracionesArrendamientoMensual=data||[];
+ const input=document.getElementById("mesArrendamiento");
+ if(input&&!input.value)input.value=mesActualArrendamiento();
+ cargarConfiguracionArrendamientoMes();
+ return true
+}
+function configuracionArrendamientoMes(mes){
+ const fecha=primerDiaMesArrendamiento(mes);
+ return configuracionesArrendamientoMensual.find(x=>x.month_start===fecha)||null
+}
+function ventasBrutasMesArrendamiento(mes){
+ if(!mes)return 0;
+ return ventas.reduce((total,v)=>{
+  const d=new Date(v.fecha);
+  if(Number.isNaN(d.getTime()))return total;
+  const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+  if(vm!==mes)return total;
+  const dev=Array.isArray(v.devoluciones)?v.devoluciones.reduce((t,r)=>t+Number(r.monto??r.reembolso??0),0):0;
+  return total+Number(v.ingreso||0)+dev;
+ },0)
+}
+function costoVentasMesArrendamiento(mes){
+ if(!mes)return 0;
+ return ventas.reduce((total,v)=>{
+  const d=new Date(v.fecha);
+  if(Number.isNaN(d.getTime()))return total;
+  const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+  return vm===mes?total+Number(v.costoTotal||0):total;
+ },0)
+}
+function cargarConfiguracionArrendamientoMes(){
+ const input=document.getElementById("mesArrendamiento");if(!input)return;
+ if(!input.value)input.value=mesActualArrendamiento();
+ const conf=configuracionArrendamientoMes(input.value);
+ document.getElementById("modoArrendamiento").value=conf?.mode||"percent";
+ document.getElementById("valorArrendamiento").value=Number(conf?.value||0);
+ actualizarEstadoContribucionArrendamiento()
+}
+function actualizarEstadoContribucionArrendamiento(){
+ const mes=document.getElementById("mesArrendamiento")?.value||mesActualArrendamiento();
+ const modo=document.getElementById("modoArrendamiento")?.value||"percent";
+ const valor=Math.max(0,Number(document.getElementById("valorArrendamiento")?.value||0));
+ const ventasBrutas=ventasBrutasMesArrendamiento(mes);
+ const costo=costoVentasMesArrendamiento(mes);
+ const gananciaBruta=ventasBrutas-costo;
+ const arrendamiento=modo==="percent"?ventasBrutas*(valor/100):valor;
+ const resultado=gananciaBruta-arrendamiento;
+ const money=n=>"$"+Number(n||0).toFixed(2);
+ const v1=document.getElementById("contribVentasBrutas");if(v1)v1.textContent=money(ventasBrutas);
+ const v2=document.getElementById("contribArrendamiento");if(v2)v2.textContent=money(arrendamiento);
+ const v3=document.getElementById("contribGananciaBruta");if(v3)v3.textContent=money(gananciaBruta);
+ const v4=document.getElementById("contribResultado");
+ if(v4){v4.textContent=money(resultado);v4.style.color=resultado<0?"#d93025":"#168044"}
+ const label=document.getElementById("labelValorArrendamiento");
+ const detalle=document.getElementById("contribDetalleArrendamiento");
+ const input=document.getElementById("valorArrendamiento");
+ if(modo==="percent"){
+  if(label)label.textContent="Porcentaje sobre ventas brutas (%)";
+  if(detalle)detalle.textContent=`Arrendamiento (${valor.toFixed(2)}% de ventas brutas)`;
+  if(input){input.max="100";input.step="0.01"}
+ }else{
+  if(label)label.textContent="Pago fijo mensual ($)";
+  if(detalle)detalle.textContent="Arrendamiento fijo mensual";
+  if(input){input.removeAttribute("max");input.step="0.01"}
+ }
+}
+async function guardarConfiguracionArrendamiento(){
+ if(rolSesion!=="admin")return alert("Solo el Administrador puede cambiar la configuración de arrendamiento.");
+ const mes=document.getElementById("mesArrendamiento")?.value;
+ const modo=document.getElementById("modoArrendamiento")?.value;
+ const valor=Number(document.getElementById("valorArrendamiento")?.value);
+ const fecha=primerDiaMesArrendamiento(mes);
+ if(!fecha)return alert("Selecciona un mes válido.");
+ if(!Number.isFinite(valor)||valor<0)return alert("Introduce un valor válido.");
+ if(modo==="percent"&&valor>100)return alert("El porcentaje no puede superar 100%.");
+ const {error}=await flkSupabase.rpc("flk_save_monthly_lease_setting",{
+  p_month_start:fecha,p_mode:modo,p_value:valor
+ });
+ if(error)return alert("Supabase rechazó la configuración: "+error.message);
+ await cargarConfiguracionesArrendamiento();
+ alert("Arrendamiento mensual guardado en Supabase.")
+}
+
 function limitesFinanzas(){
  const tipo=document.getElementById("periodoFinanzas")?.value||"mes",ahora=new Date(),hoy=new Date(ahora.getFullYear(),ahora.getMonth(),ahora.getDate());
  let desde,hasta,texto;
@@ -2554,7 +3264,9 @@ async function sincronizarYActualizarFinanzas(){
   await cargarGastosSupabase();
   await cargarComprasSupabase();
   await cargarMovimientosCajaSupabase();
+  await cargarConfiguracionesArrendamiento();
   actualizarFinanzas();
+  actualizarEstadoContribucionArrendamiento();
  }catch(err){
   console.error("Sincronización Finanzas:",err);
   alert("No se pudieron actualizar todos los datos financieros desde Supabase.")
@@ -2574,16 +3286,18 @@ function actualizarFinanzas(){
  document.getElementById("finFlujoNeto").style.color=d.flujo<0?"#d93025":"#168044";
  document.getElementById("finMargenBruto").textContent=(d.ventasTotal?d.bruta/d.ventasTotal*100:0).toFixed(1)+"%";
  document.getElementById("finMargenNeto").textContent=(d.ventasTotal?d.neta/d.ventasTotal*100:0).toFixed(1)+"%";
- document.getElementById("finRelacion").textContent=d.porPagar>0?(d.porCobrar/d.porPagar).toFixed(2)+"x":(d.porCobrar>0?"Sin deuda":"—")
+ document.getElementById("finRelacion").textContent=d.porPagar>0?(d.porCobrar/d.porPagar).toFixed(2)+"x":(d.porCobrar>0?"Sin deuda":"—");
+ actualizarEstadoContribucionArrendamiento()
 }
-async function mostrarFinanzas(){await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();
+async function mostrarFinanzas(){await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();await cargarConfiguracionesArrendamiento();
  ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");
  document.getElementById("vistaFinanzas").style.display="block";actualizarMenu("finanzas");actualizarFinanzas();scrollTop()
 }
 function imprimirFinanzas(){
  const d=datosFinanzas();if(!d)return alert("Selecciona un período válido.");
  const pct=n=>(d.ventasTotal?n/d.ventasTotal*100:0).toFixed(1)+"%";
- const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Estado financiero</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{margin-bottom:4px}h2{margin-top:28px}p{color:#666}.fila{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #ddd}.fila strong{white-space:nowrap}.print{margin-top:24px;padding:12px 18px}@media print{.print{display:none}}</style></head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
+ const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Estado financiero</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{margin-bottom:4px}h2{margin-top:28px}p{color:#666}.fila{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #ddd}.fila strong{white-space:nowrap}.print{margin-top:24px;padding:12px 18px}@media print{.print{display:none}}
+</style></head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el estado financiero.");w.document.write(html);w.document.close()
 }
 
@@ -2654,7 +3368,7 @@ function actualizarEstadisticas(){
 }
 function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonEstadisticas","botonUsuarios"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";if(sec!=="cuentasPagar")document.getElementById("vistaCuentasPagar").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",cuentasPagar:"botonCuentasPagar",flujoCaja:"botonFlujoCaja",finanzas:"botonFinanzas",estadisticas:"botonEstadisticas",usuarios:"botonUsuarios"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo")}
 function mostrarInventario(){document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";document.getElementById("vistaFlujoCaja").style.display="none";document.getElementById("vistaFinanzas").style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
-function scrollTop(){window.scrollTo({top:0,behavior:"smooth"})}
+function scrollTop(){window.scrollTo({top:0,behavior:"auto"})}
 document.addEventListener("visibilitychange",()=>{
  if(document.visibilityState==="visible"){
   if(typeof flkSupabase!=="undefined"){
@@ -2726,6 +3440,13 @@ const _flkSeleccionarRespaldo=seleccionarRespaldo;
 seleccionarRespaldo=function(){if(!requiereAdmin("Restaurar respaldos"))return;return _flkSeleccionarRespaldo.apply(this,arguments)};
 
 recalcularSaldos();mostrarProductos();actualizarResumenHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarFlujoCaja();actualizarFinanzas();actualizarEstadisticas();
+</script>
+<script>
+if("serviceWorker" in navigator){
+ window.addEventListener("load",()=>{
+  navigator.serviceWorker.register("./sw.js").catch(err=>console.error("Service Worker:",err));
+ });
+}
 </script>
 </body>
 </html>
