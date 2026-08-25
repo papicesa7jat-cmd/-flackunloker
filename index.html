@@ -420,6 +420,80 @@ html{scroll-behavior:auto!important}
 .menu-panel{animation:none!important}
 button,.boton-agregar,.boton-guardar,.producto,.venta-card,.cliente-card,.gasto-card,.orden-card,.proveedor-card,.cuenta-proveedor-card{transition:none!important}
 button:active{transform:none!important}
+
+
+/* ===== MENÚ PRINCIPAL · CENTRADO Y ORGANIZADO DEFINITIVO ===== */
+.menu-panel-fondo{
+  align-items:center!important;
+  justify-content:center!important;
+}
+.menu-panel{
+  width:min(94vw,680px)!important;
+  margin:auto!important;
+  padding:20px!important;
+  border-radius:26px!important;
+}
+.menu-panel-cabecera{
+  position:relative!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:44px!important;
+  margin-bottom:16px!important;
+  text-align:center!important;
+}
+.menu-panel-cabecera h2{
+  width:100%!important;
+  margin:0!important;
+  padding:0 48px!important;
+  text-align:center!important;
+  font-size:21px!important;
+}
+.menu-panel-cabecera .cerrar-menu{
+  position:absolute!important;
+  right:0!important;
+  top:50%!important;
+  transform:translateY(-50%)!important;
+  margin:0!important;
+}
+.menu-cuadricula{
+  width:100%!important;
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:10px!important;
+  align-items:stretch!important;
+  justify-items:stretch!important;
+  margin:0 auto!important;
+}
+.menu-cuadricula button{
+  width:100%!important;
+  min-width:0!important;
+  min-height:72px!important;
+  padding:10px 7px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+  line-height:1.25!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+}
+.menu-cuadricula button #badgeAlertas{
+  margin-left:3px!important;
+}
+@media(max-width:600px){
+  .menu-panel-fondo{padding:10px!important;}
+  .menu-panel{width:min(96vw,520px)!important;padding:16px!important;border-radius:22px!important;}
+  .menu-panel-cabecera{margin-bottom:14px!important;}
+  .menu-panel-cabecera h2{font-size:19px!important;}
+  .menu-cuadricula{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;}
+  .menu-cuadricula button{min-height:64px!important;font-size:12px!important;padding:9px 6px!important;}
+}
+@media(max-width:360px){
+  .menu-panel{padding:13px!important;}
+  .menu-cuadricula{gap:7px!important;}
+  .menu-cuadricula button{min-height:60px!important;font-size:11px!important;}
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="manifest" href="./manifest.webmanifest">
@@ -3129,7 +3203,68 @@ async function mostrarFinanzas(){await cargarInventarioSupabase();await cargarVe
 function imprimirFinanzas(){
  const d=datosFinanzas();if(!d)return alert("Selecciona un período válido.");
  const pct=n=>(d.ventasTotal?n/d.ventasTotal*100:0).toFixed(1)+"%";
- const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Estado financiero</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{margin-bottom:4px}h2{margin-top:28px}p{color:#666}.fila{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #ddd}.fila strong{white-space:nowrap}.print{margin-top:24px;padding:12px 18px}@media print{.print{display:none}}</style></head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
+ const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Estado financiero</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{margin-bottom:4px}h2{margin-top:28px}p{color:#666}.fila{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #ddd}.fila strong{white-space:nowrap}.print{margin-top:24px;padding:12px 18px}@media print{.print{display:none}}
+/* ===== GESTIÓN DE USUARIOS CENTRADA ===== */
+#vistaUsuarios{
+  width:100%;
+  max-width:680px;
+  margin:0 auto;
+}
+#vistaUsuarios .seccion-titulo{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  text-align:center;
+}
+#vistaUsuarios .seccion-titulo h2{
+  width:100%;
+  text-align:center;
+  margin:0;
+}
+#vistaUsuarios .seccion-titulo .boton-agregar{
+  min-width:170px;
+}
+#vistaUsuarios .reporte-controles{
+  text-align:center;
+  margin-left:auto;
+  margin-right:auto;
+}
+#vistaUsuarios #listaUsuariosAdmin{
+  width:100%;
+  margin:0 auto;
+}
+#vistaUsuarios .usuario-card{
+  width:100%;
+  max-width:620px;
+  margin:0 auto 12px;
+}
+#vistaUsuarios .usuario-superior{
+  align-items:center;
+}
+#vistaUsuarios .usuario-superior > div{
+  min-width:0;
+}
+#vistaUsuarios .usuario-acciones{
+  max-width:460px;
+  margin:14px auto 0;
+}
+#vistaUsuarios .usuario-propio{
+  text-align:center;
+}
+@media(max-width:430px){
+  #vistaUsuarios{max-width:100%;}
+  #vistaUsuarios .usuario-superior{
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+  }
+  #vistaUsuarios .usuario-rol{align-self:center;}
+  #vistaUsuarios .usuario-acciones{grid-template-columns:1fr;}
+  #vistaUsuarios .seccion-titulo .boton-agregar{width:100%;max-width:280px;}
+}
+</style></head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el estado financiero.");w.document.write(html);w.document.close()
 }
 
