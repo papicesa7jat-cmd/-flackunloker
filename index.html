@@ -624,6 +624,42 @@ button:active{transform:none!important}
 }
 </style>
 
+
+<style>
+/* ===== GESTIÓN DE USUARIOS: MÁS GRANDE Y MÁS COMPACTA ===== */
+#vistaUsuarios{
+  width:100%;
+  max-width:840px !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+}
+#vistaUsuarios #listaUsuariosAdmin{
+  width:100%;
+  max-width:none !important;
+}
+#vistaUsuarios .usuario-card{
+  width:100%;
+  max-width:none !important;
+  margin:0 auto 6px !important;
+  padding:18px 20px !important;
+}
+#vistaUsuarios .usuario-card + .usuario-card{
+  margin-top:0 !important;
+}
+#vistaUsuarios .usuario-acciones{
+  max-width:560px !important;
+}
+@media(max-width:860px){
+  #vistaUsuarios{
+    max-width:100% !important;
+  }
+  #vistaUsuarios .usuario-card{
+    padding:16px !important;
+    margin-bottom:5px !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <div id="estadoConexionFlk"><span class="punto"></span><span id="textoConexionFlk">Comprobando conexión…</span><small id="pendientesConexionFlk"></small></div>
