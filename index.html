@@ -378,6 +378,69 @@ body.rol-empleado .acciones-movimiento{display:none!important}
   margin-top:4px;
 }
 
+
+/* ===== ACCESO VISIBLE AL RESTABLECIMIENTO ===== */
+#panelRestablecimientoTotal{
+  position:fixed;
+  left:18px;
+  bottom:92px;
+  z-index:850;
+  width:min(340px,calc(100vw - 36px));
+  padding:18px;
+  background:#fff;
+  border:2px solid #ffd0cc !important;
+  border-radius:20px;
+  box-shadow:0 12px 32px rgba(0,0,0,.16);
+}
+#panelRestablecimientoTotal h3{
+  margin:0 0 8px;
+  font-size:20px;
+  line-height:1.25;
+  color:#b42318;
+}
+#panelRestablecimientoTotal p{
+  font-size:14px !important;
+  color:#475467 !important;
+}
+#panelRestablecimientoTotal .boton-agregar{
+  min-height:54px;
+  font-size:16px;
+  border-radius:14px;
+  font-weight:900;
+}
+#modalRestablecimientoTotal .modal-contenido{
+  width:min(94vw,580px) !important;
+  padding:30px 26px !important;
+  border-radius:24px;
+}
+#modalRestablecimientoTotal label{
+  display:block;
+  margin:17px 0 8px;
+  font-size:17px;
+  font-weight:800;
+}
+#modalRestablecimientoTotal input{
+  width:100%;
+  min-height:58px;
+  font-size:20px;
+  padding:14px 16px;
+  border-radius:14px;
+}
+#modalRestablecimientoTotal .guardar{
+  width:100%;
+  min-height:58px;
+  margin-top:22px;
+  font-size:18px;
+  border-radius:14px;
+}
+@media(max-width:600px){
+ #panelRestablecimientoTotal{
+   left:12px;
+   bottom:82px;
+   width:calc(100vw - 24px);
+ }
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -405,11 +468,11 @@ body.rol-empleado .acciones-movimiento{display:none!important}
 </div>
 
 <div class="lista-estadisticas" id="panelRestablecimientoTotal" style="display:none;border:1px solid #ffd5d2">
- <h3>⚠️ Restablecimiento total del sistema</h3>
- <p style="font-size:13px;line-height:1.55;color:#667085;margin:0 0 14px">
-  Borra todos los datos operativos de Flackunloker y deja la base como nueva. Las cuentas de acceso y perfiles de Administrador/Empleado se conservan.
+ <h3>⚠️ Restablecer Flackunloker</h3>
+ <p style="margin:0 0 14px">
+  <strong>Solo Administrador.</strong> Deja el sistema como nuevo sin borrar las cuentas de acceso.
  </p>
- <button class="boton-agregar" type="button" onclick="abrirRestablecimientoTotal()" style="background:#d93025;width:100%">⚠️ Configurar / Restablecer sistema</button>
+ <button class="boton-agregar" type="button" onclick="abrirRestablecimientoTotal()" style="background:#d93025;width:100%">🔐 Abrir restablecimiento total</button>
 </div>
 <div id="authUsuario" class="auth-user">
  <strong id="authUsuarioEmail">—</strong>
