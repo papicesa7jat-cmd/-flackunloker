@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v38-roles-visual-real">
+<meta name="flackunloker-offline-version" content="2026-08-25-v39-roles-visual-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2782,6 +2782,10 @@ function flkEstadoRecuperacion(id,texto,tipo=""){
   el.className="recuperar-estado"+(texto?" visible "+tipo:"");
 }
 function abrirRecuperarPassword(){
+  if(!navigator.onLine){
+    alert("Para recuperar o cambiar la contraseña debes estar conectado a Internet.");
+    return;
+  }
   const modal=document.getElementById("modalRecuperarPassword");
   const correo=document.getElementById("correoRecuperacion");
   const correoLogin=document.getElementById("authEmail");
@@ -2811,6 +2815,14 @@ function flkUrlRecuperacion(){
 
 document.getElementById("formularioRecuperarPassword")?.addEventListener("submit",async e=>{
   e.preventDefault();
+  if(!navigator.onLine){
+    flkEstadoRecuperacion(
+      "estadoRecuperacionPassword",
+      "Para recuperar o cambiar la contraseña debes estar conectado a Internet.",
+      "error"
+    );
+    return;
+  }
   const email=(document.getElementById("correoRecuperacion")?.value||"").trim();
   const boton=document.getElementById("botonEnviarRecuperacion");
   if(!email)return;
@@ -2874,6 +2886,14 @@ document.getElementById("formularioRecuperarPassword")?.addEventListener("submit
 
 document.getElementById("formularioNuevaPassword")?.addEventListener("submit",async e=>{
   e.preventDefault();
+  if(!navigator.onLine){
+    flkEstadoRecuperacion(
+      "estadoNuevaPassword",
+      "Para cambiar la contraseña debes estar conectado a Internet.",
+      "error"
+    );
+    return;
+  }
   const p1=document.getElementById("nuevaPasswordRecuperacion")?.value||"";
   const p2=document.getElementById("confirmarPasswordRecuperacion")?.value||"";
   const boton=document.getElementById("botonGuardarNuevaPassword");
