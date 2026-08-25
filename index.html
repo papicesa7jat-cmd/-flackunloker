@@ -891,6 +891,7 @@ async function mostrarAppConSesion(session){
   await cargarGastosSupabase();
   await cargarMovimientosCajaSupabase();
   await cargarComprasSupabase();
+  await cargarCierresSupabase();
  }else{
   document.getElementById("authOverlay").classList.remove("oculto");
   document.getElementById("authUsuario").classList.remove("visible");
@@ -1236,6 +1237,48 @@ async function cargarGastosSupabase(){
 }
 
 function guardarGastos(){localStorage.setItem("flackunloker_gastos",JSON.stringify(gastos))}
+
+function cierreDesdeSupabase(c){
+ return {
+  id:idLocalDesdeLegacy(null,c.id),supabaseId:c.id,fechaLocal:c.close_date,
+  recibos:Number(c.receipts_count||0),unidades:Number(c.units_count||0),
+  ventasTotal:Number(c.sales_total||0),costo:Number(c.cost_total||0),
+  gananciaBruta:Number(c.gross_profit||0),gastosTotal:Number(c.expenses_total||0),
+  gananciaNeta:Number(c.net_profit||0),cobrado:Number(c.collected_total||0),
+  efectivo:Number(c.cash_total||0),ath:Number(c.ath_total||0),tarjeta:Number(c.card_total||0),
+  otros:Number(c.other_total||0),credito:Number(c.credit_sales||0),
+  saldoCredito:Number(c.credit_balance||0),gastoEfectivo:Number(c.cash_expenses||0),
+  efectivoNeto:Number(c.net_cash||0),guardado:c.updated_at||c.created_at
+ }
+}
+async function cargarCierresSupabase(){
+ const locales=Array.isArray(cierres)?[...cierres]:[];
+ let {data:cloud,error}=await flkSupabase.from("cash_closures").select("*").order("close_date",{ascending:false});
+ if(error){console.error("Supabase cierres:",error);return false}
+
+ if(rolSesion==="admin" && locales.length){
+  const fechas=new Set((cloud||[]).map(c=>c.close_date));
+  for(const c of locales){
+   if(!c.fechaLocal||fechas.has(c.fechaLocal)||c.supabaseId)continue;
+   const {error:impErr}=await flkSupabase.rpc("flk_save_cash_closure",{
+    p_close_date:c.fechaLocal,p_receipts_count:Number(c.recibos||0),p_units_count:Number(c.unidades||0),
+    p_sales_total:Number(c.ventasTotal||0),p_cost_total:Number(c.costo||0),
+    p_gross_profit:Number(c.gananciaBruta||0),p_expenses_total:Number(c.gastosTotal||0),
+    p_net_profit:Number(c.gananciaNeta||0),p_collected_total:Number(c.cobrado||0),
+    p_cash_total:Number(c.efectivo||0),p_ath_total:Number(c.ath||0),
+    p_card_total:Number(c.tarjeta||0),p_other_total:Number(c.otros||0),
+    p_credit_sales:Number(c.credito||0),p_credit_balance:Number(c.saldoCredito||0),
+    p_cash_expenses:Number(c.gastoEfectivo||0),p_net_cash:Number(c.efectivoNeto||0)
+   });
+   if(impErr){console.error("Migración cierre:",c.fechaLocal,impErr);break}
+   fechas.add(c.fechaLocal);
+  }
+  const recarga=await flkSupabase.from("cash_closures").select("*").order("close_date",{ascending:false});
+  cloud=recarga.data;error=recarga.error;if(error)return false;
+ }
+ cierres=(cloud||[]).map(cierreDesdeSupabase);guardarCierres();mostrarListaCierres();return true
+}
+
 function guardarCierres(){localStorage.setItem("flackunloker_cierres",JSON.stringify(cierres))}
 
 async function cargarComprasSupabase(){
@@ -1955,15 +1998,17 @@ function resumenCierreFecha(fechaLocal){
  const gastosDia=gastos.filter(g=>(g.fechaLocal||String(g.fecha||"").slice(0,10))===fechaLocal);
  const recibos=ventasDia.length,unidades=ventasDia.reduce((t,v)=>t+Number(v.cantidad||0),0),ventasTotal=ventasDia.reduce((t,v)=>t+Number(v.ingreso||0),0),costo=ventasDia.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasDia.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosDia.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
  const cobros={efectivo:0,ath:0,tarjeta:0,otros:0};
- ventas.forEach(v=>{
-  normalizarCuentaVenta(v);const pagos=pagosDeVenta(v);
-  if(pagos.length){pagos.forEach(p=>{if(fechaLocalISO(new Date(p.fecha))===fechaLocal)cobros[metodoCajaClave(p.metodo)]+=Number(p.cantidad||0)})}
-  else if(Number(v.totalPagado||0)>0&&fechaLocalISO(new Date(v.fecha))===fechaLocal)cobros[metodoCajaClave(v.metodoPago)]+=Math.min(Number(v.totalPagado||0),Number(v.ingreso||0));
+ const salidasCaja={efectivo:0,ath:0,tarjeta:0,otros:0};
+ (movimientosCajaSupabase||[]).forEach(m=>{
+  if(fechaLocalISO(new Date(m.fecha))!==fechaLocal)return;
+  const clave=metodoCajaClave(m.metodo);
+  if(m.tipo==="entrada")cobros[clave]+=Number(m.cantidad||0);
+  else salidasCaja[clave]+=Number(m.cantidad||0);
  });
  const cobrado=Object.values(cobros).reduce((a,b)=>a+b,0);
  const ventasCredito=ventasDia.filter(v=>{normalizarCuentaVenta(v);return pagosDeVenta(v).length>0||Number(v.saldo||0)>0});
  const credito=ventasCredito.reduce((t,v)=>t+Number(v.ingreso||0),0),saldoCredito=ventasCredito.reduce((t,v)=>t+Number(v.saldo||0),0);
- const gastoEfectivo=gastosDia.filter(g=>metodoCajaClave(g.metodo)==="efectivo").reduce((t,g)=>t+Number(g.cantidad||0),0),efectivoNeto=cobros.efectivo-gastoEfectivo;
+ const gastoEfectivo=salidasCaja.efectivo,efectivoNeto=cobros.efectivo-salidasCaja.efectivo;
  return {fechaLocal,recibos,unidades,ventasTotal,costo,gananciaBruta,gastosTotal,gananciaNeta,cobrado,efectivo:cobros.efectivo,ath:cobros.ath,tarjeta:cobros.tarjeta,otros:cobros.otros,credito,saldoCredito,gastoEfectivo,efectivoNeto}
 }
 function formatoDineroCierre(n){n=Number(n||0);return (n<0?"-$":"$")+Math.abs(n).toFixed(2)}
@@ -1973,13 +2018,41 @@ function actualizarCierre(){
  document.getElementById("cierreRecibosUnidades").textContent=r.recibos+" / "+r.unidades;document.getElementById("cierreVentasHoy").textContent=formatoDineroCierre(r.ventasTotal);document.getElementById("cierreCostoHoy").textContent=formatoDineroCierre(r.costo);document.getElementById("cierreGananciaBrutaHoy").textContent=formatoDineroCierre(r.gananciaBruta);document.getElementById("cierreGastosHoy").textContent=formatoDineroCierre(r.gastosTotal);document.getElementById("cierreGananciaNetaHoy").textContent=formatoDineroCierre(r.gananciaNeta);document.getElementById("cierreCobradoHoy").textContent=formatoDineroCierre(r.cobrado);document.getElementById("cierreEfectivoHoy").textContent=formatoDineroCierre(r.efectivo);document.getElementById("cierreAthHoy").textContent=formatoDineroCierre(r.ath);document.getElementById("cierreTarjetaHoy").textContent=formatoDineroCierre(r.tarjeta);document.getElementById("cierreOtrosHoy").textContent=formatoDineroCierre(r.otros);document.getElementById("cierreCreditoHoy").textContent=formatoDineroCierre(r.credito);document.getElementById("cierreSaldoCreditoHoy").textContent=formatoDineroCierre(r.saldoCredito);document.getElementById("cierreGastoEfectivoHoy").textContent=formatoDineroCierre(r.gastoEfectivo);document.getElementById("cierreEfectivoNetoHoy").textContent=formatoDineroCierre(r.efectivoNeto);
  const existente=cierres.find(c=>c.fechaLocal===fecha),estado=document.getElementById("estadoCierreHoy"),boton=document.getElementById("botonGuardarCierre");if(existente){estado.textContent="🔒 Este día ya tiene un cierre guardado. Puedes actualizarlo si hiciste una corrección posterior.";estado.classList.add("visible");boton.textContent="🔄 Actualizar cierre de hoy"}else{estado.classList.remove("visible");boton.textContent="🔒 Guardar cierre de hoy"}mostrarListaCierres()
 }
-function guardarCierreHoy(){const fecha=fechaLocalISO(new Date()),r=resumenCierreFecha(fecha),indice=cierres.findIndex(c=>c.fechaLocal===fecha);if(indice>=0&&!confirm("Ya existe un cierre para hoy. ¿Quieres reemplazarlo con los valores actuales?"))return;const registro={id:indice>=0?cierres[indice].id:Date.now()+Math.floor(Math.random()*100000),...r,guardado:new Date().toISOString()};if(indice>=0)cierres[indice]=registro;else cierres.unshift(registro);guardarCierres();actualizarCierre();alert(indice>=0?"Cierre de hoy actualizado correctamente.":"Cierre de caja guardado correctamente.")}
+async function guardarCierreHoy(){
+ const fecha=fechaLocalISO(new Date()),r=resumenCierreFecha(fecha),existente=cierres.find(c=>c.fechaLocal===fecha);
+ if(existente&&!confirm("Ya existe un cierre para hoy. ¿Quieres reemplazarlo con los valores actuales?"))return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_save_cash_closure",{
+   p_close_date:fecha,p_receipts_count:Number(r.recibos||0),p_units_count:Number(r.unidades||0),
+   p_sales_total:Number(r.ventasTotal||0),p_cost_total:Number(r.costo||0),
+   p_gross_profit:Number(r.gananciaBruta||0),p_expenses_total:Number(r.gastosTotal||0),
+   p_net_profit:Number(r.gananciaNeta||0),p_collected_total:Number(r.cobrado||0),
+   p_cash_total:Number(r.efectivo||0),p_ath_total:Number(r.ath||0),
+   p_card_total:Number(r.tarjeta||0),p_other_total:Number(r.otros||0),
+   p_credit_sales:Number(r.credito||0),p_credit_balance:Number(r.saldoCredito||0),
+   p_cash_expenses:Number(r.gastoEfectivo||0),p_net_cash:Number(r.efectivoNeto||0)
+  });
+  if(error)throw error;
+  await cargarCierresSupabase();actualizarCierre();
+  alert(existente?"Cierre actualizado en Supabase.":"Cierre de caja guardado en Supabase.");
+ }catch(err){console.error(err);alert("Supabase rechazó el cierre: "+(err.message||err))}
+}
+
 function mostrarListaCierres(){const lista=document.getElementById("listaCierres"),arr=[...cierres].sort((a,b)=>String(b.fechaLocal).localeCompare(String(a.fechaLocal)));if(!arr.length){lista.innerHTML='<div class="sin-productos">Todavía no hay cierres guardados.</div>';return}lista.innerHTML=arr.map(c=>{const f=new Date(c.fechaLocal+"T12:00:00");return `<div class="cierre-card"><div class="venta-superior"><div><h3>Cierre · ${f.toLocaleDateString("es-PR")}</h3><p>Guardado ${new Date(c.guardado||Date.now()).toLocaleString("es-PR")}</p></div><div class="cierre-total">${formatoDineroCierre(c.gananciaNeta)}</div></div><div class="cierre-detalle">Ventas: <strong>${formatoDineroCierre(c.ventasTotal)}</strong> · Gastos: <strong>${formatoDineroCierre(c.gastosTotal)}</strong><br>Ganancia bruta: <strong>${formatoDineroCierre(c.gananciaBruta)}</strong> · Ganancia neta: <strong>${formatoDineroCierre(c.gananciaNeta)}</strong><br>Cobrado: <strong>${formatoDineroCierre(c.cobrado)}</strong> · Efectivo neto: <strong>${formatoDineroCierre(c.efectivoNeto)}</strong><br>Efectivo: ${formatoDineroCierre(c.efectivo)} · ATH: ${formatoDineroCierre(c.ath)} · Tarjeta: ${formatoDineroCierre(c.tarjeta)} · Otros: ${formatoDineroCierre(c.otros)}<br>Crédito: ${formatoDineroCierre(c.credito)} · Saldo pendiente: ${formatoDineroCierre(c.saldoCredito)}</div><div class="cierre-acciones"><button class="boton-cierre" onclick="imprimirCierre(${c.id})">🧾 Ver / imprimir</button><button class="boton-cierre boton-cierre-peligro" onclick="eliminarCierre(${c.id})">🗑️ Eliminar</button></div></div>`}).join("")}
 function imprimirCierre(id){const c=cierres.find(x=>x.id===id);if(!c)return;const f=new Date(c.fechaLocal+"T12:00:00"),contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cierre ${c.fechaLocal}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#f4f7fb;color:#111;margin:0}.hoja{max-width:460px;margin:24px auto;background:#fff;padding:28px;border-radius:18px}.fila{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid #eee}.total{font-size:20px;font-weight:800}.btn{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700}@media print{body{background:#fff}.hoja{margin:0;max-width:none}.btn{display:none}}
 .cuenta-proveedor-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px;border-left:5px solid #f5a623}.cuenta-proveedor-card.vencida{border-left-color:#d93025}.cuenta-proveedor-card.pagada{border-left-color:#168044}.cuenta-proveedor-superior{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.cuenta-proveedor-superior h3{margin:0 0 5px;font-size:16px}.cuenta-proveedor-superior p{margin:0;color:#777;font-size:13px}.cuenta-proveedor-saldo{font-weight:800;color:#d93025;white-space:nowrap}.cuenta-proveedor-detalle{margin-top:12px;font-size:13px;line-height:1.75;color:#555}.acciones-cuenta-proveedor{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-cuenta-proveedor{border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.boton-pagar-proveedor{background:#e9f8ef;color:#168044}.boton-historial-proveedor{background:#eaf4ff;color:#0a84ff}.estado-cuenta{display:inline-block;margin-top:8px;padding:7px 10px;border-radius:10px;font-size:12px;font-weight:800}.estado-cuenta.pendiente{background:#fff7e8;color:#a15c00}.estado-cuenta.vencida{background:#ffecec;color:#d93025}.estado-cuenta.pagada{background:#e9f8ef;color:#168044}
 </style></head><body><div class="hoja"><h1>Flackunloker</h1><h2>Cierre de caja · ${f.toLocaleDateString("es-PR")}</h2><div class="fila"><span>Recibos / Unidades</span><strong>${c.recibos} / ${c.unidades}</strong></div><div class="fila"><span>Ventas</span><strong>${formatoDineroCierre(c.ventasTotal)}</strong></div><div class="fila"><span>Costo mercancía</span><strong>${formatoDineroCierre(c.costo)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>${formatoDineroCierre(c.gananciaBruta)}</strong></div><div class="fila"><span>Gastos</span><strong>${formatoDineroCierre(c.gastosTotal)}</strong></div><div class="fila total"><span>Ganancia neta</span><strong>${formatoDineroCierre(c.gananciaNeta)}</strong></div><div class="fila"><span>Total cobrado</span><strong>${formatoDineroCierre(c.cobrado)}</strong></div><div class="fila"><span>Efectivo</span><strong>${formatoDineroCierre(c.efectivo)}</strong></div><div class="fila"><span>ATH Móvil</span><strong>${formatoDineroCierre(c.ath)}</strong></div><div class="fila"><span>Tarjeta</span><strong>${formatoDineroCierre(c.tarjeta)}</strong></div><div class="fila"><span>Otros</span><strong>${formatoDineroCierre(c.otros)}</strong></div><div class="fila"><span>Ventas a crédito</span><strong>${formatoDineroCierre(c.credito)}</strong></div><div class="fila"><span>Saldo pendiente</span><strong>${formatoDineroCierre(c.saldoCredito)}</strong></div><div class="fila total"><span>Efectivo neto caja</span><strong>${formatoDineroCierre(c.efectivoNeto)}</strong></div><button class="btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></body></html>`;const w=window.open("","_blank");if(!w)return alert("El navegador bloqueó la ventana. Permite ventanas emergentes para ver el cierre.");w.document.open();w.document.write(contenido);w.document.close()}
-function eliminarCierre(id){const c=cierres.find(x=>x.id===id);if(!c)return;if(!confirm("¿Eliminar este cierre guardado? Las ventas y gastos originales no se eliminarán."))return;cierres=cierres.filter(x=>x.id!==id);guardarCierres();actualizarCierre()}
-function mostrarCierre(){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaReportes","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaCierre").style.display="block";actualizarMenu("cierre");actualizarCierre();scrollTop()}
+async function eliminarCierre(id){
+ const c=cierres.find(x=>x.id===id);if(!c)return;
+ if(!confirm("¿Eliminar este cierre guardado? Las ventas y gastos originales no se eliminarán."))return;
+ if(!c.supabaseId)return alert("Este cierre todavía no está vinculado con Supabase.");
+ try{
+  const {error}=await flkSupabase.from("cash_closures").delete().eq("id",c.supabaseId);
+  if(error)throw error;
+  await cargarCierresSupabase();actualizarCierre();
+ }catch(err){console.error(err);alert("Supabase no permitió eliminar el cierre: "+(err.message||err))}
+}
+async function mostrarCierre(){await cargarVentasSupabase();await cargarGastosSupabase();await cargarMovimientosCajaSupabase();await cargarCierresSupabase();["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaReportes","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaCierre").style.display="block";actualizarMenu("cierre");actualizarCierre();scrollTop()}
 
 function fechaLocalDeValor(fecha){if(!fecha)return "";if(/^\d{4}-\d{2}-\d{2}$/.test(String(fecha)))return String(fecha);const d=new Date(fecha);return Number.isNaN(d.getTime())?"":fechaLocalISO(d)}
 function rangoReporteActual(){
