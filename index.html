@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v44-roles-visual-real">
+<meta name="flackunloker-offline-version" content="2026-08-25-v45-roles-visual-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -957,6 +957,13 @@ body.es-propietario .solo-propietario{display:flex!important}
  #vistaLicencias .lic-grid,
  #vistaLicencias .lic-acciones{grid-template-columns:1fr}
 }
+</style>
+
+
+<style id="flk-owner-visibility-fix">
+#botonLicencias{display:none!important}
+body.es-propietario #menuPrincipalFondo #botonLicencias{display:flex!important}
+body:not(.es-propietario) #botonLicencias{display:none!important}
 </style>
 
 </head>
@@ -3358,15 +3365,22 @@ let flkEsPropietarioSoftware=false;
 async function flkComprobarPropietarioSoftware(){
  flkEsPropietarioSoftware=false;
  document.body.classList.remove("es-propietario");
+ const botonLicInicial=document.getElementById("botonLicencias");
+ if(botonLicInicial)botonLicInicial.style.setProperty("display","none","important");
  if(!flkSesionActiva||!navigator.onLine)return false;
  try{
   const {data,error}=await flkSupabase.rpc("flk_is_software_owner");
   if(error)throw error;
   flkEsPropietarioSoftware=!!data;
   document.body.classList.toggle("es-propietario",flkEsPropietarioSoftware);
+  const botonLic=document.getElementById("botonLicencias");
+  if(botonLic)botonLic.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
   return flkEsPropietarioSoftware
  }catch(err){
   console.error("Comprobación propietario software:",err);
+  document.body.classList.remove("es-propietario");
+  const botonLicError=document.getElementById("botonLicencias");
+  if(botonLicError)botonLicError.style.setProperty("display","none","important");
   return false
  }
 }
