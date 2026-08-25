@@ -317,6 +317,67 @@ body.rol-empleado .boton-eliminar-venta{
 body.rol-empleado .acciones{grid-template-columns:repeat(3,1fr)}
 body.rol-empleado .acciones-movimiento{display:none!important}
 
+
+/* ===== FORMULARIO GRANDE: RETIRO / APORTE DE CAJA ===== */
+#modalMovimientoPropietario .modal-contenido{
+  width:min(94vw,560px);
+  padding:28px 24px 26px;
+  border-radius:24px;
+}
+#modalMovimientoPropietario .modal-cabecera{
+  margin-bottom:22px;
+  align-items:center;
+}
+#modalMovimientoPropietario .modal-cabecera h3{
+  font-size:26px;
+  line-height:1.2;
+  margin:0;
+}
+#modalMovimientoPropietario .cerrar{
+  width:46px;
+  height:46px;
+  font-size:30px;
+}
+#modalMovimientoPropietario label{
+  display:block;
+  font-size:17px;
+  font-weight:800;
+  margin:18px 0 9px;
+}
+#modalMovimientoPropietario input,
+#modalMovimientoPropietario textarea{
+  width:100%;
+  min-height:58px;
+  font-size:20px;
+  padding:15px 16px;
+  border-radius:14px;
+}
+#modalMovimientoPropietario textarea{
+  min-height:110px;
+  resize:vertical;
+}
+#modalMovimientoPropietario .guardar{
+  width:100%;
+  min-height:60px;
+  margin-top:24px;
+  font-size:19px;
+  font-weight:900;
+  border-radius:15px;
+}
+#saldoDisponibleMovimiento{
+  background:#eef7ff;
+  border:1px solid #cfe6ff;
+  border-radius:16px;
+  padding:16px;
+  margin:4px 0 18px;
+  font-size:16px;
+}
+#saldoDisponibleMovimiento strong{
+  display:block;
+  font-size:28px;
+  margin-top:4px;
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -842,7 +903,7 @@ body.rol-empleado .acciones-movimiento{display:none!important}
  </div>
 </div>
 
-<div class="modal" id="modalMovimientoPropietario"><div class="modal-contenido"><div class="modal-cabecera"><h3 id="tituloMovimientoPropietario">🏦 Movimiento de caja</h3><button class="cerrar" type="button" onclick="cerrarMovimientoPropietario()">×</button></div><form id="formularioMovimientoPropietario"><label>Cantidad</label><input id="cantidadMovimientoPropietario" type="number" min="0.01" step="0.01" required><label>Nota</label><textarea id="notaMovimientoPropietario" placeholder="Motivo o detalle opcional"></textarea><input id="tipoMovimientoPropietario" type="hidden"><button class="guardar" type="submit">Guardar movimiento</button></form></div></div>
+<div class="modal" id="modalMovimientoPropietario"><div class="modal-contenido"><div class="modal-cabecera"><h3 id="tituloMovimientoPropietario">🏦 Movimiento de caja</h3><button class="cerrar" type="button" onclick="cerrarMovimientoPropietario()">×</button></div><div id="saldoDisponibleMovimiento">Efectivo disponible en caja<strong id="saldoDisponibleMovimientoValor">$0.00</strong></div><form id="formularioMovimientoPropietario"><label for="cantidadMovimientoPropietario">Cantidad</label><input id="cantidadMovimientoPropietario" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required><label for="notaMovimientoPropietario">Motivo / nota</label><textarea id="notaMovimientoPropietario" placeholder="Ejemplo: Retiro del dueño al finalizar el día"></textarea><input id="tipoMovimientoPropietario" type="hidden"><button class="guardar" id="botonGuardarMovimientoPropietario" type="submit">Guardar movimiento</button></form></div></div>
 <script>
 
 const FLK_SUPABASE_URL='https://eviwhrqhinhnyccizkfq.supabase.co';
@@ -2325,7 +2386,14 @@ function actualizarSaldoCajaFisica(){
 }
 function abrirMovimientoPropietario(tipo){
  if(rolSesion!=="admin")return alert("Solo el Administrador puede registrar retiros o aportes.");
- document.getElementById("tipoMovimientoPropietario").value=tipo;document.getElementById("tituloMovimientoPropietario").textContent=tipo==="withdrawal"?"🏦 Retirar efectivo":"➕ Aporte del propietario";document.getElementById("cantidadMovimientoPropietario").value="";document.getElementById("notaMovimientoPropietario").value="";document.getElementById("modalMovimientoPropietario").classList.add("visible")
+ document.getElementById("tipoMovimientoPropietario").value=tipo;
+ document.getElementById("tituloMovimientoPropietario").textContent=tipo==="withdrawal"?"🏦 Retirar efectivo de caja":"➕ Aporte del propietario";
+ document.getElementById("saldoDisponibleMovimientoValor").textContent="$"+saldoCajaFisicaActual().toFixed(2);
+ document.getElementById("cantidadMovimientoPropietario").value="";
+ document.getElementById("notaMovimientoPropietario").value="";
+ document.getElementById("botonGuardarMovimientoPropietario").textContent=tipo==="withdrawal"?"Confirmar retiro":"Guardar aporte";
+ document.getElementById("modalMovimientoPropietario").classList.add("visible");
+ setTimeout(()=>document.getElementById("cantidadMovimientoPropietario").focus(),120)
 }
 function cerrarMovimientoPropietario(){document.getElementById("modalMovimientoPropietario").classList.remove("visible");document.getElementById("formularioMovimientoPropietario").reset()}
 document.getElementById("formularioMovimientoPropietario").addEventListener("submit",async e=>{
