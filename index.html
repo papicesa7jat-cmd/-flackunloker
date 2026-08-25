@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v45-roles-visual-real">
+<meta name="flackunloker-offline-version" content="2026-08-25-v46-roles-visual-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1634,6 +1634,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
    <div class="lic-dato"><span>Estado</span><strong id="licPanelEstado">—</strong></div>
    <div class="lic-dato"><span>Vencimiento</span><strong id="licPanelVencimiento">—</strong></div>
    <div class="lic-dato"><span>Gracia offline</span><strong id="licPanelGracia">—</strong></div>
+   <div class="lic-dato"><span>ID de este dispositivo</span><strong id="licPanelDispositivo">—</strong></div>
   </div>
 
   <div class="campo" style="margin-top:16px">
@@ -1645,6 +1646,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
    <button class="lic-renovar" type="button" onclick="renovarLicenciaPropietario()">📅 Renovar licencia</button>
    <button class="lic-suspender" id="licBotonSuspender" type="button" onclick="cambiarEstadoLicenciaPropietario('suspended')">⛔ Suspender</button>
    <button class="lic-activar" id="licBotonActivar" type="button" onclick="cambiarEstadoLicenciaPropietario('active')">✅ Reactivar</button>
+   <button class="lic-suspender" type="button" onclick="liberarDispositivoLicencia()">🖥️ Liberar dispositivo</button>
   </div>
 
   <div class="lic-aviso">
@@ -2625,6 +2627,7 @@ let rolSesion="employee";
 let flkSesionActiva=false;
 const FLK_LICENSE_KEY="228b72e9-88dd-4c6b-91a1-4a98ff488d0c";
 const FLK_LICENSE_CACHE_KEY="flackunloker_license_cache_v1";
+const FLK_DEVICE_ID_KEY="flackunloker_device_id_v1";
 let flkLicenciaInfo=null;
 let flkLicenciaUltimaValidacion=null;
 let flkLicenciaModoPrueba=false; // v43: bloqueo real activado.
@@ -3143,6 +3146,26 @@ document.getElementById("formularioNuevaPassword")?.addEventListener("submit",as
 });
 
 
+
+function flkObtenerDeviceId(){
+ try{
+  let id=localStorage.getItem(FLK_DEVICE_ID_KEY);
+  if(id&&id.length>=16){return id}
+  if(window.crypto&&crypto.randomUUID){
+   id=crypto.randomUUID()
+  }else{
+   const a=new Uint8Array(24);
+   if(window.crypto&&crypto.getRandomValues)crypto.getRandomValues(a);
+   id=Array.from(a,b=>b.toString(16).padStart(2,"0")).join("")+"-"+Date.now().toString(36)
+  }
+  localStorage.setItem(FLK_DEVICE_ID_KEY,id);
+  return id
+ }catch(err){
+  console.error("Device ID:",err);
+  return null
+ }
+}
+
 function flkFechaLicenciaBonita(valor){
  if(!valor)return "—";
  const d=new Date(valor);
@@ -3194,6 +3217,9 @@ function flkMostrarBloqueoLicencia(info,motivo=""){
  }else if(estado==="suspended"){
   titulo.textContent="Licencia suspendida";
   mensaje.textContent="Esta licencia está suspendida. Contacta al proveedor de Flackunloker para reactivarla.";
+ }else if(motivo==="device-mismatch"){
+  titulo.textContent="Licencia vinculada a otro dispositivo";
+  mensaje.textContent="Esta licencia ya está activada en otro equipo. El propietario de Flackunloker debe liberar el dispositivo anterior antes de usarla aquí.";
  }else if(motivo==="offline-grace-expired"){
   titulo.textContent="Se requiere conexión a Internet";
   mensaje.textContent="Se agotó el período autorizado de trabajo offline. Conéctate a Internet para validar la licencia y continuar.";
@@ -3243,6 +3269,10 @@ function flkPintarLicencia(info,modo="online"){
   caja.classList.add("activa");
   texto.textContent="Licencia: activa";
   flkOcultarBloqueoLicencia();
+ }else if(estado==="device_mismatch"){
+  caja.classList.add("error");
+  texto.textContent="Licencia: otro dispositivo";
+  if(!flkLicenciaModoPrueba)flkMostrarBloqueoLicencia(info,"device-mismatch");
  }else if(estado==="expired"){
   caja.classList.add("vencida");
   texto.textContent="Licencia: vencida";
@@ -3280,8 +3310,11 @@ async function flkValidarLicencia(){
 
  if(navigator.onLine){
   try{
-   const {data,error}=await flkSupabase.rpc("flk_check_license",{
-    p_license_key:FLK_LICENSE_KEY
+   const deviceId=flkObtenerDeviceId();
+   if(!deviceId)throw new Error("No se pudo generar el identificador de este dispositivo.");
+   const {data,error}=await flkSupabase.rpc("flk_activate_license_device",{
+    p_license_key:FLK_LICENSE_KEY,
+    p_device_id:deviceId
    });
    if(error)throw error;
    const info=Array.isArray(data)?data[0]:data;
@@ -3407,7 +3440,11 @@ function mostrarLicencias(){
 async function cargarPanelLicencias(){
  if(!flkEsPropietarioSoftware)return;
  try{
-  const {data,error}=await flkSupabase.rpc("flk_check_license",{p_license_key:FLK_LICENSE_KEY});
+  const deviceId=flkObtenerDeviceId();
+  const {data,error}=await flkSupabase.rpc("flk_activate_license_device",{
+   p_license_key:FLK_LICENSE_KEY,
+   p_device_id:deviceId
+  });
   if(error)throw error;
   const info=Array.isArray(data)?data[0]:data;
   if(!info)throw new Error("No se recibió información de la licencia.");
@@ -3417,6 +3454,8 @@ async function cargarPanelLicencias(){
   document.getElementById("licPanelEstado").textContent=String(info.license_status||"—").toUpperCase();
   document.getElementById("licPanelVencimiento").textContent=flkFechaLicenciaBonita(info.expires_at);
   document.getElementById("licPanelGracia").textContent=String(info.offline_grace_days??0)+" día(s)";
+  const devEl=document.getElementById("licPanelDispositivo");
+  if(devEl)devEl.textContent=flkObtenerDeviceId()||"—";
 
   const d=new Date(info.expires_at);
   if(!Number.isNaN(d.getTime())){
@@ -3454,6 +3493,27 @@ async function renovarLicenciaPropietario(){
  }catch(err){
   console.error("Renovar licencia:",err);
   alert("No se pudo renovar la licencia: "+(err?.message||"Error desconocido"))
+ }
+}
+
+
+async function liberarDispositivoLicencia(){
+ if(!flkEsPropietarioSoftware)return alert("Solo el propietario puede liberar dispositivos.");
+ if(!navigator.onLine)return alert("Debes estar conectado a Internet para liberar un dispositivo.");
+ if(!confirm("¿Liberar el dispositivo asociado a esta licencia? La próxima instalación que valide la licencia quedará vinculada automáticamente."))return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_release_license_device",{
+   p_license_key:FLK_LICENSE_KEY
+  });
+  if(error)throw error;
+  alert("Dispositivo liberado correctamente.");
+  // No borramos el ID local: al validar de nuevo en este mismo equipo,
+  // volvería a asociarse a él. Para mover la licencia, primero debe
+  // validarse desde el nuevo equipo.
+  await cargarPanelLicencias()
+ }catch(err){
+  console.error("Liberar dispositivo:",err);
+  alert("No se pudo liberar el dispositivo: "+(err?.message||"Error desconocido"))
  }
 }
 
