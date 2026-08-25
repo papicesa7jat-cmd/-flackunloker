@@ -51,7 +51,7 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
   --texto:#101828;--muted:#667085;--borde:#e8edf5;--verde:#168044;
   --rojo:#d93025;--naranja:#a15c00;--radio:20px;
 }
-html{scroll-behavior:smooth}
+html{scroll-behavior:auto}
 body{
   background:
     radial-gradient(circle at 50% -160px,rgba(10,132,255,.15),transparent 420px),
@@ -173,7 +173,7 @@ button:active{transform:scale(.97)}
 .menu-panel-fondo.visible{display:flex}
 .menu-panel{
  width:min(100%,620px);max-height:82vh;overflow-y:auto;background:#f8faff;border-radius:28px;
- padding:18px;box-shadow:0 24px 70px rgba(0,0,0,.25);animation:subirMenu .2s ease
+ padding:18px;box-shadow:0 24px 70px rgba(0,0,0,.25);animation:none
 }
 @keyframes subirMenu{from{transform:translateY(25px);opacity:.5}to{transform:none;opacity:1}}
 .menu-panel-cabecera{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}
@@ -460,6 +460,13 @@ body.rol-empleado .acciones-movimiento{display:none!important}
  #estadoConexionFlk{top:8px;right:8px;padding:8px 10px;font-size:12px}
 }
 
+
+/* ===== MODO SIN MAREO: navegación inmediata ===== */
+html{scroll-behavior:auto!important}
+*,*::before,*::after{scroll-behavior:auto!important}
+.menu-panel{animation:none!important}
+button,.boton-agregar,.boton-guardar,.producto,.venta-card,.cliente-card,.gasto-card,.orden-card,.proveedor-card,.cuenta-proveedor-card{transition:none!important}
+button:active{transform:none!important}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="manifest" href="./manifest.webmanifest">
@@ -3240,7 +3247,7 @@ function actualizarEstadisticas(){
 }
 function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonEstadisticas","botonUsuarios"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";if(sec!=="cuentasPagar")document.getElementById("vistaCuentasPagar").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",cuentasPagar:"botonCuentasPagar",flujoCaja:"botonFlujoCaja",finanzas:"botonFinanzas",estadisticas:"botonEstadisticas",usuarios:"botonUsuarios"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo")}
 function mostrarInventario(){document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";document.getElementById("vistaFlujoCaja").style.display="none";document.getElementById("vistaFinanzas").style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
-function scrollTop(){window.scrollTo({top:0,behavior:"smooth"})}
+function scrollTop(){window.scrollTo({top:0,behavior:"auto"})}
 document.addEventListener("visibilitychange",()=>{
  if(document.visibilityState==="visible"){
   if(typeof flkSupabase!=="undefined"){
