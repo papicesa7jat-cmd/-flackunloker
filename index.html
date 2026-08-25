@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v26-offline-stock-unico">
+<meta name="flackunloker-offline-version" content="2026-08-25-v27-calculos-offline-unicos">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1388,17 +1388,31 @@ function flkDeviceId(){
  if(!id){id=flkUUID();localStorage.setItem(FLK_DEVICE_KEY,id)}
  return id
 }
+const FLK_OPERACIONES_LOCAL_FIRST=new Set([
+ "product_save","product_delete","stock_adjustment","sale","sale_payment","sale_return",
+ "expense_save","expense_delete","supplier_save","purchase_order_save",
+ "purchase_order_ordered","purchase_order_receive","supplier_payment",
+ "owner_cash_movement","cash_closure_save","cash_closure_delete"
+]);
+
 function flkColaOffline(){
  try{
   const q=JSON.parse(localStorage.getItem(FLK_OFFLINE_QUEUE_KEY)||"[]");
   if(!Array.isArray(q))return [];
   let cambio=false;
+
+  // Las operaciones de la arquitectura actual ya modificaron y guardaron
+  // la copia local al momento de crearse. Normalizar también colas antiguas.
   q.forEach(op=>{
-   if((op.tipo==="stock_adjustment"||op.tipo==="sale")&&op.payload&&op.payload.local_applied===undefined){
-    op.payload.local_applied=true;
-    cambio=true;
+   if(FLK_OPERACIONES_LOCAL_FIRST.has(op.tipo)){
+    if(!op.payload||typeof op.payload!=="object")op.payload={};
+    if(op.payload.local_applied!==true){
+     op.payload.local_applied=true;
+     cambio=true;
+    }
    }
   });
+
   if(cambio)localStorage.setItem(FLK_OFFLINE_QUEUE_KEY,JSON.stringify(q));
   return q;
  }catch(e){return []}
@@ -1409,7 +1423,9 @@ function flkGuardarColaOffline(q){
 }
 function flkEncolarOperacion(tipo,payload){
  const q=flkColaOffline();
- const op={id:flkUUID(),tipo,payload,device_id:flkDeviceId(),created_at:new Date().toISOString(),estado:"pendiente",intentos:0};
+ const datos=(payload&&typeof payload==="object")?{...payload}:{};
+ if(FLK_OPERACIONES_LOCAL_FIRST.has(tipo))datos.local_applied=true;
+ const op={id:flkUUID(),tipo,payload:datos,device_id:flkDeviceId(),created_at:new Date().toISOString(),estado:"pendiente",intentos:0};
  q.push(op);flkGuardarColaOffline(q);return op
 }
 function flkPendientesOffline(){
@@ -1617,9 +1633,9 @@ function flkAplicarDevolucionLocal(op){
   fecha:op.created_at||new Date().toISOString()
  });
 
- if(prod){
+ if(prod&&!historial.some(h=>h.offlineOperationId===op.id)){
   historial.unshift({
-   id:Date.now()+Math.floor(Math.random()*100000),
+   id:Date.now()+Math.floor(Math.random()*100000),offlineOperationId:op.id,
    productoId:prod.id,nombre:prod.nombre,sku:prod.sku,tipo:"entrada",
    cantidad:aplicada,saldo:Number(prod.cantidad||0),
    fecha:op.created_at||new Date().toISOString(),
@@ -1746,11 +1762,14 @@ function flkAplicarRecepcionOrdenLocal(op){
    nota:saldo>0?"Abono inicial":"Pago al recibir",saldoAnterior:total,saldoRestante:saldo
   })
  }
- historial.unshift({
-  id:Date.now()+Math.floor(Math.random()*100000),productoId:prod.id,nombre:prod.nombre,sku:prod.sku,
-  tipo:"entrada",cantidad,saldo:nuevoStock,fecha:op.created_at||new Date().toISOString(),
-  detalle:"🟠 Recepción de compra pendiente de sincronización"
- });
+ if(!historial.some(h=>h.offlineOperationId===op.id)){
+  historial.unshift({
+   id:Date.now()+Math.floor(Math.random()*100000),offlineOperationId:op.id,
+   productoId:prod.id,nombre:prod.nombre,sku:prod.sku,
+   tipo:"entrada",cantidad,saldo:nuevoStock,fecha:op.created_at||new Date().toISOString(),
+   detalle:"🟠 Recepción de compra pendiente de sincronización"
+  });
+ }
  return true
 }
 
@@ -1877,6 +1896,9 @@ function flkAplicarEliminarProductoLocal(op){
 function flkAplicarPendientesSobreDatos(){
  const q=flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado));
  for(const op of q){
+  // Regla V27: si ya fue aplicada y persistida localmente, la cola NO la ejecuta otra vez.
+  // La operación queda pendiente exclusivamente para subirla a Supabase.
+  if(op.payload?.local_applied===true)continue;
   if(op.tipo==="stock_adjustment"){
    // NO modificar cantidad aquí.
    // La Entrada/Salida ya fue aplicada y persistida localmente cuando el usuario la guardó.
