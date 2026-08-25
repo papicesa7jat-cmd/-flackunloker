@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v37-roles-visual-real">
+<meta name="flackunloker-offline-version" content="2026-08-25-v38-roles-visual-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2823,7 +2823,7 @@ document.getElementById("formularioRecuperarPassword")?.addEventListener("submit
     if(error)throw error;
     flkEstadoRecuperacion(
       "estadoRecuperacionPassword",
-      "Si el correo pertenece a una cuenta registrada, recibirás un enlace para cambiar la contraseña. Revisa también Spam o Correo no deseado.",
+      "Si el correo pertenece a una cuenta registrada, recibirás un enlace para cambiar la contraseña. Revisa también Spam o Correo no deseado. Evita solicitar varios enlaces seguidos.",
       "ok"
     );
   }catch(err){
@@ -2833,9 +2833,12 @@ document.getElementById("formularioRecuperarPassword")?.addEventListener("submit
     const msg=String(err?.message||"").toLowerCase();
 
     if(status===429 || code.includes("rate") || msg.includes("rate limit") || msg.includes("too many")){
+      const pareceCooldown=msg.includes("60") || msg.includes("seconds") || msg.includes("second");
       flkEstadoRecuperacion(
         "estadoRecuperacionPassword",
-        "Has solicitado varios enlaces seguidos. Por seguridad, espera al menos 60 segundos antes de volver a intentarlo.",
+        pareceCooldown
+          ? "Debes esperar antes de solicitar otro enlace. Inténtalo nuevamente cuando termine el tiempo de espera."
+          : "Se alcanzó temporalmente el límite de correos de recuperación de Supabase. Espera un tiempo antes de solicitar otro enlace.",
         "error"
       );
     }else if(!navigator.onLine || msg.includes("fetch") || msg.includes("network")){
