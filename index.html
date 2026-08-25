@@ -715,6 +715,45 @@ body.rol-empleado .acciones-movimiento{display:none!important}
 <div class="fila-estadistica"><span>💰 Ganancia neta</span><strong id="finNeta">$0.00</strong></div>
 </div>
 
+
+<div class="lista-estadisticas" id="estadoContribucionArrendamiento">
+<h3>🏢 Estado por Contribución · Arrendamiento mensual</h3>
+<p style="margin:0 0 14px;color:#667085;font-size:13px;line-height:1.55">
+Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje de las ventas brutas del mes o como una renta fija mensual. Este cálculo no registra por sí solo una salida de caja.
+</p>
+
+<div class="reporte-controles-grid">
+ <div class="campo" style="margin:0">
+  <label for="mesArrendamiento">Mes</label>
+  <input id="mesArrendamiento" type="month" onchange="cargarConfiguracionArrendamientoMes()">
+ </div>
+ <div class="campo" style="margin:0">
+  <label for="modoArrendamiento">Modalidad</label>
+  <select id="modoArrendamiento" onchange="actualizarEstadoContribucionArrendamiento()">
+   <option value="percent">% sobre ventas brutas</option>
+   <option value="fixed">Pago fijo mensual</option>
+  </select>
+ </div>
+</div>
+
+<div class="reporte-controles-grid" style="margin-top:10px">
+ <div class="campo" style="margin:0">
+  <label id="labelValorArrendamiento" for="valorArrendamiento">Porcentaje (%)</label>
+  <input id="valorArrendamiento" type="number" min="0" max="100" step="0.01" value="0" oninput="actualizarEstadoContribucionArrendamiento()">
+ </div>
+ <div class="campo" style="margin:0;display:flex;align-items:end">
+  <button id="botonGuardarArrendamiento" class="boton-agregar" style="width:100%;min-height:47px" onclick="guardarConfiguracionArrendamiento()">💾 Guardar arrendamiento</button>
+ </div>
+</div>
+
+<div style="margin-top:16px">
+ <div class="fila-estadistica"><span>Ventas brutas del mes</span><strong id="contribVentasBrutas">$0.00</strong></div>
+ <div class="fila-estadistica"><span id="contribDetalleArrendamiento">Arrendamiento calculado</span><strong id="contribArrendamiento">$0.00</strong></div>
+ <div class="fila-estadistica"><span>Ganancia bruta del mes</span><strong id="contribGananciaBruta">$0.00</strong></div>
+ <div class="fila-estadistica"><span>Ganancia bruta después de arrendamiento</span><strong id="contribResultado">$0.00</strong></div>
+</div>
+</div>
+
 <div class="lista-estadisticas"><h3>💵 Liquidez / Flujo del período</h3>
 <div class="fila-estadistica"><span>Entradas de dinero</span><strong id="finEntradas">$0.00</strong></div>
 <div class="fila-estadistica"><span>Salidas de dinero</span><strong id="finSalidas">$0.00</strong></div>
@@ -946,6 +985,7 @@ async function cargarRolUsuario(user){
 function aplicarPermisosVisuales(){
  const admin=rolSesion==="admin";
  document.body.classList.toggle("rol-empleado",!admin);
+ const btnArr=document.getElementById("botonGuardarArrendamiento");if(btnArr)btnArr.style.display=admin?"":"none";
  document.body.classList.toggle("rol-admin",admin);
  const idsAdmin=["botonGastos","botonCierre","botonReportes","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonEstadisticas","botonUsuarios"];
  idsAdmin.forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=admin?"":"none"});
@@ -2486,6 +2526,105 @@ function imprimirFlujoCaja(){
 }
 
 
+
+let configuracionesArrendamientoMensual=[];
+
+function mesActualArrendamiento(){
+ const d=new Date();
+ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+}
+function primerDiaMesArrendamiento(mes){
+ return mes&&/^\d{4}-\d{2}$/.test(mes)?mes+"-01":null
+}
+async function cargarConfiguracionesArrendamiento(){
+ const {data,error}=await flkSupabase.from("monthly_lease_settings").select("month_start,mode,value,updated_at").order("month_start",{ascending:false});
+ if(error){
+  console.error("Supabase arrendamiento:",error);
+  return false;
+ }
+ configuracionesArrendamientoMensual=data||[];
+ const input=document.getElementById("mesArrendamiento");
+ if(input&&!input.value)input.value=mesActualArrendamiento();
+ cargarConfiguracionArrendamientoMes();
+ return true
+}
+function configuracionArrendamientoMes(mes){
+ const fecha=primerDiaMesArrendamiento(mes);
+ return configuracionesArrendamientoMensual.find(x=>x.month_start===fecha)||null
+}
+function ventasBrutasMesArrendamiento(mes){
+ if(!mes)return 0;
+ return ventas.reduce((total,v)=>{
+  const d=new Date(v.fecha);
+  if(Number.isNaN(d.getTime()))return total;
+  const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+  if(vm!==mes)return total;
+  const dev=Array.isArray(v.devoluciones)?v.devoluciones.reduce((t,r)=>t+Number(r.monto??r.reembolso??0),0):0;
+  return total+Number(v.ingreso||0)+dev;
+ },0)
+}
+function costoVentasMesArrendamiento(mes){
+ if(!mes)return 0;
+ return ventas.reduce((total,v)=>{
+  const d=new Date(v.fecha);
+  if(Number.isNaN(d.getTime()))return total;
+  const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+  return vm===mes?total+Number(v.costoTotal||0):total;
+ },0)
+}
+function cargarConfiguracionArrendamientoMes(){
+ const input=document.getElementById("mesArrendamiento");if(!input)return;
+ if(!input.value)input.value=mesActualArrendamiento();
+ const conf=configuracionArrendamientoMes(input.value);
+ document.getElementById("modoArrendamiento").value=conf?.mode||"percent";
+ document.getElementById("valorArrendamiento").value=Number(conf?.value||0);
+ actualizarEstadoContribucionArrendamiento()
+}
+function actualizarEstadoContribucionArrendamiento(){
+ const mes=document.getElementById("mesArrendamiento")?.value||mesActualArrendamiento();
+ const modo=document.getElementById("modoArrendamiento")?.value||"percent";
+ const valor=Math.max(0,Number(document.getElementById("valorArrendamiento")?.value||0));
+ const ventasBrutas=ventasBrutasMesArrendamiento(mes);
+ const costo=costoVentasMesArrendamiento(mes);
+ const gananciaBruta=ventasBrutas-costo;
+ const arrendamiento=modo==="percent"?ventasBrutas*(valor/100):valor;
+ const resultado=gananciaBruta-arrendamiento;
+ const money=n=>"$"+Number(n||0).toFixed(2);
+ const v1=document.getElementById("contribVentasBrutas");if(v1)v1.textContent=money(ventasBrutas);
+ const v2=document.getElementById("contribArrendamiento");if(v2)v2.textContent=money(arrendamiento);
+ const v3=document.getElementById("contribGananciaBruta");if(v3)v3.textContent=money(gananciaBruta);
+ const v4=document.getElementById("contribResultado");
+ if(v4){v4.textContent=money(resultado);v4.style.color=resultado<0?"#d93025":"#168044"}
+ const label=document.getElementById("labelValorArrendamiento");
+ const detalle=document.getElementById("contribDetalleArrendamiento");
+ const input=document.getElementById("valorArrendamiento");
+ if(modo==="percent"){
+  if(label)label.textContent="Porcentaje sobre ventas brutas (%)";
+  if(detalle)detalle.textContent=`Arrendamiento (${valor.toFixed(2)}% de ventas brutas)`;
+  if(input){input.max="100";input.step="0.01"}
+ }else{
+  if(label)label.textContent="Pago fijo mensual ($)";
+  if(detalle)detalle.textContent="Arrendamiento fijo mensual";
+  if(input){input.removeAttribute("max");input.step="0.01"}
+ }
+}
+async function guardarConfiguracionArrendamiento(){
+ if(rolSesion!=="admin")return alert("Solo el Administrador puede cambiar la configuración de arrendamiento.");
+ const mes=document.getElementById("mesArrendamiento")?.value;
+ const modo=document.getElementById("modoArrendamiento")?.value;
+ const valor=Number(document.getElementById("valorArrendamiento")?.value);
+ const fecha=primerDiaMesArrendamiento(mes);
+ if(!fecha)return alert("Selecciona un mes válido.");
+ if(!Number.isFinite(valor)||valor<0)return alert("Introduce un valor válido.");
+ if(modo==="percent"&&valor>100)return alert("El porcentaje no puede superar 100%.");
+ const {error}=await flkSupabase.rpc("flk_save_monthly_lease_setting",{
+  p_month_start:fecha,p_mode:modo,p_value:valor
+ });
+ if(error)return alert("Supabase rechazó la configuración: "+error.message);
+ await cargarConfiguracionesArrendamiento();
+ alert("Arrendamiento mensual guardado en Supabase.")
+}
+
 function limitesFinanzas(){
  const tipo=document.getElementById("periodoFinanzas")?.value||"mes",ahora=new Date(),hoy=new Date(ahora.getFullYear(),ahora.getMonth(),ahora.getDate());
  let desde,hasta,texto;
@@ -2554,7 +2693,9 @@ async function sincronizarYActualizarFinanzas(){
   await cargarGastosSupabase();
   await cargarComprasSupabase();
   await cargarMovimientosCajaSupabase();
+  await cargarConfiguracionesArrendamiento();
   actualizarFinanzas();
+  actualizarEstadoContribucionArrendamiento();
  }catch(err){
   console.error("Sincronización Finanzas:",err);
   alert("No se pudieron actualizar todos los datos financieros desde Supabase.")
@@ -2574,9 +2715,10 @@ function actualizarFinanzas(){
  document.getElementById("finFlujoNeto").style.color=d.flujo<0?"#d93025":"#168044";
  document.getElementById("finMargenBruto").textContent=(d.ventasTotal?d.bruta/d.ventasTotal*100:0).toFixed(1)+"%";
  document.getElementById("finMargenNeto").textContent=(d.ventasTotal?d.neta/d.ventasTotal*100:0).toFixed(1)+"%";
- document.getElementById("finRelacion").textContent=d.porPagar>0?(d.porCobrar/d.porPagar).toFixed(2)+"x":(d.porCobrar>0?"Sin deuda":"—")
+ document.getElementById("finRelacion").textContent=d.porPagar>0?(d.porCobrar/d.porPagar).toFixed(2)+"x":(d.porCobrar>0?"Sin deuda":"—");
+ actualizarEstadoContribucionArrendamiento()
 }
-async function mostrarFinanzas(){await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();
+async function mostrarFinanzas(){await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();await cargarConfiguracionesArrendamiento();
  ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");
  document.getElementById("vistaFinanzas").style.display="block";actualizarMenu("finanzas");actualizarFinanzas();scrollTop()
 }
