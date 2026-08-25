@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v15-estadisticas-uniforme">
+<meta name="flackunloker-offline-version" content="2026-08-25-v16-estadisticas-estructura">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1158,7 +1158,6 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="fila-estadistica"><span>Margen neto sobre ventas</span><strong id="finMargenNeto">0.0%</strong></div>
 <div class="fila-estadistica"><span>Relación por cobrar / por pagar</span><strong id="finRelacion">—</strong></div>
 </div>
-</div>
 
 <div id="vistaEstadisticas" style="display:none">
 <div class="seccion-titulo"><h2>📊 Estadísticas</h2></div>
@@ -1178,6 +1177,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="respaldo-box"><h3>Respaldo y restauración</h3><p>Guarda una copia de tus productos, stock mínimo e historial para poder recuperarlos posteriormente.</p><div class="botones-respaldo"><button class="boton-respaldo boton-crear-respaldo" onclick="crearRespaldo()">💾 Crear respaldo</button><button class="boton-respaldo boton-restaurar-respaldo" onclick="seleccionarRespaldo()">📥 Restaurar respaldo</button></div><input id="archivoRespaldo" type="file" accept=".json,application/json" style="display:none" onchange="restaurarRespaldo(event)"><div id="estadoRespaldo" class="estado-respaldo"></div></div>
 </div>
 </div>
+
 
 <div class="modal" id="modalProducto">
 <form class="formulario" id="formularioProducto">
@@ -4533,6 +4533,30 @@ function imprimirFinanzas(){
 }
 @media(max-width:430px){
  #vistaEstadisticas{padding-left:13px !important;padding-right:13px !important;}
+}
+</style>
+
+
+<style>
+/* ===== ESTADÍSTICAS · ESTRUCTURA REAL CORREGIDA ===== */
+#vistaEstadisticas{
+  width:auto !important;
+  max-width:none !important;
+  margin:0 !important;
+  padding:0 !important;
+  box-sizing:border-box !important;
+}
+#vistaEstadisticas > *{
+  max-width:100% !important;
+  box-sizing:border-box !important;
+}
+#vistaEstadisticas .estadisticas-grid,
+#vistaEstadisticas .lista-estadisticas,
+#vistaEstadisticas .respaldo-box{
+  width:100% !important;
+  max-width:100% !important;
+  margin-left:0 !important;
+  margin-right:0 !important;
 }
 </style>
 
