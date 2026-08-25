@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v11-menu-sin-lag">
+<meta name="flackunloker-offline-version" content="2026-08-25-v12-diagnostico">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -4412,6 +4412,19 @@ function imprimirFinanzas(){
 }
 </style>
 
+
+<style>
+#flkPerfDiag{
+ position:fixed;left:50%;bottom:82px;transform:translateX(-50%);
+ z-index:9999;display:none;max-width:calc(100vw - 20px);
+ padding:8px 12px;border-radius:12px;background:rgba(17,24,39,.94);
+ color:#fff;font:700 12px/1.35 system-ui,sans-serif;
+ box-shadow:0 8px 24px rgba(0,0,0,.22);pointer-events:none;
+ white-space:normal;text-align:center
+}
+#flkPerfDiag.visible{display:block}
+</style>
+
 </head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el estado financiero.");w.document.write(html);w.document.close()
 }
@@ -4619,6 +4632,59 @@ if("serviceWorker" in navigator){
   requestAnimationFrame(()=>{
    requestAnimationFrame(()=>{
     if(typeof accion==="function")setTimeout(accion,0);
+   });
+  });
+ },true);
+})();
+</script>
+
+
+<div id="flkPerfDiag"></div>
+<script>
+(function(){
+ const box=document.getElementById("flkPerfDiag");
+ let clickStart=0,nombre="",longTotal=0,longMax=0,longCount=0,timer=0;
+
+ function mostrar(msg){
+  if(!box)return;
+  box.textContent=msg;
+  box.classList.add("visible");
+  clearTimeout(timer);
+  timer=setTimeout(()=>box.classList.remove("visible"),6500);
+ }
+
+ if("PerformanceObserver" in window){
+  try{
+   const obs=new PerformanceObserver(list=>{
+    for(const e of list.getEntries()){
+     if(!clickStart)continue;
+     if(e.startTime>=clickStart-5 && e.startTime<=performance.now()+100){
+      longTotal+=e.duration; longMax=Math.max(longMax,e.duration); longCount++;
+     }
+    }
+   });
+   obs.observe({entryTypes:["longtask"]});
+  }catch(e){}
+ }
+
+ document.addEventListener("click",e=>{
+  const b=e.target.closest("#menuPrincipalFondo .menu-cuadricula button");
+  if(!b)return;
+  nombre=(b.textContent||"Menú").replace(/\s+/g," ").trim();
+  clickStart=performance.now();longTotal=0;longMax=0;longCount=0;
+
+  requestAnimationFrame(()=>{
+   const raf1=performance.now()-clickStart;
+   requestAnimationFrame(()=>{
+    const paint=performance.now()-clickStart;
+    setTimeout(()=>{
+     const total=performance.now()-clickStart;
+     mostrar(
+      nombre+" · 1er frame "+raf1.toFixed(0)+" ms · pantalla "+paint.toFixed(0)+
+      " ms · 500ms "+total.toFixed(0)+" ms"+
+      (longCount?" · tareas largas "+longCount+" / máx "+longMax.toFixed(0)+" ms":" · sin tarea larga")
+     );
+    },500);
    });
   });
  },true);
