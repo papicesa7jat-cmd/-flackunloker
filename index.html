@@ -1407,6 +1407,32 @@ function flkEstadoConexionClave(estadoEspecial){
  return n?"online-pendiente":"sincronizado";
 }
 
+function flkEsErrorConexion(err){
+ if(!navigator.onLine)return true;
+ const msg=String(err?.message||err||"").toLowerCase();
+ const nombre=String(err?.name||"").toLowerCase();
+ return [
+  "failed to fetch","fetch failed","networkerror","network error",
+  "network request failed","load failed","connection","conexión",
+  "internet","offline","timeout","timed out","err_internet_disconnected",
+  "err_network_changed","err_connection"
+ ].some(x=>msg.includes(x)||nombre.includes(x));
+}
+
+function flkSilenciarSiEsConexion(err){
+ if(!flkEsErrorConexion(err))return false;
+ console.warn("Flackunloker: operación de Supabase omitida por falta de conexión.",err);
+ flkActualizarEstadoConexion();
+ setTimeout(flkMostrarAvisoConexionTemporal,0);
+ return true;
+}
+
+function flkAvisarErrorSupabase(err,mensaje){
+ if(flkSilenciarSiEsConexion(err))return false;
+ alert(mensaje+(err?.message||err||""));
+ return true;
+}
+
 function flkActualizarEstadoConexion(estadoEspecial){
  const box=document.getElementById("estadoConexionFlk"),txt=document.getElementById("textoConexionFlk"),pen=document.getElementById("pendientesConexionFlk");
  if(!box||!txt||!pen)return;
@@ -1740,7 +1766,7 @@ async function abrirRestablecimientoTotal(){
  if(rolSesion!=="admin")return alert("Solo el Administrador puede usar el restablecimiento total.");
  document.getElementById("modalRestablecimientoTotal").classList.add("visible");
  const {data,error}=await flkSupabase.rpc("flk_reset_pin_configured");
- if(error)return alert("No se pudo verificar la seguridad: "+error.message);
+ if(error){if(flkSilenciarSiEsConexion(error))return;return alert("No se pudo verificar la seguridad: "+error.message)};
  document.getElementById("bloqueConfigurarPin").style.display=data?"none":"block";
  document.getElementById("bloqueEjecutarReset").style.display=data?"block":"none";
 }
@@ -1757,7 +1783,7 @@ async function guardarPinReset(){
  if(!/^\d{6}$/.test(a))return alert("El PIN debe tener exactamente 6 dígitos.");
  if(a!==b)return alert("Los dos PIN no coinciden.");
  const {error}=await flkSupabase.rpc("flk_set_reset_pin",{p_pin:a});
- if(error)return alert("Supabase rechazó el PIN: "+error.message);
+ if(error){if(flkSilenciarSiEsConexion(error))return;return alert("Supabase rechazó el PIN: "+error.message)};
  document.getElementById("nuevoPinReset").value="";document.getElementById("confirmarPinReset").value="";
  document.getElementById("bloqueConfigurarPin").style.display="none";document.getElementById("bloqueEjecutarReset").style.display="block";
  alert("PIN de restablecimiento configurado correctamente.");
@@ -1769,7 +1795,7 @@ async function ejecutarRestablecimientoTotal(){
  if(texto!=="RESTABLECER")return alert("Para confirmar debes escribir exactamente RESTABLECER.");
  if(!confirm("ÚLTIMA CONFIRMACIÓN: se borrarán permanentemente todos los datos operativos. ¿Continuar?"))return;
  const {error}=await flkSupabase.rpc("flk_full_system_reset",{p_pin:pin,p_confirmation:"RESTABLECER"});
- if(error)return alert("No se pudo restablecer el sistema: "+error.message);
+ if(error){if(flkSilenciarSiEsConexion(error))return;return alert("No se pudo restablecer el sistema: "+error.message)};
  localStorage.removeItem("flackunloker_productos");
  localStorage.removeItem("flackunloker_historial");
  localStorage.removeItem("flackunloker_ventas");
@@ -1873,7 +1899,7 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
 })();
 
 
-async function cargarUsuariosAdmin(){const lista=document.getElementById("listaUsuariosAdmin");if(rolSesion!=="admin"){lista.innerHTML='<div class="sin-productos">Acceso reservado al Administrador.</div>';return}lista.innerHTML='<div class="sin-productos">Cargando usuarios...</div>';const {data,error}=await flkSupabase.from("profiles").select("id,email,full_name,role,created_at").order("created_at",{ascending:true});if(error){lista.innerHTML='<div class="sin-productos">No se pudieron cargar los usuarios: '+escapeHtml(error.message)+'</div>';return}const {data:ses}=await flkSupabase.auth.getSession(),miId=ses?.session?.user?.id||"";lista.innerHTML=data?.length?data.map(u=>{const propio=u.id===miId,admin=u.role==="admin";return `<div class="usuario-card"><div class="usuario-superior"><div><h3>${escapeHtml(u.full_name||u.email||"Usuario")}</h3><p>${escapeHtml(u.email||"")}</p></div><span class="usuario-rol ${admin?"admin":"employee"}">${admin?"👑 Administrador":"👤 Empleado"}</span></div>${propio?'<div class="usuario-propio">Esta es tu cuenta. Tu propio rol está protegido.</div>':`<div class="usuario-acciones"><button class="usuario-hacer-admin" ${admin?"disabled":""} onclick="cambiarRolUsuario('${u.id}','admin')">👑 Hacer Admin</button><button class="usuario-hacer-empleado" ${!admin?"disabled":""} onclick="cambiarRolUsuario('${u.id}','employee')">👤 Hacer Empleado</button></div>`}</div>`}).join(""):'<div class="sin-productos">No hay perfiles registrados.</div>'}
+async function cargarUsuariosAdmin(){const lista=document.getElementById("listaUsuariosAdmin");if(rolSesion!=="admin"){lista.innerHTML='<div class="sin-productos">Acceso reservado al Administrador.</div>';return}if(!navigator.onLine){lista.innerHTML='<div class="sin-productos">Usuarios disponibles cuando vuelva la conexión.</div>';flkActualizarEstadoConexion();return}lista.innerHTML='<div class="sin-productos">Cargando usuarios...</div>';const {data,error}=await flkSupabase.from("profiles").select("id,email,full_name,role,created_at").order("created_at",{ascending:true});if(error){if(flkSilenciarSiEsConexion(error)){lista.innerHTML='<div class="sin-productos">Usuarios disponibles cuando vuelva la conexión.</div>';return}lista.innerHTML='<div class="sin-productos">No se pudieron cargar los usuarios: '+escapeHtml(error.message)+'</div>';return}const {data:ses}=await flkSupabase.auth.getSession(),miId=ses?.session?.user?.id||"";lista.innerHTML=data?.length?data.map(u=>{const propio=u.id===miId,admin=u.role==="admin";return `<div class="usuario-card"><div class="usuario-superior"><div><h3>${escapeHtml(u.full_name||u.email||"Usuario")}</h3><p>${escapeHtml(u.email||"")}</p></div><span class="usuario-rol ${admin?"admin":"employee"}">${admin?"👑 Administrador":"👤 Empleado"}</span></div>${propio?'<div class="usuario-propio">Esta es tu cuenta. Tu propio rol está protegido.</div>':`<div class="usuario-acciones"><button class="usuario-hacer-admin" ${admin?"disabled":""} onclick="cambiarRolUsuario('${u.id}','admin')">👑 Hacer Admin</button><button class="usuario-hacer-empleado" ${!admin?"disabled":""} onclick="cambiarRolUsuario('${u.id}','employee')">👤 Hacer Empleado</button></div>`}</div>`}).join(""):'<div class="sin-productos">No hay perfiles registrados.</div>'}
 async function cambiarRolUsuario(id,rol){if(rolSesion!=="admin")return alert("Acceso denegado.");if(!confirm("¿Cambiar esta cuenta a "+(rol==="admin"?"Administrador":"Empleado")+"?"))return;const {error}=await flkSupabase.rpc("admin_set_user_role",{target_user:id,new_role:rol});if(error)return alert("No se pudo cambiar el rol: "+error.message);await cargarUsuariosAdmin();alert("Rol actualizado correctamente.")}
 function mostrarUsuarios(){if(rolSesion!=="admin")return alert("Esta sección es solo para Administradores.");["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});document.getElementById("vistaUsuarios").style.display="block";actualizarMenu("usuarios");cargarUsuariosAdmin();scrollTop()}
 function abrirMenuPrincipal(){document.getElementById("menuPrincipalFondo").classList.add("visible")}
@@ -1949,7 +1975,7 @@ async function cargarInventarioSupabase(){
  const {data:cloud,error}=await flkSupabase.from("products").select("*").eq("active",true).order("created_at",{ascending:true});
  if(error){
   console.error("Supabase inventario:",error);
-  alert("No se pudo cargar el inventario de Supabase. Se conserva la copia local.");
+  if(!flkSilenciarSiEsConexion(error))alert("No se pudo cargar el inventario de Supabase.");
   return false
  }
 
@@ -2143,7 +2169,7 @@ async function cargarHistorialSupabase(){
   .order("created_at",{ascending:false});
  if(error){
   console.error("Supabase historial:",error);
-  alert("No se pudo cargar el historial desde Supabase.");
+  if(!flkSilenciarSiEsConexion(error))alert("No se pudo cargar el historial desde Supabase.");
   return false;
  }
  historial=(data||[]).map(movimientoDesdeSupabase);
@@ -2181,7 +2207,7 @@ async function cargarGastosSupabase(){
  let {data:cloud,error}=await flkSupabase.from("expenses").select("*").order("expense_date",{ascending:false}).order("created_at",{ascending:false});
  if(error){
   console.error("Supabase gastos:",error);
-  alert("No se pudieron cargar los gastos de Supabase. Se conserva la copia local.");
+  if(!flkSilenciarSiEsConexion(error))alert("No se pudieron cargar los gastos de Supabase.");
   return false;
  }
 
@@ -2366,7 +2392,7 @@ document.getElementById("formularioProducto").addEventListener("submit",async e=
   }
   await cargarHistorialSupabase();
   guardarDatos();mostrarProductos();actualizarEstadisticas();cerrarFormulario();
- }catch(err){console.error(err);alert("Supabase rechazó el cambio: "+(err.message||err))}
+ }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el cambio: "+(err.message||err))}
  finally{procesandoGuardado=false}
 });
 function abrirMovimiento(id,tipo){
@@ -2393,7 +2419,7 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
   }
   guardarDatos();mostrarProductos();actualizarEstadisticas();cerrarMovimiento();
   if(!navigator.onLine)alert("Movimiento guardado localmente. Se sincronizará cuando regrese Internet.");
- }catch(err){console.error(err);alert("Supabase rechazó el movimiento: "+(err.message||err))}
+ }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el movimiento: "+(err.message||err))}
  finally{procesandoGuardado=false}
 });
 async function eliminarProducto(id){
@@ -2402,7 +2428,7 @@ async function eliminarProducto(id){
  try{
   if(p.supabaseId){const {error}=await flkSupabase.from("products").delete().eq("id",p.supabaseId);if(error)throw error}
   productos=productos.filter(x=>x.id!==id);guardarDatos();mostrarProductos();actualizarEstadisticas();
- }catch(err){console.error(err);alert("Supabase no permitió eliminar el producto: "+(err.message||err))}
+ }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase no permitió eliminar el producto: "+(err.message||err))}
 }
 
 function mostrarProductos(){
@@ -2544,7 +2570,7 @@ async function cargarVentasSupabase(){
   .order("created_at",{ascending:false});
 
  let {data:cloud,error}=await consulta();
- if(error){console.error("Supabase ventas:",error);alert("No se pudieron cargar las ventas de Supabase. Se conserva la copia local.");return false}
+ if(error){console.error("Supabase ventas:",error);if(!flkSilenciarSiEsConexion(error))alert("No se pudieron cargar las ventas de Supabase.");return false}
 
  if(rolSesion==="admin" && locales.length){
   const existentes=new Set((cloud||[]).map(v=>String(v.legacy_id||"")).filter(Boolean));
@@ -2692,7 +2718,7 @@ Productos: ${items.length}
 Unidades: ${cantidad}
 Total: $${ingreso.toFixed(2)}${saldo>0?`
 Saldo pendiente: $${saldo.toFixed(2)}`:""}`)
- }catch(err){console.error(err);alert("Supabase rechazó la venta: "+(err.message||err))}
+ }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó la venta: "+(err.message||err))}
  finally{procesandoGuardado=false}
 });
 function esMismoDia(fechaA,fechaB){const a=new Date(fechaA),b=new Date(fechaB);return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
@@ -2862,7 +2888,7 @@ document.getElementById("formularioDevolucion").addEventListener("submit",async 
   alert("✅ Devolución guardada en Supabase. El inventario, el recibo y el saldo fueron actualizados.");
  }catch(err){
   console.error(err);
-  alert("Supabase rechazó la devolución: "+(err.message||err))
+  if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó la devolución: "+(err.message||err))
  }finally{procesandoGuardado=false}
 });
 
@@ -2908,7 +2934,7 @@ document.getElementById("formularioAbono").addEventListener("submit",async e=>{
   const actualizado=ventas.find(x=>x.supabaseId===v.supabaseId);
   cerrarAbono();
   alert(actualizado&&actualizado.saldo<=0?"✅ Cuenta pagada completamente.":`Abono guardado en Supabase.\n\nSaldo pendiente: $${Number(actualizado?.saldo||0).toFixed(2)}`);
- }catch(err){console.error(err);alert("Supabase rechazó el abono: "+(err.message||err))}
+ }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el abono: "+(err.message||err))}
  finally{procesandoGuardado=false}
 });
 function verHistorialAbonos(id){const v=ventas.find(x=>x.id===id);if(!v)return;normalizarCuentaVenta(v);const pagos=[...pagosDeVenta(v)].sort((a,b)=>new Date(b.fecha||0)-new Date(a.fecha||0)||Number(b.id||0)-Number(a.id||0)),numero=v.numero||String(v.id).slice(-8);document.getElementById("textoHistorialAbonos").textContent=`Recibo #${numero} · ${v.cliente||"Cliente general"} · ${pagos.length} abono(s)`;const lista=document.getElementById("listaHistorialAbonos");lista.innerHTML=pagos.length?pagos.map((p,n)=>{const f=new Date(p.fecha);return `<div class="abono-card"><div class="abono-superior"><strong>Abono #${pagos.length-n}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}<br>Método: <strong>${escapeHtml(p.metodo||"No indicado")}</strong><br>Saldo anterior: <strong>$${Number(p.saldoAnterior??0).toFixed(2)}</strong><br>Saldo restante: <strong>$${Number(p.saldoRestante??0).toFixed(2)}</strong>${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><button type="button" class="boton-comprobante" onclick="generarComprobanteAbono(${v.id},${p.id})">🧾 Ver comprobante</button></div>`}).join(""):'<div class="sin-productos">Este recibo todavía no tiene abonos registrados.</div>';document.getElementById("modalHistorialAbonos").classList.add("visible")}
@@ -3067,7 +3093,7 @@ document.getElementById("formularioGasto").addEventListener("submit",async e=>{
   alert(estabaEditando?"Gasto actualizado en Supabase.":"Gasto guardado en Supabase.");
  }catch(err){
   console.error(err);
-  alert("Supabase rechazó el gasto: "+(err.message||err));
+  if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el gasto: "+(err.message||err));
  }finally{procesandoGuardado=false}
 });
 async function eliminarGasto(id){
@@ -3093,7 +3119,7 @@ async function eliminarGasto(id){
   const {error}=await flkSupabase.rpc("flk_delete_expense",{p_expense_id:g.supabaseId});
   if(error)throw error;
   await cargarGastosSupabase();
- }catch(err){console.error(err);alert("Supabase no permitió eliminar el gasto: "+(err.message||err))}
+ }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase no permitió eliminar el gasto: "+(err.message||err))}
 }
 function fechaGastoObj(g){return new Date((g.fechaLocal||String(g.fecha||"").slice(0,10))+"T12:00:00")}
 function actualizarFiltrosGastos(){
@@ -3159,7 +3185,7 @@ async function guardarCierreHoy(){
   if(error)throw error;
   await cargarCierresSupabase();actualizarCierre();
   alert(existente?"Cierre actualizado en Supabase.":"Cierre de caja guardado en Supabase.");
- }catch(err){console.error(err);alert("Supabase rechazó el cierre: "+(err.message||err))}
+ }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el cierre: "+(err.message||err))}
 }
 
 function mostrarListaCierres(){const lista=document.getElementById("listaCierres"),arr=[...cierres].sort((a,b)=>String(b.fechaLocal).localeCompare(String(a.fechaLocal)));if(!arr.length){lista.innerHTML='<div class="sin-productos">Todavía no hay cierres guardados.</div>';return}lista.innerHTML=arr.map(c=>{const f=new Date(c.fechaLocal+"T12:00:00");return `<div class="cierre-card"><div class="venta-superior"><div><h3>Cierre · ${f.toLocaleDateString("es-PR")}</h3><p>Guardado ${new Date(c.guardado||Date.now()).toLocaleString("es-PR")}</p></div><div class="cierre-total">${formatoDineroCierre(c.gananciaNeta)}</div></div><div class="cierre-detalle">Ventas: <strong>${formatoDineroCierre(c.ventasTotal)}</strong> · Gastos: <strong>${formatoDineroCierre(c.gastosTotal)}</strong><br>Ganancia bruta: <strong>${formatoDineroCierre(c.gananciaBruta)}</strong> · Ganancia neta: <strong>${formatoDineroCierre(c.gananciaNeta)}</strong><br>Cobrado: <strong>${formatoDineroCierre(c.cobrado)}</strong> · Efectivo neto: <strong>${formatoDineroCierre(c.efectivoNeto)}</strong><br>Efectivo: ${formatoDineroCierre(c.efectivo)} · ATH: ${formatoDineroCierre(c.ath)} · Tarjeta: ${formatoDineroCierre(c.tarjeta)} · Otros: ${formatoDineroCierre(c.otros)}<br>Crédito: ${formatoDineroCierre(c.credito)} · Saldo pendiente: ${formatoDineroCierre(c.saldoCredito)}</div><div class="cierre-acciones"><button class="boton-cierre" onclick="imprimirCierre(${c.id})">🧾 Ver / imprimir</button><button class="boton-cierre boton-cierre-peligro" onclick="eliminarCierre(${c.id})">🗑️ Eliminar</button></div></div>`}).join("")}
@@ -3174,7 +3200,7 @@ async function eliminarCierre(id){
   const {error}=await flkSupabase.from("cash_closures").delete().eq("id",c.supabaseId);
   if(error)throw error;
   await cargarCierresSupabase();actualizarCierre();
- }catch(err){console.error(err);alert("Supabase no permitió eliminar el cierre: "+(err.message||err))}
+ }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase no permitió eliminar el cierre: "+(err.message||err))}
 }
 async function mostrarCierre(){await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();await cargarCierresSupabase();["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaReportes","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaCierre").style.display="block";actualizarMenu("cierre");actualizarCierre();scrollTop()}
 
@@ -3340,7 +3366,7 @@ document.getElementById("formularioOrdenCompra").addEventListener("submit",async
   await cargarComprasSupabase();
   actualizarCentroAlertas();cerrarOrdenCompra();
   alert(actual?"Orden actualizada en Supabase.":"Orden creada en Supabase.");
- }catch(err){console.error(err);alert("Supabase rechazó la orden: "+(err.message||err))}
+ }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó la orden: "+(err.message||err))}
 });
 async function marcarOrdenada(id){
  const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida"||!o.supabaseId)return;
@@ -3348,7 +3374,7 @@ async function marcarOrdenada(id){
   const {error}=await flkSupabase.rpc("flk_mark_purchase_order_ordered",{p_order_id:o.supabaseId});
   if(error)throw error;
   await cargarComprasSupabase();
- }catch(err){console.error(err);alert("Supabase rechazó el cambio: "+(err.message||err))}
+ }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el cambio: "+(err.message||err))}
 }
 function actualizarCamposCreditoProveedor(){const credito=document.getElementById("condicionPagoProveedor").value==="credito";document.getElementById("campoAbonoProveedor").classList.toggle("visible",credito);document.getElementById("campoVencimientoProveedor").classList.toggle("visible",credito);if(credito&&!document.getElementById("fechaVencimientoProveedor").value){const d=new Date();d.setDate(d.getDate()+30);document.getElementById("fechaVencimientoProveedor").value=fechaLocalISO(d)}if(!credito){document.getElementById("abonoInicialProveedor").value="0";document.getElementById("fechaVencimientoProveedor").value=""}}
 function recibirOrden(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;const p=productos.find(x=>x.id===o.productoId);if(!p)return alert("El producto de esta orden ya no existe en el inventario.");ordenRecepcionId=id;document.getElementById("formularioRecepcionOrden").reset();document.getElementById("condicionPagoProveedor").value="pagado";document.getElementById("textoRecepcionOrden").textContent=`${numeroOrdenCompra(o)} · ${o.proveedor} · Total $${Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)).toFixed(2)}`;actualizarCamposCreditoProveedor();document.getElementById("modalRecepcionOrden").classList.add("visible")}
@@ -3381,7 +3407,7 @@ document.getElementById("formularioRecepcionOrden").addEventListener("submit",as
   cerrarRecepcionOrden();
   const actual=ordenesCompra.find(x=>x.supabaseId===o.supabaseId);
   alert(`Orden recibida en Supabase.\n\nNuevo inventario: ${Number(nuevoStock)}\nSaldo proveedor: $${Number(actual?.saldoProveedor||0).toFixed(2)}`);
- }catch(err){console.error(err);alert("Supabase rechazó la recepción: "+(err.message||err))}
+ }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó la recepción: "+(err.message||err))}
 });
 async function eliminarOrdenCompra(id){
  const o=ordenesCompra.find(x=>x.id===id);if(!o)return;
@@ -3392,7 +3418,7 @@ async function eliminarOrdenCompra(id){
   const {error}=await flkSupabase.rpc("flk_delete_purchase_order",{p_order_id:o.supabaseId});
   if(error)throw error;
   await cargarComprasSupabase();actualizarCentroAlertas();
- }catch(err){console.error(err);alert("Supabase no permitió eliminar la orden: "+(err.message||err))}
+ }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase no permitió eliminar la orden: "+(err.message||err))}
 }
 function actualizarFiltrosOrdenes(){const proveedores=[...new Set(ordenesCompra.map(o=>String(o.proveedor||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"})),sel=document.getElementById("filtroProveedorOrden"),prev=sel.value;sel.innerHTML='<option value="">Todos los proveedores</option>'+proveedores.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(proveedores.includes(prev))sel.value=prev}
 function mostrarListaOrdenes(){actualizarFiltrosOrdenes();const q=document.getElementById("busquedaOrdenes").value.toLowerCase().trim(),estado=document.getElementById("filtroEstadoOrden").value,proveedor=document.getElementById("filtroProveedorOrden").value,lista=document.getElementById("listaOrdenes");const arr=ordenesCompra.filter(o=>(!estado||o.estado===estado)&&(!proveedor||o.proveedor===proveedor)&&[o.nombre,o.sku,o.proveedor,numeroOrdenCompra(o)].some(v=>String(v||"").toLowerCase().includes(q)));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay órdenes de compra con esos filtros.</div>';return}lista.innerHTML=arr.map(o=>{const total=Number(o.cantidad||0)*Number(o.costoUnitario||0),estadoTexto=o.estado==="recibida"?"✅ Recibida":o.estado==="ordenada"?"🚚 Ordenada":"⏳ Pendiente",acciones=o.estado==="recibida"?'<div class="acciones-orden"><button class="boton-orden boton-orden-primario" onclick="mostrarHistorial()">📜 Ver historial</button></div>':`<div class="acciones-orden"><button class="boton-orden boton-orden-primario" onclick="editarOrdenCompra(${o.id})">✏️ Editar</button>${o.estado==="pendiente"?`<button class="boton-orden boton-orden-primario" onclick="marcarOrdenada(${o.id})">🚚 Ordenada</button>`:""}<button class="boton-orden boton-orden-recibir" onclick="recibirOrden(${o.id})">✅ Recibir</button><button class="boton-orden boton-orden-eliminar" onclick="eliminarOrdenCompra(${o.id})">🗑️ Eliminar</button></div>`;return `<div class="orden-card"><div class="orden-superior"><div><h3>${escapeHtml(o.nombre)}</h3><p>${numeroOrdenCompra(o)} · SKU: ${escapeHtml(o.sku||"")}</p></div><div class="orden-total">$${total.toFixed(2)}</div></div><span class="estado-orden ${o.estado}">${estadoTexto}</span><div class="orden-detalle">Proveedor: <strong>${escapeHtml(o.proveedor||"—")}</strong><br>Cantidad: <strong>${Number(o.cantidad||0)}</strong> · Costo/u.: <strong>$${Number(o.costoUnitario||0).toFixed(2)}</strong><br>Fecha orden: <strong>${o.fechaOrden?new Date(o.fechaOrden+"T00:00:00").toLocaleDateString("es-PR"):"—"}</strong>${o.fechaRecibida?`<br>Recibida: <strong>${new Date(o.fechaRecibida).toLocaleDateString("es-PR")}</strong>`:""}${o.nota?`<br>Nota: ${escapeHtml(o.nota)}`:""}</div>${acciones}</div>`}).join("")}
@@ -3424,7 +3450,7 @@ document.getElementById("formularioPagoProveedor").addEventListener("submit",asy
   actualizarFlujoCaja();actualizarFinanzas();cerrarPagoProveedor();
   const actual=ordenesCompra.find(x=>x.supabaseId===o.supabaseId);
   alert(`Pago guardado en Supabase.\n\nSaldo restante: $${Number(actual?.saldoProveedor||0).toFixed(2)}`);
- }catch(err){console.error(err);alert("Supabase rechazó el pago: "+(err.message||err))}
+ }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el pago: "+(err.message||err))}
 });
 function verHistorialPagosProveedor(id){const o=ordenesCompra.find(x=>x.id===id);if(!o)return;document.getElementById("textoHistorialPagosProveedor").textContent=`${o.proveedor} · ${numeroOrdenCompra(o)} · Total $${Number(o.costoTotal||0).toFixed(2)}`;const pagos=Array.isArray(o.pagosProveedor)?[...o.pagosProveedor].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)):[];document.getElementById("listaHistorialPagosProveedor").innerHTML=pagos.length?pagos.map(p=>`<div class="abono-card"><div class="abono-superior"><strong>${new Date(p.fecha).toLocaleString("es-PR")}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">Método: <strong>${escapeHtml(p.metodo||"—")}</strong><br>Saldo anterior: $${Number(p.saldoAnterior||0).toFixed(2)} · Restante: $${Number(p.saldoRestante||0).toFixed(2)}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div></div>`).join(""):'<div class="sin-productos">No hay pagos registrados.</div>';document.getElementById("modalHistorialPagosProveedor").classList.add("visible")}
 function cerrarHistorialPagosProveedor(){document.getElementById("modalHistorialPagosProveedor").classList.remove("visible")}
@@ -3442,7 +3468,7 @@ async function cargarMovimientosCajaSupabase(){
   .order("occurred_at",{ascending:true});
  if(error){
   console.error("Supabase flujo caja:",error);
-  alert("No se pudo cargar el flujo de caja desde Supabase.");
+  if(!flkSilenciarSiEsConexion(error))alert("No se pudo cargar el flujo de caja desde Supabase.");
   return false;
  }
  movimientosCajaSupabase=(data||[]).map(m=>({
@@ -3526,7 +3552,7 @@ document.getElementById("formularioMovimientoPropietario").addEventListener("sub
  if(!Number.isFinite(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
  if(tipo==="withdrawal"&&cantidad>saldoCajaFisicaActual()+0.009)return alert("El retiro supera el efectivo disponible en caja.");
  try{const {error}=await flkSupabase.rpc("flk_owner_cash_movement",{p_type:tipo,p_amount:cantidad,p_note:nota||null});if(error)throw error;await cargarMovimientosCajaSupabase();actualizarFlujoCaja();actualizarCierre();cerrarMovimientoPropietario();alert(tipo==="withdrawal"?"Retiro guardado en Supabase.":"Aporte guardado en Supabase.")}
- catch(err){console.error(err);alert("Supabase rechazó el movimiento: "+(err.message||err))}
+ catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el movimiento: "+(err.message||err))}
 });
 function actualizarFlujoCaja(){
  const d=datosFlujoCaja();if(!d)return;
@@ -3655,7 +3681,7 @@ async function guardarConfiguracionArrendamiento(){
  const {error}=await flkSupabase.rpc("flk_save_monthly_lease_setting",{
   p_month_start:fecha,p_mode:modo,p_value:valor
  });
- if(error)return alert("Supabase rechazó la configuración: "+error.message);
+ if(error){if(flkSilenciarSiEsConexion(error))return;return alert("Supabase rechazó la configuración: "+error.message)};
  await cargarConfiguracionesArrendamiento();
  alert("Arrendamiento mensual guardado en Supabase.")
 }
@@ -3733,7 +3759,7 @@ async function sincronizarYActualizarFinanzas(){
   actualizarEstadoContribucionArrendamiento();
  }catch(err){
   console.error("Sincronización Finanzas:",err);
-  alert("No se pudieron actualizar todos los datos financieros desde Supabase.")
+  if(navigator.onLine)alert("No se pudieron actualizar todos los datos financieros desde Supabase.")
  }
 }
 function actualizarFinanzas(){
@@ -3820,7 +3846,7 @@ async function sincronizarYActualizarEstadisticas(){
   actualizarEstadisticas();
  }catch(err){
   console.error("Sincronización Estadísticas:",err);
-  alert("No se pudieron actualizar todos los datos desde Supabase.")
+  if(navigator.onLine)alert("No se pudieron actualizar todos los datos desde Supabase.")
  }
 }
 function actualizarEstadisticas(){
