@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v51-roles-visual-real">
+<meta name="flackunloker-offline-version" content="2026-08-25-v52-roles-visual-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -966,8 +966,42 @@ body.es-propietario #menuPrincipalFondo #botonLicencias{display:flex!important}
 body:not(.es-propietario) #botonLicencias{display:none!important}
 </style>
 
+
+<style id="flk-client-activation-style">
+#flkActivacionLicencia{
+ display:none;position:fixed;inset:0;z-index:1000000;
+ background:rgba(8,18,35,.78);padding:20px;align-items:center;justify-content:center
+}
+#flkActivacionLicencia .flk-act-card{
+ width:min(460px,100%);background:#fff;border-radius:22px;padding:24px;
+ box-shadow:0 24px 70px rgba(0,0,0,.28)
+}
+#flkActivacionLicencia h2{margin:0 0 8px;text-align:center}
+#flkActivacionLicencia p{font-size:13px;line-height:1.5;color:#667085;text-align:center}
+#flkActivacionLicencia input{
+ width:100%;padding:13px;border:1px solid #ccd7e4;border-radius:12px;
+ font-size:16px;margin:10px 0
+}
+#flkActivacionLicencia button{
+ width:100%;padding:13px;border:0;border-radius:12px;background:#0a84ff;
+ color:#fff;font-weight:800;cursor:pointer
+}
+#flkActivacionEstado{margin-top:10px;font-size:12px;text-align:center;color:#667085}
+</style>
+
 </head>
 <body>
+
+<div id="flkActivacionLicencia">
+ <div class="flk-act-card">
+  <h2>🔑 Activar Flackunloker</h2>
+  <p>Introduce la clave de licencia entregada por el propietario del software. Esta licencia quedará vinculada a este dispositivo.</p>
+  <input id="flkClaveActivacion" type="text" autocomplete="off" spellcheck="false" placeholder="Clave de licencia">
+  <button id="flkBotonActivarCliente" type="button" onclick="flkActivarLicenciaCliente()">Activar licencia</button>
+  <div id="flkActivacionEstado"></div>
+ </div>
+</div>
+
 
 <div id="flkLicenciaBloqueo" aria-hidden="true">
  <div class="lic-bloqueo-card">
@@ -1672,6 +1706,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
    <button class="lic-suspender" id="licBotonSuspender" type="button" onclick="cambiarEstadoLicenciaPropietario('suspended')">⛔ Suspender</button>
    <button class="lic-activar" id="licBotonActivar" type="button" onclick="cambiarEstadoLicenciaPropietario('active')">✅ Reactivar</button>
    <button class="lic-suspender" type="button" onclick="liberarDispositivoLicencia()">🖥️ Liberar dispositivo</button>
+   <button class="lic-renovar" type="button" onclick="flkPrepararActivacionCliente()">🔑 Probar activación cliente</button>
   </div>
 
   <div class="lic-aviso">
@@ -2650,7 +2685,9 @@ const flkSupabase=window.supabase.createClient(FLK_SUPABASE_URL,FLK_SUPABASE_KEY
 let modoAuth="login";
 let rolSesion="employee";
 let flkSesionActiva=false;
-const FLK_LICENSE_KEY="228b72e9-88dd-4c6b-91a1-4a98ff488d0c";
+const FLK_OWNER_LICENSE_KEY="228b72e9-88dd-4c6b-91a1-4a98ff488d0c";
+const FLK_CLIENT_LICENSE_KEY_STORAGE="flackunloker_client_license_key_v1";
+let FLK_LICENSE_KEY=localStorage.getItem(FLK_CLIENT_LICENSE_KEY_STORAGE)||FLK_OWNER_LICENSE_KEY;
 const FLK_LICENSE_CACHE_KEY="flackunloker_license_cache_v1";
 const FLK_DEVICE_ID_KEY="flackunloker_device_id_v1";
 let flkLicenciaInfo=null;
@@ -3172,6 +3209,69 @@ document.getElementById("formularioNuevaPassword")?.addEventListener("submit",as
 
 
 
+
+function flkMostrarActivacionCliente(mensaje=""){
+ const box=document.getElementById("flkActivacionLicencia");
+ if(box)box.style.display="flex";
+ const estado=document.getElementById("flkActivacionEstado");
+ if(estado)estado.textContent=mensaje;
+}
+
+function flkOcultarActivacionCliente(){
+ const box=document.getElementById("flkActivacionLicencia");
+ if(box)box.style.display="none";
+}
+
+async function flkActivarLicenciaCliente(){
+ if(!navigator.onLine){
+  return flkMostrarActivacionCliente("Debes estar conectado a Internet para activar una licencia por primera vez.");
+ }
+ const input=document.getElementById("flkClaveActivacion");
+ const boton=document.getElementById("flkBotonActivarCliente");
+ const estado=document.getElementById("flkActivacionEstado");
+ const clave=(input?.value||"").trim();
+ if(!clave)return alert("Introduce la clave de licencia.");
+
+ const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+ if(!uuid.test(clave))return alert("La clave de licencia no tiene un formato válido.");
+
+ try{
+  if(boton){boton.disabled=true;boton.textContent="Activando…"}
+  if(estado)estado.textContent="Comprobando licencia con el servidor…";
+
+  const deviceId=flkObtenerDeviceId();
+  const {data,error}=await flkSupabase.rpc("flk_activate_license_device",{
+   p_license_key:clave,
+   p_device_id:deviceId
+  });
+  if(error)throw error;
+  const info=Array.isArray(data)?data[0]:data;
+  if(!info)throw new Error("No se recibió respuesta del servidor.");
+
+  if(!info.valid){
+   const motivo=String(info.license_status||info.device_status||"");
+   if(motivo==="device_mismatch"||info.device_status==="different_device")
+    throw new Error("Esta licencia está vinculada a otro dispositivo.");
+   if(motivo==="expired")throw new Error("Esta licencia está vencida.");
+   if(motivo==="suspended")throw new Error("Esta licencia está suspendida.");
+   throw new Error(info.reason||"La licencia no es válida.");
+  }
+
+  localStorage.setItem(FLK_CLIENT_LICENSE_KEY_STORAGE,clave);
+  FLK_LICENSE_KEY=clave;
+  flkLicenciaInfo=info;
+  flkGuardarCacheLicencia(info);
+  flkOcultarActivacionCliente();
+  alert("Licencia activada correctamente en este dispositivo.");
+  await flkValidarLicencia();
+ }catch(err){
+  console.error("Activación cliente:",err);
+  if(estado)estado.textContent=err?.message||"No se pudo activar la licencia.";
+ }finally{
+  if(boton){boton.disabled=false;boton.textContent="Activar licencia"}
+ }
+}
+
 function flkObtenerDeviceId(){
  try{
   let id=localStorage.getItem(FLK_DEVICE_ID_KEY);
@@ -3612,6 +3712,14 @@ async function renovarLicenciaPropietario(){
  }
 }
 
+
+
+function flkPrepararActivacionCliente(){
+ if(!flkEsPropietarioSoftware)return alert("Solo el propietario puede iniciar esta prueba.");
+ if(!confirm("Esto mostrará la pantalla de activación en este navegador. Tu licencia propietaria no se elimina. ¿Continuar?"))return;
+ localStorage.removeItem(FLK_CLIENT_LICENSE_KEY_STORAGE);
+ flkMostrarActivacionCliente("Modo de prueba: introduce una licencia de tercero.");
+}
 
 async function liberarDispositivoLicencia(){
  if(!flkEsPropietarioSoftware)return alert("Solo el propietario puede liberar dispositivos.");
