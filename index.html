@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v32-roles-visual-real">
+<meta name="flackunloker-offline-version" content="2026-08-25-v33-roles-visual-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2651,6 +2651,10 @@ async function mostrarAppConSesion(session){
 }
 async function cerrarSesionFlackunloker(){
  flkSesionActiva=false;
+ rolSesion="employee";
+ document.body.classList.add("rol-empleado");
+ document.body.classList.remove("rol-admin");
+ const fondo=document.getElementById("menuPrincipalFondo");if(fondo)fondo.classList.remove("visible");
  flkLimpiarSesionLocal();
  if(navigator.onLine){
   try{await flkSupabase.auth.signOut()}catch(e){}
@@ -2706,8 +2710,8 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
 })();
 
 
-async function cargarUsuariosAdmin(){const lista=document.getElementById("listaUsuariosAdmin");if(rolSesion!=="admin"){lista.innerHTML='<div class="sin-productos">Acceso reservado al Administrador.</div>';return}if(!navigator.onLine){lista.innerHTML='<div class="sin-productos">Usuarios disponibles cuando vuelva la conexión.</div>';flkActualizarEstadoConexion();return}lista.innerHTML='<div class="sin-productos">Cargando usuarios...</div>';const {data,error}=await flkSupabase.from("profiles").select("id,email,full_name,role,created_at").order("created_at",{ascending:true});if(error){if(flkSilenciarSiEsConexion(error)){lista.innerHTML='<div class="sin-productos">Usuarios disponibles cuando vuelva la conexión.</div>';return}lista.innerHTML='<div class="sin-productos">No se pudieron cargar los usuarios: '+escapeHtml(error.message)+'</div>';return}const {data:ses}=await flkSupabase.auth.getSession(),miId=ses?.session?.user?.id||"";lista.innerHTML=data?.length?data.map(u=>{const propio=u.id===miId,admin=u.role==="admin";return `<div class="usuario-card"><div class="usuario-superior"><div><h3>${escapeHtml(u.full_name||u.email||"Usuario")}</h3><p>${escapeHtml(u.email||"")}</p></div><span class="usuario-rol ${admin?"admin":"employee"}">${admin?"👑 Administrador":"👤 Empleado"}</span></div>${propio?'<div class="usuario-propio">Esta es tu cuenta. Tu propio rol está protegido.</div>':`<div class="usuario-acciones"><button class="usuario-hacer-admin" ${admin?"disabled":""} onclick="cambiarRolUsuario('${u.id}','admin')">👑 Hacer Admin</button><button class="usuario-hacer-empleado" ${!admin?"disabled":""} onclick="cambiarRolUsuario('${u.id}','employee')">👤 Hacer Empleado</button></div>`}</div>`}).join(""):'<div class="sin-productos">No hay perfiles registrados.</div>'}
-async function cambiarRolUsuario(id,rol){if(rolSesion!=="admin")return alert("Acceso denegado.");if(!confirm("¿Cambiar esta cuenta a "+(rol==="admin"?"Administrador":"Empleado")+"?"))return;const {error}=await flkSupabase.rpc("admin_set_user_role",{target_user:id,new_role:rol});if(error)return alert("No se pudo cambiar el rol: "+error.message);await cargarUsuariosAdmin();alert("Rol actualizado correctamente.")}
+async function cargarUsuariosAdmin(){const lista=document.getElementById("listaUsuariosAdmin");if(rolSesion!=="admin"){lista.innerHTML='<div class="sin-productos">Acceso reservado al Administrador.</div>';return}if(!navigator.onLine){lista.innerHTML='<div class="sin-productos">Usuarios disponibles cuando vuelva la conexión.</div>';flkActualizarEstadoConexion();return}lista.innerHTML='<div class="sin-productos">Cargando usuarios...</div>';const {data,error}=await flkSupabase.from("profiles").select("id,email,full_name,role,created_at").order("created_at",{ascending:true});if(error){if(!flkSesionActiva)return;if(flkSilenciarSiEsConexion(error)){lista.innerHTML='<div class="sin-productos">Usuarios disponibles cuando vuelva la conexión.</div>';return}lista.innerHTML='<div class="sin-productos">No se pudieron cargar los usuarios: '+escapeHtml(error.message)+'</div>';return}const {data:ses}=await flkSupabase.auth.getSession(),miId=ses?.session?.user?.id||"";lista.innerHTML=data?.length?data.map(u=>{const propio=u.id===miId,admin=u.role==="admin";return `<div class="usuario-card"><div class="usuario-superior"><div><h3>${escapeHtml(u.full_name||u.email||"Usuario")}</h3><p>${escapeHtml(u.email||"")}</p></div><span class="usuario-rol ${admin?"admin":"employee"}">${admin?"👑 Administrador":"👤 Empleado"}</span></div>${propio?'<div class="usuario-propio">Esta es tu cuenta. Tu propio rol está protegido.</div>':`<div class="usuario-acciones"><button class="usuario-hacer-admin" ${admin?"disabled":""} onclick="cambiarRolUsuario('${u.id}','admin')">👑 Hacer Admin</button><button class="usuario-hacer-empleado" ${!admin?"disabled":""} onclick="cambiarRolUsuario('${u.id}','employee')">👤 Hacer Empleado</button></div>`}</div>`}).join(""):'<div class="sin-productos">No hay perfiles registrados.</div>'}
+async function cambiarRolUsuario(id,rol){if(rolSesion!=="admin")return alert("Acceso denegado.");if(!confirm("¿Cambiar esta cuenta a "+(rol==="admin"?"Administrador":"Empleado")+"?"))return;const {error}=await flkSupabase.rpc("admin_set_user_role",{target_user:id,new_role:rol});if(error){if(!flkSesionActiva)return;if(flkDebeMostrarErrorNube(error))return alert("No se pudo cambiar el rol: "+error.message);return;}await cargarUsuariosAdmin();alert("Rol actualizado correctamente.")}
 function mostrarUsuarios(){
  if(!requiereAdmin())return;
  if(rolSesion!=="admin")return alert("Esta sección es solo para Administradores.");
@@ -3039,9 +3043,10 @@ async function cargarGastosSupabase(){
  }
  const locales=Array.isArray(gastos)?[...gastos]:[];
  let {data:cloud,error}=await flkSupabase.from("expenses").select("*").order("expense_date",{ascending:false}).order("created_at",{ascending:false});
+ if(!flkSesionActiva)return false;
  if(error){
   console.error("Supabase gastos:",error);
-  if(!flkSilenciarSiEsConexion(error))alert("No se pudieron cargar los gastos de Supabase.");
+  if(flkDebeMostrarErrorNube(error))alert("No se pudieron cargar los gastos de Supabase.");
   return false;
  }
 
@@ -3418,7 +3423,8 @@ async function cargarVentasSupabase(){
   .order("created_at",{ascending:false});
 
  let {data:cloud,error}=await consulta();
- if(error){console.error("Supabase ventas:",error);if(!flkSilenciarSiEsConexion(error))alert("No se pudieron cargar las ventas de Supabase.");return false}
+ if(!flkSesionActiva)return false;
+ if(error){console.error("Supabase ventas:",error);if(flkDebeMostrarErrorNube(error))alert("No se pudieron cargar las ventas de Supabase.");return false}
 
  if(rolSesion==="admin" && locales.length){
   const existentesLegacy=new Set((cloud||[]).map(v=>String(v.legacy_id||"")).filter(Boolean));
@@ -4727,7 +4733,7 @@ async function sincronizarYActualizarFinanzas(){
   actualizarEstadoContribucionArrendamiento();
  }catch(err){
   console.error("Sincronización Finanzas:",err);
-  if(navigator.onLine)alert("No se pudieron actualizar todos los datos financieros desde Supabase.")
+  if(navigator.onLine&&flkSesionActiva)alert("No se pudieron actualizar todos los datos financieros desde Supabase.")
  }
 }
 function actualizarFinanzas(){
@@ -4958,7 +4964,7 @@ async function sincronizarYActualizarAlertas(){
   actualizarCentroAlertas();
  }catch(err){
   console.error("Sincronización Alertas:",err);
-  alert("No se pudieron actualizar todas las alertas desde Supabase.")
+  if(flkSesionActiva)alert("No se pudieron actualizar todas las alertas desde Supabase.")
  }
 }
 function actualizarCentroAlertas(){
@@ -5002,7 +5008,7 @@ async function sincronizarYActualizarEstadisticas(){
   actualizarEstadisticas();
  }catch(err){
   console.error("Sincronización Estadísticas:",err);
-  if(navigator.onLine)alert("No se pudieron actualizar todos los datos desde Supabase.")
+  if(navigator.onLine&&flkSesionActiva)alert("No se pudieron actualizar todos los datos desde Supabase.")
  }
 }
 function actualizarEstadisticas(){
@@ -5080,6 +5086,11 @@ document.getElementById("modalEditarMovimiento").addEventListener("click",e=>{if
 
 
 /* ===== BLOQUEO FUNCIONAL PARA EMPLEADOS ===== */
+
+function flkDebeMostrarErrorNube(error){
+  return !!flkSesionActiva && !flkSilenciarSiEsConexion(error);
+}
+
 function requiereAdmin(accion){
  if(rolSesion==="admin")return true;
  alert("🔒 "+(accion||"Esta acción")+" está reservada al Administrador.");
