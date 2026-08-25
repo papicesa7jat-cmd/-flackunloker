@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v25-stock-reconciliado">
+<meta name="flackunloker-offline-version" content="2026-08-25-v26-offline-stock-unico">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1389,7 +1389,19 @@ function flkDeviceId(){
  return id
 }
 function flkColaOffline(){
- try{return JSON.parse(localStorage.getItem(FLK_OFFLINE_QUEUE_KEY)||"[]")}catch(e){return []}
+ try{
+  const q=JSON.parse(localStorage.getItem(FLK_OFFLINE_QUEUE_KEY)||"[]");
+  if(!Array.isArray(q))return [];
+  let cambio=false;
+  q.forEach(op=>{
+   if((op.tipo==="stock_adjustment"||op.tipo==="sale")&&op.payload&&op.payload.local_applied===undefined){
+    op.payload.local_applied=true;
+    cambio=true;
+   }
+  });
+  if(cambio)localStorage.setItem(FLK_OFFLINE_QUEUE_KEY,JSON.stringify(q));
+  return q;
+ }catch(e){return []}
 }
 function flkGuardarColaOffline(q){
  localStorage.setItem(FLK_OFFLINE_QUEUE_KEY,JSON.stringify(q));
@@ -1866,18 +1878,14 @@ function flkAplicarPendientesSobreDatos(){
  const q=flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado));
  for(const op of q){
   if(op.tipo==="stock_adjustment"){
-   if(!navigator.onLine){
-    const p=productos.find(x=>x.supabaseId===op.payload?.product_id || x.offlineCreateOperationId===op.payload?.product_operation_id);
-    if(p)p.cantidad=Number(p.cantidad||0)+Number(op.payload?.delta||0)
-   }
+   // NO modificar cantidad aquí.
+   // La Entrada/Salida ya fue aplicada y persistida localmente cuando el usuario la guardó.
+   // Esta operación permanece en cola únicamente para sincronizarla con Supabase.
   }
   if(op.tipo==="sale"){
-   if(!navigator.onLine){
-    for(const i of (op.payload?.items||[])){
-     const p=productos.find(x=>x.supabaseId===i.product_id || x.offlineCreateOperationId===i.product_operation_id);
-     if(p)p.cantidad=Number(p.cantidad||0)-Number(i.quantity||0)
-    }
-   }
+   // NO descontar inventario aquí.
+   // La venta offline ya descontó y guardó el stock local al registrarse.
+   // Solo reconstruimos la tarjeta de venta si por alguna razón falta.
    const v=flkVentaLocalDesdeOperacion(op);
    if(v&&!ventas.some(x=>x.offlineOperationId===op.id))ventas.unshift(v)
   }
@@ -2836,7 +2844,15 @@ async function ajustarStockSupabase(p,delta,tipo,nota=""){
  if(!navigator.onLine||!p.supabaseId){
   const nuevo=Number(p.cantidad||0)+Number(delta);
   if(nuevo<0)throw new Error("Inventario insuficiente para "+p.nombre);
-  flkEncolarOperacion("stock_adjustment",{product_id:p.supabaseId||null,product_operation_id:p.offlineCreateOperationId||null,local_product_id:p.id,delta:Number(delta),type:tipo,note:nota||"Movimiento manual offline"});
+  flkEncolarOperacion("stock_adjustment",{
+   product_id:p.supabaseId||null,
+   product_operation_id:p.offlineCreateOperationId||null,
+   local_product_id:p.id,
+   delta:Number(delta),
+   type:tipo,
+   note:nota||"Movimiento manual offline",
+   local_applied:true
+  });
   return nuevo
  }
  const {data,error}=await flkSupabase.rpc("adjust_product_stock",{p_product_id:p.supabaseId,p_delta:Number(delta),p_type:tipo,p_note:nota||null});
