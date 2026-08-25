@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v8">
+<meta name="flackunloker-offline-version" content="2026-08-25-v27-calculos-offline-unicos">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -592,6 +592,7 @@ button:active{transform:none!important}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
 <style>
@@ -1158,7 +1159,6 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="fila-estadistica"><span>Margen neto sobre ventas</span><strong id="finMargenNeto">0.0%</strong></div>
 <div class="fila-estadistica"><span>Relación por cobrar / por pagar</span><strong id="finRelacion">—</strong></div>
 </div>
-</div>
 
 <div id="vistaEstadisticas" style="display:none">
 <div class="seccion-titulo"><h2>📊 Estadísticas</h2></div>
@@ -1178,6 +1178,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="respaldo-box"><h3>Respaldo y restauración</h3><p>Guarda una copia de tus productos, stock mínimo e historial para poder recuperarlos posteriormente.</p><div class="botones-respaldo"><button class="boton-respaldo boton-crear-respaldo" onclick="crearRespaldo()">💾 Crear respaldo</button><button class="boton-respaldo boton-restaurar-respaldo" onclick="seleccionarRespaldo()">📥 Restaurar respaldo</button></div><input id="archivoRespaldo" type="file" accept=".json,application/json" style="display:none" onchange="restaurarRespaldo(event)"><div id="estadoRespaldo" class="estado-respaldo"></div></div>
 </div>
 </div>
+
 
 <div class="modal" id="modalProducto">
 <form class="formulario" id="formularioProducto">
@@ -1387,8 +1388,34 @@ function flkDeviceId(){
  if(!id){id=flkUUID();localStorage.setItem(FLK_DEVICE_KEY,id)}
  return id
 }
+const FLK_OPERACIONES_LOCAL_FIRST=new Set([
+ "product_save","product_delete","stock_adjustment","sale","sale_payment","sale_return",
+ "expense_save","expense_delete","supplier_save","purchase_order_save",
+ "purchase_order_ordered","purchase_order_receive","supplier_payment",
+ "owner_cash_movement","cash_closure_save","cash_closure_delete"
+]);
+
 function flkColaOffline(){
- try{return JSON.parse(localStorage.getItem(FLK_OFFLINE_QUEUE_KEY)||"[]")}catch(e){return []}
+ try{
+  const q=JSON.parse(localStorage.getItem(FLK_OFFLINE_QUEUE_KEY)||"[]");
+  if(!Array.isArray(q))return [];
+  let cambio=false;
+
+  // Las operaciones de la arquitectura actual ya modificaron y guardaron
+  // la copia local al momento de crearse. Normalizar también colas antiguas.
+  q.forEach(op=>{
+   if(FLK_OPERACIONES_LOCAL_FIRST.has(op.tipo)){
+    if(!op.payload||typeof op.payload!=="object")op.payload={};
+    if(op.payload.local_applied!==true){
+     op.payload.local_applied=true;
+     cambio=true;
+    }
+   }
+  });
+
+  if(cambio)localStorage.setItem(FLK_OFFLINE_QUEUE_KEY,JSON.stringify(q));
+  return q;
+ }catch(e){return []}
 }
 function flkGuardarColaOffline(q){
  localStorage.setItem(FLK_OFFLINE_QUEUE_KEY,JSON.stringify(q));
@@ -1396,7 +1423,9 @@ function flkGuardarColaOffline(q){
 }
 function flkEncolarOperacion(tipo,payload){
  const q=flkColaOffline();
- const op={id:flkUUID(),tipo,payload,device_id:flkDeviceId(),created_at:new Date().toISOString(),estado:"pendiente",intentos:0};
+ const datos=(payload&&typeof payload==="object")?{...payload}:{};
+ if(FLK_OPERACIONES_LOCAL_FIRST.has(tipo))datos.local_applied=true;
+ const op={id:flkUUID(),tipo,payload:datos,device_id:flkDeviceId(),created_at:new Date().toISOString(),estado:"pendiente",intentos:0};
  q.push(op);flkGuardarColaOffline(q);return op
 }
 function flkPendientesOffline(){
@@ -1604,9 +1633,9 @@ function flkAplicarDevolucionLocal(op){
   fecha:op.created_at||new Date().toISOString()
  });
 
- if(prod){
+ if(prod&&!historial.some(h=>h.offlineOperationId===op.id)){
   historial.unshift({
-   id:Date.now()+Math.floor(Math.random()*100000),
+   id:Date.now()+Math.floor(Math.random()*100000),offlineOperationId:op.id,
    productoId:prod.id,nombre:prod.nombre,sku:prod.sku,tipo:"entrada",
    cantidad:aplicada,saldo:Number(prod.cantidad||0),
    fecha:op.created_at||new Date().toISOString(),
@@ -1733,11 +1762,14 @@ function flkAplicarRecepcionOrdenLocal(op){
    nota:saldo>0?"Abono inicial":"Pago al recibir",saldoAnterior:total,saldoRestante:saldo
   })
  }
- historial.unshift({
-  id:Date.now()+Math.floor(Math.random()*100000),productoId:prod.id,nombre:prod.nombre,sku:prod.sku,
-  tipo:"entrada",cantidad,saldo:nuevoStock,fecha:op.created_at||new Date().toISOString(),
-  detalle:"🟠 Recepción de compra pendiente de sincronización"
- });
+ if(!historial.some(h=>h.offlineOperationId===op.id)){
+  historial.unshift({
+   id:Date.now()+Math.floor(Math.random()*100000),offlineOperationId:op.id,
+   productoId:prod.id,nombre:prod.nombre,sku:prod.sku,
+   tipo:"entrada",cantidad,saldo:nuevoStock,fecha:op.created_at||new Date().toISOString(),
+   detalle:"🟠 Recepción de compra pendiente de sincronización"
+  });
+ }
  return true
 }
 
@@ -1850,7 +1882,7 @@ function flkAplicarProductoLocal(op){
  if(actual){
   const stockActual=Number(actual.cantidad||0);
   Object.assign(actual,d);
-  actual.cantidad=Number(op.payload?.local_stock??stockActual);
+  actual.cantidad=navigator.onLine?stockActual:Number(op.payload?.local_stock??stockActual);
   if(!actual.offlineCreateOperationId)actual.offlineCreateOperationId=d.offlineCreateOperationId;
  }else productos.push(d);
  return true
@@ -1864,15 +1896,18 @@ function flkAplicarEliminarProductoLocal(op){
 function flkAplicarPendientesSobreDatos(){
  const q=flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado));
  for(const op of q){
+  // Regla V27: si ya fue aplicada y persistida localmente, la cola NO la ejecuta otra vez.
+  // La operación queda pendiente exclusivamente para subirla a Supabase.
+  if(op.payload?.local_applied===true)continue;
   if(op.tipo==="stock_adjustment"){
-   const p=productos.find(x=>x.supabaseId===op.payload?.product_id);
-   if(p)p.cantidad=Number(p.cantidad||0)+Number(op.payload?.delta||0)
+   // NO modificar cantidad aquí.
+   // La Entrada/Salida ya fue aplicada y persistida localmente cuando el usuario la guardó.
+   // Esta operación permanece en cola únicamente para sincronizarla con Supabase.
   }
   if(op.tipo==="sale"){
-   for(const i of (op.payload?.items||[])){
-    const p=productos.find(x=>x.supabaseId===i.product_id);
-    if(p)p.cantidad=Number(p.cantidad||0)-Number(i.quantity||0)
-   }
+   // NO descontar inventario aquí.
+   // La venta offline ya descontó y guardó el stock local al registrarse.
+   // Solo reconstruimos la tarjeta de venta si por alguna razón falta.
    const v=flkVentaLocalDesdeOperacion(op);
    if(v&&!ventas.some(x=>x.offlineOperationId===op.id))ventas.unshift(v)
   }
@@ -2077,6 +2112,74 @@ async function flkProcesarOperacionOffline(op){
  }
  throw new Error("Tipo de operación offline no soportado: "+op.tipo)
 }
+
+let flkOrquestandoSync=false;
+
+async function flkReconciliarInventarioNube(){
+ if(!navigator.onLine)return false;
+ try{
+  const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).order("created_at",{ascending:true});
+  if(error)throw error;
+  productos=(data||[]).map(productoDesdeSupabase);
+  guardarDatos();
+  mostrarProductos();
+  actualizarEstadisticas();
+  return true;
+ }catch(err){
+  console.error("Reconciliación inventario:",err);
+  return false;
+ }
+}
+
+async function flkSupabaseDisponible(timeoutMs=4500){
+ if(!navigator.onLine||typeof flkSupabase==="undefined")return false;
+ try{
+  const prueba=flkSupabase.from("products").select("id").limit(1);
+  const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error("timeout supabase")),timeoutMs));
+  const res=await Promise.race([prueba,timeout]);
+  return !res?.error;
+ }catch(e){
+  return false;
+ }
+}
+
+async function flkSincronizarSeguro(){
+ if(flkOrquestandoSync||!navigator.onLine)return false;
+ flkOrquestandoSync=true;
+ try{
+  const disponible=await flkSupabaseDisponible();
+  if(!disponible){
+   flkActualizarEstadoConexion("error");
+   return false;
+  }
+
+  const {data:{session}}=await flkSupabase.auth.getSession();
+  if(!session)return false;
+
+  // Si hay operaciones offline, subirlas antes de volver a leer la nube.
+  if(flkPendientesOffline()>0){
+   await flkProcesarColaOffline();
+  }
+
+  // Confirmación final: reconstruir la copia local desde la nube ya actualizada.
+  if(typeof flkRecuperacionEmergenciaNube==="function"){
+   await flkRecuperacionEmergenciaNube();
+  }
+  if(typeof flkReconciliarInventarioNube==="function"){
+   await flkReconciliarInventarioNube();
+  }
+
+  flkActualizarEstadoConexion();
+  return true;
+ }catch(err){
+  console.error("Sincronización segura:",err);
+  flkActualizarEstadoConexion("error");
+  return false;
+ }finally{
+  flkOrquestandoSync=false;
+ }
+}
+
 async function flkProcesarColaOffline(){
  if(flkSincronizando||!navigator.onLine||typeof flkSupabase==="undefined")return;
  const {data:{session}}=await flkSupabase.auth.getSession();
@@ -2102,15 +2205,8 @@ async function flkProcesarColaOffline(){
  q=q.filter(x=>x.estado!=="sincronizado");
  flkGuardarColaOffline(q);
  try{
-  if(huboCambios){
-   if(typeof cargarInventarioSupabase==="function")await cargarInventarioSupabase();
-   if(typeof cargarHistorialSupabase==="function")await cargarHistorialSupabase();
-   if(typeof cargarVentasSupabase==="function")await cargarVentasSupabase();
-   if(typeof cargarGastosSupabase==="function")await cargarGastosSupabase();
-   if(typeof cargarComprasSupabase==="function")await cargarComprasSupabase();
-   if(typeof cargarMovimientosCajaSupabase==="function")await cargarMovimientosCajaSupabase();
-   if(typeof cargarCierresSupabase==="function")await cargarCierresSupabase();
-   flkAplicarPendientesSobreDatos()
+  if(huboCambios&&typeof flkRecuperacionEmergenciaNube==="function"){
+   await flkRecuperacionEmergenciaNube();
   }
  }finally{
   flkSincronizando=false;
@@ -2124,7 +2220,7 @@ window.addEventListener("online",async()=>{
   if(data?.session?.user){
    flkGuardarSesionLocal(data.session);
    await cargarRolUsuario(data.session.user);
-   await flkActualizarNubeDespuesArranque();
+   setTimeout(()=>flkSincronizarSeguro(),250);
   }else{
    flkLimpiarSesionLocal();
    document.getElementById("authOverlay").classList.remove("oculto");
@@ -2140,13 +2236,16 @@ window.addEventListener("online",flkActualizarModoRendimiento);
 window.addEventListener("offline",flkActualizarModoRendimiento);
 document.addEventListener("DOMContentLoaded",flkActualizarModoRendimiento);
 
-document.addEventListener("DOMContentLoaded",()=>{flkDeviceId();flkActualizarEstadoConexion();flkProcesarColaOffline()});
+document.addEventListener("DOMContentLoaded",()=>{flkDeviceId();flkActualizarEstadoConexion()});
 document.addEventListener("DOMContentLoaded",()=>{
  const box=document.getElementById("estadoConexionFlk");
  if(box){
   box.style.cursor="pointer";
   box.title="Estado de conexión";
-  box.addEventListener("click",flkMostrarAvisoConexionTemporal);
+  box.addEventListener("click",()=>{
+   flkMostrarAvisoConexionTemporal();
+   if(navigator.onLine)setTimeout(()=>flkSincronizarSeguro(),0);
+  });
  }
 });
 
@@ -2253,6 +2352,11 @@ function flkLimpiarSesionLocal(){
  }catch(e){}
 }
 function flkPintarSesionLocal(user){
+ if(document.readyState!=="complete"){
+  window.addEventListener("load",()=>flkPintarSesionLocal(user),{once:true});
+  return;
+ }
+
  const rolGuardado=flkRolLocal(user?.id);
  rolSesion=rolGuardado||"employee";
  document.getElementById("authUsuarioEmail").textContent=user?.email||"Usuario";
@@ -2316,13 +2420,191 @@ function aplicarPermisosVisuales(){
  if(typeof mostrarListaHistorial==="function")mostrarListaHistorial();
  if(typeof actualizarVentas==="function")actualizarVentas();
 }
+
+let flkModoRecuperacionNube=false;
+
+async function flkRecuperacionEmergenciaNube(){
+ if(flkModoRecuperacionNube||!navigator.onLine)return false;
+ flkModoRecuperacionNube=true;
+ const fallos=[];
+ try{
+  const {data:ses,error:sesErr}=await flkSupabase.auth.getSession();
+  if(sesErr)throw sesErr;
+  if(!ses?.session?.user)throw new Error("Sesión no disponible.");
+
+  // INVENTARIO
+  try{
+   const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).order("created_at",{ascending:true});
+   if(error)throw error;
+   productos=(data||[]).map(productoDesdeSupabase);
+   guardarDatos();
+  }catch(e){console.error("Inventario",e);fallos.push("Inventario: "+(e.message||e))}
+
+  // HISTORIAL
+  try{
+   const {data,error}=await flkSupabase.from("stock_movements").select("*").order("created_at",{ascending:false});
+   if(error)throw error;
+   historial=(data||[]).map(movimientoDesdeSupabase);
+   guardarHistorial();
+  }catch(e){console.error("Historial",e);fallos.push("Historial: "+(e.message||e))}
+
+  // VENTAS: tablas planas, sin relaciones embebidas.
+  try{
+   const [rVentas,rItems,rPagos,rDevol]=await Promise.all([
+    flkSupabase.from("sales").select("*").order("created_at",{ascending:false}),
+    flkSupabase.from("sale_items").select("*"),
+    flkSupabase.from("sale_payments").select("*").order("created_at",{ascending:true}),
+    flkSupabase.from("sale_returns").select("*").order("created_at",{ascending:true})
+   ]);
+   if(rVentas.error)throw rVentas.error;
+   if(rItems.error)throw rItems.error;
+   if(rPagos.error)throw rPagos.error;
+   if(rDevol.error)throw rDevol.error;
+
+   const items=rItems.data||[],pagos=rPagos.data||[],devol=rDevol.data||[];
+   ventas=(rVentas.data||[]).map(v=>{
+    const row={
+     ...v,
+     sale_items:items.filter(x=>x.sale_id===v.id),
+     sale_payments:pagos.filter(x=>x.sale_id===v.id),
+     sale_returns:devol.filter(x=>x.sale_id===v.id)
+    };
+    const local=ventaDesdeSupabase(row);
+    const retornos=row.sale_returns||[];
+    local.devoluciones=retornos.map(r=>({
+     id:idLocalDesdeLegacy(null,r.id),
+     supabaseId:r.id,
+     numeroDevolucion:r.return_number,
+     ventaId:local.id,
+     productoId:(local.items.find(i=>i.supabaseSaleItemId===r.sale_item_id)||{}).productoId,
+     cantidad:Number(r.quantity||0),
+     monto:Number(r.refund_amount||0),
+     reembolso:Number(r.refund_amount||0),
+     motivo:r.reason||"",
+     fecha:r.created_at
+    }));
+    local.items.forEach(i=>{
+     i.devuelto=retornos.filter(r=>r.sale_item_id===i.supabaseSaleItemId)
+      .reduce((t,r)=>t+Number(r.quantity||0),0);
+    });
+    return local
+   });
+   const maxNumero=ventas.reduce((m,v)=>Math.max(m,Number(v.numeroConsecutivo||0)),0);
+   if(maxNumero>=proximoNumeroRecibo)proximoNumeroRecibo=maxNumero+1;
+   guardarVentas();
+  }catch(e){console.error("Ventas",e);fallos.push("Ventas: "+(e.message||e))}
+
+  // GASTOS
+  try{
+   const {data,error}=await flkSupabase.from("expenses").select("*").order("expense_date",{ascending:false});
+   if(error)throw error;
+   gastos=(data||[]).map(gastoDesdeSupabase);
+   guardarGastos();
+  }catch(e){console.error("Gastos",e);fallos.push("Gastos: "+(e.message||e))}
+
+  // COMPRAS Y PROVEEDORES
+  try{
+   const [rs,ro,rp]=await Promise.all([
+    flkSupabase.from("suppliers").select("*").order("name"),
+    flkSupabase.from("purchase_orders").select("*").order("created_at",{ascending:false}),
+    flkSupabase.from("supplier_payments").select("*").order("created_at",{ascending:true})
+   ]);
+   if(rs.error)throw rs.error;
+   if(ro.error)throw ro.error;
+   if(rp.error)throw rp.error;
+
+   const pagosProv=rp.data||[];
+   proveedores=(rs.data||[]).map(x=>({
+    id:idLocalDesdeLegacy(x.legacy_id,x.id),supabaseId:x.id,nombre:x.name||"",
+    contacto:x.contact_name||"",telefono:x.phone||"",email:x.email||"",
+    direccion:x.address||"",nota:x.notes||"",creado:x.created_at
+   }));
+   ordenesCompra=(ro.data||[]).map(o=>{
+    const pr=proveedores.find(p=>p.supabaseId===o.supplier_id);
+    const prod=productos.find(p=>p.supabaseId===o.product_id);
+    const ps=pagosProv.filter(p=>p.purchase_order_id===o.id);
+    return {
+     id:idLocalDesdeLegacy(o.legacy_id,o.id),supabaseId:o.id,numero:o.order_number,
+     productoId:prod?.id,nombre:prod?.nombre||"Producto",sku:prod?.sku||"",
+     proveedor:pr?.nombre||"Proveedor",cantidad:Number(o.quantity||0),
+     costoUnitario:Number(o.unit_cost||0),fechaOrden:o.order_date,nota:o.note||"",
+     estado:o.status==="received"?"recibida":o.status==="ordered"?"ordenada":"pendiente",
+     fechaCreacion:o.created_at,fechaOrdenada:o.ordered_at,fechaRecibida:o.received_at,
+     costoTotal:Number(o.total_amount||0),condicionPagoProveedor:o.payment_condition,
+     totalPagadoProveedor:Number(o.paid_amount||0),saldoProveedor:Number(o.balance_due||0),
+     fechaVencimientoProveedor:o.due_date||"",metodoPagoProveedor:o.payment_method||"",
+     pagosProveedor:ps.map(p=>({
+      id:idLocalDesdeLegacy(null,p.id),supabaseId:p.id,cantidad:Number(p.amount||0),
+      fecha:p.payment_date||p.created_at,metodo:p.payment_method||"",nota:p.note||""
+     }))
+    }
+   });
+   guardarProveedores();guardarOrdenesCompra();
+  }catch(e){console.error("Compras",e);fallos.push("Compras: "+(e.message||e))}
+
+  // CAJA
+  try{
+   const {data,error}=await flkSupabase.from("cash_movements").select("*").order("occurred_at",{ascending:true});
+   if(error)throw error;
+   movimientosCajaSupabase=(data||[]).map(m=>({
+    id:m.id,
+    tipo:m.type==="income"?"entrada":"salida",
+    cantidad:Number(m.amount||0),
+    concepto:m.description||"Movimiento",
+    metodo:normalizarMetodoFlujo(m.payment_method||"Otro"),
+    fecha:m.occurred_at||m.created_at,
+    grupo:String(m.description||"").startsWith("Gasto ·")?"gasto":
+      String(m.description||"").startsWith("Abono ·")?"abono":
+      String(m.description||"").startsWith("Venta ·")?"venta":
+      String(m.description||"").startsWith("Pago proveedor ·")?"proveedor":
+      (String(m.description||"")==="Retiro del propietario"||String(m.description||"")==="Aporte del propietario")?"propietario":
+      String(m.description||"").startsWith("Reembolso devolución ·")?"reembolso":"otro"
+   }));
+   guardarMovimientosCajaLocal();
+  }catch(e){console.error("Caja",e);fallos.push("Caja: "+(e.message||e))}
+
+  // CIERRES
+  try{
+   const {data,error}=await flkSupabase.from("cash_closures").select("*").order("close_date",{ascending:false});
+   if(error)throw error;
+   cierres=(data||[]).map(cierreDesdeSupabase);
+   guardarCierres();
+  }catch(e){console.error("Cierres",e);fallos.push("Cierres: "+(e.message||e))}
+
+  // IMPORTANTE: durante recuperación NO aplicar cola offline y NO sincronizar.
+  mostrarProductos();
+  actualizarResumenHistorial();mostrarListaHistorial();
+  actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();
+  actualizarOpcionesOrganizacion();actualizarProveedores();actualizarOrdenesCompra();
+  actualizarCuentasPagar();actualizarFlujoCaja();actualizarFinanzas();actualizarEstadisticas();
+
+  if(fallos.length){
+   alert("Recuperación parcial.\n\n"+fallos.join("\n\n"));
+   return false;
+  }
+
+  console.log(
+   "Sincronización Supabase completada:",
+   {productos:productos.length,movimientos:historial.length,ventas:ventas.length,
+    gastos:gastos.length,ordenes:ordenesCompra.length,caja:movimientosCajaSupabase.length}
+  );
+  return true;
+ }catch(e){
+  console.error("Recuperación emergencia",e);
+  alert("No se pudo iniciar la recuperación: "+(e.message||e));
+  return false;
+ }finally{
+  flkModoRecuperacionNube=false;
+ }
+}
+
 async function mostrarAppConSesion(session){
  if(session&&session.user){
   flkGuardarSesionLocal(session);
   document.getElementById("authOverlay").classList.add("oculto");
   flkPintarSesionLocal(session.user);
   await cargarRolUsuario(session.user);
-  if(navigator.onLine)setTimeout(()=>flkActualizarNubeDespuesArranque(),0);
+  if(navigator.onLine)setTimeout(()=>flkSincronizarSeguro(),220);
  }else{
   const cache=flkSesionLocal();
   if(!navigator.onLine&&cache?.user){
@@ -2352,13 +2634,13 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
   const nombre=document.getElementById("authNombre").value.trim();
   const {data,error}=await flkSupabase.auth.signUp({email,password,options:{data:{full_name:nombre}}});
   if(error){mostrarMensajeAuth(error.message,"error");return}
-  if(data.session){await mostrarAppConSesion(data.session);mostrarMensajeAuth("","");}
+  if(data.session){window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});mostrarMensajeAuth("","");}
   else mostrarMensajeAuth("Cuenta creada. Revisa tu correo para confirmar el registro y luego inicia sesión.","ok");
  }else{
   const {data,error}=await flkSupabase.auth.signInWithPassword({email,password});
   if(error){mostrarMensajeAuth("Correo o contraseña incorrectos, o la cuenta aún no está confirmada.","error");return}
   mostrarMensajeAuth("","");
-  await mostrarAppConSesion(data.session);
+  window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});
  }
 });
 flkSupabase.auth.onAuthStateChange((event,session)=>{
@@ -2369,7 +2651,7 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
 });
 (()=>{
  const cache=flkSesionLocal();
- if(cache?.user)flkPintarSesionLocal(cache.user);
+ if(cache?.user)window.addEventListener("load",()=>flkPintarSesionLocal(cache.user),{once:true});
  if(!navigator.onLine){
   if(!cache?.user){
    document.getElementById("authOverlay").classList.remove("oculto");
@@ -2380,9 +2662,9 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
  setTimeout(async()=>{
   try{
    const {data}=await flkSupabase.auth.getSession();
-   await mostrarAppConSesion(data.session);
+   window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});
   }catch(err){
-   if(cache?.user)flkPintarSesionLocal(cache.user);
+   if(cache?.user)window.addEventListener("load",()=>flkPintarSesionLocal(cache.user),{once:true});
   }
  },0);
 })();
@@ -2390,7 +2672,14 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
 
 async function cargarUsuariosAdmin(){const lista=document.getElementById("listaUsuariosAdmin");if(rolSesion!=="admin"){lista.innerHTML='<div class="sin-productos">Acceso reservado al Administrador.</div>';return}if(!navigator.onLine){lista.innerHTML='<div class="sin-productos">Usuarios disponibles cuando vuelva la conexión.</div>';flkActualizarEstadoConexion();return}lista.innerHTML='<div class="sin-productos">Cargando usuarios...</div>';const {data,error}=await flkSupabase.from("profiles").select("id,email,full_name,role,created_at").order("created_at",{ascending:true});if(error){if(flkSilenciarSiEsConexion(error)){lista.innerHTML='<div class="sin-productos">Usuarios disponibles cuando vuelva la conexión.</div>';return}lista.innerHTML='<div class="sin-productos">No se pudieron cargar los usuarios: '+escapeHtml(error.message)+'</div>';return}const {data:ses}=await flkSupabase.auth.getSession(),miId=ses?.session?.user?.id||"";lista.innerHTML=data?.length?data.map(u=>{const propio=u.id===miId,admin=u.role==="admin";return `<div class="usuario-card"><div class="usuario-superior"><div><h3>${escapeHtml(u.full_name||u.email||"Usuario")}</h3><p>${escapeHtml(u.email||"")}</p></div><span class="usuario-rol ${admin?"admin":"employee"}">${admin?"👑 Administrador":"👤 Empleado"}</span></div>${propio?'<div class="usuario-propio">Esta es tu cuenta. Tu propio rol está protegido.</div>':`<div class="usuario-acciones"><button class="usuario-hacer-admin" ${admin?"disabled":""} onclick="cambiarRolUsuario('${u.id}','admin')">👑 Hacer Admin</button><button class="usuario-hacer-empleado" ${!admin?"disabled":""} onclick="cambiarRolUsuario('${u.id}','employee')">👤 Hacer Empleado</button></div>`}</div>`}).join(""):'<div class="sin-productos">No hay perfiles registrados.</div>'}
 async function cambiarRolUsuario(id,rol){if(rolSesion!=="admin")return alert("Acceso denegado.");if(!confirm("¿Cambiar esta cuenta a "+(rol==="admin"?"Administrador":"Empleado")+"?"))return;const {error}=await flkSupabase.rpc("admin_set_user_role",{target_user:id,new_role:rol});if(error)return alert("No se pudo cambiar el rol: "+error.message);await cargarUsuariosAdmin();alert("Rol actualizado correctamente.")}
-function mostrarUsuarios(){if(rolSesion!=="admin")return alert("Esta sección es solo para Administradores.");["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});document.getElementById("vistaUsuarios").style.display="block";actualizarMenu("usuarios");scrollTop();if(!navigator.onLine){const lista=document.getElementById("listaUsuariosAdmin");if(lista)lista.innerHTML='<div class="sin-productos">Gestión de usuarios disponible cuando vuelva la conexión.</div>';return}setTimeout(()=>cargarUsuariosAdmin(),0)}
+function mostrarUsuarios(){
+ if(rolSesion!=="admin")return alert("Esta sección es solo para Administradores.");
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ document.getElementById("vistaUsuarios").style.display="block";actualizarMenu("usuarios");scrollTop();
+ const lista=document.getElementById("listaUsuariosAdmin");
+ if(!navigator.onLine){if(lista)lista.innerHTML='<div class="sin-productos">Gestión de usuarios disponible cuando vuelva la conexión.</div>';return}
+ requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(()=>cargarUsuariosAdmin(),40)));
+}
 function abrirMenuPrincipal(){document.getElementById("menuPrincipalFondo").classList.add("visible")}
 function cerrarMenuPrincipal(e){
  if(e&&e.target!==document.getElementById("menuPrincipalFondo"))return;
@@ -2542,7 +2831,11 @@ async function cargarInventarioSupabase(){
 
  productos=remotos.map(productoDesdeSupabase);
  guardarDatos();
- if(flkPendientesOffline()>0)flkAplicarPendientesSobreDatos();
+
+ // ONLINE: el stock confirmado por Supabase es la fuente de verdad.
+ // No reaplicar aquí movimientos offline pendientes/error/conflicto porque
+ // pueden haber sido procesados ya y duplicar visualmente el inventario.
+ // OFFLINE sigue aplicando la cola en la rama superior de esta función.
  inventarioSupabaseListo=true;
  mostrarProductos();
  actualizarEstadisticas();
@@ -2573,7 +2866,15 @@ async function ajustarStockSupabase(p,delta,tipo,nota=""){
  if(!navigator.onLine||!p.supabaseId){
   const nuevo=Number(p.cantidad||0)+Number(delta);
   if(nuevo<0)throw new Error("Inventario insuficiente para "+p.nombre);
-  flkEncolarOperacion("stock_adjustment",{product_id:p.supabaseId||null,product_operation_id:p.offlineCreateOperationId||null,local_product_id:p.id,delta:Number(delta),type:tipo,note:nota||"Movimiento manual offline"});
+  flkEncolarOperacion("stock_adjustment",{
+   product_id:p.supabaseId||null,
+   product_operation_id:p.offlineCreateOperationId||null,
+   local_product_id:p.id,
+   delta:Number(delta),
+   type:tipo,
+   note:nota||"Movimiento manual offline",
+   local_applied:true
+  });
   return nuevo
  }
  const {data,error}=await flkSupabase.rpc("adjust_product_stock",{p_product_id:p.supabaseId,p_delta:Number(delta),p_type:tipo,p_note:nota||null});
@@ -2852,7 +3153,7 @@ function actualizarOpcionesOrganizacion(){
 function cambiarFiltrosInventario(){filtroCategoriaActual=document.getElementById("filtroCategoria").value;filtroUbicacionActual=document.getElementById("filtroUbicacion").value;mostrarProductos()}
 
 function abrirFormulario(){
- mostrarInventario();productoEditando=null;document.getElementById("tituloFormulario").textContent="Agregar producto";document.getElementById("formularioProducto").reset();document.getElementById("stockMinimo").value=5;document.getElementById("modalProducto").classList.add("visible");document.getElementById("nombre").focus()
+ productoEditando=null;document.getElementById("tituloFormulario").textContent="Agregar producto";document.getElementById("formularioProducto").reset();document.getElementById("stockMinimo").value=5;document.getElementById("modalProducto").classList.add("visible");requestAnimationFrame(()=>document.getElementById("nombre").focus())
 }
 function editarProducto(id){
  const p=productos.find(x=>x.id===id);if(!p)return;
@@ -3071,11 +3372,17 @@ async function cargarVentasSupabase(){
  if(error){console.error("Supabase ventas:",error);if(!flkSilenciarSiEsConexion(error))alert("No se pudieron cargar las ventas de Supabase.");return false}
 
  if(rolSesion==="admin" && locales.length){
-  const existentes=new Set((cloud||[]).map(v=>String(v.legacy_id||"")).filter(Boolean));
+  const existentesLegacy=new Set((cloud||[]).map(v=>String(v.legacy_id||"")).filter(Boolean));
+  const normalizarRecibo=n=>String(n??"").trim().replace(/^#/,"").padStart(6,"0");
+  const existentesRecibo=new Set((cloud||[]).map(v=>normalizarRecibo(v.receipt_number)).filter(Boolean));
 
   for(const v of locales){
    const legacy=String(v.id);
-   if(existentes.has(legacy))continue;
+   const reciboLocal=normalizarRecibo(v.numero||String(v.id).slice(-8));
+
+   // Una venta se considera ya migrada si coincide por ID legado O por número de recibo.
+   // Esto evita volver a insertar un recibo que Supabase ya tiene.
+   if(existentesLegacy.has(legacy)||existentesRecibo.has(reciboLocal))continue;
 
    const items=(Array.isArray(v.items)?v.items:[]).map(i=>({
     legacy_product_id:String(i.productoId),
@@ -3097,7 +3404,7 @@ async function cargarVentasSupabase(){
 
    const {error:impErr}=await flkSupabase.rpc("flk_import_legacy_sale",{
     p_legacy_id:legacy,
-    p_receipt_number:String(v.numero||String(v.id).slice(-8)),
+    p_receipt_number:reciboLocal,
     p_customer_name:v.cliente||"Cliente general",
     p_customer_phone:v.telefono||null,
     p_payment_method:v.metodoPago||"cash",
@@ -3110,11 +3417,20 @@ async function cargarVentasSupabase(){
     p_payments:pagos
    });
    if(impErr){
+    const msg=String(impErr.message||"");
+    // Si otro proceso ya creó ese mismo recibo, no es un fallo de datos:
+    // recargar la nube lo resolverá sin duplicar.
+    if(/sales_receipt_number_uidx|duplicate key value/i.test(msg)){
+     console.warn("Recibo ya existente en Supabase; se omite migración:",reciboLocal);
+     existentesRecibo.add(reciboLocal);
+     continue;
+    }
     console.error("Migración venta:",v.numero||v.id,impErr);
-    alert("No se pudo migrar el recibo #"+(v.numero||v.id)+": "+impErr.message);
+    alert("No se pudo migrar el recibo #"+(v.numero||v.id)+": "+msg);
     return false;
    }
-   existentes.add(legacy);
+   existentesLegacy.add(legacy);
+   existentesRecibo.add(reciboLocal);
   }
 
   const recarga=await consulta();
@@ -3844,7 +4160,12 @@ function eliminarProveedor(id){const p=proveedores.find(x=>x.id===id);if(!p)retu
 function nuevaOrdenProveedor(id){const p=proveedores.find(x=>x.id===id);if(!p)return;abrirOrdenCompra(null,p.nombre)}
 function mostrarListaProveedores(){const q=document.getElementById("busquedaProveedores").value.toLowerCase().trim(),lista=document.getElementById("listaProveedoresVista");const arr=[...proveedores].filter(p=>[p.nombre,p.contacto,p.telefono,p.email,p.direccion,p.nota].some(v=>String(v||"").toLowerCase().includes(q))).sort((a,b)=>String(a.nombre||"").localeCompare(String(b.nombre||""),"es",{sensitivity:"base"}));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay proveedores con esa búsqueda.</div>';return}lista.innerHTML=arr.map(p=>{const prods=productos.filter(x=>nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(p.nombre)),ords=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)),pend=ords.filter(o=>o.estado!=="recibida").length,rec=ords.filter(o=>o.estado==="recibida"),total=rec.reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),vencidas=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").length;return `<div class="proveedor-card"><div class="proveedor-superior"><div><h3>${escapeHtml(p.nombre)}</h3><p>${p.contacto?`Contacto: ${escapeHtml(p.contacto)}`:"Proveedor registrado"}</p></div><div class="proveedor-total">$${saldo.toFixed(2)} por pagar</div></div><div class="proveedor-detalle">Productos asociados: <strong>${prods.length}</strong><br>Órdenes totales: <strong>${ords.length}</strong> · Pendientes/ordenadas: <strong>${pend}</strong><br>Compras recibidas: <strong>${rec.length}</strong> · Total: <strong>$${total.toFixed(2)}</strong><br>Pagado: <strong>$${pagado.toFixed(2)}</strong> · Saldo: <strong>$${saldo.toFixed(2)}</strong>${vencidas?`<br>🔴 Deudas vencidas: <strong>${vencidas}</strong>`:""}${p.telefono?`<br>Teléfono: <strong>${escapeHtml(p.telefono)}</strong>`:""}${p.email?`<br>Email: <strong>${escapeHtml(p.email)}</strong>`:""}${p.direccion?`<br>Dirección: ${escapeHtml(p.direccion)}`:""}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><div class="acciones-proveedor"><button class="boton-proveedor boton-proveedor-orden" onclick="abrirOrdenCompra(null,'${escapeHtml(p.nombre).replace(/'/g,"&#039;")}')">📦 Nueva orden</button>${saldo>0.009?`<button class="boton-proveedor boton-proveedor-orden" onclick="mostrarCuentasPagar();document.getElementById('filtroProveedorCuentas').value='${escapeHtml(p.nombre).replace(/'/g,"&#039;")}';mostrarListaCuentasPagar()">💳 Ver deuda</button>`:""}<button class="boton-proveedor boton-proveedor-editar" onclick="abrirProveedor(${p.id})">✏️ Editar</button><button class="boton-proveedor boton-proveedor-eliminar" onclick="eliminarProveedor(${p.id})">🗑️ Eliminar</button></div></div>`}).join("")}
 function actualizarProveedores(){const rec=ordenesCompra.filter(o=>o.estado==="recibida"),total=rec.reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),vencido=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").reduce((t,o)=>t+Number(o.saldoProveedor||0),0);document.getElementById("totalProveedores").textContent=proveedores.length;document.getElementById("proveedoresPendientes").textContent=proveedores.filter(p=>ordenesCompra.some(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)&&o.estado!=="recibida")).length;document.getElementById("totalCompradoProveedores").textContent="$"+total.toFixed(2);document.getElementById("totalPagadoProveedores").textContent="$"+pagado.toFixed(2);document.getElementById("saldoPorPagarProveedores").textContent="$"+saldo.toFixed(2);document.getElementById("deudaVencidaProveedores").textContent="$"+vencido.toFixed(2);mostrarListaProveedores()}
-async function mostrarProveedores(){if(navigator.onLine)setTimeout(()=>cargarComprasSupabase().catch(()=>{}),0);["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaProveedores").style.display="block";actualizarMenu("proveedores");actualizarProveedores();scrollTop()}
+function mostrarProveedores(){
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ document.getElementById("vistaProveedores").style.display="block";actualizarMenu("proveedores");scrollTop();
+ requestAnimationFrame(()=>actualizarProveedores());
+ if(navigator.onLine)setTimeout(()=>cargarComprasSupabase().then(()=>actualizarProveedores()).catch(()=>{}),0);
+}
 document.getElementById("busquedaProveedores").addEventListener("input",mostrarListaProveedores);
 
 function numeroOrdenCompra(o){return "OC-"+String(o.numero||o.id).slice(-6)}
@@ -3982,8 +4303,12 @@ async function eliminarOrdenCompra(id){
 function actualizarFiltrosOrdenes(){const proveedores=[...new Set(ordenesCompra.map(o=>String(o.proveedor||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"})),sel=document.getElementById("filtroProveedorOrden"),prev=sel.value;sel.innerHTML='<option value="">Todos los proveedores</option>'+proveedores.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(proveedores.includes(prev))sel.value=prev}
 function mostrarListaOrdenes(){actualizarFiltrosOrdenes();const q=document.getElementById("busquedaOrdenes").value.toLowerCase().trim(),estado=document.getElementById("filtroEstadoOrden").value,proveedor=document.getElementById("filtroProveedorOrden").value,lista=document.getElementById("listaOrdenes");const arr=ordenesCompra.filter(o=>(!estado||o.estado===estado)&&(!proveedor||o.proveedor===proveedor)&&[o.nombre,o.sku,o.proveedor,numeroOrdenCompra(o)].some(v=>String(v||"").toLowerCase().includes(q)));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay órdenes de compra con esos filtros.</div>';return}lista.innerHTML=arr.map(o=>{const total=Number(o.cantidad||0)*Number(o.costoUnitario||0),estadoTexto=o.estado==="recibida"?"✅ Recibida":o.estado==="ordenada"?"🚚 Ordenada":"⏳ Pendiente",acciones=o.estado==="recibida"?'<div class="acciones-orden"><button class="boton-orden boton-orden-primario" onclick="mostrarHistorial()">📜 Ver historial</button></div>':`<div class="acciones-orden"><button class="boton-orden boton-orden-primario" onclick="editarOrdenCompra(${o.id})">✏️ Editar</button>${o.estado==="pendiente"?`<button class="boton-orden boton-orden-primario" onclick="marcarOrdenada(${o.id})">🚚 Ordenada</button>`:""}<button class="boton-orden boton-orden-recibir" onclick="recibirOrden(${o.id})">✅ Recibir</button><button class="boton-orden boton-orden-eliminar" onclick="eliminarOrdenCompra(${o.id})">🗑️ Eliminar</button></div>`;return `<div class="orden-card"><div class="orden-superior"><div><h3>${escapeHtml(o.nombre)}</h3><p>${numeroOrdenCompra(o)} · SKU: ${escapeHtml(o.sku||"")}</p></div><div class="orden-total">$${total.toFixed(2)}</div></div><span class="estado-orden ${o.estado}">${estadoTexto}</span><div class="orden-detalle">Proveedor: <strong>${escapeHtml(o.proveedor||"—")}</strong><br>Cantidad: <strong>${Number(o.cantidad||0)}</strong> · Costo/u.: <strong>$${Number(o.costoUnitario||0).toFixed(2)}</strong><br>Fecha orden: <strong>${o.fechaOrden?new Date(o.fechaOrden+"T00:00:00").toLocaleDateString("es-PR"):"—"}</strong>${o.fechaRecibida?`<br>Recibida: <strong>${new Date(o.fechaRecibida).toLocaleDateString("es-PR")}</strong>`:""}${o.nota?`<br>Nota: ${escapeHtml(o.nota)}`:""}</div>${acciones}</div>`}).join("")}
 function actualizarOrdenesCompra(){document.getElementById("ordenesPendientes").textContent=ordenesCompra.filter(o=>o.estado==="pendiente").length;document.getElementById("ordenesOrdenadas").textContent=ordenesCompra.filter(o=>o.estado==="ordenada").length;document.getElementById("ordenesRecibidas").textContent=ordenesCompra.filter(o=>o.estado==="recibida").length;document.getElementById("valorOrdenesRecibidas").textContent="$"+ordenesCompra.filter(o=>o.estado==="recibida").reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0).toFixed(2);mostrarListaOrdenes()}
-async function mostrarOrdenes(){if(navigator.onLine)setTimeout(()=>cargarComprasSupabase().catch(()=>{}),0);["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaOrdenes").style.display="block";actualizarMenu("ordenes");actualizarOrdenesCompra();scrollTop()}
-
+function mostrarOrdenes(){
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ document.getElementById("vistaOrdenes").style.display="block";actualizarMenu("ordenes");scrollTop();
+ requestAnimationFrame(()=>actualizarOrdenesCompra());
+ if(navigator.onLine)setTimeout(()=>cargarComprasSupabase().then(()=>actualizarOrdenesCompra()).catch(()=>{}),0);
+}
 function estadoCuentaProveedor(o){const saldo=Number(o.saldoProveedor||0);if(saldo<=0.009)return {clave:"pagada",texto:"✅ Pagada"};if(o.fechaVencimientoProveedor){const hoy=new Date(fechaLocalISO(new Date())+"T00:00:00"),v=new Date(o.fechaVencimientoProveedor+"T00:00:00");if(v<hoy)return {clave:"vencida",texto:"🔴 Vencida"}}return {clave:"pendiente",texto:"⏳ Pendiente"}}
 function abrirPagoProveedor(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado!=="recibida"||Number(o.saldoProveedor||0)<=0)return;ordenPagoProveedorId=id;document.getElementById("formularioPagoProveedor").reset();document.getElementById("textoPagoProveedor").textContent=`${o.proveedor} · ${numeroOrdenCompra(o)}`;document.getElementById("cantidadPagoProveedor").max=Number(o.saldoProveedor).toFixed(2);document.getElementById("cantidadPagoProveedor").value=Number(o.saldoProveedor).toFixed(2);document.getElementById("ayudaPagoProveedor").textContent=`Saldo actual: $${Number(o.saldoProveedor).toFixed(2)}`;document.getElementById("modalPagoProveedor").classList.add("visible")}
 function cerrarPagoProveedor(){document.getElementById("modalPagoProveedor").classList.remove("visible");document.getElementById("formularioPagoProveedor").reset();ordenPagoProveedorId=null}
@@ -4024,7 +4349,12 @@ function cerrarHistorialPagosProveedor(){document.getElementById("modalHistorial
 function actualizarFiltroProveedorCuentas(){const sel=document.getElementById("filtroProveedorCuentas");if(!sel)return;const prev=sel.value,nombres=[...new Set(ordenesCompra.filter(o=>o.estado==="recibida").map(o=>String(o.proveedor||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"}));sel.innerHTML='<option value="">Todos los proveedores</option>'+nombres.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");if(nombres.includes(prev))sel.value=prev}
 function mostrarListaCuentasPagar(){actualizarFiltroProveedorCuentas();const lista=document.getElementById("listaCuentasPagar");if(!lista)return;const q=document.getElementById("busquedaCuentasPagar").value.toLowerCase().trim(),filtro=document.getElementById("filtroCuentasPagar").value,prov=document.getElementById("filtroProveedorCuentas").value;let arr=ordenesCompra.filter(o=>o.estado==="recibida"&&(!prov||o.proveedor===prov)&&[o.proveedor,o.nombre,o.sku,numeroOrdenCompra(o)].some(v=>String(v||"").toLowerCase().includes(q)));arr=arr.filter(o=>{const e=estadoCuentaProveedor(o);return filtro==="todas"||(filtro==="pendientes"&&e.clave!=="pagada")||(filtro==="vencidas"&&e.clave==="vencida")||(filtro==="pagadas"&&e.clave==="pagada")});arr.sort((a,b)=>Number(b.saldoProveedor||0)-Number(a.saldoProveedor||0));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay cuentas con esos filtros.</div>';return}lista.innerHTML=arr.map(o=>{const e=estadoCuentaProveedor(o),total=Number(o.costoTotal||0),pagado=Number(o.totalPagadoProveedor||0),saldo=Number(o.saldoProveedor||0);return `<div class="cuenta-proveedor-card ${e.clave}"><div class="cuenta-proveedor-superior"><div><h3>${escapeHtml(o.proveedor||"Proveedor")}</h3><p>${numeroOrdenCompra(o)} · ${escapeHtml(o.nombre)}</p></div><div class="cuenta-proveedor-saldo">$${saldo.toFixed(2)}</div></div><span class="estado-cuenta ${e.clave}">${e.texto}</span><div class="cuenta-proveedor-detalle">Compra total: <strong>$${total.toFixed(2)}</strong><br>Total pagado: <strong>$${pagado.toFixed(2)}</strong><br>Saldo pendiente: <strong>$${saldo.toFixed(2)}</strong>${o.fechaVencimientoProveedor?`<br>Vencimiento: <strong>${new Date(o.fechaVencimientoProveedor+"T00:00:00").toLocaleDateString("es-PR")}</strong>`:""}</div><div class="acciones-cuenta-proveedor">${saldo>0.009?`<button class="boton-cuenta-proveedor boton-pagar-proveedor" onclick="abrirPagoProveedor(${o.id})">💵 Registrar pago</button>`:""}<button class="boton-cuenta-proveedor boton-historial-proveedor" onclick="verHistorialPagosProveedor(${o.id})">📋 Historial</button></div></div>`}).join("")}
 function actualizarCuentasPagar(){const rec=ordenesCompra.filter(o=>o.estado==="recibida"),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),vencido=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").reduce((t,o)=>t+Number(o.saldoProveedor||0),0);if(document.getElementById("cuentasSaldoTotal")){document.getElementById("cuentasSaldoTotal").textContent="$"+saldo.toFixed(2);document.getElementById("cuentasSaldoVencido").textContent="$"+vencido.toFixed(2);document.getElementById("cuentasPendientes").textContent=rec.filter(o=>Number(o.saldoProveedor||0)>0.009).length;document.getElementById("cuentasTotalPagado").textContent="$"+pagado.toFixed(2);mostrarListaCuentasPagar()}}
-async function mostrarCuentasPagar(){if(navigator.onLine)setTimeout(()=>cargarComprasSupabase().catch(()=>{}),0);["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaCuentasPagar").style.display="block";actualizarMenu("cuentasPagar");actualizarCuentasPagar();scrollTop()}
+function mostrarCuentasPagar(){
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ document.getElementById("vistaCuentasPagar").style.display="block";actualizarMenu("cuentasPagar");scrollTop();
+ requestAnimationFrame(()=>actualizarCuentasPagar());
+ if(navigator.onLine)setTimeout(()=>cargarComprasSupabase().then(()=>actualizarCuentasPagar()).catch(()=>{}),0);
+}
 document.getElementById("busquedaCuentasPagar").addEventListener("input",mostrarListaCuentasPagar);
 
 
@@ -4150,18 +4480,14 @@ function actualizarFlujoCaja(){
  const lista=document.getElementById("listaFlujoCaja"),arr=[...d.mov].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
  lista.innerHTML=arr.length?arr.map(m=>`<div class="fila-estadistica"><span>${m.tipo==="entrada"?"⬇️":"⬆️"} ${escapeHtml(m.concepto)}<br><small>${new Date(m.fecha).toLocaleString("es-PR")} · ${escapeHtml(m.metodo)}</small></span><strong style="color:${m.tipo==="entrada"?"#168044":"#d93025"}">${m.tipo==="entrada"?"+":"-"}$${m.cantidad.toFixed(2)}</strong></div>`).join(""):'<div class="fila-estadistica"><span>No hay movimientos de dinero en este período.</span><strong>—</strong></div>'
 }
-async function mostrarFlujoCaja(){
- if(!navigator.onLine){
-  ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
-  document.getElementById("vistaFlujoCaja").style.display="block";actualizarMenu("flujoCaja");actualizarFlujoCaja();scrollTop();return
- }
- if(navigator.onLine){
-  setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);
-  setTimeout(()=>cargarGastosSupabase().catch(()=>{}),0);
-  setTimeout(()=>cargarMovimientosCajaSupabase().catch(()=>{}),0);
- }
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");
- document.getElementById("vistaFlujoCaja").style.display="block";actualizarMenu("flujoCaja");actualizarFlujoCaja();scrollTop()
+function mostrarFlujoCaja(){
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ document.getElementById("vistaFlujoCaja").style.display="block";actualizarMenu("flujoCaja");scrollTop();
+ requestAnimationFrame(()=>actualizarFlujoCaja());
+ if(navigator.onLine)setTimeout(async()=>{
+  await Promise.allSettled([cargarVentasSupabase(),cargarGastosSupabase(),cargarMovimientosCajaSupabase()]);
+  actualizarFlujoCaja();
+ },0);
 }
 function imprimirFlujoCaja(){
  const d=datosFlujoCaja();if(!d)return alert("Selecciona un período válido.");
@@ -4363,15 +4689,187 @@ function actualizarFinanzas(){
  document.getElementById("finRelacion").textContent=d.porPagar>0?(d.porCobrar/d.porPagar).toFixed(2)+"x":(d.porCobrar>0?"Sin deuda":"—");
  actualizarEstadoContribucionArrendamiento()
 }
-async function mostrarFinanzas(){if(!navigator.onLine){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});document.getElementById("vistaFinanzas").style.display="block";actualizarMenu("finanzas");actualizarFinanzas();scrollTop();return}await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();await cargarConfiguracionesArrendamiento();
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");
- document.getElementById("vistaFinanzas").style.display="block";actualizarMenu("finanzas");actualizarFinanzas();scrollTop()
+function mostrarFinanzas(){
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ document.getElementById("vistaFinanzas").style.display="block";actualizarMenu("finanzas");scrollTop();
+ requestAnimationFrame(()=>actualizarFinanzas());
+ if(navigator.onLine)setTimeout(async()=>{
+  await Promise.allSettled([cargarInventarioSupabase(),cargarVentasSupabase(),cargarGastosSupabase(),cargarComprasSupabase(),cargarMovimientosCajaSupabase(),cargarConfiguracionesArrendamiento()]);
+  actualizarFinanzas();
+ },0);
 }
 function imprimirFinanzas(){
  const d=datosFinanzas();if(!d)return alert("Selecciona un período válido.");
  const pct=n=>(d.ventasTotal?n/d.ventasTotal*100:0).toFixed(1)+"%";
  const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Estado financiero</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{margin-bottom:4px}h2{margin-top:28px}p{color:#666}.fila{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #ddd}.fila strong{white-space:nowrap}.print{margin-top:24px;padding:12px 18px}@media print{.print{display:none}}
-</style></head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
+</style>
+<style>
+/* ===== RENDIMIENTO V11 · MENÚ SIN LAG ===== */
+.menu-panel-fondo,
+.menu,
+.modal{
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
+.menu-panel-fondo{
+  background:rgba(15,23,42,.34) !important;
+}
+.menu-panel,
+.menu-cuadricula button{
+  transition:none !important;
+  animation:none !important;
+}
+</style>
+
+
+<style>
+/* ===== ESTADÍSTICAS NÍTIDAS ===== */
+#botonEstadisticas,
+#vistaEstadisticas,
+#vistaEstadisticas *,
+#menuPrincipalFondo #botonEstadisticas{
+  filter:none !important;
+  -webkit-filter:none !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  opacity:1 !important;
+  text-shadow:none !important;
+}
+#menuPrincipalFondo #botonEstadisticas{
+  transform:none !important;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+#vistaEstadisticas{
+  transform:none !important;
+  isolation:isolate;
+}
+</style>
+
+
+<style>
+/* ===== ESTADÍSTICAS · MISMO RANGO QUE EL RESTO DEL SITIO ===== */
+#vistaEstadisticas{
+  width:100% !important;
+  max-width:1040px !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+  padding-left:28px !important;
+  padding-right:28px !important;
+  box-sizing:border-box !important;
+}
+
+#vistaEstadisticas .estadisticas-grid,
+#vistaEstadisticas .lista-estadisticas,
+#vistaEstadisticas .respaldo-box,
+#vistaEstadisticas .seccion-titulo{
+  width:100% !important;
+  max-width:100% !important;
+  box-sizing:border-box !important;
+}
+
+#vistaEstadisticas .estadistica-card{
+  min-width:0 !important;
+  max-width:100% !important;
+}
+
+@media(max-width:799px){
+  #vistaEstadisticas{
+    max-width:720px !important;
+    padding-left:18px !important;
+    padding-right:18px !important;
+  }
+}
+
+@media(max-width:430px){
+  #vistaEstadisticas{
+    max-width:100% !important;
+    padding-left:13px !important;
+    padding-right:13px !important;
+  }
+}
+</style>
+
+
+<style>
+/* ===== ESTADÍSTICAS · BLOQUE INFERIOR AL MISMO ANCHO QUE ARRIBA ===== */
+#vistaEstadisticas{
+  width:100% !important;
+  max-width:1040px !important;
+  margin:0 auto !important;
+  padding-left:28px !important;
+  padding-right:28px !important;
+  box-sizing:border-box !important;
+}
+
+/* Todos los hijos directos respetan exactamente el contenedor */
+#vistaEstadisticas > *{
+  width:100% !important;
+  max-width:100% !important;
+  margin-left:0 !important;
+  margin-right:0 !important;
+  box-sizing:border-box !important;
+}
+
+/* Resumen: Total movimientos, Entradas, Salidas, Balance, valores */
+#vistaEstadisticas .estadisticas-grid{
+  width:100% !important;
+  max-width:100% !important;
+  margin-left:0 !important;
+  margin-right:0 !important;
+  box-sizing:border-box !important;
+}
+
+#vistaEstadisticas .estadistica-card{
+  width:auto !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}
+
+/* Listados inferiores */
+#vistaEstadisticas .lista-estadisticas,
+#vistaEstadisticas .respaldo-box{
+  width:100% !important;
+  max-width:100% !important;
+  margin-left:0 !important;
+  margin-right:0 !important;
+  box-sizing:border-box !important;
+}
+
+@media(max-width:799px){
+ #vistaEstadisticas{padding-left:18px !important;padding-right:18px !important;}
+}
+@media(max-width:430px){
+ #vistaEstadisticas{padding-left:13px !important;padding-right:13px !important;}
+}
+</style>
+
+
+<style>
+/* ===== ESTADÍSTICAS · ESTRUCTURA REAL CORREGIDA ===== */
+#vistaEstadisticas{
+  width:auto !important;
+  max-width:none !important;
+  margin:0 !important;
+  padding:0 !important;
+  box-sizing:border-box !important;
+}
+#vistaEstadisticas > *{
+  max-width:100% !important;
+  box-sizing:border-box !important;
+}
+#vistaEstadisticas .estadisticas-grid,
+#vistaEstadisticas .lista-estadisticas,
+#vistaEstadisticas .respaldo-box{
+  width:100% !important;
+  max-width:100% !important;
+  margin-left:0 !important;
+  margin-right:0 !important;
+}
+</style>
+
+</head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el estado financiero.");w.document.write(html);w.document.close()
 }
 
@@ -4415,10 +4913,24 @@ function actualizarCentroAlertas(){
  ok.innerHTML=d.total?'':'<div class="alertas-vacio"><strong>✅ Todo está al día</strong>No hay productos con stock bajo ni créditos que requieran atención.</div>';
  actualizarIndicadorAlertas()
 }
-async function mostrarAlertas(){if(!navigator.onLine){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaOrdenes","vistaEstadisticas","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});document.getElementById("vistaAlertas").style.display="block";actualizarMenu("alertas");actualizarCentroAlertas();scrollTop();return}await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaAlertas").style.display="block";actualizarMenu("alertas");actualizarCentroAlertas();scrollTop()}
-
-async function mostrarEstadisticas(){if(!navigator.onLine){document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="block";actualizarMenu("estadisticas");actualizarEstadisticas();scrollTop();return}await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="block";actualizarMenu("estadisticas");actualizarEstadisticas();scrollTop()}
-
+function mostrarAlertas(){
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ document.getElementById("vistaAlertas").style.display="block";actualizarMenu("alertas");scrollTop();
+ requestAnimationFrame(()=>actualizarCentroAlertas());
+ if(navigator.onLine)setTimeout(async()=>{
+  await Promise.allSettled([cargarInventarioSupabase(),cargarVentasSupabase(),cargarGastosSupabase(),cargarComprasSupabase(),cargarMovimientosCajaSupabase()]);
+  actualizarCentroAlertas();
+ },0);
+}
+function mostrarEstadisticas(){
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ document.getElementById("vistaEstadisticas").style.display="block";actualizarMenu("estadisticas");scrollTop();
+ requestAnimationFrame(()=>actualizarEstadisticas());
+ if(navigator.onLine)setTimeout(async()=>{
+  await Promise.allSettled([cargarInventarioSupabase(),cargarVentasSupabase(),cargarGastosSupabase(),cargarComprasSupabase(),cargarMovimientosCajaSupabase()]);
+  actualizarEstadisticas();
+ },0);
+}
 async function sincronizarYActualizarEstadisticas(){
  try{
   await cargarInventarioSupabase();
@@ -4525,5 +5037,51 @@ if("serviceWorker" in navigator){
  });
 }
 </script>
+
+<script>
+(function(){
+ const acciones={
+  botonInventario:()=>mostrarInventario(),
+  botonHistorial:()=>mostrarHistorial(),
+  botonVentas:()=>mostrarVentas(),
+  botonClientes:()=>mostrarClientes(),
+  botonGastos:()=>mostrarGastos(),
+  botonCierre:()=>mostrarCierre(),
+  botonReportes:()=>mostrarReportes(),
+  botonAlertas:()=>mostrarAlertas(),
+  botonOrdenes:()=>mostrarOrdenes(),
+  botonProveedores:()=>mostrarProveedores(),
+  botonCuentasPagar:()=>mostrarCuentasPagar(),
+  botonFlujoCaja:()=>mostrarFlujoCaja(),
+  botonFinanzas:()=>mostrarFinanzas(),
+  botonEstadisticas:()=>mostrarEstadisticas(),
+  botonUsuarios:()=>mostrarUsuarios()
+ };
+
+ document.addEventListener("click",function(e){
+  const b=e.target.closest("#menuPrincipalFondo .menu-cuadricula button");
+  if(!b)return;
+
+  const onclick=String(b.getAttribute("onclick")||"");
+  let accion=b.id?acciones[b.id]:null;
+  if(!accion && onclick.includes("abrirFormulario"))accion=()=>abrirFormulario();
+
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+
+  const fondo=document.getElementById("menuPrincipalFondo");
+  if(fondo)fondo.classList.remove("visible");
+
+  requestAnimationFrame(()=>{
+   requestAnimationFrame(()=>{
+    if(typeof accion==="function")setTimeout(accion,0);
+   });
+  });
+ },true);
+})();
+</script>
+
+
 </body>
 </html>
