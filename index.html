@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v31-roles-visual-real">
+<meta name="flackunloker-offline-version" content="2026-08-25-v32-roles-visual-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2329,6 +2329,7 @@ const FLK_SUPABASE_KEY='sb_publishable_KgcL58HbkZ66Cguhs5JT0A_V2xAoL7h';
 const flkSupabase=window.supabase.createClient(FLK_SUPABASE_URL,FLK_SUPABASE_KEY);
 let modoAuth="login";
 let rolSesion="employee";
+let flkSesionActiva=false;
 
 function cambiarModoAuth(modo){
  modoAuth=modo;
@@ -2380,6 +2381,7 @@ function flkLimpiarSesionLocal(){
  }catch(e){}
 }
 function flkPintarSesionLocal(user){
+ flkSesionActiva=!!user?.id;
  if(document.readyState!=="complete"){
   window.addEventListener("load",()=>flkPintarSesionLocal(user),{once:true});
   return;
@@ -2408,7 +2410,7 @@ function flkPintarSesionLocal(user){
  if(typeof actualizarEstadisticas==="function")actualizarEstadisticas();
 }
 async function flkActualizarNubeDespuesArranque(){
- if(!navigator.onLine)return false;
+ if(!navigator.onLine||!flkSesionActiva)return false;
  const tareas=[
   cargarInventarioSupabase,cargarHistorialSupabase,cargarVentasSupabase,cargarGastosSupabase,
   cargarMovimientosCajaSupabase,cargarComprasSupabase,cargarCierresSupabase
@@ -2629,12 +2631,14 @@ async function flkRecuperacionEmergenciaNube(){
 
 async function mostrarAppConSesion(session){
  if(session&&session.user){
+  flkSesionActiva=true;
   flkGuardarSesionLocal(session);
   document.getElementById("authOverlay").classList.add("oculto");
   flkPintarSesionLocal(session.user);
   await cargarRolUsuario(session.user);
   if(navigator.onLine)setTimeout(()=>flkSincronizarSeguro(),220);
  }else{
+  flkSesionActiva=false;
   const cache=flkSesionLocal();
   if(!navigator.onLine&&cache?.user){
    flkPintarSesionLocal(cache.user);
@@ -2646,6 +2650,7 @@ async function mostrarAppConSesion(session){
  }
 }
 async function cerrarSesionFlackunloker(){
+ flkSesionActiva=false;
  flkLimpiarSesionLocal();
  if(navigator.onLine){
   try{await flkSupabase.auth.signOut()}catch(e){}
@@ -2673,8 +2678,10 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
  }
 });
 flkSupabase.auth.onAuthStateChange((event,session)=>{
- if(event==="SIGNED_OUT"&&navigator.onLine){
-  flkLimpiarSesionLocal();
+ flkSesionActiva=!!session?.user;
+ if(event==="SIGNED_OUT"){
+  flkSesionActiva=false;
+  if(navigator.onLine)flkLimpiarSesionLocal();
  }
  setTimeout(()=>mostrarAppConSesion(session),0);
 });
@@ -2780,6 +2787,7 @@ function productoHaciaSupabase(p,stock=0){
  }
 }
 async function cargarInventarioSupabase(){
+ if(navigator.onLine&&!flkSesionActiva)return false;
  if(!navigator.onLine){flkAplicarPendientesSobreDatos();mostrarProductos();actualizarEstadisticas();return true}
  const locales=Array.isArray(productos)?[...productos]:[];
  const {data:cloud,error}=await flkSupabase.from("products").select("*").eq("active",true).order("created_at",{ascending:true});
@@ -2988,6 +2996,7 @@ function movimientoDesdeSupabase(m){
  }
 }
 async function cargarHistorialSupabase(){
+ if(navigator.onLine&&!flkSesionActiva)return false;
  const {data,error}=await flkSupabase.from("stock_movements")
   .select("id,product_id,movement_type,quantity,stock_after,note,created_at")
   .order("created_at",{ascending:false});
@@ -3021,6 +3030,7 @@ function gastoDesdeSupabase(r){
  }
 }
 async function cargarGastosSupabase(){
+ if(navigator.onLine&&!flkSesionActiva)return false;
  if(!navigator.onLine){
   flkAplicarPendientesSobreDatos();
   actualizarGastos();
@@ -3091,6 +3101,7 @@ function cierreDesdeSupabase(c){
  }
 }
 async function cargarCierresSupabase(){
+ if(navigator.onLine&&!flkSesionActiva)return false;
  if(!navigator.onLine){flkAplicarPendientesSobreDatos();mostrarListaCierres();return true}
  const locales=Array.isArray(cierres)?[...cierres]:[];
  let {data:cloud,error}=await flkSupabase.from("cash_closures").select("*").order("close_date",{ascending:false});
@@ -3122,6 +3133,7 @@ async function cargarCierresSupabase(){
 function guardarCierres(){localStorage.setItem("flackunloker_cierres",JSON.stringify(cierres))}
 
 async function cargarComprasSupabase(){
+ if(navigator.onLine&&!flkSesionActiva)return false;
  if(!navigator.onLine){
   flkAplicarPendientesSobreDatos();
   actualizarOpcionesOrganizacion();actualizarProveedores();actualizarOrdenesCompra();actualizarCuentasPagar();
@@ -3393,6 +3405,7 @@ function ventaDesdeSupabase(v){
 }
 
 async function cargarVentasSupabase(){
+ if(navigator.onLine&&!flkSesionActiva)return false;
  if(!navigator.onLine){
   flkAplicarPendientesSobreDatos();
   actualizarVentas();
@@ -4402,6 +4415,7 @@ document.getElementById("busquedaCuentasPagar").addEventListener("input",mostrar
 
 
 async function cargarMovimientosCajaSupabase(){
+ if(navigator.onLine&&!flkSesionActiva)return false;
  if(!navigator.onLine){flkAplicarPendientesSobreDatos();if(typeof actualizarSaldoCajaFisica==="function")actualizarSaldoCajaFisica();return true}
  const {data,error}=await flkSupabase.from("cash_movements")
   .select("id,type,amount,description,payment_method,occurred_at,created_at,sale_id")
@@ -5003,8 +5017,17 @@ function mostrarInventario(){document.getElementById("vistaInventario").style.di
 function scrollTop(){window.scrollTo({top:0,behavior:"auto"})}
 document.addEventListener("visibilitychange",()=>{
  if(document.visibilityState==="visible"){
-  if(typeof flkSupabase!=="undefined"){
-   setTimeout(async()=>{try{await cargarVentasSupabase();await cargarGastosSupabase();await cargarMovimientosCajaSupabase()}catch(e){console.error(e)}},0);
+  if(typeof flkSupabase!=="undefined" && flkSesionActiva){
+   setTimeout(async()=>{
+    if(!flkSesionActiva)return;
+    try{
+     await cargarVentasSupabase();
+     if(rolSesion==="admin"&&flkSesionActiva){
+      await cargarGastosSupabase();
+      await cargarMovimientosCajaSupabase();
+     }
+    }catch(e){console.error(e)}
+   },0);
   }
   cargarDatos();
   recalcularSaldos();
