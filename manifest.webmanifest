@@ -1,0 +1,12 @@
+{
+  "name": "Flackunloker",
+  "short_name": "Flackunloker",
+  "description": "Sistema de inventario y ventas Flackunloker",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef7ff",
+  "theme_color": "#0a84ff",
+  "orientation": "portrait-primary",
+  "icons": []
+}

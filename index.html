@@ -462,6 +462,9 @@ body.rol-empleado .acciones-movimiento{display:none!important}
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 </head>
 <body>
 <div id="estadoConexionFlk"><span class="punto"></span><span id="textoConexionFlk">Comprobando conexión…</span><small id="pendientesConexionFlk"></small></div>
@@ -1122,26 +1125,123 @@ function flkEncolarOperacion(tipo,payload){
  const op={id:flkUUID(),tipo,payload,device_id:flkDeviceId(),created_at:new Date().toISOString(),estado:"pendiente",intentos:0};
  q.push(op);flkGuardarColaOffline(q);return op
 }
-function flkPendientesOffline(){return flkColaOffline().filter(x=>x.estado==="pendiente"||x.estado==="error").length}
+function flkPendientesOffline(){
+ return flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado)).length
+}
+function flkConflictosOffline(){
+ return flkColaOffline().filter(x=>x.estado==="conflicto").length
+}
 function flkActualizarEstadoConexion(estadoEspecial){
  const box=document.getElementById("estadoConexionFlk"),txt=document.getElementById("textoConexionFlk"),pen=document.getElementById("pendientesConexionFlk");
  if(!box||!txt||!pen)return;
  box.className="";
- const n=flkPendientesOffline();
+ const n=flkPendientesOffline(),c=flkConflictosOffline();
  if(estadoEspecial==="sync"){box.classList.add("sync");txt.textContent="🔄 Sincronizando";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"";return}
+ if(c){box.classList.add("error");txt.textContent="⚠️ Conflicto pendiente";pen.textContent=`${c} conflicto${c===1?"":"s"}`;return}
  if(estadoEspecial==="error"){box.classList.add("error");txt.textContent="⚠️ Error de sincronización";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"";return}
  if(!navigator.onLine){box.classList.add("offline");txt.textContent="🟠 Sin Internet";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"Sin cambios pendientes";return}
  txt.textContent=n?"🟢 En línea":"🟢 Sincronizado";
  pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:""
 }
+function flkVentaLocalDesdeOperacion(op){
+ const d=op.payload?.local_sale;if(!d)return null;
+ return {
+  id:d.ventaId,offlineOperationId:op.id,supabaseId:null,
+  numero:d.numero,numeroConsecutivo:Number(d.numeroConsecutivo||0),
+  items:d.items||[],cantidad:Number(d.cantidad||0),ingreso:Number(d.ingreso||0),
+  costoTotal:Number(d.costoTotal||0),ganancia:Number(d.ganancia||0),
+  fecha:d.fecha,cliente:d.cliente||"Cliente general",telefono:d.telefono||"",
+  metodoPago:d.metodoPago||"Efectivo",estadoPago:d.estadoPago||"pagado",
+  totalPagado:Number(d.totalPagado||0),saldo:Number(d.saldo||0),
+  pagos:d.pagos||[],fechaVencimiento:d.fechaVencimiento||"",nota:d.nota||"",
+  offlinePendiente:true
+ }
+}
+function flkAplicarPendientesSobreDatos(){
+ const q=flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado));
+ for(const op of q){
+  if(op.tipo==="stock_adjustment"){
+   const p=productos.find(x=>x.supabaseId===op.payload?.product_id);
+   if(p)p.cantidad=Number(p.cantidad||0)+Number(op.payload?.delta||0)
+  }
+  if(op.tipo==="sale"){
+   for(const i of (op.payload?.items||[])){
+    const p=productos.find(x=>x.supabaseId===i.product_id);
+    if(p)p.cantidad=Number(p.cantidad||0)-Number(i.quantity||0)
+   }
+   const v=flkVentaLocalDesdeOperacion(op);
+   if(v&&!ventas.some(x=>x.offlineOperationId===op.id))ventas.unshift(v)
+  }
+ }
+ guardarDatos();guardarVentas();
+ if(typeof mostrarProductos==="function")mostrarProductos();
+ if(typeof actualizarVentas==="function")actualizarVentas();
+}
+async function flkProcesarOperacionOffline(op){
+ if(op.tipo==="stock_adjustment"){
+  const {error}=await flkSupabase.rpc("flk_adjust_stock_offline",{
+   p_operation_id:op.id,
+   p_product_id:op.payload.product_id,
+   p_delta:Number(op.payload.delta),
+   p_type:op.payload.type||null,
+   p_note:op.payload.note||"Movimiento offline sincronizado"
+  });
+  if(error)throw error;
+  return
+ }
+ if(op.tipo==="sale"){
+  const p=op.payload;
+  const {error}=await flkSupabase.rpc("flk_record_sale_offline",{
+   p_operation_id:op.id,
+   p_customer_name:p.customer_name||"Cliente general",
+   p_customer_phone:p.customer_phone||null,
+   p_payment_method:p.payment_method||"Efectivo",
+   p_paid_amount:Number(p.paid_amount||0),
+   p_due_date:p.due_date||null,
+   p_note:p.note||null,
+   p_items:p.items||[]
+  });
+  if(error)throw error;
+  return
+ }
+ throw new Error("Tipo de operación offline no soportado: "+op.tipo)
+}
 async function flkProcesarColaOffline(){
- if(flkSincronizando||!navigator.onLine)return;
- const q=flkColaOffline();
- const pendientes=q.filter(x=>x.estado==="pendiente"||x.estado==="error");
+ if(flkSincronizando||!navigator.onLine||typeof flkSupabase==="undefined")return;
+ const {data:{session}}=await flkSupabase.auth.getSession();
+ if(!session)return;
+ let q=flkColaOffline(),pendientes=q.filter(x=>x.estado==="pendiente"||x.estado==="error");
  if(!pendientes.length){flkActualizarEstadoConexion();return}
- // En esta primera etapa NO enviamos operaciones de negocio automáticamente.
- // Solo queda lista la infraestructura. Los tipos se habilitarán módulo por módulo.
- flkActualizarEstadoConexion()
+ flkSincronizando=true;flkActualizarEstadoConexion("sync");
+ let huboCambios=false;
+ for(const op of pendientes){
+  try{
+   op.intentos=Number(op.intentos||0)+1;
+   await flkProcesarOperacionOffline(op);
+   op.estado="sincronizado";op.synced_at=new Date().toISOString();op.ultimo_error="";
+   huboCambios=true
+  }catch(err){
+   const msg=String(err?.message||err);
+   op.ultimo_error=msg;
+   op.estado=/inventario insuficiente|producto no encontrado|duplicate key|conflict/i.test(msg)?"conflicto":"error";
+   console.error("Operación offline",op.id,msg)
+  }
+  flkGuardarColaOffline(q)
+ }
+ q=q.filter(x=>x.estado!=="sincronizado");
+ flkGuardarColaOffline(q);
+ try{
+  if(huboCambios){
+   if(typeof cargarInventarioSupabase==="function")await cargarInventarioSupabase();
+   if(typeof cargarHistorialSupabase==="function")await cargarHistorialSupabase();
+   if(typeof cargarVentasSupabase==="function")await cargarVentasSupabase();
+   if(typeof cargarMovimientosCajaSupabase==="function")await cargarMovimientosCajaSupabase();
+   flkAplicarPendientesSobreDatos()
+  }
+ }finally{
+  flkSincronizando=false;
+  flkActualizarEstadoConexion(q.some(x=>x.estado==="error")?"error":null)
+ }
 }
 window.addEventListener("online",()=>{flkActualizarEstadoConexion();flkProcesarColaOffline()});
 window.addEventListener("offline",()=>flkActualizarEstadoConexion());
@@ -1246,6 +1346,7 @@ async function mostrarAppConSesion(session){
   await cargarMovimientosCajaSupabase();
   await cargarComprasSupabase();
   await cargarCierresSupabase();
+  await flkProcesarColaOffline();
  }else{
   document.getElementById("authOverlay").classList.remove("oculto");
   document.getElementById("authUsuario").classList.remove("visible");
@@ -1462,6 +1563,12 @@ async function guardarProductoSupabase(p,esNuevo=false,stockInicial=0){
 }
 async function ajustarStockSupabase(p,delta,tipo,nota=""){
  if(!p.supabaseId)throw new Error("Producto sin vínculo con Supabase.");
+ if(!navigator.onLine){
+  const nuevo=Number(p.cantidad||0)+Number(delta);
+  if(nuevo<0)throw new Error("Inventario insuficiente para "+p.nombre);
+  flkEncolarOperacion("stock_adjustment",{product_id:p.supabaseId,delta:Number(delta),type:tipo,note:nota||"Movimiento manual offline"});
+  return nuevo
+ }
  const {data,error}=await flkSupabase.rpc("adjust_product_stock",{p_product_id:p.supabaseId,p_delta:Number(delta),p_type:tipo,p_note:nota||null});
  if(error)throw error;
  return Number(data);
@@ -1785,8 +1892,13 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
   const p=productos.find(x=>x.id===productoMovimiento);if(!p){cerrarMovimiento();return}
   const delta=tipoMovimiento==="entrada"?cantidad:-cantidad;
   p.cantidad=await ajustarStockSupabase(p,delta,tipoMovimiento,"Movimiento manual desde Flackunloker");
-  await cargarHistorialSupabase();
+  if(navigator.onLine)await cargarHistorialSupabase();
+  else{
+   historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:tipoMovimiento,cantidad,saldo:p.cantidad,fecha:new Date().toISOString(),detalle:"🟠 Pendiente de sincronización"});
+   guardarHistorial();actualizarResumenHistorial();mostrarListaHistorial()
+  }
   guardarDatos();mostrarProductos();actualizarEstadisticas();cerrarMovimiento();
+  if(!navigator.onLine)alert("Movimiento guardado localmente. Se sincronizará cuando regrese Internet.");
  }catch(err){console.error(err);alert("Supabase rechazó el movimiento: "+(err.message||err))}
  finally{procesandoGuardado=false}
 });
@@ -2004,6 +2116,7 @@ async function cargarVentasSupabase(){
  actualizarClientes();
  actualizarFlujoCaja();
  actualizarFinanzas();
+ if(flkPendientesOffline()>0)flkAplicarPendientesSobreDatos();
  return true
 }
 
@@ -2013,6 +2126,19 @@ async function registrarVentaSupabase(datos){
   if(!p||!p.supabaseId)throw new Error("El producto "+i.nombre+" todavía no está vinculado con Supabase.");
   return {product_id:p.supabaseId,quantity:Number(i.cantidad),unit_price:Number(i.precioUnitario)};
  });
+ if(!navigator.onLine){
+  const op=flkEncolarOperacion("sale",{
+   customer_name:datos.cliente||"Cliente general",
+   customer_phone:datos.telefono||null,
+   payment_method:datos.metodoPago||"Efectivo",
+   paid_amount:Number(datos.totalPagado||0),
+   due_date:datos.fechaVencimiento||null,
+   note:datos.nota||null,
+   items,
+   local_sale:{...datos}
+  });
+  return "offline:"+op.id
+ }
  const {data,error}=await flkSupabase.rpc("flk_record_sale",{
   p_legacy_id:String(datos.ventaId),
   p_receipt_number:String(datos.numero),
@@ -2040,15 +2166,27 @@ document.getElementById("formularioVenta").addEventListener("submit",async e=>{
   if(estadoSolicitado==="credito"&&abonoInicial>ingreso)return alert("El abono inicial no puede ser mayor que el total del recibo.");
   const numeroConsecutivo=proximoNumeroRecibo++,numero=String(numeroConsecutivo).padStart(6,"0");
   const totalPagado=estadoSolicitado==="pagado"?ingreso:abonoInicial,saldo=Math.max(0,ingreso-totalPagado),estadoPago=saldo>0.009?"credito":"pagado";
-  const supabaseSaleId=await registrarVentaSupabase({ventaId,numero,items,cliente,telefono,metodoPago,totalPagado,fechaVencimiento:saldo>0?fechaVencimiento:"",nota});
-  await cargarInventarioSupabase();
-  items.forEach(item=>{const p=productos.find(x=>x.id===item.productoId);historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:item.productoId,nombre:item.nombre,sku:item.sku,tipo:"salida",cantidad:item.cantidad,saldo:p?Number(p.cantidad):0,fecha,detalle:"Venta · Recibo "+numero,ventaId})});
   const pagos=totalPagado>0?[{id:Date.now()+Math.floor(Math.random()*100000),cantidad:totalPagado,fecha,metodo:metodoPago,nota:estadoSolicitado==="credito"?"Abono inicial":"Pago de venta",saldoAnterior:ingreso,saldoRestante:saldo}]:[];
-  ventas.unshift({id:ventaId,supabaseId:supabaseSaleId,numero,numeroConsecutivo,items,cantidad,ingreso,costoTotal,ganancia,fecha,cliente,telefono,metodoPago,estadoPago,totalPagado,saldo,pagos,fechaVencimiento:saldo>0?fechaVencimiento:"",nota});
+  const datosVenta={ventaId,numero,numeroConsecutivo,items,cantidad,ingreso,costoTotal,ganancia,fecha,cliente,telefono,metodoPago,estadoPago,totalPagado,saldo,pagos,fechaVencimiento:saldo>0?fechaVencimiento:"",nota};
+  const supabaseSaleId=await registrarVentaSupabase(datosVenta);
+  const ventaOffline=String(supabaseSaleId).startsWith("offline:");
+  if(ventaOffline){
+   items.forEach(item=>{const p=productos.find(x=>x.id===item.productoId);if(p)p.cantidad=Number(p.cantidad)-Number(item.cantidad);historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:item.productoId,nombre:item.nombre,sku:item.sku,tipo:"salida",cantidad:item.cantidad,saldo:p?Number(p.cantidad):0,fecha,detalle:"🟠 Venta pendiente · Recibo local "+numero,ventaId})});
+  }else{
+   await cargarInventarioSupabase();
+   items.forEach(item=>{const p=productos.find(x=>x.id===item.productoId);historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:item.productoId,nombre:item.nombre,sku:item.sku,tipo:"salida",cantidad:item.cantidad,saldo:p?Number(p.cantidad):0,fecha,detalle:"Venta · Recibo "+numero,ventaId})});
+  }
+  ventas.unshift({...datosVenta,supabaseId:ventaOffline?null:supabaseSaleId,offlineOperationId:ventaOffline?String(supabaseSaleId).slice(8):null,offlinePendiente:ventaOffline});
   guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();
-  await cargarVentasSupabase();
+  if(!ventaOffline)await cargarVentasSupabase();
   actualizarEstadisticas();cerrarVenta();
-  alert(`Recibo guardado en Supabase.
+  alert(ventaOffline?`🟠 Recibo guardado localmente.
+
+Productos: ${items.length}
+Unidades: ${cantidad}
+Total: $${ingreso.toFixed(2)}
+
+Se sincronizará automáticamente cuando regrese Internet.`:`Recibo guardado en Supabase.
 
 Productos: ${items.length}
 Unidades: ${cantidad}
@@ -3174,6 +3312,13 @@ const _flkSeleccionarRespaldo=seleccionarRespaldo;
 seleccionarRespaldo=function(){if(!requiereAdmin("Restaurar respaldos"))return;return _flkSeleccionarRespaldo.apply(this,arguments)};
 
 recalcularSaldos();mostrarProductos();actualizarResumenHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarFlujoCaja();actualizarFinanzas();actualizarEstadisticas();
+</script>
+<script>
+if("serviceWorker" in navigator){
+ window.addEventListener("load",()=>{
+  navigator.serviceWorker.register("./sw.js").catch(err=>console.error("Service Worker:",err));
+ });
+}
 </script>
 </body>
 </html>
