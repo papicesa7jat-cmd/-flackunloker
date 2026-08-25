@@ -693,11 +693,18 @@ body.rol-empleado .acciones-movimiento{display:none!important}
 
 <div class="lista-estadisticas"><h3>🏦 Posición financiera actual</h3></div>
 <div class="finanzas-balance">
+<div class="finanzas-card activo"><span>🏦 Caja física</span><strong id="finCaja">$0.00</strong></div>
 <div class="finanzas-card activo"><span>📦 Inventario a costo</span><strong id="finInventario">$0.00</strong></div>
 <div class="finanzas-card activo"><span>👥 Cuentas por cobrar</span><strong id="finPorCobrar">$0.00</strong></div>
 <div class="finanzas-card ancha activo"><span>Activos operativos</span><strong id="finActivos">$0.00</strong></div>
 <div class="finanzas-card ancha pasivo"><span>💳 Cuentas por pagar</span><strong id="finPorPagar">$0.00</strong></div>
-<div class="finanzas-card ancha azul"><span>💼 Patrimonio operativo estimado</span><strong id="finPatrimonio">$0.00</strong></div>
+<div class="finanzas-card ancha azul"><span>💼 Patrimonio operativo neto</span><strong id="finPatrimonio">$0.00</strong></div>
+</div>
+<div class="lista-estadisticas">
+<h3>🧮 Cómo se calcula el patrimonio</h3>
+<div class="fila-estadistica"><span>Caja + Inventario + Por cobrar − Por pagar</span><strong id="finFormulaPatrimonio">—</strong></div>
+</div>
+
 </div>
 
 <div class="lista-estadisticas"><h3>📈 Resultados del período</h3>
@@ -2474,19 +2481,20 @@ function datosFinanzas(){
   .filter(o=>o.estado==="recibida")
   .reduce((t,o)=>t+Math.max(0,Number(o.saldoProveedor||0)),0);
 
- const activos=inventario+porCobrar;
+ const caja=typeof saldoCajaFisicaActual==="function"?saldoCajaFisicaActual():0;
+ const activos=caja+inventario+porCobrar;
  const patrimonio=activos-porPagar;
 
- // Flujo real del período
+ // Flujo operativo real del período. Retiros/aportes del dueño no son resultado del negocio.
  const mov=typeof movimientosFlujoCaja==="function"
-  ? movimientosFlujoCaja().filter(m=>enRango(m.fecha))
+  ? movimientosFlujoCaja().filter(m=>enRango(m.fecha)&&m.grupo!=="propietario")
   : [];
  const entradas=mov.filter(m=>m.tipo==="entrada").reduce((t,m)=>t+Number(m.cantidad||0),0);
  const salidas=mov.filter(m=>m.tipo==="salida").reduce((t,m)=>t+Number(m.cantidad||0),0);
 
  return {
   lim,ventasTotal,costo,bruta,gastosTotal,neta,
-  inventario,porCobrar,porPagar,activos,patrimonio,
+  caja,inventario,porCobrar,porPagar,activos,patrimonio,
   entradas,salidas,flujo:entradas-salidas
  }
 }
@@ -2498,7 +2506,9 @@ function actualizarFinanzas(){
  const d=datosFinanzas();if(!d)return;
  document.getElementById("textoPeriodoFinanzas").value=d.lim.texto;
  const money=(id,n)=>document.getElementById(id).textContent="$"+Number(n).toFixed(2);
- money("finInventario",d.inventario);money("finPorCobrar",d.porCobrar);money("finActivos",d.activos);money("finPorPagar",d.porPagar);money("finPatrimonio",d.patrimonio);
+ money("finCaja",d.caja);money("finInventario",d.inventario);money("finPorCobrar",d.porCobrar);money("finActivos",d.activos);money("finPorPagar",d.porPagar);money("finPatrimonio",d.patrimonio);
+ const formula=document.getElementById("finFormulaPatrimonio");
+ if(formula)formula.textContent=`$${d.caja.toFixed(2)} + $${d.inventario.toFixed(2)} + $${d.porCobrar.toFixed(2)} − $${d.porPagar.toFixed(2)} = $${d.patrimonio.toFixed(2)}`;
  money("finVentas",d.ventasTotal);money("finCosto",d.costo);money("finBruta",d.bruta);money("finGastos",d.gastosTotal);money("finNeta",d.neta);
  money("finEntradas",d.entradas);money("finSalidas",d.salidas);money("finFlujoNeto",d.flujo);
  document.getElementById("finPatrimonio").style.color=d.patrimonio<0?"#d93025":"#0a84ff";
@@ -2515,7 +2525,7 @@ async function mostrarFinanzas(){await cargarVentasSupabase();await cargarGastos
 function imprimirFinanzas(){
  const d=datosFinanzas();if(!d)return alert("Selecciona un período válido.");
  const pct=n=>(d.ventasTotal?n/d.ventasTotal*100:0).toFixed(1)+"%";
- const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Estado financiero</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{margin-bottom:4px}h2{margin-top:28px}p{color:#666}.fila{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #ddd}.fila strong{white-space:nowrap}.print{margin-top:24px;padding:12px 18px}@media print{.print{display:none}}</style></head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo estimado</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
+ const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Estado financiero</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{margin-bottom:4px}h2{margin-top:28px}p{color:#666}.fila{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #ddd}.fila strong{white-space:nowrap}.print{margin-top:24px;padding:12px 18px}@media print{.print{display:none}}</style></head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el estado financiero.");w.document.write(html);w.document.close()
 }
 
