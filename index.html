@@ -2116,7 +2116,20 @@ async function flkProcesarColaOffline(){
   flkActualizarEstadoConexion(q.some(x=>x.estado==="error")?"error":null)
  }
 }
-window.addEventListener("online",()=>{flkActualizarEstadoConexion();flkProcesarColaOffline()});
+window.addEventListener("online",async()=>{
+ flkActualizarEstadoConexion();
+ try{
+  const {data}=await flkSupabase.auth.getSession();
+  if(data?.session?.user){
+   flkGuardarSesionLocal(data.session);
+   await cargarRolUsuario(data.session.user);
+   await flkActualizarNubeDespuesArranque();
+  }else{
+   flkLimpiarSesionLocal();
+   document.getElementById("authOverlay").classList.remove("oculto");
+  }
+ }catch(err){console.error(err)}
+});
 window.addEventListener("offline",()=>flkActualizarEstadoConexion());
 
 function flkActualizarModoRendimiento(){
@@ -2202,12 +2215,89 @@ function mostrarMensajeAuth(texto,tipo){
  const e=document.getElementById("authMensaje");
  e.textContent=texto;e.className="auth-msg"+(texto?" visible "+tipo:"");
 }
-async function cargarRolUsuario(user){
- rolSesion="employee";
+
+const FLK_SESSION_CACHE_KEY="flackunloker_session_cache_v1";
+const FLK_ROLE_CACHE_KEY="flackunloker_role_cache_v1";
+
+function flkGuardarSesionLocal(session){
  try{
-  const {data}=await flkSupabase.from("profiles").select("role").eq("id",user.id).maybeSingle();
-  if(data&&data.role)rolSesion=data.role;
+  if(!session?.user)return;
+  localStorage.setItem(FLK_SESSION_CACHE_KEY,JSON.stringify({
+   user:{id:session.user.id||"",email:session.user.email||""},
+   saved_at:new Date().toISOString()
+  }));
  }catch(e){}
+}
+function flkSesionLocal(){
+ try{
+  const x=JSON.parse(localStorage.getItem(FLK_SESSION_CACHE_KEY)||"null");
+  return x?.user?.id?x:null
+ }catch(e){return null}
+}
+function flkGuardarRolLocal(userId,role){
+ try{
+  if(userId&&role)localStorage.setItem(FLK_ROLE_CACHE_KEY,JSON.stringify({user_id:userId,role,saved_at:new Date().toISOString()}))
+ }catch(e){}
+}
+function flkRolLocal(userId){
+ try{
+  const x=JSON.parse(localStorage.getItem(FLK_ROLE_CACHE_KEY)||"null");
+  return x&&x.user_id===userId&&["admin","employee"].includes(x.role)?x.role:null
+ }catch(e){return null}
+}
+function flkLimpiarSesionLocal(){
+ try{
+  localStorage.removeItem(FLK_SESSION_CACHE_KEY);
+  localStorage.removeItem(FLK_ROLE_CACHE_KEY);
+ }catch(e){}
+}
+function flkPintarSesionLocal(user){
+ const rolGuardado=flkRolLocal(user?.id);
+ rolSesion=rolGuardado||"employee";
+ document.getElementById("authUsuarioEmail").textContent=user?.email||"Usuario";
+ document.getElementById("authUsuarioRol").textContent=rolSesion==="admin"?"👑 Administrador":"👤 Empleado";
+ document.getElementById("authUsuario").classList.add("visible");
+ document.getElementById("authOverlay").classList.add("oculto");
+ aplicarPermisosVisuales();
+ if(typeof flkAplicarPendientesSobreDatos==="function")flkAplicarPendientesSobreDatos();
+ if(typeof mostrarProductos==="function")mostrarProductos();
+ if(typeof actualizarResumenHistorial==="function")actualizarResumenHistorial();
+ if(typeof mostrarListaHistorial==="function")mostrarListaHistorial();
+ if(typeof actualizarVentas==="function")actualizarVentas();
+ if(typeof actualizarClientes==="function")actualizarClientes();
+ if(typeof actualizarGastos==="function")actualizarGastos();
+ if(typeof actualizarCierre==="function")actualizarCierre();
+ if(typeof actualizarOrdenesCompra==="function")actualizarOrdenesCompra();
+ if(typeof actualizarProveedores==="function")actualizarProveedores();
+ if(typeof actualizarCuentasPagar==="function")actualizarCuentasPagar();
+ if(typeof actualizarFlujoCaja==="function")actualizarFlujoCaja();
+ if(typeof actualizarFinanzas==="function")actualizarFinanzas();
+ if(typeof actualizarEstadisticas==="function")actualizarEstadisticas();
+}
+async function flkActualizarNubeDespuesArranque(){
+ if(!navigator.onLine)return false;
+ const tareas=[
+  cargarInventarioSupabase,cargarHistorialSupabase,cargarVentasSupabase,cargarGastosSupabase,
+  cargarMovimientosCajaSupabase,cargarComprasSupabase,cargarCierresSupabase
+ ];
+ for(const fn of tareas){
+  try{await fn()}catch(err){if(!flkSilenciarSiEsConexion(err))console.error(err)}
+ }
+ try{await flkProcesarColaOffline()}catch(err){console.error(err)}
+ return true
+}
+
+async function cargarRolUsuario(user){
+ rolSesion=flkRolLocal(user?.id)||"employee";
+ if(navigator.onLine){
+  try{
+   const {data,error}=await flkSupabase.from("profiles").select("role").eq("id",user.id).maybeSingle();
+   if(!error&&data&&data.role){
+    rolSesion=data.role;
+    flkGuardarRolLocal(user.id,rolSesion);
+   }
+  }catch(e){}
+ }
  document.getElementById("authUsuarioEmail").textContent=user.email||"Usuario";
  document.getElementById("authUsuarioRol").textContent=rolSesion==="admin"?"👑 Administrador":"👤 Empleado";
  document.getElementById("authUsuario").classList.add("visible");
@@ -2227,23 +2317,27 @@ function aplicarPermisosVisuales(){
 }
 async function mostrarAppConSesion(session){
  if(session&&session.user){
+  flkGuardarSesionLocal(session);
   document.getElementById("authOverlay").classList.add("oculto");
+  flkPintarSesionLocal(session.user);
   await cargarRolUsuario(session.user);
-  await cargarInventarioSupabase();
-  await cargarHistorialSupabase();
-  await cargarVentasSupabase();
-  await cargarGastosSupabase();
-  await cargarMovimientosCajaSupabase();
-  await cargarComprasSupabase();
-  await cargarCierresSupabase();
-  await flkProcesarColaOffline();
+  if(navigator.onLine)setTimeout(()=>flkActualizarNubeDespuesArranque(),0);
  }else{
+  const cache=flkSesionLocal();
+  if(!navigator.onLine&&cache?.user){
+   flkPintarSesionLocal(cache.user);
+   flkActualizarEstadoConexion();
+   return
+  }
   document.getElementById("authOverlay").classList.remove("oculto");
   document.getElementById("authUsuario").classList.remove("visible");
  }
 }
 async function cerrarSesionFlackunloker(){
- await flkSupabase.auth.signOut();
+ flkLimpiarSesionLocal();
+ if(navigator.onLine){
+  try{await flkSupabase.auth.signOut()}catch(e){}
+ }
  document.getElementById("authOverlay").classList.remove("oculto");
  document.getElementById("authUsuario").classList.remove("visible");
  cambiarModoAuth("login");
@@ -2267,11 +2361,29 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
  }
 });
 flkSupabase.auth.onAuthStateChange((event,session)=>{
+ if(event==="SIGNED_OUT"&&navigator.onLine){
+  flkLimpiarSesionLocal();
+ }
  setTimeout(()=>mostrarAppConSesion(session),0);
 });
-(async()=>{
- const {data}=await flkSupabase.auth.getSession();
- await mostrarAppConSesion(data.session);
+(()=>{
+ const cache=flkSesionLocal();
+ if(cache?.user)flkPintarSesionLocal(cache.user);
+ if(!navigator.onLine){
+  if(!cache?.user){
+   document.getElementById("authOverlay").classList.remove("oculto");
+  }
+  flkActualizarEstadoConexion();
+  return
+ }
+ setTimeout(async()=>{
+  try{
+   const {data}=await flkSupabase.auth.getSession();
+   await mostrarAppConSesion(data.session);
+  }catch(err){
+   if(cache?.user)flkPintarSesionLocal(cache.user);
+  }
+ },0);
 })();
 
 
