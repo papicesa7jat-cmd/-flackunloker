@@ -403,6 +403,14 @@ body.rol-empleado .acciones-movimiento{display:none!important}
   <div id="authMensaje" class="auth-msg"></div>
  </div>
 </div>
+
+<div class="lista-estadisticas" id="panelRestablecimientoTotal" style="display:none;border:1px solid #ffd5d2">
+ <h3>⚠️ Restablecimiento total del sistema</h3>
+ <p style="font-size:13px;line-height:1.55;color:#667085;margin:0 0 14px">
+  Borra todos los datos operativos de Flackunloker y deja la base como nueva. Las cuentas de acceso y perfiles de Administrador/Empleado se conservan.
+ </p>
+ <button class="boton-agregar" type="button" onclick="abrirRestablecimientoTotal()" style="background:#d93025;width:100%">⚠️ Configurar / Restablecer sistema</button>
+</div>
 <div id="authUsuario" class="auth-user">
  <strong id="authUsuarioEmail">—</strong>
  <span id="authUsuarioRol">Usuario</span>
@@ -974,7 +982,79 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 </div>
 
 <div class="modal" id="modalMovimientoPropietario"><div class="modal-contenido"><div class="modal-cabecera"><h3 id="tituloMovimientoPropietario">🏦 Movimiento de caja</h3><button class="cerrar" type="button" onclick="cerrarMovimientoPropietario()">×</button></div><div id="saldoDisponibleMovimiento">Efectivo disponible en caja<strong id="saldoDisponibleMovimientoValor">$0.00</strong></div><form id="formularioMovimientoPropietario"><label for="cantidadMovimientoPropietario">Cantidad</label><input id="cantidadMovimientoPropietario" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required><label for="notaMovimientoPropietario">Motivo / nota</label><textarea id="notaMovimientoPropietario" placeholder="Ejemplo: Retiro del dueño al finalizar el día"></textarea><input id="tipoMovimientoPropietario" type="hidden"><button class="guardar" id="botonGuardarMovimientoPropietario" type="submit">Guardar movimiento</button></form></div></div>
+
+<div class="modal" id="modalRestablecimientoTotal">
+ <div class="modal-contenido" style="width:min(94vw,560px);padding:26px">
+  <div class="modal-cabecera"><h3 style="font-size:24px">⚠️ Restablecimiento total</h3><button class="cerrar" type="button" onclick="cerrarRestablecimientoTotal()">×</button></div>
+  <div id="bloqueConfigurarPin">
+   <p style="line-height:1.55">Primero establece un PIN secreto de <strong>6 dígitos</strong>. No se guarda de forma visible.</p>
+   <label>Nuevo PIN de 6 dígitos</label>
+   <input id="nuevoPinReset" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
+   <label>Repetir PIN</label>
+   <input id="confirmarPinReset" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
+   <button class="guardar" type="button" onclick="guardarPinReset()">Guardar PIN</button>
+  </div>
+  <div id="bloqueEjecutarReset" style="display:none">
+   <div style="background:#fff3f2;border:1px solid #ffd5d2;border-radius:14px;padding:14px;line-height:1.55;margin-bottom:16px">
+    <strong>Esta acción es irreversible.</strong><br>
+    Se borrarán inventario, ventas, recibos, devoluciones, clientes, gastos, caja, cierres, proveedores, compras, pagos, reparaciones, historial y configuraciones operativas.
+   </div>
+   <label>PIN de 6 dígitos</label>
+   <input id="pinEjecutarReset" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
+   <label>Escribe RESTABLECER para confirmar</label>
+   <input id="textoConfirmarReset" type="text" autocomplete="off" placeholder="RESTABLECER">
+   <button type="button" onclick="ejecutarRestablecimientoTotal()" style="width:100%;min-height:58px;margin-top:20px;border:0;border-radius:14px;background:#d93025;color:white;font-size:18px;font-weight:900">🗑️ Borrar todos los datos operativos</button>
+   <button type="button" onclick="mostrarCambioPinReset()" style="width:100%;margin-top:12px;background:none;border:0;color:#0a84ff;font-weight:700">Cambiar PIN de seguridad</button>
+  </div>
+ </div>
+</div>
+
 <script>
+
+async function abrirRestablecimientoTotal(){
+ if(rolSesion!=="admin")return alert("Solo el Administrador puede usar el restablecimiento total.");
+ document.getElementById("modalRestablecimientoTotal").classList.add("visible");
+ const {data,error}=await flkSupabase.rpc("flk_reset_pin_configured");
+ if(error)return alert("No se pudo verificar la seguridad: "+error.message);
+ document.getElementById("bloqueConfigurarPin").style.display=data?"none":"block";
+ document.getElementById("bloqueEjecutarReset").style.display=data?"block":"none";
+}
+function cerrarRestablecimientoTotal(){
+ document.getElementById("modalRestablecimientoTotal").classList.remove("visible");
+ ["nuevoPinReset","confirmarPinReset","pinEjecutarReset","textoConfirmarReset"].forEach(id=>{const e=document.getElementById(id);if(e)e.value=""})
+}
+function mostrarCambioPinReset(){
+ document.getElementById("bloqueConfigurarPin").style.display="block";
+ document.getElementById("bloqueEjecutarReset").style.display="none";
+}
+async function guardarPinReset(){
+ const a=document.getElementById("nuevoPinReset").value,b=document.getElementById("confirmarPinReset").value;
+ if(!/^\d{6}$/.test(a))return alert("El PIN debe tener exactamente 6 dígitos.");
+ if(a!==b)return alert("Los dos PIN no coinciden.");
+ const {error}=await flkSupabase.rpc("flk_set_reset_pin",{p_pin:a});
+ if(error)return alert("Supabase rechazó el PIN: "+error.message);
+ document.getElementById("nuevoPinReset").value="";document.getElementById("confirmarPinReset").value="";
+ document.getElementById("bloqueConfigurarPin").style.display="none";document.getElementById("bloqueEjecutarReset").style.display="block";
+ alert("PIN de restablecimiento configurado correctamente.");
+}
+async function ejecutarRestablecimientoTotal(){
+ const pin=document.getElementById("pinEjecutarReset").value;
+ const texto=document.getElementById("textoConfirmarReset").value.trim().toUpperCase();
+ if(!/^\d{6}$/.test(pin))return alert("Introduce tu PIN de 6 dígitos.");
+ if(texto!=="RESTABLECER")return alert("Para confirmar debes escribir exactamente RESTABLECER.");
+ if(!confirm("ÚLTIMA CONFIRMACIÓN: se borrarán permanentemente todos los datos operativos. ¿Continuar?"))return;
+ const {error}=await flkSupabase.rpc("flk_full_system_reset",{p_pin:pin,p_confirmation:"RESTABLECER"});
+ if(error)return alert("No se pudo restablecer el sistema: "+error.message);
+ localStorage.removeItem("flackunloker_productos");
+ localStorage.removeItem("flackunloker_historial");
+ localStorage.removeItem("flackunloker_ventas");
+ localStorage.removeItem("flackunloker_clientes");
+ localStorage.removeItem("flackunloker_gastos");
+ localStorage.removeItem("flackunloker_cierres");
+ alert("Restablecimiento completado. Flackunloker quedó sin datos operativos.");
+ location.reload();
+}
+
 
 const FLK_SUPABASE_URL='https://eviwhrqhinhnyccizkfq.supabase.co';
 const FLK_SUPABASE_KEY='sb_publishable_KgcL58HbkZ66Cguhs5JT0A_V2xAoL7h';
@@ -1008,6 +1088,7 @@ async function cargarRolUsuario(user){
 }
 function aplicarPermisosVisuales(){
  const admin=rolSesion==="admin";
+ const resetPanel=document.getElementById("panelRestablecimientoTotal");if(resetPanel)resetPanel.style.display=admin?"block":"none";
  document.body.classList.toggle("rol-empleado",!admin);
  const btnArr=document.getElementById("botonGuardarArrendamiento");if(btnArr)btnArr.style.display=admin?"":"none";
  document.body.classList.toggle("rol-admin",admin);
