@@ -1760,6 +1760,74 @@ function flkAplicarPagoProveedorLocal(op){
  return true
 }
 
+
+function flkAplicarMovimientoPropietarioLocal(op){
+ const p=op.payload||{};
+ if((movimientosCajaSupabase||[]).some(m=>m.offlineOperationId===op.id))return true;
+ const esAporte=p.type==="contribution";
+ movimientosCajaSupabase.push({
+  id:"local-"+op.id,
+  offlineOperationId:op.id,
+  offlinePendiente:true,
+  tipo:esAporte?"entrada":"salida",
+  cantidad:Number(p.amount||0),
+  concepto:esAporte?"Aporte del propietario":"Retiro del propietario",
+  metodo:"Efectivo",
+  fecha:op.created_at||new Date().toISOString(),
+  grupo:"propietario",
+  nota:p.note||""
+ });
+ guardarMovimientosCajaLocal();
+ return true
+}
+
+function flkCierreLocalDesdeOperacion(op){
+ const p=op.payload||{};
+ return {
+  id:Number(p.local_closure_id||Date.now()+Math.floor(Math.random()*100000)),
+  supabaseId:p.closure_id||null,
+  offlineOperationId:op.id,
+  offlinePendiente:true,
+  fechaLocal:p.close_date,
+  recibos:Number(p.receipts_count||0),
+  unidades:Number(p.units_count||0),
+  ventasTotal:Number(p.sales_total||0),
+  costo:Number(p.cost_total||0),
+  gananciaBruta:Number(p.gross_profit||0),
+  gastosTotal:Number(p.expenses_total||0),
+  gananciaNeta:Number(p.net_profit||0),
+  cobrado:Number(p.collected_total||0),
+  efectivo:Number(p.cash_total||0),
+  ath:Number(p.ath_total||0),
+  tarjeta:Number(p.card_total||0),
+  otros:Number(p.other_total||0),
+  credito:Number(p.credit_sales||0),
+  saldoCredito:Number(p.credit_balance||0),
+  gastoEfectivo:Number(p.cash_expenses||0),
+  efectivoNeto:Number(p.net_cash||0),
+  guardado:op.created_at||new Date().toISOString()
+ }
+}
+
+function flkAplicarCierreLocal(op){
+ const c=flkCierreLocalDesdeOperacion(op);
+ const idx=cierres.findIndex(x=>x.fechaLocal===c.fechaLocal);
+ if(idx>=0)cierres[idx]={...cierres[idx],...c,id:cierres[idx].id};
+ else cierres.unshift(c);
+ guardarCierres();
+ return true
+}
+
+function flkAplicarEliminarCierreLocal(op){
+ const p=op.payload||{};
+ cierres=cierres.filter(c=>
+  !(p.closure_id&&c.supabaseId===p.closure_id) &&
+  !(p.close_date&&c.fechaLocal===p.close_date)
+ );
+ guardarCierres();
+ return true
+}
+
 function flkAplicarPendientesSobreDatos(){
  const q=flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado));
  for(const op of q){
@@ -1796,8 +1864,11 @@ function flkAplicarPendientesSobreDatos(){
   if(op.tipo==="purchase_order_ordered")flkAplicarOrdenOrdenadaLocal(op);
   if(op.tipo==="purchase_order_receive")flkAplicarRecepcionOrdenLocal(op);
   if(op.tipo==="supplier_payment")flkAplicarPagoProveedorLocal(op);
+  if(op.tipo==="owner_cash_movement")flkAplicarMovimientoPropietarioLocal(op);
+  if(op.tipo==="cash_closure_save")flkAplicarCierreLocal(op);
+  if(op.tipo==="cash_closure_delete")flkAplicarEliminarCierreLocal(op);
  }
- guardarDatos();guardarVentas();guardarGastos();guardarHistorial();guardarProveedores();guardarOrdenesCompra();
+ guardarDatos();guardarVentas();guardarGastos();guardarHistorial();guardarProveedores();guardarOrdenesCompra();guardarCierres();guardarMovimientosCajaLocal();
  if(typeof mostrarProductos==="function")mostrarProductos();
  if(typeof actualizarVentas==="function")actualizarVentas();
  if(typeof actualizarGastos==="function")actualizarGastos();
@@ -1922,6 +1993,35 @@ async function flkProcesarOperacionOffline(op){
   });
   if(error)throw error;return
  }
+ if(op.tipo==="owner_cash_movement"){
+  const p=op.payload||{};
+  const {error}=await flkSupabase.rpc("flk_owner_cash_movement_offline",{
+   p_operation_id:op.id,p_type:p.type,p_amount:Number(p.amount||0),p_note:p.note||null
+  });
+  if(error)throw error;return
+ }
+ if(op.tipo==="cash_closure_save"){
+  const p=op.payload||{};
+  const {error}=await flkSupabase.rpc("flk_save_cash_closure_offline",{
+   p_operation_id:op.id,p_close_date:p.close_date,p_receipts_count:Number(p.receipts_count||0),
+   p_units_count:Number(p.units_count||0),p_sales_total:Number(p.sales_total||0),
+   p_cost_total:Number(p.cost_total||0),p_gross_profit:Number(p.gross_profit||0),
+   p_expenses_total:Number(p.expenses_total||0),p_net_profit:Number(p.net_profit||0),
+   p_collected_total:Number(p.collected_total||0),p_cash_total:Number(p.cash_total||0),
+   p_ath_total:Number(p.ath_total||0),p_card_total:Number(p.card_total||0),
+   p_other_total:Number(p.other_total||0),p_credit_sales:Number(p.credit_sales||0),
+   p_credit_balance:Number(p.credit_balance||0),p_cash_expenses:Number(p.cash_expenses||0),
+   p_net_cash:Number(p.net_cash||0)
+  });
+  if(error)throw error;return
+ }
+ if(op.tipo==="cash_closure_delete"){
+  const p=op.payload||{};
+  const {error}=await flkSupabase.rpc("flk_delete_cash_closure_offline",{
+   p_operation_id:op.id,p_closure_id:p.closure_id||null,p_close_date:p.close_date||null
+  });
+  if(error)throw error;return
+ }
  throw new Error("Tipo de operación offline no soportado: "+op.tipo)
 }
 async function flkProcesarColaOffline(){
@@ -1956,6 +2056,7 @@ async function flkProcesarColaOffline(){
    if(typeof cargarGastosSupabase==="function")await cargarGastosSupabase();
    if(typeof cargarComprasSupabase==="function")await cargarComprasSupabase();
    if(typeof cargarMovimientosCajaSupabase==="function")await cargarMovimientosCajaSupabase();
+   if(typeof cargarCierresSupabase==="function")await cargarCierresSupabase();
    flkAplicarPendientesSobreDatos()
   }
  }finally{
@@ -2152,7 +2253,8 @@ let proximoNumeroRecibo=1;
 let gastoEditandoId=null;
 let proveedorEditandoId=null;
 let ordenEditandoId=null;
-let movimientosCajaSupabase=[];
+let movimientosCajaSupabase=(()=>{try{return JSON.parse(localStorage.getItem("flackunloker_movimientos_caja")||"[]")}catch(e){return []}})();
+function guardarMovimientosCajaLocal(){localStorage.setItem("flackunloker_movimientos_caja",JSON.stringify(movimientosCajaSupabase||[]))}
 
 let inventarioSupabaseListo=false;
 
@@ -2490,6 +2592,7 @@ function cierreDesdeSupabase(c){
  }
 }
 async function cargarCierresSupabase(){
+ if(!navigator.onLine){flkAplicarPendientesSobreDatos();mostrarListaCierres();return true}
  const locales=Array.isArray(cierres)?[...cierres]:[];
  let {data:cloud,error}=await flkSupabase.from("cash_closures").select("*").order("close_date",{ascending:false});
  if(error){console.error("Supabase cierres:",error);return false}
@@ -3401,23 +3504,23 @@ function actualizarCierre(){
 async function guardarCierreHoy(){
  const fecha=fechaLocalISO(new Date()),r=resumenCierreFecha(fecha),existente=cierres.find(c=>c.fechaLocal===fecha);
  if(existente&&!confirm("Ya existe un cierre para hoy. ¿Quieres reemplazarlo con los valores actuales?"))return;
- try{
-  const {error}=await flkSupabase.rpc("flk_save_cash_closure",{
-   p_close_date:fecha,p_receipts_count:Number(r.recibos||0),p_units_count:Number(r.unidades||0),
-   p_sales_total:Number(r.ventasTotal||0),p_cost_total:Number(r.costo||0),
-   p_gross_profit:Number(r.gananciaBruta||0),p_expenses_total:Number(r.gastosTotal||0),
-   p_net_profit:Number(r.gananciaNeta||0),p_collected_total:Number(r.cobrado||0),
-   p_cash_total:Number(r.efectivo||0),p_ath_total:Number(r.ath||0),
-   p_card_total:Number(r.tarjeta||0),p_other_total:Number(r.otros||0),
-   p_credit_sales:Number(r.credito||0),p_credit_balance:Number(r.saldoCredito||0),
-   p_cash_expenses:Number(r.gastoEfectivo||0),p_net_cash:Number(r.efectivoNeto||0)
-  });
-  if(error)throw error;
-  await cargarCierresSupabase();actualizarCierre();
-  alert(existente?"Cierre actualizado en Supabase.":"Cierre de caja guardado en Supabase.");
- }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el cierre: "+(err.message||err))}
-}
 
+ const op=flkEncolarOperacion("cash_closure_save",{
+  closure_id:existente?.supabaseId||null,
+  local_closure_id:existente?.id||Date.now()+Math.floor(Math.random()*100000),
+  close_date:fecha,receipts_count:Number(r.recibos||0),units_count:Number(r.unidades||0),
+  sales_total:Number(r.ventasTotal||0),cost_total:Number(r.costo||0),
+  gross_profit:Number(r.gananciaBruta||0),expenses_total:Number(r.gastosTotal||0),
+  net_profit:Number(r.gananciaNeta||0),collected_total:Number(r.cobrado||0),
+  cash_total:Number(r.efectivo||0),ath_total:Number(r.ath||0),
+  card_total:Number(r.tarjeta||0),other_total:Number(r.otros||0),
+  credit_sales:Number(r.credito||0),credit_balance:Number(r.saldoCredito||0),
+  cash_expenses:Number(r.gastoEfectivo||0),net_cash:Number(r.efectivoNeto||0)
+ });
+ flkAplicarCierreLocal(op);
+ guardarCierres();actualizarCierre();
+ if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
+}
 function mostrarListaCierres(){const lista=document.getElementById("listaCierres"),arr=[...cierres].sort((a,b)=>String(b.fechaLocal).localeCompare(String(a.fechaLocal)));if(!arr.length){lista.innerHTML='<div class="sin-productos">Todavía no hay cierres guardados.</div>';return}lista.innerHTML=arr.map(c=>{const f=new Date(c.fechaLocal+"T12:00:00");return `<div class="cierre-card"><div class="venta-superior"><div><h3>Cierre · ${f.toLocaleDateString("es-PR")}</h3><p>Guardado ${new Date(c.guardado||Date.now()).toLocaleString("es-PR")}</p></div><div class="cierre-total">${formatoDineroCierre(c.gananciaNeta)}</div></div><div class="cierre-detalle">Ventas: <strong>${formatoDineroCierre(c.ventasTotal)}</strong> · Gastos: <strong>${formatoDineroCierre(c.gastosTotal)}</strong><br>Ganancia bruta: <strong>${formatoDineroCierre(c.gananciaBruta)}</strong> · Ganancia neta: <strong>${formatoDineroCierre(c.gananciaNeta)}</strong><br>Cobrado: <strong>${formatoDineroCierre(c.cobrado)}</strong> · Efectivo neto: <strong>${formatoDineroCierre(c.efectivoNeto)}</strong><br>Efectivo: ${formatoDineroCierre(c.efectivo)} · ATH: ${formatoDineroCierre(c.ath)} · Tarjeta: ${formatoDineroCierre(c.tarjeta)} · Otros: ${formatoDineroCierre(c.otros)}<br>Crédito: ${formatoDineroCierre(c.credito)} · Saldo pendiente: ${formatoDineroCierre(c.saldoCredito)}</div><div class="cierre-acciones"><button class="boton-cierre" onclick="imprimirCierre(${c.id})">🧾 Ver / imprimir</button><button class="boton-cierre boton-cierre-peligro" onclick="eliminarCierre(${c.id})">🗑️ Eliminar</button></div></div>`}).join("")}
 function imprimirCierre(id){const c=cierres.find(x=>x.id===id);if(!c)return;const f=new Date(c.fechaLocal+"T12:00:00"),contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cierre ${c.fechaLocal}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#f4f7fb;color:#111;margin:0}.hoja{max-width:460px;margin:24px auto;background:#fff;padding:28px;border-radius:18px}.fila{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid #eee}.total{font-size:20px;font-weight:800}.btn{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700}@media print{body{background:#fff}.hoja{margin:0;max-width:none}.btn{display:none}}
 .cuenta-proveedor-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px;border-left:5px solid #f5a623}.cuenta-proveedor-card.vencida{border-left-color:#d93025}.cuenta-proveedor-card.pagada{border-left-color:#168044}.cuenta-proveedor-superior{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.cuenta-proveedor-superior h3{margin:0 0 5px;font-size:16px}.cuenta-proveedor-superior p{margin:0;color:#777;font-size:13px}.cuenta-proveedor-saldo{font-weight:800;color:#d93025;white-space:nowrap}.cuenta-proveedor-detalle{margin-top:12px;font-size:13px;line-height:1.75;color:#555}.acciones-cuenta-proveedor{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-cuenta-proveedor{border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.boton-pagar-proveedor{background:#e9f8ef;color:#168044}.boton-historial-proveedor{background:#eaf4ff;color:#0a84ff}.estado-cuenta{display:inline-block;margin-top:8px;padding:7px 10px;border-radius:10px;font-size:12px;font-weight:800}.estado-cuenta.pendiente{background:#fff7e8;color:#a15c00}.estado-cuenta.vencida{background:#ffecec;color:#d93025}.estado-cuenta.pagada{background:#e9f8ef;color:#168044}
@@ -3425,12 +3528,10 @@ function imprimirCierre(id){const c=cierres.find(x=>x.id===id);if(!c)return;cons
 async function eliminarCierre(id){
  const c=cierres.find(x=>x.id===id);if(!c)return;
  if(!confirm("¿Eliminar este cierre guardado? Las ventas y gastos originales no se eliminarán."))return;
- if(!c.supabaseId)return alert("Este cierre todavía no está vinculado con Supabase.");
- try{
-  const {error}=await flkSupabase.from("cash_closures").delete().eq("id",c.supabaseId);
-  if(error)throw error;
-  await cargarCierresSupabase();actualizarCierre();
- }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase no permitió eliminar el cierre: "+(err.message||err))}
+ const op=flkEncolarOperacion("cash_closure_delete",{closure_id:c.supabaseId||null,close_date:c.fechaLocal});
+ flkAplicarEliminarCierreLocal(op);
+ guardarCierres();actualizarCierre();
+ if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
 }
 async function mostrarCierre(){if(navigator.onLine){setTimeout(()=>cargarInventarioSupabase().catch(()=>{}),0);setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);setTimeout(()=>cargarGastosSupabase().catch(()=>{}),0);setTimeout(()=>cargarComprasSupabase().catch(()=>{}),0);setTimeout(()=>cargarMovimientosCajaSupabase().catch(()=>{}),0);setTimeout(()=>cargarCierresSupabase().catch(()=>{}),0);}["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaReportes","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaCierre").style.display="block";actualizarMenu("cierre");actualizarCierre();scrollTop()}
 
@@ -3762,6 +3863,7 @@ document.getElementById("busquedaCuentasPagar").addEventListener("input",mostrar
 
 
 async function cargarMovimientosCajaSupabase(){
+ if(!navigator.onLine){flkAplicarPendientesSobreDatos();if(typeof actualizarSaldoCajaFisica==="function")actualizarSaldoCajaFisica();return true}
  const {data,error}=await flkSupabase.from("cash_movements")
   .select("id,type,amount,description,payment_method,occurred_at,created_at,sale_id")
   .order("occurred_at",{ascending:true});
@@ -3784,6 +3886,8 @@ async function cargarMovimientosCajaSupabase(){
         (String(m.description||"")==="Retiro del propietario"||String(m.description||"")==="Aporte del propietario")?"propietario":
         String(m.description||"").startsWith("Reembolso devolución ·")?"reembolso":"otro"
  }));
+ guardarMovimientosCajaLocal();
+ if(flkPendientesOffline()>0)flkAplicarPendientesSobreDatos();
  if(typeof actualizarSaldoCajaFisica==="function")actualizarSaldoCajaFisica();
  return true
 }
@@ -3847,11 +3951,19 @@ function abrirMovimientoPropietario(tipo){
 }
 function cerrarMovimientoPropietario(){document.getElementById("modalMovimientoPropietario").classList.remove("visible");document.getElementById("formularioMovimientoPropietario").reset()}
 document.getElementById("formularioMovimientoPropietario").addEventListener("submit",async e=>{
- e.preventDefault();const tipo=document.getElementById("tipoMovimientoPropietario").value,cantidad=Number(document.getElementById("cantidadMovimientoPropietario").value),nota=document.getElementById("notaMovimientoPropietario").value.trim();
+ e.preventDefault();
+ const tipo=document.getElementById("tipoMovimientoPropietario").value,
+       cantidad=Number(document.getElementById("cantidadMovimientoPropietario").value),
+       nota=document.getElementById("notaMovimientoPropietario").value.trim();
  if(!Number.isFinite(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
  if(tipo==="withdrawal"&&cantidad>saldoCajaFisicaActual()+0.009)return alert("El retiro supera el efectivo disponible en caja.");
- try{const {error}=await flkSupabase.rpc("flk_owner_cash_movement",{p_type:tipo,p_amount:cantidad,p_note:nota||null});if(error)throw error;await cargarMovimientosCajaSupabase();actualizarFlujoCaja();actualizarCierre();cerrarMovimientoPropietario();alert(tipo==="withdrawal"?"Retiro guardado en Supabase.":"Aporte guardado en Supabase.")}
- catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el movimiento: "+(err.message||err))}
+
+ const op=flkEncolarOperacion("owner_cash_movement",{type:tipo,amount:cantidad,note:nota||null});
+ flkAplicarMovimientoPropietarioLocal(op);
+ guardarMovimientosCajaLocal();
+ actualizarFlujoCaja();actualizarCierre();actualizarSaldoCajaFisica();
+ cerrarMovimientoPropietario();
+ if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
 });
 function actualizarFlujoCaja(){
  const d=datosFlujoCaja();if(!d)return;
@@ -3872,9 +3984,11 @@ function actualizarFlujoCaja(){
  lista.innerHTML=arr.length?arr.map(m=>`<div class="fila-estadistica"><span>${m.tipo==="entrada"?"⬇️":"⬆️"} ${escapeHtml(m.concepto)}<br><small>${new Date(m.fecha).toLocaleString("es-PR")} · ${escapeHtml(m.metodo)}</small></span><strong style="color:${m.tipo==="entrada"?"#168044":"#d93025"}">${m.tipo==="entrada"?"+":"-"}$${m.cantidad.toFixed(2)}</strong></div>`).join(""):'<div class="fila-estadistica"><span>No hay movimientos de dinero en este período.</span><strong>—</strong></div>'
 }
 async function mostrarFlujoCaja(){
- await cargarVentasSupabase();
- await cargarGastosSupabase();
- await cargarMovimientosCajaSupabase();
+ if(navigator.onLine){
+  setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);
+  setTimeout(()=>cargarGastosSupabase().catch(()=>{}),0);
+  setTimeout(()=>cargarMovimientosCajaSupabase().catch(()=>{}),0);
+ }
  ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");
  document.getElementById("vistaFlujoCaja").style.display="block";actualizarMenu("flujoCaja");actualizarFlujoCaja();scrollTop()
 }
