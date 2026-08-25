@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v48-roles-visual-real">
+<meta name="flackunloker-offline-version" content="2026-08-25-v49-roles-visual-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1648,7 +1648,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
     <input id="licNuevasNotas" type="text" maxlength="250" placeholder="Opcional">
    </div>
   </div>
-  <button class="boton-agregar" type="button" style="width:100%;margin-top:12px" onclick="crearLicenciaTercero()">➕ Crear licencia</button>
+  <button class="boton-agregar" id="botonCrearLicenciaTercero" type="button" style="width:100%;margin-top:12px" onclick="crearLicenciaTercero()">➕ Crear licencia</button>
   <div id="licResultadoNueva" class="lic-aviso" style="display:none"></div>
  </div>
 
@@ -3519,6 +3519,9 @@ async function crearLicenciaTercero(){
  if(!flkEsPropietarioSoftware)return alert("Solo el propietario puede crear licencias.");
  if(!navigator.onLine)return alert("Debes estar conectado a Internet para crear una licencia.");
 
+ const boton=document.getElementById("botonCrearLicenciaTercero");
+ if(boton?.disabled)return;
+
  const cliente=(document.getElementById("licNuevoCliente")?.value||"").trim();
  const fechaTxt=document.getElementById("licNuevoVencimiento")?.value||"";
  const gracia=Number(document.getElementById("licNuevaGracia")?.value??3);
@@ -3534,6 +3537,10 @@ async function crearLicenciaTercero(){
  if(!confirm("¿Crear una nueva licencia para "+cliente+"?"))return;
 
  try{
+  if(boton){boton.disabled=true;boton.textContent="Creando licencia…";}
+  const resultado=document.getElementById("licResultadoNueva");
+  if(resultado){resultado.style.display="none";resultado.textContent="";}
+
   const {data,error}=await flkSupabase.rpc("flk_create_license",{
    p_customer_name:cliente,
    p_expires_at:fecha.toISOString(),
@@ -3550,9 +3557,9 @@ async function crearLicenciaTercero(){
    box.style.display="block";
    box.innerHTML=
     "<strong>✅ Licencia creada</strong><br>"+
-    "Cliente: "+flkEscaparHTML(lic.customer_name||cliente)+"<br>"+
-    "Clave: <strong style='overflow-wrap:anywhere'>"+flkEscaparHTML(lic.license_key)+"</strong><br>"+
-    "Vence: "+flkEscaparHTML(flkFechaLicenciaBonita(lic.expires_at))+"<br>"+
+    "Cliente: "+escapeHtml(lic.customer_name||cliente)+"<br>"+
+    "Clave: <strong style='overflow-wrap:anywhere'>"+escapeHtml(lic.license_key)+"</strong><br>"+
+    "Vence: "+escapeHtml(flkFechaLicenciaBonita(lic.expires_at))+"<br>"+
     "Gracia offline: "+Number(lic.offline_grace_days||0)+" día(s)";
   }
 
@@ -3562,6 +3569,8 @@ async function crearLicenciaTercero(){
  }catch(err){
   console.error("Crear licencia:",err);
   alert("No se pudo crear la licencia: "+(err?.message||"Error desconocido"))
+ }finally{
+  if(boton){boton.disabled=false;boton.textContent="➕ Crear licencia";}
  }
 }
 
