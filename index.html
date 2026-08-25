@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v41-roles-visual-real">
+<meta name="flackunloker-offline-version" content="2026-08-25-v42-roles-visual-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -813,8 +813,65 @@ body.rol-empleado #panelRestablecimientoTotal{display:none!important;}
 #modalNuevaPassword .recuperar-estado.error{background:#ffecec;color:#b42318}
 </style>
 
+
+<style id="flk-license-style">
+#flkLicenciaEstado{
+ position:fixed;
+ left:50%;
+ top:10px;
+ transform:translateX(-50%);
+ z-index:990;
+ display:flex;
+ align-items:center;
+ gap:7px;
+ max-width:min(92vw,520px);
+ padding:8px 12px;
+ border-radius:999px;
+ border:1px solid #d9e8f6;
+ background:rgba(255,255,255,.97);
+ box-shadow:0 7px 22px rgba(20,42,80,.10);
+ font-size:12px;
+ font-weight:800;
+ color:#475467;
+ cursor:pointer;
+}
+#flkLicenciaEstado .lic-punto{
+ width:9px;height:9px;border-radius:50%;background:#98a2b3;flex:0 0 auto;
+}
+#flkLicenciaEstado.activa .lic-punto{background:#16a34a}
+#flkLicenciaEstado.gracia .lic-punto{background:#f59e0b}
+#flkLicenciaEstado.vencida .lic-punto,
+#flkLicenciaEstado.suspendida .lic-punto,
+#flkLicenciaEstado.error .lic-punto{background:#d93025}
+#flkLicenciaEstado.comprobando .lic-punto{background:#0a84ff}
+#flkLicenciaEstado .lic-detalle{display:none;font-weight:650;color:#667085}
+#flkLicenciaEstado.expandido{
+ border-radius:16px;
+ align-items:flex-start;
+ flex-wrap:wrap;
+ justify-content:center;
+ text-align:center;
+}
+#flkLicenciaEstado.expandido .lic-detalle{display:block;width:100%}
+@media(max-width:600px){
+ #flkLicenciaEstado{
+  top:52px;
+  max-width:calc(100vw - 20px);
+  font-size:11px;
+  padding:7px 10px;
+ }
+}
+</style>
+
 </head>
 <body>
+
+<div id="flkLicenciaEstado" class="comprobando" title="Estado de licencia" onclick="flkToggleLicenciaDetalle()">
+ <span class="lic-punto"></span>
+ <span id="flkLicenciaTexto">Licencia: comprobando…</span>
+ <span id="flkLicenciaDetalle" class="lic-detalle"></span>
+</div>
+
 <div id="estadoConexionFlk"><span class="punto"></span><span id="textoConexionFlk">Comprobando conexión…</span><small id="pendientesConexionFlk"></small></div>
 
 
@@ -2418,6 +2475,12 @@ const flkSupabase=window.supabase.createClient(FLK_SUPABASE_URL,FLK_SUPABASE_KEY
 let modoAuth="login";
 let rolSesion="employee";
 let flkSesionActiva=false;
+const FLK_LICENSE_KEY="228b72e9-88dd-4c6b-91a1-4a98ff488d0c";
+const FLK_LICENSE_CACHE_KEY="flackunloker_license_cache_v1";
+let flkLicenciaInfo=null;
+let flkLicenciaUltimaValidacion=null;
+let flkLicenciaModoPrueba=true; // v42: informa, pero todavía no bloquea operaciones.
+
 let flkModoRecuperacionPassword=false;
 
 function cambiarModoAuth(modo){
@@ -2927,6 +2990,130 @@ document.getElementById("formularioNuevaPassword")?.addEventListener("submit",as
     if(boton){boton.disabled=false;boton.textContent="Guardar nueva contraseña";}
   }
 });
+
+
+function flkFechaLicenciaBonita(valor){
+ if(!valor)return "—";
+ const d=new Date(valor);
+ if(Number.isNaN(d.getTime()))return String(valor);
+ return d.toLocaleString("es",{
+  year:"numeric",month:"2-digit",day:"2-digit",
+  hour:"2-digit",minute:"2-digit"
+ })
+}
+function flkGuardarCacheLicencia(info){
+ try{
+  const ahora=new Date().toISOString();
+  localStorage.setItem(FLK_LICENSE_CACHE_KEY,JSON.stringify({
+   info,
+   validated_at:ahora
+  }));
+  flkLicenciaUltimaValidacion=ahora
+ }catch(_){}
+}
+function flkLeerCacheLicencia(){
+ try{
+  const raw=localStorage.getItem(FLK_LICENSE_CACHE_KEY);
+  if(!raw)return null;
+  const obj=JSON.parse(raw);
+  if(!obj||!obj.info||!obj.validated_at)return null;
+  return obj
+ }catch(_){return null}
+}
+function flkDiasDesde(fecha){
+ const d=new Date(fecha);
+ if(Number.isNaN(d.getTime()))return Infinity;
+ return Math.max(0,(Date.now()-d.getTime())/86400000)
+}
+function flkPintarLicencia(info,modo="online"){
+ flkLicenciaInfo=info||null;
+ const caja=document.getElementById("flkLicenciaEstado");
+ const texto=document.getElementById("flkLicenciaTexto");
+ const detalle=document.getElementById("flkLicenciaDetalle");
+ if(!caja||!texto||!detalle)return;
+
+ caja.classList.remove("activa","gracia","vencida","suspendida","error","comprobando");
+
+ if(!info){
+  caja.classList.add("error");
+  texto.textContent="Licencia: sin verificar";
+  detalle.textContent="No fue posible verificar la licencia.";
+  return
+ }
+
+ const estado=String(info.license_status||"").toLowerCase();
+ const valida=!!info.valid;
+ const cliente=info.customer_name||"Instalación";
+ const vence=flkFechaLicenciaBonita(info.expires_at);
+
+ if(modo==="offline-grace"){
+  caja.classList.add("gracia");
+  texto.textContent="Licencia: gracia offline";
+ }else if(valida&&estado==="active"){
+  caja.classList.add("activa");
+  texto.textContent="Licencia: activa";
+ }else if(estado==="expired"){
+  caja.classList.add("vencida");
+  texto.textContent="Licencia: vencida";
+ }else if(estado==="suspended"){
+  caja.classList.add("suspendida");
+  texto.textContent="Licencia: suspendida";
+ }else{
+  caja.classList.add("error");
+  texto.textContent="Licencia: no válida";
+ }
+
+ detalle.textContent=
+  cliente+" · Vence: "+vence+
+  (modo==="offline-grace"?" · Validación offline dentro del período de gracia":"")+
+  " · v42 en modo prueba (sin bloqueo)."
+}
+function flkToggleLicenciaDetalle(){
+ document.getElementById("flkLicenciaEstado")?.classList.toggle("expandido")
+}
+async function flkValidarLicencia(){
+ const caja=document.getElementById("flkLicenciaEstado");
+ if(caja){
+  caja.classList.remove("activa","gracia","vencida","suspendida","error");
+  caja.classList.add("comprobando");
+ }
+ const texto=document.getElementById("flkLicenciaTexto");
+ if(texto)texto.textContent="Licencia: comprobando…";
+
+ if(navigator.onLine){
+  try{
+   const {data,error}=await flkSupabase.rpc("flk_check_license",{
+    p_license_key:FLK_LICENSE_KEY
+   });
+   if(error)throw error;
+   const info=Array.isArray(data)?data[0]:data;
+   if(!info)throw new Error("Respuesta de licencia vacía.");
+   flkGuardarCacheLicencia(info);
+   flkPintarLicencia(info,"online");
+   return info
+  }catch(err){
+   console.error("Validación de licencia:",err);
+   // Si falla la red/servidor, intentar la última validación offline.
+  }
+ }
+
+ const cache=flkLeerCacheLicencia();
+ if(cache){
+  const info=cache.info;
+  const gracia=Math.max(0,Number(info.offline_grace_days||0));
+  const dias=flkDiasDesde(cache.validated_at);
+  flkLicenciaUltimaValidacion=cache.validated_at;
+  if(info.valid&&String(info.license_status)==="active"&&dias<=gracia){
+   flkPintarLicencia(info,"offline-grace");
+   return info
+  }
+  flkPintarLicencia(info,"offline-expired");
+  return info
+ }
+
+ flkPintarLicencia(null,"error");
+ return null
+}
 
 flkSupabase.auth.onAuthStateChange((event,session)=>{
  if(event==="PASSWORD_RECOVERY"){
@@ -5512,6 +5699,13 @@ seleccionarRespaldo=function(){if(!requiereAdmin("Restaurar respaldos"))return;r
 recalcularSaldos();mostrarProductos();actualizarResumenHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarFlujoCaja();actualizarFinanzas();actualizarEstadisticas();
 </script>
 <script>
+
+window.addEventListener("load",()=>{
+ setTimeout(()=>flkValidarLicencia(),200);
+});
+window.addEventListener("online",()=>setTimeout(()=>flkValidarLicencia(),250));
+window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
+
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
