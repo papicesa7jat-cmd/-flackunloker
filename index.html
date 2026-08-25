@@ -571,6 +571,30 @@ body.rol-empleado .acciones-movimiento{display:none!important}
 <div class="lista-estadisticas"><h3>💸 Gastos por categoría</h3><div id="reporteCategoriasGasto"></div></div>
 </div>
 
+<div class="lista-estadisticas" id="reporteArrendamientoContribucion">
+ <h3>🏢 Informe mensual de arrendamiento por contribución</h3>
+ <p style="margin:0 0 14px;color:#667085;font-size:13px;line-height:1.55">
+  Selecciona el mes para revisar e imprimir el cálculo de arrendamiento según la configuración guardada en Supabase.
+ </p>
+ <div class="reporte-controles-grid">
+  <div class="campo" style="margin:0">
+   <label for="mesInformeArrendamiento">Mes</label>
+   <input id="mesInformeArrendamiento" type="month" onchange="actualizarInformeArrendamiento()">
+  </div>
+  <div class="campo" style="margin:0;display:flex;align-items:end">
+   <button class="boton-agregar" style="width:100%;min-height:47px" onclick="imprimirInformeArrendamiento()">🧾 Ver / imprimir informe</button>
+  </div>
+ </div>
+ <div style="margin-top:15px">
+  <div class="fila-estadistica"><span>Ventas brutas del mes</span><strong id="repArrVentas">$0.00</strong></div>
+  <div class="fila-estadistica"><span>Modalidad</span><strong id="repArrModalidad">—</strong></div>
+  <div class="fila-estadistica"><span>Valor configurado</span><strong id="repArrValor">—</strong></div>
+  <div class="fila-estadistica"><span>Arrendamiento calculado</span><strong id="repArrMonto">$0.00</strong></div>
+  <div class="fila-estadistica"><span>Ganancia bruta del mes</span><strong id="repArrGanancia">$0.00</strong></div>
+  <div class="fila-estadistica"><span>Ganancia bruta después del arrendamiento</span><strong id="repArrResultado">$0.00</strong></div>
+ </div>
+</div>
+
 <div id="vistaAlertas" style="display:none">
 <div class="seccion-titulo"><h2>🔔 Centro de alertas</h2></div>
 <div class="alertas-resumen">
@@ -2233,7 +2257,71 @@ function actualizarReporte(){
 function imprimirReporte(){const d=datosReporte(),prod=d.productos.length?d.productos.map(x=>`<div class="fila"><span>${escapeHtml(x.nombre)} · ${x.unidades} u.</span><strong>${formatoDineroCierre(x.ingresos)}</strong></div>`).join(""):'<div class="fila"><span>Sin ventas</span><strong>—</strong></div>',cats=d.categorias.length?d.categorias.map(([n,v])=>`<div class="fila"><span>${escapeHtml(n)}</span><strong>${formatoDineroCierre(v)}</strong></div>`).join(""):'<div class="fila"><span>Sin gastos</span><strong>—</strong></div>',contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reporte Flackunloker</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#f4f7fb;color:#111;margin:0}.hoja{max-width:520px;margin:24px auto;background:#fff;padding:28px;border-radius:18px}.fila{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid #eee}.total{font-size:20px;font-weight:800}.btn{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700}@media print{body{background:#fff}.hoja{margin:0;max-width:none}.btn{display:none}}
 .cuenta-proveedor-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px;border-left:5px solid #f5a623}.cuenta-proveedor-card.vencida{border-left-color:#d93025}.cuenta-proveedor-card.pagada{border-left-color:#168044}.cuenta-proveedor-superior{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.cuenta-proveedor-superior h3{margin:0 0 5px;font-size:16px}.cuenta-proveedor-superior p{margin:0;color:#777;font-size:13px}.cuenta-proveedor-saldo{font-weight:800;color:#d93025;white-space:nowrap}.cuenta-proveedor-detalle{margin-top:12px;font-size:13px;line-height:1.75;color:#555}.acciones-cuenta-proveedor{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-cuenta-proveedor{border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.boton-pagar-proveedor{background:#e9f8ef;color:#168044}.boton-historial-proveedor{background:#eaf4ff;color:#0a84ff}.estado-cuenta{display:inline-block;margin-top:8px;padding:7px 10px;border-radius:10px;font-size:12px;font-weight:800}.estado-cuenta.pendiente{background:#fff7e8;color:#a15c00}.estado-cuenta.vencida{background:#ffecec;color:#d93025}.estado-cuenta.pagada{background:#e9f8ef;color:#168044}
 </style></head><body><div class="hoja"><h1>Flackunloker</h1><h2>Reporte · ${escapeHtml(d.texto)}</h2><div class="fila"><span>Recibos / Unidades</span><strong>${d.recibos} / ${d.unidades}</strong></div><div class="fila"><span>Ingresos por ventas</span><strong>${formatoDineroCierre(d.ingresos)}</strong></div><div class="fila"><span>Costo mercancía</span><strong>${formatoDineroCierre(d.costo)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>${formatoDineroCierre(d.gananciaBruta)}</strong></div><div class="fila"><span>Gastos</span><strong>${formatoDineroCierre(d.gastosTotal)}</strong></div><div class="fila total"><span>Ganancia neta</span><strong>${formatoDineroCierre(d.gananciaNeta)}</strong></div><div class="fila"><span>Total cobrado</span><strong>${formatoDineroCierre(d.cobrado)}</strong></div><div class="fila"><span>Efectivo / ATH</span><strong>${formatoDineroCierre(d.efectivo)} / ${formatoDineroCierre(d.ath)}</strong></div><div class="fila"><span>Tarjeta / Otros</span><strong>${formatoDineroCierre(d.tarjeta)} / ${formatoDineroCierre(d.otros)}</strong></div><div class="fila"><span>Saldo pendiente créditos</span><strong>${formatoDineroCierre(d.saldoCredito)}</strong></div><h3>Productos vendidos</h3>${prod}<h3>Gastos por categoría</h3>${cats}<button class="btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></body></html>`;const w=window.open("","_blank");if(!w)return alert("El navegador bloqueó la ventana. Permite ventanas emergentes para ver el reporte.");w.document.open();w.document.write(contenido);w.document.close()}
-async function mostrarReportes(){await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaReportes").style.display="block";actualizarMenu("reportes");actualizarReporte();scrollTop()}
+
+function datosInformeArrendamiento(mes){
+ const conf=configuracionArrendamientoMes(mes);
+ const modo=conf?.mode||"percent";
+ const valor=Number(conf?.value||0);
+ const ventasBrutas=ventasBrutasMesArrendamiento(mes);
+ const costo=costoVentasMesArrendamiento(mes);
+ const gananciaBruta=ventasBrutas-costo;
+ const arrendamiento=modo==="percent"?ventasBrutas*(valor/100):valor;
+ const resultado=gananciaBruta-arrendamiento;
+ return {mes,modo,valor,ventasBrutas,costo,gananciaBruta,arrendamiento,resultado}
+}
+function textoMesInforme(mes){
+ if(!mes)return "";
+ const [y,m]=mes.split("-").map(Number);
+ return new Date(y,m-1,1).toLocaleDateString("es-PR",{month:"long",year:"numeric"})
+}
+function actualizarInformeArrendamiento(){
+ const input=document.getElementById("mesInformeArrendamiento");
+ if(!input)return;
+ if(!input.value)input.value=mesActualArrendamiento();
+ const d=datosInformeArrendamiento(input.value);
+ const money=n=>"$"+Number(n||0).toFixed(2);
+ const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val};
+ set("repArrVentas",money(d.ventasBrutas));
+ set("repArrModalidad",d.modo==="percent"?"% sobre ventas brutas":"Pago fijo mensual");
+ set("repArrValor",d.modo==="percent"?d.valor.toFixed(2)+"%":money(d.valor));
+ set("repArrMonto",money(d.arrendamiento));
+ set("repArrGanancia",money(d.gananciaBruta));
+ set("repArrResultado",money(d.resultado));
+ const res=document.getElementById("repArrResultado");
+ if(res)res.style.color=d.resultado<0?"#d93025":"#168044";
+}
+function imprimirInformeArrendamiento(){
+ const input=document.getElementById("mesInformeArrendamiento");
+ if(!input?.value)return alert("Selecciona un mes.");
+ const d=datosInformeArrendamiento(input.value),money=n=>"$"+Number(n||0).toFixed(2);
+ const modalidad=d.modo==="percent"?"Porcentaje sobre ventas brutas":"Pago fijo mensual";
+ const valor=d.modo==="percent"?d.valor.toFixed(2)+"%":money(d.valor);
+ const mesTxt=textoMesInforme(d.mes);
+ const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Informe Arrendamiento ${mesTxt}</title><style>
+ body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0;color:#111}.hoja{max-width:760px;margin:24px auto;background:#fff;padding:32px;border-radius:18px}
+ h1{text-align:center;margin:0 0 4px;font-size:26px}h2{text-align:center;margin:0 0 24px;font-size:17px;color:#555}
+ .fila{display:flex;justify-content:space-between;gap:20px;padding:12px 0;border-bottom:1px solid #e5e7eb}.fila strong{text-align:right}
+ .resultado{font-size:18px;font-weight:bold}.nota{margin-top:22px;padding:14px;background:#f7fbff;border-radius:12px;font-size:12px;color:#555;line-height:1.55}
+ .imprimir{width:100%;margin-top:24px;padding:13px;border:0;border-radius:10px;background:#0a84ff;color:#fff;font-weight:bold}
+ @media print{body{background:#fff}.hoja{margin:0;max-width:none}.imprimir{display:none}}
+ </style></head><body><div class="hoja">
+ <h1>Flackunloker</h1><h2>Informe mensual de arrendamiento por contribución · ${mesTxt}</h2>
+ <div class="fila"><span>Ventas brutas del mes</span><strong>${money(d.ventasBrutas)}</strong></div>
+ <div class="fila"><span>Costo de mercancía vendida</span><strong>${money(d.costo)}</strong></div>
+ <div class="fila"><span>Ganancia bruta</span><strong>${money(d.gananciaBruta)}</strong></div>
+ <div class="fila"><span>Modalidad de arrendamiento</span><strong>${modalidad}</strong></div>
+ <div class="fila"><span>Valor configurado</span><strong>${valor}</strong></div>
+ <div class="fila"><span>Arrendamiento calculado</span><strong>${money(d.arrendamiento)}</strong></div>
+ <div class="fila resultado"><span>Ganancia bruta después del arrendamiento</span><strong>${money(d.resultado)}</strong></div>
+ <div class="nota">Este informe calcula el arrendamiento según la configuración mensual guardada en Supabase. El cálculo es informativo y no registra por sí solo una salida de caja.</div>
+ <button class="imprimir" onclick="window.print()">🖨️ Imprimir informe</button>
+ </div></body></html>`;
+ const w=window.open("","_blank");
+ if(!w)return alert("Permite ventanas emergentes para ver el informe.");
+ w.document.write(html);w.document.close()
+}
+
+async function mostrarReportes(){await cargarInventarioSupabase();await cargarVentasSupabase();await cargarGastosSupabase();await cargarComprasSupabase();await cargarMovimientosCajaSupabase();await cargarConfiguracionesArrendamiento();setTimeout(actualizarInformeArrendamiento,0);["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaReportes").style.display="block";actualizarMenu("reportes");actualizarReporte();scrollTop()}
 
 
 function nombreProveedorNorm(v){return String(v||"").trim().toLowerCase()}
