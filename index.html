@@ -1250,7 +1250,7 @@ async function cargarComprasSupabase(){
  ordenesCompra=(ro.data||[]).map(o=>{
   const pr=proveedores.find(p=>p.supabaseId===o.supplier_id),prod=productos.find(p=>p.supabaseId===o.product_id);
   const ps=pagos.filter(p=>p.purchase_order_id===o.id);
-  return {id:idLocalDesdeLegacy(o.legacy_id,o.id),supabaseId:o.id,numero:o.order_number,productoId:prod?.id,nombre:prod?.nombre||"Producto",sku:prod?.sku||"",proveedor:pr?.nombre||"Proveedor",cantidad:Number(o.quantity||0),costoUnitario:Number(o.unit_cost||0),fechaOrden:o.order_date,nota:o.note||"",estado:o.status==="received"?"recibida":o.status==="ordered"?"ordenada":"pendiente",fechaCreacion:o.created_at,fechaOrdenada:o.ordered_at,fechaRecibida:o.received_at,costoTotal:Number(o.total_amount||0),condicionPagoProveedor:o.payment_condition,totalPagadoProveedor:Number(o.paid_amount||0),saldoProveedor:Number(o.balance_due||0),fechaVencimientoProveedor:o.due_date||"",metodoPagoProveedor:o.payment_method||"",pagosProveedor:ps.map(p=>({id:idLocalDesdeLegacy(null,p.id),supabaseId:p.id,cantidad:Number(p.amount||0),fecha:p.payment_date,metodo:p.payment_method||"",nota:p.note||""}))}
+  return {id:idLocalDesdeLegacy(o.legacy_id,o.id),supabaseId:o.id,numero:o.order_number,productoId:prod?.id,nombre:prod?.nombre||"Producto",sku:prod?.sku||"",proveedor:pr?.nombre||"Proveedor",cantidad:Number(o.quantity||0),costoUnitario:Number(o.unit_cost||0),fechaOrden:o.order_date,nota:o.note||"",estado:o.status==="received"?"recibida":o.status==="ordered"?"ordenada":"pendiente",fechaCreacion:o.created_at,fechaOrdenada:o.ordered_at,fechaRecibida:o.received_at,costoTotal:Number(o.total_amount||0),condicionPagoProveedor:o.payment_condition,totalPagadoProveedor:Number(o.paid_amount||0),saldoProveedor:Number(o.balance_due||0),fechaVencimientoProveedor:o.due_date||"",metodoPagoProveedor:o.payment_method||"",pagosProveedor:(()=>{let saldo=Number(o.total_amount||0);return [...ps].sort((a,b)=>new Date(a.payment_date)-new Date(b.payment_date)).map(p=>{const anterior=saldo,cant=Number(p.amount||0);saldo=Math.max(0,saldo-cant);return {id:idLocalDesdeLegacy(null,p.id),supabaseId:p.id,cantidad:cant,fecha:p.payment_date,metodo:p.payment_method||"",nota:p.note||"",saldoAnterior:anterior,saldoRestante:saldo}})})()}
  });
  guardarProveedores();guardarOrdenesCompra();actualizarOpcionesOrganizacion();actualizarProveedores();actualizarOrdenesCompra();actualizarCuentasPagar();return true
 }
@@ -2048,22 +2048,122 @@ function editarOrdenCompra(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o
 function cerrarOrdenCompra(){document.getElementById("modalOrdenCompra").classList.remove("visible");document.getElementById("formularioOrdenCompra").reset();ordenEditandoId=null}
 document.getElementById("productoOrden").addEventListener("change",actualizarDatosProductoOrden);
 document.getElementById("busquedaOrdenes").addEventListener("input",mostrarListaOrdenes);
-document.getElementById("formularioOrdenCompra").addEventListener("submit",e=>{e.preventDefault();e.stopPropagation();const productoId=Number(document.getElementById("productoOrden").value),p=productos.find(x=>x.id===productoId),proveedor=document.getElementById("proveedorOrden").value.trim(),cantidad=Number(document.getElementById("cantidadOrden").value),costoUnitario=Number(document.getElementById("costoUnitarioOrden").value),fechaOrden=document.getElementById("fechaOrden").value,nota=document.getElementById("notaOrden").value.trim();if(!p)return alert("Selecciona un producto válido.");if(!proveedor)return alert("Escribe el proveedor.");if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");if(!Number.isFinite(costoUnitario)||costoUnitario<0)return alert("Introduce un costo válido.");if(!fechaOrden)return alert("Selecciona la fecha de la orden.");if(ordenEditandoId!==null){const o=ordenesCompra.find(x=>x.id===ordenEditandoId);if(!o)return;o.productoId=p.id;o.nombre=p.nombre;o.sku=p.sku;o.proveedor=proveedor;o.cantidad=cantidad;o.costoUnitario=costoUnitario;o.fechaOrden=fechaOrden;o.nota=nota}else{const id=Date.now()+Math.floor(Math.random()*100000);ordenesCompra.unshift({id,numero:ordenesCompra.length+1,productoId:p.id,nombre:p.nombre,sku:p.sku,proveedor,cantidad,costoUnitario,fechaOrden,nota,estado:"pendiente",fechaCreacion:new Date().toISOString(),fechaOrdenada:null,fechaRecibida:null,costoTotal:cantidad*costoUnitario})}guardarOrdenesCompra();actualizarOrdenesCompra();actualizarProveedores();actualizarCentroAlertas();cerrarOrdenCompra()});
-function marcarOrdenada(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;o.estado="ordenada";o.fechaOrdenada=new Date().toISOString();guardarOrdenesCompra();actualizarOrdenesCompra();actualizarProveedores()}
+document.getElementById("formularioOrdenCompra").addEventListener("submit",async e=>{
+ e.preventDefault();e.stopPropagation();
+ const productoId=Number(document.getElementById("productoOrden").value),
+       p=productos.find(x=>x.id===productoId),
+       proveedorNombre=document.getElementById("proveedorOrden").value.trim(),
+       proveedor=proveedores.find(x=>nombreProveedorNorm(x.nombre)===nombreProveedorNorm(proveedorNombre)),
+       cantidad=Number(document.getElementById("cantidadOrden").value),
+       costoUnitario=Number(document.getElementById("costoUnitarioOrden").value),
+       fechaOrden=document.getElementById("fechaOrden").value,
+       nota=document.getElementById("notaOrden").value.trim();
+ if(!p?.supabaseId)return alert("Selecciona un producto sincronizado con Supabase.");
+ if(!proveedor?.supabaseId)return alert("Selecciona un proveedor registrado.");
+ if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
+ if(!Number.isFinite(costoUnitario)||costoUnitario<0)return alert("Introduce un costo válido.");
+ if(!fechaOrden)return alert("Selecciona la fecha de la orden.");
+ const actual=ordenEditandoId!==null?ordenesCompra.find(x=>x.id===ordenEditandoId):null;
+ try{
+  const {error}=await flkSupabase.rpc("flk_save_purchase_order",{
+   p_order_id:actual?.supabaseId||null,
+   p_legacy_id:actual?String(actual.id):String(Date.now()+Math.floor(Math.random()*100000)),
+   p_supplier_id:proveedor.supabaseId,
+   p_product_id:p.supabaseId,
+   p_quantity:cantidad,
+   p_unit_cost:costoUnitario,
+   p_order_date:fechaOrden,
+   p_note:nota||null
+  });
+  if(error)throw error;
+  await cargarComprasSupabase();
+  actualizarCentroAlertas();cerrarOrdenCompra();
+  alert(actual?"Orden actualizada en Supabase.":"Orden creada en Supabase.");
+ }catch(err){console.error(err);alert("Supabase rechazó la orden: "+(err.message||err))}
+});
+async function marcarOrdenada(id){
+ const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida"||!o.supabaseId)return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_mark_purchase_order_ordered",{p_order_id:o.supabaseId});
+  if(error)throw error;
+  await cargarComprasSupabase();
+ }catch(err){console.error(err);alert("Supabase rechazó el cambio: "+(err.message||err))}
+}
 function actualizarCamposCreditoProveedor(){const credito=document.getElementById("condicionPagoProveedor").value==="credito";document.getElementById("campoAbonoProveedor").classList.toggle("visible",credito);document.getElementById("campoVencimientoProveedor").classList.toggle("visible",credito);if(credito&&!document.getElementById("fechaVencimientoProveedor").value){const d=new Date();d.setDate(d.getDate()+30);document.getElementById("fechaVencimientoProveedor").value=fechaLocalISO(d)}if(!credito){document.getElementById("abonoInicialProveedor").value="0";document.getElementById("fechaVencimientoProveedor").value=""}}
 function recibirOrden(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;const p=productos.find(x=>x.id===o.productoId);if(!p)return alert("El producto de esta orden ya no existe en el inventario.");ordenRecepcionId=id;document.getElementById("formularioRecepcionOrden").reset();document.getElementById("condicionPagoProveedor").value="pagado";document.getElementById("textoRecepcionOrden").textContent=`${numeroOrdenCompra(o)} · ${o.proveedor} · Total $${Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)).toFixed(2)}`;actualizarCamposCreditoProveedor();document.getElementById("modalRecepcionOrden").classList.add("visible")}
 function cerrarRecepcionOrden(){document.getElementById("modalRecepcionOrden").classList.remove("visible");document.getElementById("formularioRecepcionOrden").reset();ordenRecepcionId=null}
-document.getElementById("formularioRecepcionOrden").addEventListener("submit",e=>{e.preventDefault();e.stopPropagation();const o=ordenesCompra.find(x=>x.id===ordenRecepcionId);if(!o||o.estado==="recibida")return cerrarRecepcionOrden();const p=productos.find(x=>x.id===o.productoId);if(!p)return alert("El producto de esta orden ya no existe.");const total=Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),condicion=document.getElementById("condicionPagoProveedor").value,metodo=document.getElementById("metodoPagoProveedor").value,abono=condicion==="credito"?Number(document.getElementById("abonoInicialProveedor").value||0):total,vencimiento=condicion==="credito"?document.getElementById("fechaVencimientoProveedor").value:"";if(!Number.isFinite(abono)||abono<0||abono>total)return alert("Revisa el abono inicial.");if(condicion==="credito"&&!vencimiento)return alert("Selecciona la fecha de vencimiento.");const anterior=Number(p.cantidad||0),costoAnterior=Number(p.costo||0),cantidad=Number(o.cantidad||0),costoCompra=Number(o.costoUnitario||0),nuevo=anterior+cantidad;p.cantidad=nuevo;p.costo=nuevo>0?((anterior*costoAnterior)+(cantidad*costoCompra))/nuevo:costoCompra;if(!p.proveedor&&o.proveedor)p.proveedor=o.proveedor;o.estado="recibida";o.fechaRecibida=new Date().toISOString();o.costoTotal=total;o.costoPromedioResultante=p.costo;o.condicionPagoProveedor=abono>=total-0.009?"pagado":"credito";o.totalPagadoProveedor=abono;o.saldoProveedor=Math.max(0,total-abono);o.fechaVencimientoProveedor=o.saldoProveedor>0?vencimiento:"";o.pagosProveedor=abono>0?[{id:Date.now()+Math.floor(Math.random()*100000),cantidad:abono,fecha:o.fechaRecibida,metodo,nota:condicion==="credito"?"Abono inicial":"Pago al recibir",saldoAnterior:total,saldoRestante:Math.max(0,total-abono)}]:[];historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:"entrada",cantidad,saldo:nuevo,fecha:o.fechaRecibida,detalle:`Recepción ${numeroOrdenCompra(o)} · ${o.proveedor}`,ordenCompraId:o.id});guardarDatos();guardarHistorial();guardarOrdenesCompra();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarCentroAlertas();actualizarEstadisticas();cerrarRecepcionOrden();alert(`Orden recibida correctamente.\n\nNuevo inventario: ${nuevo}\nSaldo proveedor: $${Number(o.saldoProveedor).toFixed(2)}`)})
-function eliminarOrdenCompra(id){const o=ordenesCompra.find(x=>x.id===id);if(!o)return;if(o.estado==="recibida")return alert("Una orden recibida no se elimina para conservar el historial de compras.");if(!confirm("¿Quieres eliminar esta orden de compra?"))return;ordenesCompra=ordenesCompra.filter(x=>x.id!==id);guardarOrdenesCompra();actualizarOrdenesCompra();actualizarProveedores();actualizarCentroAlertas()}
+document.getElementById("formularioRecepcionOrden").addEventListener("submit",async e=>{
+ e.preventDefault();e.stopPropagation();
+ const o=ordenesCompra.find(x=>x.id===ordenRecepcionId);if(!o||o.estado==="recibida")return cerrarRecepcionOrden();
+ if(!o.supabaseId)return alert("Esta orden todavía no está sincronizada con Supabase.");
+ const total=Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),
+       condicion=document.getElementById("condicionPagoProveedor").value,
+       metodo=document.getElementById("metodoPagoProveedor").value,
+       abono=condicion==="credito"?Number(document.getElementById("abonoInicialProveedor").value||0):total,
+       vencimiento=condicion==="credito"?document.getElementById("fechaVencimientoProveedor").value:"";
+ if(!Number.isFinite(abono)||abono<0||abono>total)return alert("Revisa el abono inicial.");
+ if(condicion==="credito"&&!vencimiento)return alert("Selecciona la fecha de vencimiento.");
+ try{
+  const {data:nuevoStock,error}=await flkSupabase.rpc("flk_receive_purchase_order",{
+   p_order_id:o.supabaseId,
+   p_payment_condition:condicion==="credito"?"credit":"paid",
+   p_payment_method:metodo,
+   p_initial_payment:abono,
+   p_due_date:vencimiento||null
+  });
+  if(error)throw error;
+  await cargarInventarioSupabase();
+  await cargarComprasSupabase();
+  await cargarMovimientosCajaSupabase();
+  actualizarFlujoCaja();actualizarFinanzas();actualizarCentroAlertas();actualizarEstadisticas();
+  cerrarRecepcionOrden();
+  const actual=ordenesCompra.find(x=>x.supabaseId===o.supabaseId);
+  alert(`Orden recibida en Supabase.\n\nNuevo inventario: ${Number(nuevoStock)}\nSaldo proveedor: $${Number(actual?.saldoProveedor||0).toFixed(2)}`);
+ }catch(err){console.error(err);alert("Supabase rechazó la recepción: "+(err.message||err))}
+});
+async function eliminarOrdenCompra(id){
+ const o=ordenesCompra.find(x=>x.id===id);if(!o)return;
+ if(o.estado==="recibida")return alert("Una orden recibida no se elimina para conservar el historial de compras.");
+ if(!confirm("¿Quieres eliminar esta orden de compra?"))return;
+ if(!o.supabaseId)return alert("Esta orden todavía no está vinculada con Supabase.");
+ try{
+  const {error}=await flkSupabase.rpc("flk_delete_purchase_order",{p_order_id:o.supabaseId});
+  if(error)throw error;
+  await cargarComprasSupabase();actualizarCentroAlertas();
+ }catch(err){console.error(err);alert("Supabase no permitió eliminar la orden: "+(err.message||err))}
+}
 function actualizarFiltrosOrdenes(){const proveedores=[...new Set(ordenesCompra.map(o=>String(o.proveedor||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"})),sel=document.getElementById("filtroProveedorOrden"),prev=sel.value;sel.innerHTML='<option value="">Todos los proveedores</option>'+proveedores.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(proveedores.includes(prev))sel.value=prev}
 function mostrarListaOrdenes(){actualizarFiltrosOrdenes();const q=document.getElementById("busquedaOrdenes").value.toLowerCase().trim(),estado=document.getElementById("filtroEstadoOrden").value,proveedor=document.getElementById("filtroProveedorOrden").value,lista=document.getElementById("listaOrdenes");const arr=ordenesCompra.filter(o=>(!estado||o.estado===estado)&&(!proveedor||o.proveedor===proveedor)&&[o.nombre,o.sku,o.proveedor,numeroOrdenCompra(o)].some(v=>String(v||"").toLowerCase().includes(q)));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay órdenes de compra con esos filtros.</div>';return}lista.innerHTML=arr.map(o=>{const total=Number(o.cantidad||0)*Number(o.costoUnitario||0),estadoTexto=o.estado==="recibida"?"✅ Recibida":o.estado==="ordenada"?"🚚 Ordenada":"⏳ Pendiente",acciones=o.estado==="recibida"?'<div class="acciones-orden"><button class="boton-orden boton-orden-primario" onclick="mostrarHistorial()">📜 Ver historial</button></div>':`<div class="acciones-orden"><button class="boton-orden boton-orden-primario" onclick="editarOrdenCompra(${o.id})">✏️ Editar</button>${o.estado==="pendiente"?`<button class="boton-orden boton-orden-primario" onclick="marcarOrdenada(${o.id})">🚚 Ordenada</button>`:""}<button class="boton-orden boton-orden-recibir" onclick="recibirOrden(${o.id})">✅ Recibir</button><button class="boton-orden boton-orden-eliminar" onclick="eliminarOrdenCompra(${o.id})">🗑️ Eliminar</button></div>`;return `<div class="orden-card"><div class="orden-superior"><div><h3>${escapeHtml(o.nombre)}</h3><p>${numeroOrdenCompra(o)} · SKU: ${escapeHtml(o.sku||"")}</p></div><div class="orden-total">$${total.toFixed(2)}</div></div><span class="estado-orden ${o.estado}">${estadoTexto}</span><div class="orden-detalle">Proveedor: <strong>${escapeHtml(o.proveedor||"—")}</strong><br>Cantidad: <strong>${Number(o.cantidad||0)}</strong> · Costo/u.: <strong>$${Number(o.costoUnitario||0).toFixed(2)}</strong><br>Fecha orden: <strong>${o.fechaOrden?new Date(o.fechaOrden+"T00:00:00").toLocaleDateString("es-PR"):"—"}</strong>${o.fechaRecibida?`<br>Recibida: <strong>${new Date(o.fechaRecibida).toLocaleDateString("es-PR")}</strong>`:""}${o.nota?`<br>Nota: ${escapeHtml(o.nota)}`:""}</div>${acciones}</div>`}).join("")}
 function actualizarOrdenesCompra(){document.getElementById("ordenesPendientes").textContent=ordenesCompra.filter(o=>o.estado==="pendiente").length;document.getElementById("ordenesOrdenadas").textContent=ordenesCompra.filter(o=>o.estado==="ordenada").length;document.getElementById("ordenesRecibidas").textContent=ordenesCompra.filter(o=>o.estado==="recibida").length;document.getElementById("valorOrdenesRecibidas").textContent="$"+ordenesCompra.filter(o=>o.estado==="recibida").reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0).toFixed(2);mostrarListaOrdenes()}
-function mostrarOrdenes(){["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaOrdenes").style.display="block";actualizarMenu("ordenes");actualizarOrdenesCompra();scrollTop()}
+async function mostrarOrdenes(){await cargarComprasSupabase();["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaOrdenes").style.display="block";actualizarMenu("ordenes");actualizarOrdenesCompra();scrollTop()}
 
 function estadoCuentaProveedor(o){const saldo=Number(o.saldoProveedor||0);if(saldo<=0.009)return {clave:"pagada",texto:"✅ Pagada"};if(o.fechaVencimientoProveedor){const hoy=new Date(fechaLocalISO(new Date())+"T00:00:00"),v=new Date(o.fechaVencimientoProveedor+"T00:00:00");if(v<hoy)return {clave:"vencida",texto:"🔴 Vencida"}}return {clave:"pendiente",texto:"⏳ Pendiente"}}
 function abrirPagoProveedor(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado!=="recibida"||Number(o.saldoProveedor||0)<=0)return;ordenPagoProveedorId=id;document.getElementById("formularioPagoProveedor").reset();document.getElementById("textoPagoProveedor").textContent=`${o.proveedor} · ${numeroOrdenCompra(o)}`;document.getElementById("cantidadPagoProveedor").max=Number(o.saldoProveedor).toFixed(2);document.getElementById("cantidadPagoProveedor").value=Number(o.saldoProveedor).toFixed(2);document.getElementById("ayudaPagoProveedor").textContent=`Saldo actual: $${Number(o.saldoProveedor).toFixed(2)}`;document.getElementById("modalPagoProveedor").classList.add("visible")}
 function cerrarPagoProveedor(){document.getElementById("modalPagoProveedor").classList.remove("visible");document.getElementById("formularioPagoProveedor").reset();ordenPagoProveedorId=null}
-document.getElementById("formularioPagoProveedor").addEventListener("submit",e=>{e.preventDefault();const o=ordenesCompra.find(x=>x.id===ordenPagoProveedorId);if(!o)return;const cantidad=Number(document.getElementById("cantidadPagoProveedor").value),saldoAnterior=Number(o.saldoProveedor||0),metodo=document.getElementById("metodoPagoCuentaProveedor").value,nota=document.getElementById("notaPagoProveedor").value.trim();if(!Number.isFinite(cantidad)||cantidad<=0||cantidad>saldoAnterior+0.009)return alert("El pago no puede ser mayor que el saldo pendiente.");if(!Array.isArray(o.pagosProveedor))o.pagosProveedor=[];const restante=Math.max(0,saldoAnterior-cantidad);o.pagosProveedor.push({id:Date.now()+Math.floor(Math.random()*100000),cantidad,fecha:new Date().toISOString(),metodo,nota,saldoAnterior,saldoRestante:restante});o.totalPagadoProveedor=Math.min(Number(o.costoTotal||0),Number(o.totalPagadoProveedor||0)+cantidad);o.saldoProveedor=restante;o.condicionPagoProveedor=restante>0.009?"credito":"pagado";if(restante<=0.009){o.saldoProveedor=0;o.fechaVencimientoProveedor=""}guardarOrdenesCompra();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarFlujoCaja();actualizarFinanzas();cerrarPagoProveedor()})
+document.getElementById("formularioPagoProveedor").addEventListener("submit",async e=>{
+ e.preventDefault();
+ const o=ordenesCompra.find(x=>x.id===ordenPagoProveedorId);if(!o)return;
+ const cantidad=Number(document.getElementById("cantidadPagoProveedor").value),
+       saldoAnterior=Number(o.saldoProveedor||0),
+       metodo=document.getElementById("metodoPagoCuentaProveedor").value,
+       nota=document.getElementById("notaPagoProveedor").value.trim();
+ if(!Number.isFinite(cantidad)||cantidad<=0||cantidad>saldoAnterior+0.009)return alert("El pago no puede ser mayor que el saldo pendiente.");
+ if(!o.supabaseId)return alert("Esta cuenta todavía no está vinculada con Supabase.");
+ try{
+  const {error}=await flkSupabase.rpc("flk_add_supplier_payment",{
+   p_order_id:o.supabaseId,
+   p_amount:cantidad,
+   p_payment_method:metodo,
+   p_note:nota||null
+  });
+  if(error)throw error;
+  await cargarComprasSupabase();
+  await cargarMovimientosCajaSupabase();
+  actualizarFlujoCaja();actualizarFinanzas();cerrarPagoProveedor();
+  const actual=ordenesCompra.find(x=>x.supabaseId===o.supabaseId);
+  alert(`Pago guardado en Supabase.\n\nSaldo restante: $${Number(actual?.saldoProveedor||0).toFixed(2)}`);
+ }catch(err){console.error(err);alert("Supabase rechazó el pago: "+(err.message||err))}
+});
 function verHistorialPagosProveedor(id){const o=ordenesCompra.find(x=>x.id===id);if(!o)return;document.getElementById("textoHistorialPagosProveedor").textContent=`${o.proveedor} · ${numeroOrdenCompra(o)} · Total $${Number(o.costoTotal||0).toFixed(2)}`;const pagos=Array.isArray(o.pagosProveedor)?[...o.pagosProveedor].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)):[];document.getElementById("listaHistorialPagosProveedor").innerHTML=pagos.length?pagos.map(p=>`<div class="abono-card"><div class="abono-superior"><strong>${new Date(p.fecha).toLocaleString("es-PR")}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">Método: <strong>${escapeHtml(p.metodo||"—")}</strong><br>Saldo anterior: $${Number(p.saldoAnterior||0).toFixed(2)} · Restante: $${Number(p.saldoRestante||0).toFixed(2)}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div></div>`).join(""):'<div class="sin-productos">No hay pagos registrados.</div>';document.getElementById("modalHistorialPagosProveedor").classList.add("visible")}
 function cerrarHistorialPagosProveedor(){document.getElementById("modalHistorialPagosProveedor").classList.remove("visible")}
 function actualizarFiltroProveedorCuentas(){const sel=document.getElementById("filtroProveedorCuentas");if(!sel)return;const prev=sel.value,nombres=[...new Set(ordenesCompra.filter(o=>o.estado==="recibida").map(o=>String(o.proveedor||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"}));sel.innerHTML='<option value="">Todos los proveedores</option>'+nombres.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");if(nombres.includes(prev))sel.value=prev}
