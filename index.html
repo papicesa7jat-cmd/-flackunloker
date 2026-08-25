@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v19-recuperacion-emergencia">
+<meta name="flackunloker-offline-version" content="2026-08-25-v20-inicio-corregido">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2534,13 +2534,13 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
   const nombre=document.getElementById("authNombre").value.trim();
   const {data,error}=await flkSupabase.auth.signUp({email,password,options:{data:{full_name:nombre}}});
   if(error){mostrarMensajeAuth(error.message,"error");return}
-  if(data.session){await mostrarAppConSesion(data.session);mostrarMensajeAuth("","");}
+  if(data.session){await window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});mostrarMensajeAuth("","");}
   else mostrarMensajeAuth("Cuenta creada. Revisa tu correo para confirmar el registro y luego inicia sesión.","ok");
  }else{
   const {data,error}=await flkSupabase.auth.signInWithPassword({email,password});
   if(error){mostrarMensajeAuth("Correo o contraseña incorrectos, o la cuenta aún no está confirmada.","error");return}
   mostrarMensajeAuth("","");
-  await mostrarAppConSesion(data.session);
+  await window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});
  }
 });
 flkSupabase.auth.onAuthStateChange((event,session)=>{
@@ -2562,7 +2562,7 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
  setTimeout(async()=>{
   try{
    const {data}=await flkSupabase.auth.getSession();
-   await mostrarAppConSesion(data.session);
+   await window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});
   }catch(err){
    if(cache?.user)flkPintarSesionLocal(cache.user);
   }
