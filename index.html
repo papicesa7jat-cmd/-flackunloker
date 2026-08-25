@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v10-fastmenus">
+<meta name="flackunloker-offline-version" content="2026-08-25-v11-menu-sin-lag">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -4393,7 +4393,26 @@ function imprimirFinanzas(){
  const d=datosFinanzas();if(!d)return alert("Selecciona un período válido.");
  const pct=n=>(d.ventasTotal?n/d.ventasTotal*100:0).toFixed(1)+"%";
  const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Estado financiero</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{margin-bottom:4px}h2{margin-top:28px}p{color:#666}.fila{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #ddd}.fila strong{white-space:nowrap}.print{margin-top:24px;padding:12px 18px}@media print{.print{display:none}}
-</style></head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
+</style>
+<style>
+/* ===== RENDIMIENTO V11 · MENÚ SIN LAG ===== */
+.menu-panel-fondo,
+.menu,
+.modal{
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
+.menu-panel-fondo{
+  background:rgba(15,23,42,.34) !important;
+}
+.menu-panel,
+.menu-cuadricula button{
+  transition:none !important;
+  animation:none !important;
+}
+</style>
+
+</head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el estado financiero.");w.document.write(html);w.document.close()
 }
 
@@ -4561,5 +4580,50 @@ if("serviceWorker" in navigator){
  });
 }
 </script>
+
+<script>
+(function(){
+ const acciones={
+  botonInventario:()=>mostrarInventario(),
+  botonHistorial:()=>mostrarHistorial(),
+  botonVentas:()=>mostrarVentas(),
+  botonClientes:()=>mostrarClientes(),
+  botonGastos:()=>mostrarGastos(),
+  botonCierre:()=>mostrarCierre(),
+  botonReportes:()=>mostrarReportes(),
+  botonAlertas:()=>mostrarAlertas(),
+  botonOrdenes:()=>mostrarOrdenes(),
+  botonProveedores:()=>mostrarProveedores(),
+  botonCuentasPagar:()=>mostrarCuentasPagar(),
+  botonFlujoCaja:()=>mostrarFlujoCaja(),
+  botonFinanzas:()=>mostrarFinanzas(),
+  botonEstadisticas:()=>mostrarEstadisticas(),
+  botonUsuarios:()=>mostrarUsuarios()
+ };
+
+ document.addEventListener("click",function(e){
+  const b=e.target.closest("#menuPrincipalFondo .menu-cuadricula button");
+  if(!b)return;
+
+  const onclick=String(b.getAttribute("onclick")||"");
+  let accion=b.id?acciones[b.id]:null;
+  if(!accion && onclick.includes("abrirFormulario"))accion=()=>abrirFormulario();
+
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+
+  const fondo=document.getElementById("menuPrincipalFondo");
+  if(fondo)fondo.classList.remove("visible");
+
+  requestAnimationFrame(()=>{
+   requestAnimationFrame(()=>{
+    if(typeof accion==="function")setTimeout(accion,0);
+   });
+  });
+ },true);
+})();
+</script>
+
 </body>
 </html>
