@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v54-propietario-fix">
+<meta name="flackunloker-offline-version" content="2026-08-25-v55-lista-licencias">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -989,6 +989,55 @@ body:not(.es-propietario) #botonLicencias{display:none!important}
 #flkActivacionEstado{margin-top:10px;font-size:12px;text-align:center;color:#667085}
 </style>
 
+
+<style id="flk-license-list-style">
+#licenciasResumen{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0;
+}
+.lic-resumen-card{
+ background:#fff;border:1px solid #dce8f4;border-radius:16px;padding:14px;text-align:center;
+}
+.lic-resumen-card span{display:block;font-size:11px;color:#667085;margin-bottom:5px}
+.lic-resumen-card strong{font-size:22px}
+.lic-resumen-card.activa strong{color:#168044}
+.lic-resumen-card.suspendida strong{color:#b42318}
+.lic-resumen-card.vencida strong{color:#a15c00}
+.lic-registro-card{
+ background:#fff;border:1px solid #dce8f4;border-radius:18px;padding:16px;margin-bottom:12px;
+ box-shadow:0 6px 18px rgba(20,42,80,.05);
+}
+.lic-registro-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.lic-registro-top h4{margin:0 0 5px;font-size:16px}
+.lic-registro-top p{margin:0;color:#667085;font-size:12px}
+.lic-badge{padding:7px 10px;border-radius:999px;font-size:11px;font-weight:800}
+.lic-badge.active{background:#e9f8ef;color:#168044}
+.lic-badge.suspended{background:#ffecec;color:#b42318}
+.lic-badge.expired{background:#fff7e8;color:#a15c00}
+.lic-registro-grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px;
+}
+.lic-registro-dato{
+ background:#f8fbff;border:1px solid #e3edf7;border-radius:12px;padding:10px;
+ font-size:12px;overflow-wrap:anywhere;
+}
+.lic-registro-dato span{display:block;color:#667085;font-size:10px;margin-bottom:3px}
+.lic-registro-acciones{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px;
+}
+.lic-registro-acciones button{
+ border:0;border-radius:11px;padding:10px;font-size:12px;font-weight:800;cursor:pointer;
+}
+.lic-btn-renovar{background:#eaf4ff;color:#0a84ff}
+.lic-btn-suspender{background:#ffecec;color:#b42318}
+.lic-btn-activar{background:#e9f8ef;color:#168044}
+.lic-btn-liberar{background:#f2edff;color:#6b47c8}
+@media(max-width:600px){
+ #licenciasResumen{grid-template-columns:1fr}
+ .lic-registro-grid{grid-template-columns:1fr}
+ .lic-registro-acciones{grid-template-columns:1fr}
+}
+</style>
+
 </head>
 <body>
 
@@ -1687,7 +1736,25 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   <div id="licResultadoNueva" class="lic-aviso" style="display:none"></div>
  </div>
 
- <div class="lic-panel">
+ 
+<div class="lic-panel">
+ <div class="seccion-titulo" style="margin-top:0">
+  <h3 style="margin:0">📋 Licencias registradas</h3>
+  <button class="boton-agregar" type="button" onclick="cargarListaLicencias()">↻ Actualizar</button>
+ </div>
+
+ <div id="licenciasResumen">
+  <div class="lic-resumen-card activa"><span>Activas</span><strong id="licCountActivas">0</strong></div>
+  <div class="lic-resumen-card suspendida"><span>Suspendidas</span><strong id="licCountSuspendidas">0</strong></div>
+  <div class="lic-resumen-card vencida"><span>Vencidas</span><strong id="licCountVencidas">0</strong></div>
+ </div>
+
+ <div id="listaLicenciasRegistradas">
+  <div class="sin-productos">Pulsa Actualizar para cargar las licencias.</div>
+ </div>
+</div>
+
+<div class="lic-panel">
   <h3 style="margin:0 0 14px">🔑 Licencia actual de esta instalación</h3>
   <div class="lic-grid">
    <div class="lic-dato"><span>Cliente / instalación</span><strong id="licPanelCliente">—</strong></div>
@@ -3616,7 +3683,157 @@ function mostrarLicencias(){
  document.querySelectorAll("#menuPrincipalFondo .menu-cuadricula button").forEach(b=>b.classList.remove("activo"));
  document.getElementById("botonLicencias")?.classList.add("activo");
  cargarPanelLicencias();
+ cargarListaLicencias();
  scrollTop()
+}
+
+
+function flkEstadoVisualLicencia(l){
+ const ahora=Date.now();
+ const exp=new Date(l.expires_at||0).getTime();
+ if(String(l.status)==="suspended")return "suspended";
+ if(Number.isFinite(exp)&&exp<ahora)return "expired";
+ return "active";
+}
+
+function flkTextoEstadoLicencia(estado){
+ return estado==="active"?"ACTIVA":estado==="suspended"?"SUSPENDIDA":"VENCIDA";
+}
+
+function flkEscAttr(v){
+ return String(v??"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+async function cargarListaLicencias(){
+ if(!flkEsPropietarioSoftware)return;
+ const lista=document.getElementById("listaLicenciasRegistradas");
+ if(!lista)return;
+
+ if(!navigator.onLine){
+  lista.innerHTML='<div class="sin-productos">Conéctate a Internet para consultar las licencias.</div>';
+  return;
+ }
+
+ lista.innerHTML='<div class="sin-productos">Cargando licencias...</div>';
+
+ try{
+  const {data,error}=await flkSupabase.rpc("flk_list_licenses");
+  if(error)throw error;
+  const arr=Array.isArray(data)?data:[];
+
+  let activas=0,suspendidas=0,vencidas=0;
+  arr.forEach(l=>{
+   const e=flkEstadoVisualLicencia(l);
+   if(e==="active")activas++;
+   else if(e==="suspended")suspendidas++;
+   else vencidas++;
+  });
+
+  document.getElementById("licCountActivas").textContent=activas;
+  document.getElementById("licCountSuspendidas").textContent=suspendidas;
+  document.getElementById("licCountVencidas").textContent=vencidas;
+
+  if(!arr.length){
+   lista.innerHTML='<div class="sin-productos">No hay licencias registradas.</div>';
+   return;
+  }
+
+  lista.innerHTML=arr.map(l=>{
+   const estado=flkEstadoVisualLicencia(l);
+   const device=l.device_id?flkEscAttr(l.device_id):"Sin activar";
+   const ultima=l.device_last_seen_at?flkFechaLicenciaBonita(l.device_last_seen_at):"—";
+   const activada=l.device_activated_at?flkFechaLicenciaBonita(l.device_activated_at):"—";
+   const notas=l.notes?flkEscAttr(l.notes):"—";
+   const key=flkEscAttr(l.license_key);
+   const cliente=flkEscAttr(l.customer_name||"Sin nombre");
+
+   return `
+    <div class="lic-registro-card">
+     <div class="lic-registro-top">
+      <div>
+       <h4>${cliente}</h4>
+       <p>Creada: ${flkFechaLicenciaBonita(l.created_at)}</p>
+      </div>
+      <span class="lic-badge ${estado}">${flkTextoEstadoLicencia(estado)}</span>
+     </div>
+
+     <div class="lic-registro-grid">
+      <div class="lic-registro-dato"><span>Clave</span>${key}</div>
+      <div class="lic-registro-dato"><span>Vencimiento</span>${flkFechaLicenciaBonita(l.expires_at)}</div>
+      <div class="lic-registro-dato"><span>Gracia offline</span>${Number(l.offline_grace_days||0)} día(s)</div>
+      <div class="lic-registro-dato"><span>Dispositivo</span>${device}</div>
+      <div class="lic-registro-dato"><span>Activada</span>${activada}</div>
+      <div class="lic-registro-dato"><span>Última validación</span>${ultima}</div>
+      <div class="lic-registro-dato"><span>Notas</span>${notas}</div>
+     </div>
+
+     <div class="lic-registro-acciones">
+      <button class="lic-btn-renovar" onclick="renovarLicenciaLista('${key}')">📅 Renovar</button>
+      ${
+       estado==="suspended"
+       ? `<button class="lic-btn-activar" onclick="cambiarEstadoLicenciaLista('${key}','active')">✅ Reactivar</button>`
+       : `<button class="lic-btn-suspender" onclick="cambiarEstadoLicenciaLista('${key}','suspended')">⛔ Suspender</button>`
+      }
+      <button class="lic-btn-liberar" onclick="liberarDispositivoLicenciaLista('${key}')">🖥️ Liberar dispositivo</button>
+     </div>
+    </div>`;
+  }).join("");
+
+ }catch(err){
+  console.error("Lista de licencias:",err);
+  lista.innerHTML='<div class="sin-productos">No se pudieron cargar las licencias.</div>';
+  alert("No se pudo cargar la lista de licencias: "+(err?.message||"Error desconocido"));
+ }
+}
+
+async function renovarLicenciaLista(key){
+ if(!flkEsPropietarioSoftware)return;
+ const valor=prompt("Nueva fecha de vencimiento (AAAA-MM-DD):");
+ if(!valor)return;
+ const fecha=new Date(valor+"T23:59:59");
+ if(Number.isNaN(fecha.getTime())||fecha<=new Date())return alert("La fecha debe ser futura.");
+ try{
+  const {error}=await flkSupabase.rpc("flk_renew_license",{
+   p_license_key:key,
+   p_new_expires_at:fecha.toISOString()
+  });
+  if(error)throw error;
+  alert("Licencia renovada.");
+  await cargarListaLicencias();
+ }catch(err){
+  alert("No se pudo renovar: "+(err?.message||"Error desconocido"));
+ }
+}
+
+async function cambiarEstadoLicenciaLista(key,estado){
+ if(!flkEsPropietarioSoftware)return;
+ const texto=estado==="suspended"?"suspender":"reactivar";
+ if(!confirm("¿Seguro que deseas "+texto+" esta licencia?"))return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_set_license_status",{
+   p_license_key:key,
+   p_status:estado
+  });
+  if(error)throw error;
+  await cargarListaLicencias();
+ }catch(err){
+  alert("No se pudo cambiar el estado: "+(err?.message||"Error desconocido"));
+ }
+}
+
+async function liberarDispositivoLicenciaLista(key){
+ if(!flkEsPropietarioSoftware)return;
+ if(!confirm("¿Liberar el dispositivo asociado a esta licencia?"))return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_release_license_device",{
+   p_license_key:key
+  });
+  if(error)throw error;
+  alert("Dispositivo liberado.");
+  await cargarListaLicencias();
+ }catch(err){
+  alert("No se pudo liberar el dispositivo: "+(err?.message||"Error desconocido"));
+ }
 }
 
 async function cargarPanelLicencias(){
