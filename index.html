@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v22-estable">
+<meta name="flackunloker-offline-version" content="2026-08-25-v23-sync-segura">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2078,6 +2078,55 @@ async function flkProcesarOperacionOffline(op){
  }
  throw new Error("Tipo de operación offline no soportado: "+op.tipo)
 }
+
+let flkOrquestandoSync=false;
+
+async function flkSupabaseDisponible(timeoutMs=4500){
+ if(!navigator.onLine||typeof flkSupabase==="undefined")return false;
+ try{
+  const prueba=flkSupabase.from("products").select("id").limit(1);
+  const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error("timeout supabase")),timeoutMs));
+  const res=await Promise.race([prueba,timeout]);
+  return !res?.error;
+ }catch(e){
+  return false;
+ }
+}
+
+async function flkSincronizarSeguro(){
+ if(flkOrquestandoSync||!navigator.onLine)return false;
+ flkOrquestandoSync=true;
+ try{
+  const disponible=await flkSupabaseDisponible();
+  if(!disponible){
+   flkActualizarEstadoConexion("error");
+   return false;
+  }
+
+  const {data:{session}}=await flkSupabase.auth.getSession();
+  if(!session)return false;
+
+  // Si hay operaciones offline, subirlas antes de volver a leer la nube.
+  if(flkPendientesOffline()>0){
+   await flkProcesarColaOffline();
+  }
+
+  // Confirmación final: reconstruir la copia local desde la nube ya actualizada.
+  if(typeof flkRecuperacionEmergenciaNube==="function"){
+   await flkRecuperacionEmergenciaNube();
+  }
+
+  flkActualizarEstadoConexion();
+  return true;
+ }catch(err){
+  console.error("Sincronización segura:",err);
+  flkActualizarEstadoConexion("error");
+  return false;
+ }finally{
+  flkOrquestandoSync=false;
+ }
+}
+
 async function flkProcesarColaOffline(){
  if(flkSincronizando||!navigator.onLine||typeof flkSupabase==="undefined")return;
  const {data:{session}}=await flkSupabase.auth.getSession();
@@ -2103,15 +2152,8 @@ async function flkProcesarColaOffline(){
  q=q.filter(x=>x.estado!=="sincronizado");
  flkGuardarColaOffline(q);
  try{
-  if(huboCambios){
-   if(typeof cargarInventarioSupabase==="function")await cargarInventarioSupabase();
-   if(typeof cargarHistorialSupabase==="function")await cargarHistorialSupabase();
-   if(typeof cargarVentasSupabase==="function")await cargarVentasSupabase();
-   if(typeof cargarGastosSupabase==="function")await cargarGastosSupabase();
-   if(typeof cargarComprasSupabase==="function")await cargarComprasSupabase();
-   if(typeof cargarMovimientosCajaSupabase==="function")await cargarMovimientosCajaSupabase();
-   if(typeof cargarCierresSupabase==="function")await cargarCierresSupabase();
-   flkAplicarPendientesSobreDatos()
+  if(huboCambios&&typeof flkRecuperacionEmergenciaNube==="function"){
+   await flkRecuperacionEmergenciaNube();
   }
  }finally{
   flkSincronizando=false;
@@ -2125,7 +2167,7 @@ window.addEventListener("online",async()=>{
   if(data?.session?.user){
    flkGuardarSesionLocal(data.session);
    await cargarRolUsuario(data.session.user);
-   await flkRecuperacionEmergenciaNube();
+   setTimeout(()=>flkSincronizarSeguro(),250);
   }else{
    flkLimpiarSesionLocal();
    document.getElementById("authOverlay").classList.remove("oculto");
@@ -2141,13 +2183,16 @@ window.addEventListener("online",flkActualizarModoRendimiento);
 window.addEventListener("offline",flkActualizarModoRendimiento);
 document.addEventListener("DOMContentLoaded",flkActualizarModoRendimiento);
 
-document.addEventListener("DOMContentLoaded",()=>{flkDeviceId();flkActualizarEstadoConexion();flkProcesarColaOffline()});
+document.addEventListener("DOMContentLoaded",()=>{flkDeviceId();flkActualizarEstadoConexion()});
 document.addEventListener("DOMContentLoaded",()=>{
  const box=document.getElementById("estadoConexionFlk");
  if(box){
   box.style.cursor="pointer";
   box.title="Estado de conexión";
-  box.addEventListener("click",flkMostrarAvisoConexionTemporal);
+  box.addEventListener("click",()=>{
+   flkMostrarAvisoConexionTemporal();
+   if(navigator.onLine)setTimeout(()=>flkSincronizarSeguro(),0);
+  });
  }
 });
 
@@ -2506,7 +2551,7 @@ async function mostrarAppConSesion(session){
   document.getElementById("authOverlay").classList.add("oculto");
   flkPintarSesionLocal(session.user);
   await cargarRolUsuario(session.user);
-  if(navigator.onLine)setTimeout(()=>flkRecuperacionEmergenciaNube(),180);
+  if(navigator.onLine)setTimeout(()=>flkSincronizarSeguro(),220);
  }else{
   const cache=flkSesionLocal();
   if(!navigator.onLine&&cache?.user){
