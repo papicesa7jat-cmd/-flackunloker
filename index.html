@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v57-secciones-licencias">
+<meta name="flackunloker-offline-version" content="2026-08-25-v58-multicentro-productos">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2584,7 +2584,7 @@ let flkOrquestandoSync=false;
 async function flkReconciliarInventarioNube(){
  if(!navigator.onLine)return false;
  try{
-  const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).order("created_at",{ascending:true});
+  const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",FLK_BUSINESS_ID).order("created_at",{ascending:true});
   if(error)throw error;
   productos=(data||[]).map(productoDesdeSupabase);
   guardarDatos();
@@ -2918,7 +2918,7 @@ async function flkRecuperacionEmergenciaNube(){
 
   // INVENTARIO
   try{
-   const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).order("created_at",{ascending:true});
+   const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",FLK_BUSINESS_ID).order("created_at",{ascending:true});
    if(error)throw error;
    productos=(data||[]).map(productoDesdeSupabase);
    guardarDatos();
@@ -4116,6 +4116,28 @@ function productoDesdeSupabase(r){
   stockMinimo:Number(r.min_stock||0)
  }
 }
+
+// =========================================================
+// FLACKUNLOKER v58 · CONTEXTO MULTI-CENTRO
+// =========================================================
+let FLK_BUSINESS_ID=localStorage.getItem("flackunloker_business_id_v1")||null;
+
+async function flkCargarCentroActual(){
+ if(!flkSupabase || !flkSesionActiva || !navigator.onLine)return FLK_BUSINESS_ID;
+ const {data,error}=await flkSupabase.rpc("flk_current_business_id");
+ if(error)throw error;
+ FLK_BUSINESS_ID=data||null;
+ if(FLK_BUSINESS_ID)localStorage.setItem("flackunloker_business_id_v1",FLK_BUSINESS_ID);
+ return FLK_BUSINESS_ID;
+}
+
+async function flkExigirCentroActual(){
+ if(FLK_BUSINESS_ID)return FLK_BUSINESS_ID;
+ const id=await flkCargarCentroActual();
+ if(!id)throw new Error("Esta cuenta no tiene un centro de trabajo activo.");
+ return id;
+}
+
 function productoHaciaSupabase(p,stock=0){
  return {
   legacy_id:String(p.id),
@@ -4129,15 +4151,17 @@ function productoHaciaSupabase(p,stock=0){
   price:Number(p.precio||0),
   stock:Number(stock||0),
   min_stock:Number(p.stockMinimo||0),
-  active:true
+  active:true,
+  business_id:FLK_BUSINESS_ID
  }
 }
 async function cargarInventarioSupabase(){
  if(flkModoRecuperacionPassword)return false;
+ if(navigator.onLine)await flkExigirCentroActual();
  if(navigator.onLine&&!flkSesionActiva)return false;
  if(!navigator.onLine){flkAplicarPendientesSobreDatos();mostrarProductos();actualizarEstadisticas();return true}
  const locales=Array.isArray(productos)?[...productos]:[];
- const {data:cloud,error}=await flkSupabase.from("products").select("*").eq("active",true).order("created_at",{ascending:true});
+ const {data:cloud,error}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",FLK_BUSINESS_ID).order("created_at",{ascending:true});
  if(error){
   console.error("Supabase inventario:",error);
   if(!flkSilenciarSiEsConexion(error))alert("No se pudo cargar el inventario de Supabase.");
@@ -4172,6 +4196,7 @@ async function cargarInventarioSupabase(){
      if(String(err.code||"")==="23505"){
       const {data:hallado}=await flkSupabase.from("products")
        .select("*")
+       .eq("business_id",FLK_BUSINESS_ID)
        .or(`legacy_id.eq.${legacy}${sku?`,sku.ilike.${sku}`:""}`)
        .limit(1)
        .maybeSingle();
@@ -4206,7 +4231,7 @@ async function cargarInventarioSupabase(){
   }
 
   // Volver a leer el inventario completo después de completar/reanudar migración.
-  const {data:actualizado,error:errorActualizado}=await flkSupabase.from("products").select("*").eq("active",true).order("created_at",{ascending:true});
+  const {data:actualizado,error:errorActualizado}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",FLK_BUSINESS_ID).order("created_at",{ascending:true});
   if(errorActualizado){
    console.error(errorActualizado);
    return false;
@@ -4227,6 +4252,7 @@ async function cargarInventarioSupabase(){
  return true
 }
 async function guardarProductoSupabase(p,esNuevo=false,stockInicial=0){
+ await flkExigirCentroActual();
  if(esNuevo){
   const payload=productoHaciaSupabase(p,0);
   const {data,error}=await flkSupabase.from("products").insert(payload).select("*").single();
