@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.14-centro-propietario-corregido">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.25-gris-definitivo">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -52,14 +52,21 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
   --texto:#101828;--muted:#667085;--borde:#e8edf5;--verde:#168044;
   --rojo:#d93025;--naranja:#a15c00;--radio:20px;
 }
-html{scroll-behavior:auto}
+html{
+  scroll-behavior:auto;
+  background:#2F6F9F;
+}
 body{
-  background:
-    radial-gradient(circle at 50% -160px,rgba(10,132,255,.15),transparent 420px),
-    var(--fondo);
+  background:#2F6F9F;
   color:var(--texto);
 }
-.contenedor{max-width:720px;padding:20px 18px 145px}
+.contenedor{
+  max-width:720px;
+  min-height:100vh;
+  padding:20px 18px 145px;
+  background:#174A73;
+  box-shadow:0 0 42px rgba(0,0,0,.24);
+}
 .encabezado{
   position:relative;text-align:left;margin:8px 0 24px;padding:18px 20px;
   border:1px solid rgba(255,255,255,.8);border-radius:26px;
@@ -634,6 +641,121 @@ button:active{transform:none!important}
 /* ===== v61.12 · ADMINISTRACIÓN DE USUARIOS CENTRALIZADA =====
    La gestión de usuarios se realiza exclusivamente desde ⚙️ Software. */
 #vistaUsuarios,#botonUsuarios{display:none!important}
+
+/* v61.17: fondo exterior visible entre las plantillas */
+.encabezado h1,
+.encabezado p{
+  color:#ffffff;
+}
+
+
+/* ===== v61.20 · Acabado visual profesional ===== */
+html{
+  background:#D9EAF7 !important;
+}
+body{
+  background:#D9EAF7 !important;
+}
+.contenedor{
+  max-width:830px !important;
+  background:#1E527A !important;
+  padding:18px 22px 145px !important;
+  box-shadow:0 0 34px rgba(15,42,64,.18) !important;
+}
+
+/* Cabecera/logo: más contenida y con mejor aire */
+.encabezado{
+  margin:0 0 18px !important;
+  padding:18px 20px !important;
+  border-radius:20px !important;
+  background:#EAF4FC !important;
+  border:1px solid rgba(10,132,255,.18) !important;
+  box-shadow:0 8px 22px rgba(13,45,72,.10) !important;
+}
+.encabezado img,
+.logo-img,
+.logo-imagen{
+  max-height:250px !important;
+  object-fit:contain !important;
+}
+.encabezado h1,
+.encabezado p{
+  color:#17324A !important;
+}
+
+/* Tarjetas claras y uniformes */
+.tarjeta,
+.card,
+.resumen-card,
+.stat-card,
+.kpi-card{
+  background:#F8FAFC !important;
+  border-color:#D8E2EC !important;
+  box-shadow:0 5px 15px rgba(16,44,68,.09) !important;
+}
+
+/* Mejor separación entre bloques */
+.resumen,
+.grid-resumen,
+.stats-grid,
+.resumen-grid{
+  gap:12px !important;
+}
+
+/* Campos de búsqueda y formularios más limpios */
+input,
+select,
+textarea{
+  background:#FFFFFF !important;
+  border-color:#D8E2EC !important;
+}
+input:focus,
+select:focus,
+textarea:focus{
+  border-color:#0A84FF !important;
+  box-shadow:0 0 0 3px rgba(10,132,255,.12) !important;
+}
+
+/* Botón flotante de menú: más compacto y sobrio */
+#botonMenu,
+.boton-menu,
+.menu-flotante button,
+button.menu-toggle{
+  box-shadow:0 6px 16px rgba(8,54,94,.20) !important;
+}
+
+/* Caja de sesión: integrada con la estética */
+.usuario-flotante,
+.user-box,
+.session-box,
+.cuenta-flotante{
+  background:rgba(248,250,252,.96) !important;
+  border:1px solid #D8E2EC !important;
+  box-shadow:0 6px 18px rgba(16,44,68,.12) !important;
+}
+
+/* En pantallas pequeñas conserva espacio útil */
+@media(max-width:600px){
+  .contenedor{
+    padding-left:14px !important;
+    padding-right:14px !important;
+  }
+  .encabezado{
+    padding:14px !important;
+  }
+  .encabezado img,
+  .logo-img,
+  .logo-imagen{
+    max-height:210px !important;
+  }
+}
+
+
+/* ===== AJUSTE CONTROL DE PAGOS · LETRAS NEGRAS ===== */
+#vistaCuentasPagar .lista-estadisticas .fila-estadistica span,
+#vistaCuentasPagar .lista-estadisticas .fila-estadistica strong{
+  color:#000 !important;
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="manifest" href="./manifest.webmanifest">
@@ -1095,6 +1217,97 @@ body:not(.es-propietario) #botonLicencias{display:none!important}
 .adminsw-form{display:grid;grid-template-columns:1.4fr 1fr auto;gap:10px;align-items:end}.adminsw-form .campo{margin:0}.adminsw-form button{min-height:46px}
 .adminsw-centro{margin-bottom:10px}.adminsw-centro-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.adminsw-centro h3{margin:0 0 5px;font-size:17px}.adminsw-centro p{margin:0;color:#667085;font-size:12px;line-height:1.6}.adminsw-badge{display:inline-flex;padding:7px 10px;border-radius:999px;font-size:11px;font-weight:850}.adminsw-badge.active{background:#e9f8ef;color:#168044}.adminsw-badge.inactive{background:#ffecec;color:#b42318}.adminsw-miembros{margin-top:13px;padding-top:12px;border-top:1px solid #e8edf5}.adminsw-miembro{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 0;border-top:1px solid #eef2f6}.adminsw-miembro:first-child{border-top:0}.adminsw-miembro-info{min-width:0}.adminsw-miembro-info strong,.adminsw-miembro-info small{display:block;overflow-wrap:anywhere}.adminsw-miembro-info small{color:#667085;margin-top:3px}.adminsw-acciones{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.adminsw-btn{border:0;border-radius:11px;padding:9px 11px;font-weight:750;cursor:pointer}.adminsw-btn.azul{background:#eaf4ff;color:#0a84ff}.adminsw-btn.rojo{background:#ffecec;color:#b42318}.adminsw-btn.verde{background:#e9f8ef;color:#168044}
 @media(max-width:700px){.adminsw-grid,.adminsw-form{grid-template-columns:1fr}.adminsw-centro-top,.adminsw-miembro{align-items:flex-start;flex-direction:column}.adminsw-miembro .adminsw-btn{width:100%}}
+</style>
+
+
+<style>
+/* ===== v61.22 · CORRECCIÓN REAL · gris + Software alineado ===== */
+
+/* Casillas de información: gris medio con contraste sobre azul */
+.tarjeta,
+.estadistica-card,
+.tarjeta-historial,
+.finanzas-card,
+.producto,
+.movimiento,
+.lista-estadisticas,
+.respaldo-box,
+.venta-card,
+.cliente-card,
+.gasto-card,
+.cierre-card,
+.alerta-card,
+.centro-alerta,
+.orden-card,
+.proveedor-card,
+.cuenta-proveedor-card,
+.reporte-controles,
+.adminsw-card,
+.adminsw-panel,
+.adminsw-centro{
+  background:#D5DAE1 !important;
+  border-color:#BFC7D1 !important;
+  box-shadow:0 6px 17px rgba(9,33,54,.13) !important;
+}
+
+/* Buscador, filtros y campos coordinados con el gris */
+.busqueda,
+.busqueda-historial,
+.filtro-inventario,
+.campo input,
+.campo select,
+input,
+select,
+textarea,
+#adminswUsuarioEmail{
+  background:#CBD2DA !important;
+  border-color:#B3BDC9 !important;
+  color:#172333 !important;
+}
+.busqueda::placeholder,
+.busqueda-historial::placeholder,
+input::placeholder,
+textarea::placeholder{
+  color:#5E6B79 !important;
+}
+
+/*
+  Software está fuera de .contenedor en el HTML.
+  Por eso se fija manualmente al mismo ancho útil que el resto:
+  contenedor 830px - 22px - 22px = 786px.
+*/
+#vistaAdminSoftware{
+  display:none;
+  width:min(calc(100% - 44px),786px) !important;
+  max-width:786px !important;
+  margin:0 auto !important;
+  padding:0 !important;
+  box-sizing:border-box !important;
+}
+
+#vistaAdminSoftware > .seccion-titulo,
+#vistaAdminSoftware > .reporte-controles,
+#vistaAdminSoftware > .adminsw-grid,
+#vistaAdminSoftware > .adminsw-panel,
+#vistaAdminSoftware > #adminswListaCentros{
+  width:100% !important;
+  max-width:100% !important;
+  margin-left:0 !important;
+  margin-right:0 !important;
+  box-sizing:border-box !important;
+}
+
+#vistaAdminSoftware .adminsw-form{
+  width:100% !important;
+  max-width:100% !important;
+}
+
+@media(max-width:600px){
+  #vistaAdminSoftware{
+    width:calc(100% - 28px) !important;
+    max-width:none !important;
+  }
+}
 </style>
 
 </head>
@@ -7197,6 +7410,128 @@ function imprimirFinanzas(){
 }
 </style>
 
+
+<style>
+/* ===== v61.23 · AJUSTE DEFINITIVO DE ESTÉTICA Y ANCHO SOFTWARE ===== */
+
+/* Gris visible y uniforme en tarjetas/casillas */
+.tarjeta,
+.estadistica-card,
+.tarjeta-historial,
+.finanzas-card,
+.producto,
+.movimiento,
+.lista-estadisticas,
+.respaldo-box,
+.venta-card,
+.cliente-card,
+.gasto-card,
+.cierre-card,
+.alerta-card,
+.centro-alerta,
+.orden-card,
+.proveedor-card,
+.cuenta-proveedor-card,
+.reporte-controles,
+#vistaAdminSoftware .adminsw-card,
+#vistaAdminSoftware .adminsw-panel,
+#vistaAdminSoftware .adminsw-centro{
+  background:#C5CCD4 !important;
+  border-color:#AEB8C3 !important;
+  box-shadow:0 6px 16px rgba(9,33,54,.14) !important;
+}
+
+/* Buscador, filtros y campos gris coordinado */
+.busqueda,
+.busqueda-historial,
+.filtro-inventario,
+input,
+select,
+textarea,
+#adminswUsuarioEmail{
+  background:#B9C2CC !important;
+  border-color:#9EABB8 !important;
+  color:#162433 !important;
+}
+.busqueda::placeholder,
+.busqueda-historial::placeholder,
+input::placeholder,
+textarea::placeholder{
+  color:#536170 !important;
+}
+
+/* Software: mismo ancho exterior que la plantilla principal.
+   830px total y 22px de margen interno, igual que .contenedor. */
+#vistaAdminSoftware{
+  width:min(100%,830px) !important;
+  max-width:830px !important;
+  margin:0 auto !important;
+  padding:0 22px 145px !important;
+  box-sizing:border-box !important;
+}
+
+#vistaAdminSoftware > .seccion-titulo,
+#vistaAdminSoftware > .reporte-controles,
+#vistaAdminSoftware > .adminsw-grid,
+#vistaAdminSoftware > .adminsw-panel,
+#vistaAdminSoftware > #adminswListaCentros{
+  width:100% !important;
+  max-width:none !important;
+  box-sizing:border-box !important;
+}
+
+#vistaAdminSoftware .adminsw-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+}
+
+#vistaAdminSoftware .adminsw-form{
+  width:100% !important;
+  max-width:none !important;
+}
+
+@media(max-width:700px){
+  #vistaAdminSoftware{
+    width:100% !important;
+    padding:0 14px 125px !important;
+  }
+  #vistaAdminSoftware .adminsw-grid,
+  #vistaAdminSoftware .adminsw-form{
+    grid-template-columns:1fr !important;
+  }
+}
+</style>
+
+
+<style id="flk-control-pagos-y-numeros-negros-v3">
+/* Control de pagos: mismo formato blanco, grande y en negrita */
+body.flk-v6125 #vistaCuentasPagar .lista-estadisticas h3,
+body.flk-v6125 #vistaCuentasPagar .fila-estadistica span,
+body.flk-v6125 #vistaCuentasPagar .fila-estadistica strong {
+  color:#FFFFFF !important;
+  font-size:15px !important;
+  font-weight:800 !important;
+  line-height:1.55 !important;
+}
+body.flk-v6125 #vistaCuentasPagar .lista-estadisticas h3 {
+  font-size:17px !important;
+  font-weight:900 !important;
+}
+/* Todos los valores numéricos que antes se muestran verdes pasan a negro.
+   Se conservan verdes los botones/estados para mantener su significado visual. */
+body.flk-v6125 .tarjeta.ganancia strong,
+body.flk-v6125 .estadistica-card.positiva strong,
+body.flk-v6125 .finanzas-card.activo strong,
+body.flk-v6125 .finanzas-card.positivo strong,
+body.flk-v6125 .venta-total,
+body.flk-v6125 .cliente-total,
+body.flk-v6125 .cierre-total,
+body.flk-v6125 .ganancia-venta,
+body.flk-v6125 .abono-superior span,
+body.flk-v6125 .reporte-positivo,
+body.flk-v6125 #cuentasTotalPagado {
+  color:#000000 !important;
+}
+</style>
 </head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el estado financiero.");w.document.write(html);w.document.close()
 }
@@ -7391,7 +7726,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.24",{updateViaCache:"none"});
    if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
@@ -7444,5 +7779,486 @@ if("serviceWorker" in navigator){
 </script>
 
 
+
+<style id="flk-v6124-look">
+/* ===== v61.24 · DISEÑO EXACTO SEGÚN REFERENCIA ===== */
+
+html,body{
+  background:#8FC4F2 !important;
+}
+
+/* Bloque principal azul oscuro, centrado y con bordes redondeados */
+.contenedor{
+  width:min(96vw,830px) !important;
+  max-width:830px !important;
+  margin:0 auto !important;
+  padding:16px 18px 120px !important;
+  background:linear-gradient(180deg,#0D4E84 0%,#043A68 100%) !important;
+  border-radius:28px !important;
+  box-shadow:0 18px 38px rgba(4,37,65,.28) !important;
+}
+
+/* Cabecera/logo con gris azulado, no blanca */
+.encabezado,
+.encabezado-logo-tienda{
+  background:linear-gradient(135deg,#5E7F9D,#436987) !important;
+  border:1px solid rgba(255,255,255,.24) !important;
+  border-radius:18px !important;
+  box-shadow:0 7px 18px rgba(0,0,0,.14) !important;
+  margin:0 0 12px !important;
+  padding:10px !important;
+}
+.logo-tienda-principal{
+  width:min(100%,390px) !important;
+  max-height:255px !important;
+}
+
+/* KPI / casillas: gris oscuro visible */
+.tarjeta,
+.estadistica-card,
+.tarjeta-historial,
+.finanzas-card,
+.producto,
+.movimiento,
+.lista-estadisticas,
+.respaldo-box,
+.venta-card,
+.cliente-card,
+.gasto-card,
+.cierre-card,
+.alerta-card,
+.centro-alerta,
+.orden-card,
+.proveedor-card,
+.cuenta-proveedor-card,
+.reporte-controles{
+  background:linear-gradient(135deg,#626E7A,#515E6B) !important;
+  border:1px solid #7D8995 !important;
+  color:#F7FAFC !important;
+  box-shadow:0 5px 12px rgba(0,0,0,.16) !important;
+}
+.tarjeta span,
+.estadistica-card span,
+.tarjeta-historial span,
+.finanzas-card span,
+.producto p,
+.movimiento p,
+.reporte-periodo{
+  color:#E0E6EC !important;
+}
+.tarjeta strong,
+.estadistica-card strong,
+.tarjeta-historial strong,
+.finanzas-card strong{
+  text-shadow:0 1px 2px rgba(0,0,0,.15);
+}
+
+/* Inventario en 3 columnas como la referencia */
+.resumen{
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:8px !important;
+}
+.tarjeta.valor,
+.tarjeta.ganancia{
+  grid-column:auto !important;
+}
+
+/* Buscador y filtros en el mismo gris */
+.busqueda,
+.busqueda-historial,
+.filtro-inventario,
+input,
+select,
+textarea{
+  background:#56636F !important;
+  border:1px solid #76838F !important;
+  color:#FFFFFF !important;
+  box-shadow:none !important;
+}
+.busqueda::placeholder,
+.busqueda-historial::placeholder,
+input::placeholder,
+textarea::placeholder{
+  color:#D4DBE1 !important;
+}
+select option{
+  color:#111 !important;
+  background:#fff !important;
+}
+
+/* Menú flotante azul limpio */
+.boton-menu-flotante{
+  background:linear-gradient(135deg,#0A84FF,#0067D9) !important;
+  border-radius:14px !important;
+  box-shadow:0 7px 18px rgba(0,67,145,.28) !important;
+}
+
+/* Usuario inferior en panel oscuro */
+.auth-user{
+  background:rgba(31,53,73,.94) !important;
+  border:1px solid rgba(255,255,255,.18) !important;
+  color:#E8EEF4 !important;
+  box-shadow:0 7px 18px rgba(0,0,0,.22) !important;
+}
+.auth-user strong{color:#FFFFFF !important}
+
+/* SOFTWARE: mismo ancho exacto que el bloque principal */
+#vistaAdminSoftware{
+  width:min(96vw,830px) !important;
+  max-width:830px !important;
+  margin:14px auto 0 !important;
+  padding:18px !important;
+  box-sizing:border-box !important;
+  background:linear-gradient(180deg,#0D4E84 0%,#043A68 100%) !important;
+  border-radius:28px !important;
+  box-shadow:0 18px 38px rgba(4,37,65,.22) !important;
+}
+#vistaAdminSoftware > *{
+  width:100% !important;
+  max-width:none !important;
+  box-sizing:border-box !important;
+}
+#vistaAdminSoftware .adminsw-card,
+#vistaAdminSoftware .adminsw-panel,
+#vistaAdminSoftware .adminsw-centro,
+#vistaAdminSoftware .reporte-controles{
+  background:linear-gradient(135deg,#626E7A,#515E6B) !important;
+  border:1px solid #7D8995 !important;
+  color:#F7FAFC !important;
+}
+#vistaAdminSoftware .adminsw-card span,
+#vistaAdminSoftware .adminsw-centro p,
+#vistaAdminSoftware .reporte-periodo{
+  color:#E0E6EC !important;
+}
+#vistaAdminSoftware .adminsw-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:8px !important;
+}
+
+/* Móvil */
+@media(max-width:600px){
+  html,body{background:#8FC4F2 !important}
+  .contenedor{
+    width:calc(100% - 10px) !important;
+    border-radius:26px !important;
+    padding:10px 9px 110px !important;
+  }
+  .resumen{
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:5px !important;
+  }
+  .tarjeta{
+    padding:10px 8px !important;
+    border-radius:10px !important;
+  }
+  .tarjeta span{font-size:9px !important}
+  .tarjeta strong{font-size:15px !important}
+  .logo-tienda-principal{
+    width:min(100%,280px) !important;
+    max-height:190px !important;
+  }
+  .busqueda{padding:11px 12px !important;font-size:12px !important}
+  .filtros-inventario{gap:5px !important}
+  .filtro-inventario{font-size:10px !important;padding:10px 8px !important}
+  #vistaAdminSoftware{
+    width:calc(100% - 10px) !important;
+    padding:10px !important;
+    border-radius:26px !important;
+  }
+  #vistaAdminSoftware .adminsw-grid,
+  #vistaAdminSoftware .adminsw-form{
+    grid-template-columns:1fr !important;
+  }
+}
+</style>
+
+
+<style id="flk-v6125-visual-fix">
+/* v61.25 - corrección visual definitiva */
+
+/* KPI principales */
+body.flk-v6125 .contenedor .resumen > .tarjeta,
+body.flk-v6125 .contenedor .resumen > div.tarjeta{
+  background:#596774 !important;
+  background-image:none !important;
+  border:1px solid #748391 !important;
+  box-shadow:0 5px 13px rgba(0,0,0,.18) !important;
+  color:#F8FAFC !important;
+}
+body.flk-v6125 .contenedor .resumen > .tarjeta span{
+  color:#E5EAF0 !important;
+}
+
+/* Buscador y filtros */
+body.flk-v6125 .contenedor #busqueda,
+body.flk-v6125 .contenedor .busqueda,
+body.flk-v6125 .contenedor .filtro-inventario,
+body.flk-v6125 .contenedor select{
+  background:#596774 !important;
+  background-image:none !important;
+  border-color:#748391 !important;
+  color:#FFFFFF !important;
+}
+body.flk-v6125 .contenedor #busqueda::placeholder,
+body.flk-v6125 .contenedor .busqueda::placeholder{
+  color:#E1E7EC !important;
+}
+
+/* Administración del Software: mismo ancho exacto que .contenedor */
+body.flk-v6125 #vistaAdminSoftware{
+  width:min(96vw,830px) !important;
+  max-width:830px !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+  padding-left:18px !important;
+  padding-right:18px !important;
+  box-sizing:border-box !important;
+}
+body.flk-v6125 #vistaAdminSoftware > *{
+  width:100% !important;
+  max-width:100% !important;
+  box-sizing:border-box !important;
+}
+
+@media(max-width:600px){
+  body.flk-v6125 #vistaAdminSoftware{
+    width:calc(100% - 10px) !important;
+    padding-left:9px !important;
+    padding-right:9px !important;
+  }
+}
+</style>
+
+<script>
+/* v61.25 visual marker: makes selectors independent of earlier CSS order */
+document.addEventListener("DOMContentLoaded",function(){
+  document.body.classList.add("flk-v6125");
+});
+</script>
+
+<style id="flk-ajuste-texto-inventario">
+/* ===== AJUSTE SOLICITADO · TEXTO DE COSTOS DEL INVENTARIO ===== */
+body.flk-v6125 .producto .producto-precio{
+  color:#FFFFFF !important;
+  font-size:15px !important;
+  font-weight:700 !important;
+  line-height:1.55 !important;
+}
+body.flk-v6125 .producto .producto-precio strong{
+  color:#FFFFFF !important;
+  font-size:15px !important;
+  font-weight:900 !important;
+}
+@media(max-width:600px){
+  body.flk-v6125 .producto .producto-precio,
+  body.flk-v6125 .producto .producto-precio strong{
+    font-size:14px !important;
+  }
+}
+</style>
+
+<style id="flk-ajuste-texto-submenus-general">
+/* ===== TEXTO UNIFORME EN TODOS LOS SUBMENÚS ===== */
+body.flk-v6125 .movimiento-detalle,
+body.flk-v6125 .venta-detalle,
+body.flk-v6125 .cliente-detalle,
+body.flk-v6125 .gasto-detalle,
+body.flk-v6125 .cierre-detalle,
+body.flk-v6125 .orden-detalle,
+body.flk-v6125 .proveedor-detalle,
+body.flk-v6125 .cuenta-proveedor-detalle,
+body.flk-v6125 .abono-detalle,
+body.flk-v6125 .fila-estadistica,
+body.flk-v6125 .reporte-periodo,
+body.flk-v6125 .centro-alerta-info p,
+body.flk-v6125 .producto-info p,
+body.flk-v6125 .movimiento-info p,
+body.flk-v6125 .venta-superior p,
+body.flk-v6125 .cliente-superior p,
+body.flk-v6125 .gasto-superior p,
+body.flk-v6125 .cierre-card p,
+body.flk-v6125 .orden-superior p,
+body.flk-v6125 .proveedor-superior p,
+body.flk-v6125 .cuenta-proveedor-superior p {
+  color:#FFFFFF !important;
+  font-size:15px !important;
+  font-weight:700 !important;
+  line-height:1.55 !important;
+}
+
+body.flk-v6125 .movimiento-detalle strong,
+body.flk-v6125 .venta-detalle strong,
+body.flk-v6125 .cliente-detalle strong,
+body.flk-v6125 .gasto-detalle strong,
+body.flk-v6125 .cierre-detalle strong,
+body.flk-v6125 .orden-detalle strong,
+body.flk-v6125 .proveedor-detalle strong,
+body.flk-v6125 .cuenta-proveedor-detalle strong,
+body.flk-v6125 .abono-detalle strong,
+body.flk-v6125 .fila-estadistica strong {
+  color:#FFFFFF !important;
+  font-size:15px !important;
+  font-weight:900 !important;
+}
+
+/* Conserva los colores funcionales importantes */
+body.flk-v6125 .reporte-negativo,
+body.flk-v6125 .finanzas-card.negativo strong,
+body.flk-v6125 .finanzas-card.pasivo strong,
+body.flk-v6125 .estadistica-card.negativa strong,
+body.flk-v6125 .gasto-total {
+  color:#5B2C20 !important;
+}
+body.flk-v6125 .reporte-positivo,
+body.flk-v6125 .finanzas-card.positivo strong,
+body.flk-v6125 .finanzas-card.activo strong,
+body.flk-v6125 .estadistica-card.positiva strong,
+body.flk-v6125 .ganancia-venta {
+  color:#168044 !important;
+}
+
+@media(max-width:600px){
+  body.flk-v6125 .movimiento-detalle,
+  body.flk-v6125 .venta-detalle,
+  body.flk-v6125 .cliente-detalle,
+  body.flk-v6125 .gasto-detalle,
+  body.flk-v6125 .cierre-detalle,
+  body.flk-v6125 .orden-detalle,
+  body.flk-v6125 .proveedor-detalle,
+  body.flk-v6125 .cuenta-proveedor-detalle,
+  body.flk-v6125 .abono-detalle,
+  body.flk-v6125 .fila-estadistica,
+  body.flk-v6125 .reporte-periodo,
+  body.flk-v6125 .centro-alerta-info p,
+  body.flk-v6125 .producto-info p,
+  body.flk-v6125 .movimiento-info p,
+  body.flk-v6125 .venta-superior p,
+  body.flk-v6125 .cliente-superior p,
+  body.flk-v6125 .gasto-superior p,
+  body.flk-v6125 .cierre-card p,
+  body.flk-v6125 .orden-superior p,
+  body.flk-v6125 .proveedor-superior p,
+  body.flk-v6125 .cuenta-proveedor-superior p,
+  body.flk-v6125 .movimiento-detalle strong,
+  body.flk-v6125 .venta-detalle strong,
+  body.flk-v6125 .cliente-detalle strong,
+  body.flk-v6125 .gasto-detalle strong,
+  body.flk-v6125 .cierre-detalle strong,
+  body.flk-v6125 .orden-detalle strong,
+  body.flk-v6125 .proveedor-detalle strong,
+  body.flk-v6125 .cuenta-proveedor-detalle strong,
+  body.flk-v6125 .abono-detalle strong,
+  body.flk-v6125 .fila-estadistica strong {
+    font-size:14px !important;
+  }
+}
+</style>
+
+
+<style id="flk-ajuste-submenus-especificos-v2">
+/* ===== AJUSTE ESPECÍFICO SOLICITADO · RESTO DE SUBMENÚS ===== */
+body.flk-v6125 #vistaVentas .estadistica-card span,
+body.flk-v6125 #vistaGastos .estadistica-card span,
+body.flk-v6125 #vistaCierre .estadistica-card span,
+body.flk-v6125 #vistaReportes .estadistica-card span,
+body.flk-v6125 #vistaAlertas .alerta-card span,
+body.flk-v6125 #vistaProveedores .estadistica-card span,
+body.flk-v6125 #vistaFlujoCaja .estadistica-card span,
+body.flk-v6125 #vistaFinanzas .finanzas-card span,
+body.flk-v6125 #vistaEstadisticas .estadistica-card span,
+body.flk-v6125 #vistaVentas .fila-estadistica span,
+body.flk-v6125 #vistaGastos .fila-estadistica span,
+body.flk-v6125 #vistaCierre .fila-estadistica span,
+body.flk-v6125 #vistaReportes .fila-estadistica span,
+body.flk-v6125 #vistaAlertas .fila-estadistica span,
+body.flk-v6125 #vistaOrdenes .fila-estadistica span,
+body.flk-v6125 #vistaProveedores .fila-estadistica span,
+body.flk-v6125 #vistaFlujoCaja .fila-estadistica span,
+body.flk-v6125 #vistaFinanzas .fila-estadistica span,
+body.flk-v6125 #vistaEstadisticas .fila-estadistica span,
+body.flk-v6125 #vistaEstadisticas #rankingProductos,
+body.flk-v6125 #vistaEstadisticas #rankingProductos span {
+  color:#FFFFFF !important;
+  font-size:15px !important;
+  font-weight:700 !important;
+  line-height:1.55 !important;
+}
+body.flk-v6125 #vistaVentas .fila-estadistica strong,
+body.flk-v6125 #vistaGastos .fila-estadistica strong,
+body.flk-v6125 #vistaCierre .fila-estadistica strong,
+body.flk-v6125 #vistaReportes .fila-estadistica strong,
+body.flk-v6125 #vistaAlertas .fila-estadistica strong,
+body.flk-v6125 #vistaOrdenes .fila-estadistica strong,
+body.flk-v6125 #vistaProveedores .fila-estadistica strong,
+body.flk-v6125 #vistaFlujoCaja .fila-estadistica strong,
+body.flk-v6125 #vistaFinanzas .fila-estadistica strong,
+body.flk-v6125 #vistaEstadisticas .fila-estadistica strong,
+body.flk-v6125 #vistaEstadisticas #rankingProductos strong {
+  color:#FFFFFF !important;
+  font-size:15px !important;
+  font-weight:900 !important;
+}
+/* Encabezados internos como Flujo de reabastecimiento y Productos con mayor existencia */
+body.flk-v6125 #vistaOrdenes .lista-estadisticas h3,
+body.flk-v6125 #vistaEstadisticas .lista-estadisticas h3 {
+  color:#FFFFFF !important;
+  font-size:17px !important;
+  font-weight:900 !important;
+}
+@media(max-width:600px){
+  body.flk-v6125 #vistaVentas .estadistica-card span,
+  body.flk-v6125 #vistaGastos .estadistica-card span,
+  body.flk-v6125 #vistaCierre .estadistica-card span,
+  body.flk-v6125 #vistaReportes .estadistica-card span,
+  body.flk-v6125 #vistaAlertas .alerta-card span,
+  body.flk-v6125 #vistaProveedores .estadistica-card span,
+  body.flk-v6125 #vistaFlujoCaja .estadistica-card span,
+  body.flk-v6125 #vistaFinanzas .finanzas-card span,
+  body.flk-v6125 #vistaEstadisticas .estadistica-card span,
+  body.flk-v6125 #vistaVentas .fila-estadistica,
+  body.flk-v6125 #vistaGastos .fila-estadistica,
+  body.flk-v6125 #vistaCierre .fila-estadistica,
+  body.flk-v6125 #vistaReportes .fila-estadistica,
+  body.flk-v6125 #vistaAlertas .fila-estadistica,
+  body.flk-v6125 #vistaOrdenes .fila-estadistica,
+  body.flk-v6125 #vistaProveedores .fila-estadistica,
+  body.flk-v6125 #vistaFlujoCaja .fila-estadistica,
+  body.flk-v6125 #vistaFinanzas .fila-estadistica,
+  body.flk-v6125 #vistaEstadisticas .fila-estadistica {font-size:14px !important;}
+}
+</style>
+
+<style id="flk-verdes-especificos-a-negro-v4">
+/* Reportes: ingresos, ganancia bruta y ganancia neta */
+body.flk-v6125 #reporteIngresos,
+body.flk-v6125 #reporteGananciaBruta,
+body.flk-v6125 #reporteGananciaNeta {color:#000000 !important;}
+/* Clientes: total comprado y cantidades de compras */
+body.flk-v6125 #vistaClientes .cliente-total,
+body.flk-v6125 #vistaClientes .cliente-detalle strong {color:#000000 !important;}
+/* Gastos: ganancia neta del mes y resumen financiero */
+body.flk-v6125 #gananciaNetaMes,
+body.flk-v6125 #gananciaNetaMesResumen,
+body.flk-v6125 #gananciaBrutaMesGastos,
+body.flk-v6125 #ingresosMesGastos {color:#000000 !important;}
+/* Historial de cierres: todos los valores numéricos */
+body.flk-v6125 #listaCierres .cierre-total,
+body.flk-v6125 #listaCierres .cierre-detalle strong {color:#000000 !important;}
+
+/* ===== AJUSTE SOLICITADO · NÚMEROS VERDES A NEGRO ===== */
+#gananciaPotencial,
+#totalEntradas,
+#ingresosHoy, #gananciaHoy,
+#comprasClientes, #totalCompradoClientes,
+#ordenesRecibidas,
+#totalCompradoProveedores, #totalPagadoProveedores,
+#cuentasTotalPagado,
+#flujoEntradas, #flujoNeto,
+#finCaja, #finInventario, #finPorCobrar, #finActivos,
+#estadisticaEntradas, #estadisticaGananciaPotencial {
+  color:#111111 !important;
+}
+</style>
 </body>
 </html>
