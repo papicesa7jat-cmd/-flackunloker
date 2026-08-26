@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.10-propietario-multidispositivo">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.11-licencia-automatica-por-centro">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -3703,8 +3703,51 @@ async function flkValidarLicencia(){
      p_license_key:FLK_OWNER_LICENSE_KEY
     }));
    }else{
+    // v61.11: resolver la licencia desde el centro real del usuario.
+    const {data:licCentro,error:licCentroError}=await flkSupabase.rpc("flk_current_business_license");
+    if(licCentroError)throw licCentroError;
+
+    const centroInfo=Array.isArray(licCentro)?licCentro[0]:licCentro;
+    if(!centroInfo?.license_key){
+     localStorage.removeItem(FLK_CLIENT_LICENSE_KEY_STORAGE);
+     throw new Error("Este usuario no tiene una licencia vinculada a su centro.");
+    }
+
+    const estadoCentro=String(centroInfo.status||"").toLowerCase();
+    if(estadoCentro==="suspended"){
+     const infoSuspendida={
+      valid:false,
+      license_status:"suspended",
+      customer_name:centroInfo.customer_name,
+      expires_at:centroInfo.expires_at,
+      offline_grace_days:centroInfo.offline_grace_days
+     };
+     flkGuardarCacheLicencia(infoSuspendida);
+     flkPintarLicencia(infoSuspendida,"online");
+     return infoSuspendida;
+    }
+
+    const expCentro=new Date(centroInfo.expires_at||0);
+    if(!Number.isNaN(expCentro.getTime()) && expCentro.getTime()<=Date.now()){
+     const infoVencida={
+      valid:false,
+      license_status:"expired",
+      customer_name:centroInfo.customer_name,
+      expires_at:centroInfo.expires_at,
+      offline_grace_days:centroInfo.offline_grace_days
+     };
+     flkGuardarCacheLicencia(infoVencida);
+     flkPintarLicencia(infoVencida,"online");
+     return infoVencida;
+    }
+
+    FLK_LICENSE_KEY=String(centroInfo.license_key);
+    localStorage.setItem(FLK_CLIENT_LICENSE_KEY_STORAGE,FLK_LICENSE_KEY);
+    localStorage.removeItem(FLK_LICENSE_TEST_MODE_KEY);
+
     const deviceId=flkObtenerDeviceId();
     if(!deviceId)throw new Error("No se pudo generar el identificador de este dispositivo.");
+
     ({data,error}=await flkSupabase.rpc("flk_activate_license_device",{
      p_license_key:FLK_LICENSE_KEY,
      p_device_id:deviceId
@@ -3743,6 +3786,10 @@ async function flkValidarLicencia(){
 }
 
 flkSupabase.auth.onAuthStateChange((event,session)=>{
+ if(event==="SIGNED_IN" && session?.user){
+  // v61.11: no reutilizar la clave de otro centro guardada previamente en este navegador.
+  localStorage.removeItem(FLK_CLIENT_LICENSE_KEY_STORAGE);
+ }
  if(event==="PASSWORD_RECOVERY"){
   flkModoRecuperacionPassword=true;
   flkSesionActiva=true;
