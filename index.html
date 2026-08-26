@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.43-nombres-productos-azul">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.25-gris-definitivo">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1304,928 +1304,6 @@ textarea::placeholder{
 }
 </style>
 
-<style id="flk-v6130-reset-software">
-#vistaAdminSoftware #panelRestablecimientoTotal{
- position:static !important;left:auto !important;bottom:auto !important;z-index:auto !important;
- width:100% !important;height:auto !important;padding:18px !important;overflow:visible !important;
- border-radius:20px !important;cursor:default !important;box-shadow:none !important;
-}
-#vistaAdminSoftware #panelRestablecimientoTotal::before{display:none !important;content:none !important}
-#vistaAdminSoftware #panelRestablecimientoTotal h3,
-#vistaAdminSoftware #panelRestablecimientoTotal p,
-#vistaAdminSoftware #panelRestablecimientoTotal .boton-agregar{display:block !important}
-</style>
-
-<style id="flk-v6132-contraste-textos">
-/* ===== v61.32 · CONTRASTE Y LEGIBILIDAD GLOBAL ===== */
-
-/* Texto general sobre fondos claros */
-body,
-.contenedor,
-.seccion-titulo,
-.reporte-controles,
-.adminsw-panel,
-.adminsw-card,
-.adminsw-centro,
-.lista-estadisticas,
-.tarjeta,
-.card{
-  color:#17202A !important;
-}
-
-/* Títulos principales y de panel */
-h1,h2,h3,h4,
-.seccion-titulo h2,
-.adminsw-panel h3,
-.lista-estadisticas h3{
-  color:#102A43 !important;
-}
-
-/* Textos secundarios y explicativos */
-p, small,
-.ayuda-campo,
-.reporte-periodo,
-.adminsw-card span,
-.lic-panel div,
-.estado-respaldo{
-  color:#405261 !important;
-}
-
-/* Etiquetas y valores de formularios */
-label{
-  color:#243746 !important;
-  font-weight:700 !important;
-}
-input,select,textarea{
-  color:#17202A !important;
-}
-input::placeholder,textarea::placeholder{
-  color:#667684 !important;
-  opacity:1 !important;
-}
-
-/* Menú principal: texto blanco de alto contraste sobre azul */
-#menuPrincipalFondo .menu-cuadricula button,
-#menuPrincipalFondo .menu-cuadricula button span,
-#menuPrincipalFondo .menu-cuadricula button strong{
-  color:#FFFFFF !important;
-  text-shadow:0 1px 2px rgba(0,0,0,.28);
-  font-weight:800 !important;
-}
-
-/* Botones de acción */
-.boton-agregar,
-.boton-respaldo,
-.guardar,
-button.guardar{
-  color:#FFFFFF !important;
-  font-weight:800 !important;
-}
-
-/* Tarjetas grises visibles: texto oscuro y nítido */
-.resumen-card,
-.resumen-item,
-.estadistica,
-.estadistica-card,
-[class*="resumen"] .card{
-  color:#17202A !important;
-}
-.resumen-card span,
-.resumen-item span,
-.estadistica span,
-.estadistica-card span{
-  color:#34495A !important;
-}
-.resumen-card strong,
-.resumen-item strong,
-.estadistica strong,
-.estadistica-card strong{
-  color:#102A43 !important;
-}
-
-/* Restablecimiento: conservar advertencia roja legible */
-#panelRestablecimientoTotal h3{
-  color:#A61B1B !important;
-}
-#panelRestablecimientoTotal p{
-  color:#405261 !important;
-}
-</style>
-
-<style id="flk-v6133-menu-principal-oscuro">
-/* ===== v61.33 · MENÚ PRINCIPAL OSCURO / TEXTO CLARO ===== */
-#menuPrincipalFondo{
-  background:#18324A !important;
-  border-color:#294A66 !important;
-}
-#menuPrincipalFondo .menu-cuadricula{
-  background:transparent !important;
-}
-#menuPrincipalFondo .menu-cuadricula button{
-  background:#27465F !important;
-  border:1px solid #3B5D76 !important;
-  color:#F8FAFC !important;
-  box-shadow:0 4px 12px rgba(0,0,0,.12) !important;
-}
-#menuPrincipalFondo .menu-cuadricula button:hover,
-#menuPrincipalFondo .menu-cuadricula button:focus{
-  background:#315873 !important;
-}
-#menuPrincipalFondo .menu-cuadricula button.activo{
-  background:#0A84FF !important;
-  border-color:#5EB0FF !important;
-}
-#menuPrincipalFondo .menu-cuadricula button,
-#menuPrincipalFondo .menu-cuadricula button span,
-#menuPrincipalFondo .menu-cuadricula button strong,
-#menuPrincipalFondo .menu-cuadricula button div{
-  color:#FFFFFF !important;
-  opacity:1 !important;
-  text-shadow:0 1px 2px rgba(0,0,0,.35) !important;
-  font-weight:800 !important;
-}
-</style>
-
-<style id="flk-v6134-menus-gris-claro">
-/* ===== v61.34 · TODOS LOS MENÚS: GRIS CLARO + TEXTO BLANCO GRANDE ===== */
-
-/* Fondos de las zonas de menú */
-#menuPrincipalFondo,
-.menu,
-.menu-principal,
-.menu-cuadricula,
-nav{
-  background:#A8B0B8 !important;
-  border-color:#BCC3C9 !important;
-}
-
-/* Botones de todos los menús */
-#menuPrincipalFondo .menu-cuadricula button,
-.menu button,
-.menu-principal button,
-nav button{
-  background:#8E99A3 !important;
-  border:1px solid #BFC6CC !important;
-  color:#FFFFFF !important;
-  font-size:16px !important;
-  font-weight:900 !important;
-  line-height:1.25 !important;
-  text-shadow:0 1px 2px rgba(0,0,0,.42) !important;
-}
-
-/* Todo texto dentro de botones de menú */
-#menuPrincipalFondo .menu-cuadricula button *,
-.menu button *,
-.menu-principal button *,
-nav button *{
-  color:#FFFFFF !important;
-  font-size:inherit !important;
-  font-weight:900 !important;
-  opacity:1 !important;
-}
-
-/* Hover / foco */
-#menuPrincipalFondo .menu-cuadricula button:hover,
-#menuPrincipalFondo .menu-cuadricula button:focus,
-.menu button:hover,
-.menu button:focus,
-nav button:hover,
-nav button:focus{
-  background:#7D8994 !important;
-}
-
-/* Sección activa: gris algo más oscuro para identificarla */
-#menuPrincipalFondo .menu-cuadricula button.activo,
-.menu button.activo,
-nav button.activo{
-  background:#697783 !important;
-  border-color:#D7DCE0 !important;
-  color:#FFFFFF !important;
-}
-
-/* Menús/selectores internos */
-select{
-  background:#A8B0B8 !important;
-  color:#FFFFFF !important;
-  font-size:16px !important;
-  font-weight:800 !important;
-  border-color:#BCC3C9 !important;
-}
-select option{
-  background:#8E99A3 !important;
-  color:#FFFFFF !important;
-  font-weight:800 !important;
-}
-</style>
-
-<style id="flk-v6135-submenus-legibles">
-/* ===== v61.35 · SUBMENÚS MÁS GRANDES Y LEGIBLES ===== */
-
-/* Botones, pestañas y opciones internas */
-.submenu button,
-.sub-menu button,
-.tabs button,
-.filtros button,
-.filtro button,
-.botones-filtro button,
-.reporte-controles button,
-.acciones button,
-.acciones-producto button,
-.adminsw-panel button,
-.botones-respaldo button,
-[class*="submenu"] button,
-[class*="filtro"] button{
-  font-size:18px !important;
-  font-weight:900 !important;
-  line-height:1.3 !important;
-  color:#FFFFFF !important;
-  text-shadow:0 1px 2px rgba(0,0,0,.48) !important;
-  min-height:48px !important;
-}
-
-/* Texto interno de esos submenús */
-.submenu button *,
-.sub-menu button *,
-.tabs button *,
-.filtros button *,
-.filtro button *,
-.botones-filtro button *,
-.reporte-controles button *,
-.acciones button *,
-.acciones-producto button *,
-.adminsw-panel button *,
-.botones-respaldo button *,
-[class*="submenu"] button *,
-[class*="filtro"] button *{
-  color:#FFFFFF !important;
-  font-size:inherit !important;
-  font-weight:900 !important;
-  opacity:1 !important;
-}
-
-/* Selectores/submenús desplegables */
-select{
-  font-size:18px !important;
-  font-weight:900 !important;
-  line-height:1.3 !important;
-  min-height:48px !important;
-  color:#FFFFFF !important;
-}
-select option{
-  font-size:18px !important;
-  font-weight:900 !important;
-  color:#FFFFFF !important;
-}
-
-/* Etiquetas que acompañan submenús y filtros */
-.reporte-controles label,
-.filtros label,
-.filtro label,
-.adminsw-panel label,
-[class*="submenu"] label,
-[class*="filtro"] label{
-  font-size:16px !important;
-  font-weight:900 !important;
-  color:#243746 !important;
-}
-</style>
-
-<style id="flk-v6136-estetica-unificada">
-/* ===== v61.36 · REGLA VISUAL ÚNICA PARA MENÚS Y SUBMENÚS ===== */
-
-/* Contenedores: gris claro neutro */
-#menuPrincipalFondo,
-.menu,
-.menu-principal,
-.menu-cuadricula,
-.submenu,
-.sub-menu,
-.tabs,
-.filtros,
-.filtro,
-.botones-filtro,
-.reporte-controles,
-.botones-respaldo,
-[class*="submenu"]{
-  background:#E3E7EB !important;
-  border-color:#CBD3DA !important;
-}
-
-/* Todos los botones de navegación/menú/submenú: azul claro */
-#menuPrincipalFondo .menu-cuadricula button,
-.menu button,
-.menu-principal button,
-nav button,
-.submenu button,
-.sub-menu button,
-.tabs button,
-.filtros button,
-.filtro button,
-.botones-filtro button,
-.reporte-controles button,
-.botones-respaldo button,
-.acciones button,
-.acciones-producto button,
-[class*="submenu"] button,
-[class*="filtro"] button{
-  background:#4A9FE8 !important;
-  border:1px solid #78B9EF !important;
-  color:#FFFFFF !important;
-  font-size:18px !important;
-  font-weight:900 !important;
-  line-height:1.25 !important;
-  min-height:48px !important;
-  opacity:1 !important;
-  text-shadow:0 1px 2px rgba(0,0,0,.35) !important;
-  box-shadow:0 3px 9px rgba(27,79,114,.16) !important;
-}
-
-/* Texto e iconos internos */
-#menuPrincipalFondo .menu-cuadricula button *,
-.menu button *,
-.menu-principal button *,
-nav button *,
-.submenu button *,
-.sub-menu button *,
-.tabs button *,
-.filtros button *,
-.filtro button *,
-.botones-filtro button *,
-.reporte-controles button *,
-.botones-respaldo button *,
-.acciones button *,
-.acciones-producto button *,
-[class*="submenu"] button *,
-[class*="filtro"] button *{
-  color:#FFFFFF !important;
-  font-size:inherit !important;
-  font-weight:900 !important;
-  opacity:1 !important;
-}
-
-/* Botón activo: azul más profundo */
-#menuPrincipalFondo .menu-cuadricula button.activo,
-.menu button.activo,
-.menu-principal button.activo,
-nav button.activo,
-.submenu button.activo,
-.sub-menu button.activo,
-.tabs button.activo,
-.filtros button.activo,
-.filtro button.activo,
-[class*="filtro"] button.activo{
-  background:#1677C8 !important;
-  border-color:#0E68B2 !important;
-  color:#FFFFFF !important;
-}
-
-/* Hover/foco */
-#menuPrincipalFondo .menu-cuadricula button:hover,
-#menuPrincipalFondo .menu-cuadricula button:focus,
-.menu button:hover,.menu button:focus,
-nav button:hover,nav button:focus,
-.submenu button:hover,.submenu button:focus,
-.sub-menu button:hover,.sub-menu button:focus,
-.tabs button:hover,.tabs button:focus,
-.filtros button:hover,.filtros button:focus,
-.filtro button:hover,.filtro button:focus,
-[class*="filtro"] button:hover,[class*="filtro"] button:focus{
-  background:#2F8DDC !important;
-}
-
-/* Desplegables: misma familia visual */
-select{
-  background:#4A9FE8 !important;
-  border:1px solid #78B9EF !important;
-  color:#FFFFFF !important;
-  font-size:17px !important;
-  font-weight:900 !important;
-  min-height:48px !important;
-}
-select option{
-  background:#4A9FE8 !important;
-  color:#FFFFFF !important;
-  font-size:17px !important;
-  font-weight:800 !important;
-}
-
-/* No convertir acciones destructivas en azul */
-#panelRestablecimientoTotal button,
-button[style*="background:#d93025"],
-button[style*="background: #d93025"]{
-  background:#D93025 !important;
-  border-color:#B3261E !important;
-  color:#FFFFFF !important;
-}
-
-/* Botones de guardar/confirmar mantienen jerarquía, pero legibles */
-.guardar,
-button.guardar,
-.boton-agregar{
-  color:#FFFFFF !important;
-  font-weight:900 !important;
-}
-</style>
-
-<style id="flk-v6137-titulos-azul-fuerte">
-/* ===== v61.37 · TÍTULOS DE SECCIONES MÁS LEGIBLES ===== */
-/* Inventario, Historial, Ventas, Clientes, Gastos, Caja, Reportes, etc. */
-.seccion-titulo h1,
-.seccion-titulo h2,
-.seccion-titulo h3,
-.vista h1,
-.vista h2,
-.vista h3,
-[id^="vista"] > h1,
-[id^="vista"] > h2,
-[id^="vista"] > h3{
-  color:#075EA8 !important;
-  font-size:28px !important;
-  font-weight:900 !important;
-  line-height:1.2 !important;
-  letter-spacing:.1px !important;
-  text-shadow:none !important;
-  opacity:1 !important;
-}
-
-/* Títulos de bloques internos */
-.adminsw-panel h3,
-.lista-estadisticas h3,
-.lic-panel h3{
-  color:#075EA8 !important;
-  font-size:21px !important;
-  font-weight:900 !important;
-  line-height:1.25 !important;
-  text-shadow:none !important;
-}
-
-/* En móvil mantenerlos grandes pero sin desbordar */
-@media(max-width:600px){
- .seccion-titulo h1,
- .seccion-titulo h2,
- .seccion-titulo h3,
- .vista h1,.vista h2,.vista h3,
- [id^="vista"] > h1,
- [id^="vista"] > h2,
- [id^="vista"] > h3{
-   font-size:25px !important;
- }
-}
-</style>
-
-<style id="flk-v6138-submenus-blancos">
-/* ===== v61.38 · TEXTO DE TODOS LOS SUBMENÚS BLANCO Y MÁS GRANDE ===== */
-.submenu,
-.sub-menu,
-.tabs,
-.filtros,
-.filtro,
-.botones-filtro,
-.reporte-controles,
-.botones-respaldo,
-.acciones,
-.acciones-producto,
-[class*="submenu"],
-[class*="filtro"]{
-  --flk-submenu-text:#FFFFFF;
-}
-
-/* Botones de submenús */
-.submenu button,
-.sub-menu button,
-.tabs button,
-.filtros button,
-.filtro button,
-.botones-filtro button,
-.reporte-controles button,
-.botones-respaldo button,
-.acciones button,
-.acciones-producto button,
-[class*="submenu"] button,
-[class*="filtro"] button{
-  color:#FFFFFF !important;
-  font-size:20px !important;
-  font-weight:900 !important;
-  line-height:1.3 !important;
-  opacity:1 !important;
-  text-shadow:0 1px 3px rgba(0,0,0,.48) !important;
-}
-
-/* Cualquier span/div/strong dentro del botón */
-.submenu button *,
-.sub-menu button *,
-.tabs button *,
-.filtros button *,
-.filtro button *,
-.botones-filtro button *,
-.reporte-controles button *,
-.botones-respaldo button *,
-.acciones button *,
-.acciones-producto button *,
-[class*="submenu"] button *,
-[class*="filtro"] button *{
-  color:#FFFFFF !important;
-  font-size:20px !important;
-  font-weight:900 !important;
-  opacity:1 !important;
-}
-
-/* Selectores que funcionan como submenús */
-select{
-  color:#FFFFFF !important;
-  font-size:19px !important;
-  font-weight:900 !important;
-}
-select option{
-  color:#FFFFFF !important;
-  font-size:19px !important;
-  font-weight:900 !important;
-}
-
-/* En móvil apenas reducir para que sigan cabiendo */
-@media(max-width:600px){
- .submenu button,.sub-menu button,.tabs button,.filtros button,.filtro button,
- .botones-filtro button,.reporte-controles button,.botones-respaldo button,
- .acciones button,.acciones-producto button,[class*="submenu"] button,[class*="filtro"] button,
- .submenu button *,.sub-menu button *,.tabs button *,.filtros button *,.filtro button *,
- .botones-filtro button *,.reporte-controles button *,.botones-respaldo button *,
- .acciones button *,.acciones-producto button *,[class*="submenu"] button *,
- [class*="filtro"] button *{
-   font-size:18px !important;
- }
-}
-</style>
-
-<style id="flk-v6139-submenus-blanco-cursiva">
-/* ===== v61.39 · TODOS LOS TEXTOS DE SUBMENÚ: BLANCO, GRANDE, NEGRITA CURSIVA ===== */
-
-/* Etiquetas/textos de tarjetas y bloques de resumen:
-   Costo, Ganancia, Valor del costo, Ventas, Unidades, etc. */
-.resumen-card span,
-.resumen-item span,
-.estadistica span,
-.estadistica-card span,
-.lista-estadisticas span,
-.tarjeta-resumen span,
-[class*="resumen"] span,
-[class*="estadistica"] span,
-[class*="summary"] span,
-
-/* Textos de submenús, filtros y controles */
-.submenu,
-.submenu span,
-.sub-menu,
-.sub-menu span,
-.tabs button,
-.tabs button *,
-.filtros button,
-.filtros button *,
-.filtro button,
-.filtro button *,
-.botones-filtro button,
-.botones-filtro button *,
-.reporte-controles button,
-.reporte-controles button *,
-.botones-respaldo button,
-.botones-respaldo button *,
-.acciones button,
-.acciones button *,
-.acciones-producto button,
-.acciones-producto button *,
-[class*="submenu"] button,
-[class*="submenu"] button *,
-[class*="filtro"] button,
-[class*="filtro"] button *{
-  color:#FFFFFF !important;
-  font-size:21px !important;
-  font-weight:900 !important;
-  font-style:italic !important;
-  line-height:1.25 !important;
-  opacity:1 !important;
-  text-shadow:0 1px 3px rgba(0,0,0,.48) !important;
-}
-
-/* Valores fuertes dentro de tarjetas: blancos, grandes y negrita cursiva */
-.resumen-card strong,
-.resumen-item strong,
-.estadistica strong,
-.estadistica-card strong,
-.lista-estadisticas strong,
-.tarjeta-resumen strong,
-[class*="resumen"] strong,
-[class*="estadistica"] strong,
-[class*="summary"] strong{
-  color:#FFFFFF !important;
-  font-size:24px !important;
-  font-weight:900 !important;
-  font-style:italic !important;
-  opacity:1 !important;
-  text-shadow:0 1px 3px rgba(0,0,0,.48) !important;
-}
-
-/* Desplegables */
-select,
-select option{
-  color:#FFFFFF !important;
-  font-size:20px !important;
-  font-weight:900 !important;
-  font-style:italic !important;
-}
-
-/* Móvil */
-@media(max-width:600px){
- .resumen-card span,.resumen-item span,.estadistica span,.estadistica-card span,
- .lista-estadisticas span,.tarjeta-resumen span,[class*="resumen"] span,
- [class*="estadistica"] span,[class*="summary"] span,
- .submenu,.submenu span,.sub-menu,.sub-menu span,
- .tabs button,.tabs button *,.filtros button,.filtros button *,
- .filtro button,.filtro button *,.botones-filtro button,.botones-filtro button *,
- .reporte-controles button,.reporte-controles button *,
- .botones-respaldo button,.botones-respaldo button *,
- .acciones button,.acciones button *,.acciones-producto button,.acciones-producto button *,
- [class*="submenu"] button,[class*="submenu"] button *,
- [class*="filtro"] button,[class*="filtro"] button *{
-   font-size:19px !important;
- }
- .resumen-card strong,.resumen-item strong,.estadistica strong,.estadistica-card strong,
- .lista-estadisticas strong,.tarjeta-resumen strong,[class*="resumen"] strong,
- [class*="estadistica"] strong,[class*="summary"] strong{
-   font-size:22px !important;
- }
-}
-</style>
-
-<style id="flk-v6140-tarjetas-producto-estetica">
-/* ===== v61.40 · AJUSTE FINO DE ESTÉTICA ===== */
-
-/* Títulos principales: un poco más compactos */
-.seccion-titulo h1,
-.seccion-titulo h2,
-.seccion-titulo h3,
-.vista h1,.vista h2,.vista h3,
-[id^="vista"] > h1,
-[id^="vista"] > h2,
-[id^="vista"] > h3{
-  font-size:24px !important;
-  font-weight:900 !important;
-  color:#075EA8 !important;
-  font-style:normal !important;
-  line-height:1.2 !important;
-}
-
-/* Menús/submenús: reducir el tamaño exagerado de las versiones anteriores */
-#menuPrincipalFondo .menu-cuadricula button,
-.menu button,.menu-principal button,nav button,
-.submenu button,.sub-menu button,.tabs button,
-.filtros button,.filtro button,.botones-filtro button,
-.reporte-controles button,.botones-respaldo button,
-[class*="submenu"] button,[class*="filtro"] button{
-  font-size:16px !important;
-  font-weight:800 !important;
-  font-style:normal !important;
-  line-height:1.2 !important;
-  min-height:44px !important;
-}
-#menuPrincipalFondo .menu-cuadricula button *,
-.menu button *,.menu-principal button *,nav button *,
-.submenu button *,.sub-menu button *,.tabs button *,
-.filtros button *,.filtro button *,.botones-filtro button *,
-.reporte-controles button *,.botones-respaldo button *,
-[class*="submenu"] button *,[class*="filtro"] button *{
-  font-size:inherit !important;
-  font-weight:800 !important;
-  font-style:normal !important;
-}
-
-/* Tarjeta de producto: descripción interna.
-   SKU, Cantidad, Precio, Costo, Ganancia, Valor del costo,
-   Categoría, Proveedor y Ubicación. */
-.producto,
-.producto-card,
-.tarjeta-producto{
-  border-radius:18px !important;
-  padding:18px !important;
-}
-
-/* Texto descriptivo normal dentro de cada producto */
-.producto p,
-.producto-card p,
-.tarjeta-producto p,
-.producto .detalle,
-.producto-card .detalle,
-.tarjeta-producto .detalle{
-  color:#FFFFFF !important;
-  font-size:16px !important;
-  font-weight:700 !important;
-  font-style:normal !important;
-  line-height:1.5 !important;
-  opacity:1 !important;
-  text-shadow:0 1px 2px rgba(0,0,0,.28) !important;
-}
-
-/* Etiquetas/encabezados dentro de la descripción */
-.producto p strong,
-.producto-card p strong,
-.tarjeta-producto p strong,
-.producto .detalle strong,
-.producto-card .detalle strong,
-.tarjeta-producto .detalle strong,
-.producto b,
-.producto-card b,
-.tarjeta-producto b{
-  color:#FFFFFF !important;
-  font-size:16px !important;
-  font-weight:900 !important;
-  font-style:normal !important;
-  opacity:1 !important;
-}
-
-/* Nombre del producto: jerarquía superior */
-.producto h3,
-.producto-card h3,
-.tarjeta-producto h3,
-.producto .nombre-producto,
-.producto-card .nombre-producto{
-  color:#FFFFFF !important;
-  font-size:20px !important;
-  font-weight:900 !important;
-  font-style:normal !important;
-  line-height:1.25 !important;
-}
-
-/* Neutralizar la regla anterior que hacía spans/strong de resumen demasiado grandes/cursivos */
-.resumen-card span,.resumen-item span,.estadistica span,.estadistica-card span,
-.lista-estadisticas span,.tarjeta-resumen span,[class*="resumen"] span,
-[class*="estadistica"] span,[class*="summary"] span{
-  font-size:15px !important;
-  font-weight:800 !important;
-  font-style:normal !important;
-}
-.resumen-card strong,.resumen-item strong,.estadistica strong,.estadistica-card strong,
-.lista-estadisticas strong,.tarjeta-resumen strong,[class*="resumen"] strong,
-[class*="estadistica"] strong,[class*="summary"] strong{
-  font-size:20px !important;
-  font-weight:900 !important;
-  font-style:normal !important;
-}
-
-/* Móvil */
-@media(max-width:600px){
- .seccion-titulo h1,.seccion-titulo h2,.seccion-titulo h3,
- .vista h1,.vista h2,.vista h3,
- [id^="vista"] > h1,[id^="vista"] > h2,[id^="vista"] > h3{
-   font-size:22px !important;
- }
- .producto p,.producto-card p,.tarjeta-producto p,
- .producto .detalle,.producto-card .detalle,.tarjeta-producto .detalle,
- .producto p strong,.producto-card p strong,.tarjeta-producto p strong{
-   font-size:15px !important;
- }
-}
-</style>
-
-<style id="flk-v6141-submenus-y-negativos">
-/* ===== v61.41 · SUBMENÚS: TEXTO BLANCO MÁS GRANDE ===== */
-/* Aplica tanto al seleccionado como a los demás botones de submenú */
-.submenu button,
-.sub-menu button,
-.tabs button,
-.filtros button,
-.filtro button,
-.botones-filtro button,
-.reporte-controles button,
-.botones-respaldo button,
-[class*="submenu"] button,
-[class*="filtro"] button{
-  color:#FFFFFF !important;
-  font-size:17px !important;
-  font-weight:900 !important;
-  font-style:normal !important;
-  line-height:1.25 !important;
-  opacity:1 !important;
-  text-shadow:0 1px 2px rgba(0,0,0,.34) !important;
-}
-.submenu button *,
-.sub-menu button *,
-.tabs button *,
-.filtros button *,
-.filtro button *,
-.botones-filtro button *,
-.reporte-controles button *,
-.botones-respaldo button *,
-[class*="submenu"] button *,
-[class*="filtro"] button *{
-  color:#FFFFFF !important;
-  font-size:inherit !important;
-  font-weight:900 !important;
-  font-style:normal !important;
-  opacity:1 !important;
-}
-
-/* ===== NÚMEROS / IMPORTES NEGATIVOS: MARRÓN OSCURO ===== */
-.negativo,
-.valor-negativo,
-.numero-negativo,
-.saldo-negativo,
-.monto-negativo,
-.texto-negativo,
-[class*="negativ"]{
-  color:#5A2D0C !important;
-  font-weight:900 !important;
-}
-
-/* Clases comunes de resultados financieros negativos */
-.perdida,
-.perdidas,
-.resultado-negativo{
-  color:#5A2D0C !important;
-  font-weight:900 !important;
-}
-</style>
-
-<script id="flk-v6141-detectar-negativos">
-/* Colorea automáticamente valores numéricos visibles menores que cero,
-   sin alterar inputs ni textos editables. */
-function flkPintarNumerosNegativos(){
- const zonas=document.querySelectorAll(
-  '#vistaInventario,#vistaHistorial,#vistaVentas,#vistaClientes,#vistaGastos,#vistaCierre,'+
-  '#vistaReportes,#vistaAlertas,#vistaOrdenes,#vistaProveedores,#vistaCuentasPagar,'+
-  '#vistaFlujoCaja,#vistaFinanzas,#vistaEstadisticas,#vistaAdminSoftware'
- );
- zonas.forEach(zona=>{
-  zona.querySelectorAll('strong,b,span,td,.valor,.monto,.saldo').forEach(el=>{
-   if(el.closest('button,input,select,textarea'))return;
-   const t=(el.textContent||'').trim();
-   const pareceNegativo=/(?:^|[\s$€£])-\s*(?:[$€£]\s*)?\d|^\(\s*[$€£]?\s*\d[\d.,]*\s*\)$/.test(t);
-   el.classList.toggle('flk-numero-negativo',pareceNegativo);
-  });
- });
-}
-document.addEventListener('DOMContentLoaded',()=>{
- flkPintarNumerosNegativos();
- const obs=new MutationObserver(()=>requestAnimationFrame(flkPintarNumerosNegativos));
- obs.observe(document.body,{subtree:true,childList:true,characterData:true});
-});
-</script>
-<style>
-.flk-numero-negativo{
- color:#5A2D0C !important;
- font-weight:900 !important;
-}
-</style>
-
-<style id="flk-v6142-etiquetas-blancas">
-/* ===== v61.42 · ETIQUETAS DE CÁLCULO EN BLANCO Y NEGRITA =====
-   Mantiene intactos los números y su color, incluidos los negativos marrón. */
-
-/* Etiquetas de tarjetas de resumen/cálculo:
-   Productos, Unidades, Valor inventario, Costo, Ganancia, Valor del costo, etc. */
-.resumen-card span,
-.resumen-item span,
-.estadistica span,
-.estadistica-card span,
-.lista-estadisticas span,
-.tarjeta-resumen span,
-[class*="resumen"] span,
-[class*="estadistica"] span,
-[class*="summary"] span{
-  color:#FFFFFF !important;
-  font-weight:900 !important;
-  font-style:normal !important;
-  opacity:1 !important;
-  text-shadow:0 1px 2px rgba(0,0,0,.38) !important;
-}
-
-/* Los valores numéricos conservan su formato/color anterior */
-.resumen-card strong,
-.resumen-item strong,
-.estadistica strong,
-.estadistica-card strong,
-.lista-estadisticas strong,
-.tarjeta-resumen strong,
-[class*="resumen"] strong,
-[class*="estadistica"] strong,
-[class*="summary"] strong{
-  font-style:normal !important;
-}
-</style>
-
-<style id="flk-v6143-nombres-productos">
-/* ===== v61.43 · NOMBRE DE PRODUCTOS EN AZUL OSCURO =====
-   Solo afecta el nombre principal de cada producto del inventario. */
-.producto h3,
-.producto-card h3,
-.tarjeta-producto h3,
-.producto .nombre-producto,
-.producto-card .nombre-producto,
-.tarjeta-producto .nombre-producto{
-  color:#064F86 !important;
-  font-weight:900 !important;
-  font-style:normal !important;
-  text-shadow:none !important;
-  opacity:1 !important;
-}
-</style>
 </head>
 <body>
 
@@ -2284,6 +1362,13 @@ document.addEventListener('DOMContentLoaded',()=>{
  </div>
 </div>
 
+<div class="lista-estadisticas" id="panelRestablecimientoTotal" tabindex="0" aria-label="Restablecimiento total" style="display:none;border:1px solid #ffd5d2">
+ <h3>⚠️ Restablecer Flackunloker</h3>
+ <p style="margin:0 0 14px">
+  <strong>Solo Administrador.</strong> Deja el sistema como nuevo sin borrar las cuentas de acceso.
+ </p>
+ <button class="boton-agregar" type="button" onclick="abrirRestablecimientoTotal()" style="background:#d93025;width:100%">🔐 Abrir restablecimiento total</button>
+</div>
 <div id="authUsuario" class="auth-user">
  <strong id="authUsuarioEmail">—</strong>
  <span id="authUsuarioRol">Usuario</span>
@@ -2935,14 +2020,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   <input id="archivoRespaldo" type="file" accept=".json,application/json" style="display:none" onchange="restaurarRespaldo(event)">
   <div id="estadoRespaldo" class="estado-respaldo"></div>
  </div>
- 
  <div id="adminswListaCentros"><div class="sin-productos">Pulsa Actualizar para cargar los centros.</div></div>
-
- <div class="adminsw-panel" id="panelRestablecimientoTotal" style="display:none;border:1px solid #f2b8b5">
-  <h3 style="margin:0 0 8px;color:#b3261e">⚠️ Restablecimiento total</h3>
-  <p style="margin:0 0 14px;color:#667085;font-size:13px;line-height:1.55">Elimina los datos operativos del centro actual sin borrar las cuentas de acceso. Disponible únicamente para <strong>Administradores</strong> y el <strong>Propietario del Software</strong>.</p>
-  <button class="boton-agregar" type="button" onclick="abrirRestablecimientoTotal()" style="background:#d93025;width:100%">🔐 Abrir restablecimiento total</button>
- </div>
 </div>
 
 <div id="vistaLicencias" style="display:none">
@@ -4007,13 +3085,9 @@ document.addEventListener("DOMContentLoaded",()=>{
 
 
 
-function flkPuedeRestablecerTotal(){return rolSesion==="admin"||flkEsPropietarioSoftware}
-function flkActualizarPermisoRestablecimiento(){
- const panel=document.getElementById("panelRestablecimientoTotal");
- if(panel)panel.style.display=flkPuedeRestablecerTotal()?"block":"none";
-}
 async function abrirRestablecimientoTotal(){
- if(!flkPuedeRestablecerTotal())return alert("Solo los Administradores y el Propietario del Software pueden usar el restablecimiento total.");
+ if(!requiereAdmin())return;
+ if(rolSesion!=="admin")return alert("Solo el Administrador puede usar el restablecimiento total.");
  document.getElementById("modalRestablecimientoTotal").classList.add("visible");
  const {data,error}=await flkSupabase.rpc("flk_reset_pin_configured");
  if(error){if(flkSilenciarSiEsConexion(error))return;return alert("No se pudo verificar la seguridad: "+error.message)};
@@ -4029,7 +3103,6 @@ function mostrarCambioPinReset(){
  document.getElementById("bloqueEjecutarReset").style.display="none";
 }
 async function guardarPinReset(){
- if(!flkPuedeRestablecerTotal())return alert("No tienes permiso para cambiar el PIN de restablecimiento.");
  const a=document.getElementById("nuevoPinReset").value,b=document.getElementById("confirmarPinReset").value;
  if(!/^\d{6}$/.test(a))return alert("El PIN debe tener exactamente 6 dígitos.");
  if(a!==b)return alert("Los dos PIN no coinciden.");
@@ -4040,7 +3113,6 @@ async function guardarPinReset(){
  alert("PIN de restablecimiento configurado correctamente.");
 }
 async function ejecutarRestablecimientoTotal(){
- if(!flkPuedeRestablecerTotal())return alert("No tienes permiso para restablecer el sistema.");
  const pin=document.getElementById("pinEjecutarReset").value;
  const texto=document.getElementById("textoConfirmarReset").value.trim().toUpperCase();
  if(!/^\d{6}$/.test(pin))return alert("Introduce tu PIN de 6 dígitos.");
@@ -5054,7 +4126,7 @@ async function flkComprobarPropietarioSoftware(){
   const botonLic=document.getElementById("botonLicencias");
   if(botonLic)botonLic.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
    const botonAdmin=document.getElementById("botonAdminSoftware");
-   if(botonAdmin)botonAdmin.style.setProperty("display",(rolSesion==="admin"||flkEsPropietarioSoftware)?"flex":"none","important");
+   if(botonAdmin)botonAdmin.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
   return flkEsPropietarioSoftware
  }catch(err){
   console.error("Comprobación propietario software:",err);
@@ -5070,10 +4142,10 @@ let flkAdminSoftwareCentros=[];
 function flkAdminSwEsc(v){return escapeHtml(String(v??""))}
 
 function mostrarAdminSoftware(){flkOcultarTodasLasVistas();
- if(!(rolSesion==="admin"||flkEsPropietarioSoftware))return alert("Este panel está disponible únicamente para Administradores y el Propietario del Software.");
+ if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
  const vistas=["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaLicencias"];
  vistas.forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
- const v=document.getElementById("vistaAdminSoftware");if(v)v.style.display="block";flkActualizarPermisoRestablecimiento();
+ const v=document.getElementById("vistaAdminSoftware");if(v)v.style.display="block";
  document.querySelectorAll("#menuPrincipalFondo .menu-cuadricula button").forEach(b=>b.classList.remove("activo"));
  document.getElementById("botonAdminSoftware")?.classList.add("activo");
  cargarAdminSoftware();scrollTop();
@@ -5279,8 +4351,7 @@ async function flkCargarUsuariosExistentesAdminSoftware(){
 }
 
 async function cargarAdminSoftware(){
- if(!(rolSesion==="admin"||flkEsPropietarioSoftware))return;
- flkActualizarPermisoRestablecimiento();
+ if(!flkEsPropietarioSoftware)return;
  flkCargarUsuariosExistentesAdminSoftware();
  const lista=document.getElementById("adminswListaCentros");
  if(!navigator.onLine){lista.innerHTML='<div class="sin-productos">Conéctate a Internet para administrar centros.</div>';return}
@@ -8553,435 +7624,12 @@ function nombreRespaldoFlackunloker(){
  return `Flackunloker_Respaldo_${dos(d.getDate())}-${dos(d.getMonth()+1)}-${d.getFullYear()}_${dos(h)}-${dos(d.getMinutes())}-${dos(d.getSeconds())}_${ampm}.json`;
 }
 
-const FLK_CENTRO_PRINCIPAL_ID="9b0b597d-5ca3-47ec-bd2e-9f5e3b0537f5";
-const FLK_CENTRO_PRINCIPAL_NOMBRE="Flackunloker - Centro Principal";
-const FLK_CENTRO_PRINCIPAL_CODIGO="FLK-PRINCIPAL";
-
-async function flkCentroMetadataRespaldo(){
- let id=flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:flkBusinessGuardado();
- let name="",code="";
- if(navigator.onLine&&id){
-  try{
-   const {data,error}=await flkSupabase.from("businesses").select("id,name,code").eq("id",id).maybeSingle();
-   if(!error&&data){name=data.name||"";code=data.code||""}
-  }catch(_){}
- }
- if(id===FLK_CENTRO_PRINCIPAL_ID){
-  if(!name)name=FLK_CENTRO_PRINCIPAL_NOMBRE;
-  if(!code)code=FLK_CENTRO_PRINCIPAL_CODIGO;
- }
- return {business_id:id||null,name:name||null,code:code||null};
-}
-
-async function crearRespaldo(){
- try{
-  const centro=await flkCentroMetadataRespaldo();
-  const datos={
-   aplicacion:"Flackunloker",version:"2.1",fecha:new Date().toISOString(),
-   business_id:centro.business_id,centro,
-   productos,historial,ventas,gastos,cierres,ordenesCompra,proveedores
-  };
-  const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"}),
-        url=URL.createObjectURL(blob),a=document.createElement("a");
-  a.href=url;a.download=nombreRespaldoFlackunloker();
-  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
-  mostrarEstadoRespaldo("✅ Respaldo creado correctamente"+(centro.name?` · ${centro.name}`:"")+".");
- }catch(err){
-  console.error(err);alert("No se pudo crear el respaldo: "+(err?.message||err));
- }
-}
+function crearRespaldo(){const datos={aplicacion:"Flackunloker",version:"2.0",fecha:new Date().toISOString(),productos,historial,ventas,gastos,cierres,ordenesCompra,proveedores};const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=nombreRespaldoFlackunloker();document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);mostrarEstadoRespaldo("✅ Respaldo creado correctamente.")}
 function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
-
-async function flkInsertarLotes(tabla,filas,tamano=100){
- if(!Array.isArray(filas)||!filas.length)return;
- for(let i=0;i<filas.length;i+=tamano){
-  const lote=filas.slice(i,i+tamano);
-  const {error}=await flkSupabase.from(tabla).insert(lote);
-  if(error)throw error;
- }
-}
-
-async function flkRestaurarHistorialNube(historialBackup,businessId,userId){
- const {data:remotos,error:prodErr}=await flkSupabase.from("products")
-  .select("id,legacy_id")
-  .eq("business_id",businessId);
- if(prodErr)throw prodErr;
-
- const mapa=new Map((remotos||[]).map(p=>[String(p.legacy_id||""),p.id]));
- const filas=(Array.isArray(historialBackup)?historialBackup:[]).map(m=>{
-  const pid=mapa.get(String(m.productoId??""));
-  if(!pid)return null;
-  return {
-   product_id:pid,
-   movement_type:m.tipo==="entrada"?"entrada":"salida",
-   quantity:Math.abs(Number(m.cantidad||0)),
-   stock_after:Number(m.saldo||0),
-   note:String(m.detalle||"Restaurado desde respaldo"),
-   created_by:userId,
-   created_at:m.fecha||new Date().toISOString(),
-   business_id:businessId
-  };
- }).filter(x=>x&&x.quantity>0);
-
- // En una restauración sobre una base vacía, reemplazar los movimientos
- // generados automáticamente al recrear el stock por el historial real del respaldo.
- const {error:delErr}=await flkSupabase.from("stock_movements")
-  .delete()
-  .eq("business_id",businessId);
- if(delErr)throw delErr;
-
- await flkInsertarLotes("stock_movements",filas,100);
-}
-
-async function flkRestaurarDevolucionesNube(ventasBackup,businessId,userId){
- const {data:salesCloud,error:sErr}=await flkSupabase.from("sales")
-  .select("id,legacy_id,sale_items(id,product_id)")
-  .eq("business_id",businessId);
- if(sErr)throw sErr;
-
- const {data:productsCloud,error:pErr}=await flkSupabase.from("products")
-  .select("id,legacy_id")
-  .eq("business_id",businessId);
- if(pErr)throw pErr;
-
- const prodPorLegacy=new Map((productsCloud||[]).map(p=>[String(p.legacy_id||""),p.id]));
- const salePorLegacy=new Map((salesCloud||[]).map(s=>[String(s.legacy_id||""),s]));
- const filas=[];
-
- for(const v of (Array.isArray(ventasBackup)?ventasBackup:[])){
-  const s=salePorLegacy.get(String(v.id));
-  if(!s)continue;
-  for(const d of (Array.isArray(v.devoluciones)?v.devoluciones:[])){
-   const productId=prodPorLegacy.get(String(d.productoId??""));
-   if(!productId)continue;
-   const item=(s.sale_items||[]).find(i=>String(i.product_id)===String(productId));
-   if(!item)continue;
-   filas.push({
-    sale_id:s.id,
-    sale_item_id:item.id,
-    product_id:productId,
-    quantity:Number(d.cantidad||0),
-    refund_amount:Number(d.monto||0),
-    reason:d.motivo||null,
-    created_by:userId,
-    created_at:d.fecha||new Date().toISOString(),
-    return_number:d.numeroDevolucion||null,
-    business_id:businessId
-   });
-  }
- }
- if(filas.length)await flkInsertarLotes("sale_returns",filas,100);
-}
-
-async function flkRestaurarComprasNube(proveedoresBackup,ordenesBackup,businessId,userId){
- const proveedoresLocal=Array.isArray(proveedoresBackup)?proveedoresBackup:[];
- const ordenesLocal=Array.isArray(ordenesBackup)?ordenesBackup:[];
-
- // Proveedores
- for(const p of proveedoresLocal){
-  const legacy=String(p.id);
-  let {data:existente,error:qErr}=await flkSupabase.from("suppliers")
-   .select("id")
-   .eq("business_id",businessId)
-   .eq("legacy_id",legacy)
-   .maybeSingle();
-  if(qErr)throw qErr;
-  if(!existente){
-   const {data:creado,error}=await flkSupabase.from("suppliers").insert({
-    legacy_id:legacy,
-    name:p.nombre||"Proveedor",
-    contact_name:p.contacto||null,
-    phone:p.telefono||null,
-    email:p.email||null,
-    address:p.direccion||null,
-    notes:p.nota||null,
-    business_id:businessId
-   }).select("id").single();
-   if(error)throw error;
-  }
- }
-
- const {data:suppliersCloud,error:supErr}=await flkSupabase.from("suppliers")
-  .select("id,legacy_id,name")
-  .eq("business_id",businessId);
- if(supErr)throw supErr;
- const supLegacy=new Map((suppliersCloud||[]).map(p=>[String(p.legacy_id||""),p]));
- const supNombre=new Map((suppliersCloud||[]).map(p=>[nombreProveedorNorm(p.name),p]));
-
- const {data:productsCloud,error:prodErr}=await flkSupabase.from("products")
-  .select("id,legacy_id")
-  .eq("business_id",businessId);
- if(prodErr)throw prodErr;
- const prodLegacy=new Map((productsCloud||[]).map(p=>[String(p.legacy_id||""),p.id]));
-
- for(const o of ordenesLocal){
-  const legacy=String(o.id);
-  const {data:ya,error:qErr}=await flkSupabase.from("purchase_orders")
-   .select("id")
-   .eq("business_id",businessId)
-   .eq("legacy_id",legacy)
-   .maybeSingle();
-  if(qErr)throw qErr;
-  if(ya)continue;
-
-  let prov=supNombre.get(nombreProveedorNorm(o.proveedor||""));
-  if(!prov){
-   const original=proveedoresLocal.find(p=>nombreProveedorNorm(p.nombre)===nombreProveedorNorm(o.proveedor||""));
-   if(original)prov=supLegacy.get(String(original.id));
-  }
-  const productId=prodLegacy.get(String(o.productoId??""));
-  if(!prov?.id||!productId)continue;
-
-  const total=Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0));
-  const pagado=Number(o.totalPagadoProveedor||0);
-  const saldo=Number(o.saldoProveedor??Math.max(0,total-pagado));
-
-  const {data:orden,error}=await flkSupabase.from("purchase_orders").insert({
-   legacy_id:legacy,
-   order_number:Number(o.numero||0)||null,
-   supplier_id:prov.id,
-   product_id:productId,
-   quantity:Number(o.cantidad||0),
-   unit_cost:Number(o.costoUnitario||0),
-   order_date:o.fechaOrden||new Date().toISOString().slice(0,10),
-   status:o.estado==="recibida"?"received":o.estado==="ordenada"?"ordered":"pending",
-   note:o.nota||null,
-   ordered_at:o.fechaOrdenada||null,
-   received_at:o.fechaRecibida||null,
-   payment_condition:o.condicionPagoProveedor||null,
-   payment_method:o.metodoPagoProveedor||null,
-   due_date:o.fechaVencimientoProveedor||null,
-   total_amount:total,
-   paid_amount:pagado,
-   balance_due:saldo,
-   created_by:userId,
-   created_at:o.fechaCreacion||new Date().toISOString(),
-   business_id:businessId
-  }).select("id").single();
-  if(error)throw error;
-
-  const pagos=(Array.isArray(o.pagosProveedor)?o.pagosProveedor:[]).filter(p=>Number(p.cantidad||0)>0);
-  const filasPagos=pagos.map(p=>({
-   purchase_order_id:orden.id,
-   amount:Number(p.cantidad||0),
-   payment_method:p.metodo||o.metodoPagoProveedor||"Efectivo",
-   payment_date:p.fecha||new Date().toISOString(),
-   note:p.nota||null,
-   created_by:userId,
-   created_at:p.fecha||new Date().toISOString(),
-   business_id:businessId
-  }));
-  if(filasPagos.length)await flkInsertarLotes("supplier_payments",filasPagos,100);
- }
-}
-
-
-async function flkResolverCentroDestinoRespaldo(datos){
- let id=String(datos?.centro?.business_id||datos?.business_id||"").trim();
- let name=String(datos?.centro?.name||"").trim();
- let code=String(datos?.centro?.code||"").trim();
- let legado=false;
- if(!flkUuidValido(id)){
-  id=FLK_CENTRO_PRINCIPAL_ID;
-  name=FLK_CENTRO_PRINCIPAL_NOMBRE;
-  code=FLK_CENTRO_PRINCIPAL_CODIGO;
-  legado=true;
- }
- if(navigator.onLine){
-  try{
-   const {data,error}=await flkSupabase.from("businesses").select("id,name,code").eq("id",id).maybeSingle();
-   if(!error&&data){name=data.name||name;code=data.code||code}
-  }catch(_){}
- }
- return {business_id:id,name:name||id,code:code||"",legado};
-}
-
-function flkActivarCentroRespaldo(centro){
- const id=String(centro?.business_id||"").trim();
- if(!flkUuidValido(id))throw new Error("El respaldo no tiene un centro de destino válido.");
- FLK_BUSINESS_ID=id;
- localStorage.setItem(FLK_BUSINESS_STORAGE_KEY,id);
- flkCambiarContextoLocalCentro(id);
- return id;
-}
-
-async function flkVerificarCentroRpcParaRestauracion(targetId){
- const {data,error}=await flkSupabase.rpc("flk_current_business_id");
- if(error)throw error;
- const rpcId=String(data||"").trim();
- if(!flkUuidValido(rpcId))throw new Error("La cuenta no tiene un centro activo asignado.");
- if(rpcId!==targetId){
-  throw new Error("Por seguridad se detuvo la restauración porque la sesión de Supabase está trabajando en otro centro. Destino solicitado: "+targetId+" · Centro activo: "+rpcId+".");
- }
- return true;
-}
-
-async function flkRestaurarRespaldoEnNube(datos,centroDestino){
- if(!navigator.onLine)throw new Error("Conéctate a Internet para restaurar también la copia de Supabase.");
- if(rolSesion!=="admin")throw new Error("Solo el Administrador puede restaurar un respaldo en la nube.");
-
- const businessId=flkActivarCentroRespaldo(centroDestino);
- await flkVerificarCentroRpcParaRestauracion(businessId);
- const {data:u,error:uErr}=await flkSupabase.auth.getUser();
- if(uErr||!u?.user)throw uErr||new Error("No hay una sesión válida.");
- const userId=u.user.id;
-
- // Seguridad: esta reconstrucción automática solo se ejecuta sobre un centro operativo vacío.
- const tablas=["products","sales","expenses","purchase_orders"];
- for(const tabla of tablas){
-  const {count,error}=await flkSupabase.from(tabla)
-   .select("*",{count:"exact",head:true})
-   .eq("business_id",businessId);
-  if(error)throw error;
-  if(Number(count||0)>0){
-   throw new Error("La nube ya contiene datos operativos. Para evitar mezclar o duplicar información, la restauración automática solo se permite después de un restablecimiento total del centro.");
-  }
- }
-
- const historialBackup=JSON.parse(JSON.stringify(Array.isArray(datos.historial)?datos.historial:[]));
- const ventasBackup=JSON.parse(JSON.stringify(Array.isArray(datos.ventas)?datos.ventas:[]));
- const proveedoresBackup=JSON.parse(JSON.stringify(Array.isArray(datos.proveedores)?datos.proveedores:[]));
- const ordenesBackup=JSON.parse(JSON.stringify(Array.isArray(datos.ordenesCompra)?datos.ordenesCompra:[]));
-
- // Los UUID guardados pertenecían a los registros borrados por el restablecimiento.
- // Se eliminan únicamente las referencias de nube; los IDs locales del respaldo se conservan.
- productos.forEach(p=>{
-  p.supabaseId=null;
-  delete p.offlineCreateOperationId;
-  delete p.offlineOperationId;
-  delete p.offlinePendiente;
- });
- ventas.forEach(v=>{
-  v.supabaseId=null;
-  delete v.offlineOperationId;
-  delete v.offlinePendiente;
-  (v.items||[]).forEach(i=>{i.supabaseProductId=null;i.supabaseSaleItemId=null});
-  (v.pagos||[]).forEach(p=>p.supabaseId=null);
-  (v.devoluciones||[]).forEach(d=>d.supabaseId=null);
- });
- gastos.forEach(g=>{g.supabaseId=null;delete g.offlineOperationId;delete g.offlinePendiente});
- cierres.forEach(c=>{c.supabaseId=null;delete c.offlineOperationId;delete c.offlinePendiente});
- proveedores.forEach(p=>{p.supabaseId=null;delete p.offlineOperationId;delete p.offlinePendiente});
- ordenesCompra.forEach(o=>{
-  o.supabaseId=null;delete o.offlineOperationId;delete o.offlinePendiente;
-  (o.pagosProveedor||[]).forEach(p=>p.supabaseId=null);
- });
-
- guardarDatos();guardarVentas();guardarGastos();guardarCierres();guardarProveedores();guardarOrdenesCompra();
-
- mostrarEstadoRespaldo("⏳ Restaurando inventario en Supabase…");
- if(!await cargarInventarioSupabase())throw new Error("No se pudo reconstruir el inventario.");
-
- mostrarEstadoRespaldo("⏳ Restaurando historial…");
- await flkRestaurarHistorialNube(historialBackup,businessId,userId);
-
- mostrarEstadoRespaldo("⏳ Restaurando ventas y abonos…");
- // conservar copia local antes de que cargarVentasSupabase la reemplace
- ventas=JSON.parse(JSON.stringify(ventasBackup));
- guardarVentas();
- if(!await cargarVentasSupabase())throw new Error("No se pudieron reconstruir las ventas.");
- await flkRestaurarDevolucionesNube(ventasBackup,businessId,userId);
-
- mostrarEstadoRespaldo("⏳ Restaurando gastos…");
- gastos=JSON.parse(JSON.stringify(Array.isArray(datos.gastos)?datos.gastos:[]));
- gastos.forEach(g=>g.supabaseId=null);
- guardarGastos();
- if(!await cargarGastosSupabase())throw new Error("No se pudieron reconstruir los gastos.");
-
- mostrarEstadoRespaldo("⏳ Restaurando proveedores y órdenes…");
- await flkRestaurarComprasNube(proveedoresBackup,ordenesBackup,businessId,userId);
-
- mostrarEstadoRespaldo("⏳ Restaurando cierres…");
- cierres=JSON.parse(JSON.stringify(Array.isArray(datos.cierres)?datos.cierres:[]));
- cierres.forEach(c=>c.supabaseId=null);
- guardarCierres();
- if(!await cargarCierresSupabase())throw new Error("No se pudieron reconstruir los cierres.");
-
- // Verificación final leyendo la nube como fuente de verdad.
- await cargarInventarioSupabase();
- await cargarHistorialSupabase();
- await cargarVentasSupabase();
- await cargarGastosSupabase();
- await cargarComprasSupabase();
- await cargarCierresSupabase();
- if(typeof cargarMovimientosCajaSupabase==="function")await cargarMovimientosCajaSupabase();
-
- return true;
-}
-
 function restaurarRespaldo(event){
- const archivo=event.target.files[0];
- if(!archivo)return;
- const lector=new FileReader();
- lector.onload=async()=>{
-  try{
-   const datos=JSON.parse(lector.result);
-   if(!datos||datos.aplicacion!=="Flackunloker")return alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");
-   if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial))return alert("El respaldo está incompleto o dañado.");
-
-   const centroDestino=await flkResolverCentroDestinoRespaldo(datos);
-   const avisoLegado=centroDestino.legado
-    ? "\n\nEste respaldo es antiguo y no guardaba business_id. Se identificó como perteneciente al CENTRO PRINCIPAL."
-    : "";
-
-   if(!confirm(
-    "¿Quieres restaurar este respaldo?\n\nCentro de destino:\n"+
-    centroDestino.name+(centroDestino.code?" · "+centroDestino.code:"")+
-    "\nID: "+centroDestino.business_id+avisoLegado+
-    "\n\nLos datos del otro centro no serán modificados."
-   ))return;
-
-   flkActivarCentroRespaldo(centroDestino);
-
-   productos=JSON.parse(JSON.stringify(datos.productos));
-   historial=JSON.parse(JSON.stringify(datos.historial));
-   ventas=Array.isArray(datos.ventas)?JSON.parse(JSON.stringify(datos.ventas)):[];
-   gastos=Array.isArray(datos.gastos)?JSON.parse(JSON.stringify(datos.gastos)):[];
-   cierres=Array.isArray(datos.cierres)?JSON.parse(JSON.stringify(datos.cierres)):[];
-   ordenesCompra=Array.isArray(datos.ordenesCompra)?JSON.parse(JSON.stringify(datos.ordenesCompra)):[];
-   proveedores=Array.isArray(datos.proveedores)?JSON.parse(JSON.stringify(datos.proveedores)):[];
-
-   productos.forEach(p=>{
-    if(p.stockMinimo===undefined||p.stockMinimo===null)p.stockMinimo=5;
-    if(p.costo===undefined||p.costo===null||p.costo==="")p.costo=0;
-    if(p.categoria===undefined||p.categoria===null)p.categoria="";
-    if(p.proveedor===undefined||p.proveedor===null)p.proveedor="";
-    if(p.ubicacion===undefined||p.ubicacion===null)p.ubicacion="";
-   });
-
-   [...productos.map(p=>String(p.proveedor||"").trim()),...ordenesCompra.map(o=>String(o.proveedor||"").trim())]
-    .filter(Boolean)
-    .forEach(nombre=>{
-     if(!proveedores.some(pr=>nombreProveedorNorm(pr.nombre)===nombreProveedorNorm(nombre)))
-      proveedores.push({id:Date.now()+Math.floor(Math.random()*100000)+proveedores.length,nombre,contacto:"",telefono:"",email:"",direccion:"",nota:"",creado:new Date().toISOString()});
-    });
-
-   recalcularSaldos();
-   guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();guardarOrdenesCompra();guardarProveedores();
-   mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarReporte();actualizarFlujoCaja();actualizarFinanzas();actualizarCentroAlertas();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarEstadisticas();
-
-   mostrarEstadoRespaldo("✅ Respaldo recuperado localmente en "+centroDestino.name+".");
-
-   if(navigator.onLine){
-    mostrarEstadoRespaldo("⏳ Reconstruyendo "+centroDestino.name+" en Supabase. No cierres esta página…");
-    await flkRestaurarRespaldoEnNube(datos,centroDestino);
-    mostrarEstadoRespaldo("✅ Restauración completa y verificada · "+centroDestino.name+".");
-    alert("✅ Respaldo restaurado completamente.\n\nCentro: "+centroDestino.name+"\nID: "+centroDestino.business_id+"\n\nEl otro centro quedó separado y sin cambios.");
-   }else{
-    mostrarEstadoRespaldo("🟠 Respaldo restaurado localmente en "+centroDestino.name+". Conéctate a Internet y restaura este mismo archivo para reconstruir Supabase.");
-    alert("🟠 Respaldo recuperado localmente.\n\nCentro: "+centroDestino.name+"\n\nComo estás sin Internet, Supabase todavía no fue reconstruido.");
-   }
-  }catch(err){
-   console.error("Restauración de respaldo:",err);
-   mostrarEstadoRespaldo("❌ Restauración incompleta: "+(err?.message||"Error desconocido"));
-   alert("No se pudo completar la restauración.\n\n"+(err?.message||"Comprueba el respaldo y la conexión."));
-  }finally{
-   event.target.value="";
-  }
- };
- lector.readAsText(archivo);
+ const archivo=event.target.files[0];if(!archivo)return;const lector=new FileReader();
+ lector.onload=()=>{try{const datos=JSON.parse(lector.result);if(!datos||datos.aplicacion!=="Flackunloker")return alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial))return alert("El respaldo está incompleto o dañado.");if(!confirm("¿Quieres restaurar este respaldo?\n\nLos productos y el historial actuales serán reemplazados por los datos del respaldo."))return;productos=datos.productos;historial=datos.historial;ventas=Array.isArray(datos.ventas)?datos.ventas:[];gastos=Array.isArray(datos.gastos)?datos.gastos:[];cierres=Array.isArray(datos.cierres)?datos.cierres:[];ordenesCompra=Array.isArray(datos.ordenesCompra)?datos.ordenesCompra:[];proveedores=Array.isArray(datos.proveedores)?datos.proveedores:[];productos.forEach(p=>{if(p.stockMinimo===undefined||p.stockMinimo===null)p.stockMinimo=5;if(p.costo===undefined||p.costo===null||p.costo==="")p.costo=0;if(p.categoria===undefined||p.categoria===null)p.categoria="";if(p.proveedor===undefined||p.proveedor===null)p.proveedor="";if(p.ubicacion===undefined||p.ubicacion===null)p.ubicacion=""});[...productos.map(p=>String(p.proveedor||"").trim()),...ordenesCompra.map(o=>String(o.proveedor||"").trim())].filter(Boolean).forEach(nombre=>{if(!proveedores.some(pr=>nombreProveedorNorm(pr.nombre)===nombreProveedorNorm(nombre)))proveedores.push({id:Date.now()+Math.floor(Math.random()*100000)+proveedores.length,nombre,contacto:"",telefono:"",email:"",direccion:"",nota:"",creado:new Date().toISOString()})});recalcularSaldos();guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();guardarOrdenesCompra();guardarProveedores();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarReporte();actualizarFlujoCaja();actualizarFinanzas();actualizarCentroAlertas();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarFlujoCaja();actualizarEstadisticas();mostrarEstadoRespaldo("✅ Respaldo restaurado correctamente.");alert("Respaldo restaurado correctamente.")}catch(err){console.error(err);alert("No se pudo leer el respaldo. Comprueba que el archivo sea válido.")}finally{event.target.value=""}};lector.readAsText(archivo)
 }
-
 
 document.getElementById("modalProducto").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarFormulario()});
 document.getElementById("modalMovimiento").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarMovimiento()});
@@ -9187,7 +7835,7 @@ select,
 textarea{
   background:#56636F !important;
   border:1px solid #76838F !important;
-  color:#17202A !important;
+  color:#FFFFFF !important;
   box-shadow:none !important;
 }
 .busqueda::placeholder,
@@ -9295,14 +7943,14 @@ select option{
 /* KPI principales */
 body.flk-v6125 .contenedor .resumen > .tarjeta,
 body.flk-v6125 .contenedor .resumen > div.tarjeta{
-  background:#A8B0B8 !important;
+  background:#596774 !important;
   background-image:none !important;
-  border:1px solid #BAC1C8 !important;
+  border:1px solid #748391 !important;
   box-shadow:0 5px 13px rgba(0,0,0,.18) !important;
-  color:#17202A !important;
+  color:#F8FAFC !important;
 }
 body.flk-v6125 .contenedor .resumen > .tarjeta span{
-  color:#263442 !important;
+  color:#E5EAF0 !important;
 }
 
 /* Buscador y filtros */
@@ -9310,14 +7958,14 @@ body.flk-v6125 .contenedor #busqueda,
 body.flk-v6125 .contenedor .busqueda,
 body.flk-v6125 .contenedor .filtro-inventario,
 body.flk-v6125 .contenedor select{
-  background:#A8B0B8 !important;
+  background:#596774 !important;
   background-image:none !important;
-  border-color:#BAC1C8 !important;
-  color:#17202A !important;
+  border-color:#748391 !important;
+  color:#FFFFFF !important;
 }
 body.flk-v6125 .contenedor #busqueda::placeholder,
 body.flk-v6125 .contenedor .busqueda::placeholder{
-  color:#4B5966 !important;
+  color:#E1E7EC !important;
 }
 
 /* Administración del Software: mismo ancho exacto que .contenedor */
@@ -9351,6 +7999,27 @@ document.addEventListener("DOMContentLoaded",function(){
   document.body.classList.add("flk-v6125");
 });
 </script>
+
+<style id="flk-ajuste-texto-inventario">
+/* ===== AJUSTE SOLICITADO · TEXTO DE COSTOS DEL INVENTARIO ===== */
+body.flk-v6125 .producto .producto-precio{
+  color:#FFFFFF !important;
+  font-size:15px !important;
+  font-weight:700 !important;
+  line-height:1.55 !important;
+}
+body.flk-v6125 .producto .producto-precio strong{
+  color:#FFFFFF !important;
+  font-size:15px !important;
+  font-weight:900 !important;
+}
+@media(max-width:600px){
+  body.flk-v6125 .producto .producto-precio,
+  body.flk-v6125 .producto .producto-precio strong{
+    font-size:14px !important;
+  }
+}
+</style>
 
 </body>
 </html>
