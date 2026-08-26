@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v60.6-reportes-aislados">
+<meta name="flackunloker-offline-version" content="2026-08-26-v60.7-respaldo-en-software">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1516,8 +1516,6 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="lista-estadisticas"><h3>📦 Productos con mayor existencia</h3><div id="rankingProductos"></div></div>
 <div class="lista-estadisticas"><h3>🔄 Productos con más movimientos</h3><div id="rankingMovimientos"></div></div>
 <div class="lista-estadisticas"><h3>⚠️ Productos con stock bajo</h3><div id="rankingStockBajo"></div></div>
-<div class="seccion-titulo"><h2>💾 Datos</h2></div>
-<div class="respaldo-box"><h3>Respaldo y restauración</h3><p>Guarda una copia de tus productos, stock mínimo e historial para poder recuperarlos posteriormente.</p><div class="botones-respaldo"><button class="boton-respaldo boton-crear-respaldo" onclick="crearRespaldo()">💾 Crear respaldo</button><button class="boton-respaldo boton-restaurar-respaldo" onclick="seleccionarRespaldo()">📥 Restaurar respaldo</button></div><input id="archivoRespaldo" type="file" accept=".json,application/json" style="display:none" onchange="restaurarRespaldo(event)"><div id="estadoRespaldo" class="estado-respaldo"></div></div>
 </div>
 </div>
 
@@ -1759,6 +1757,16 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
    <button class="boton-agregar" type="button" onclick="asignarUsuarioAdminSoftware()">Asignar</button>
   </div>
   <small class="ayuda-campo">En esta primera etapa el usuario debe existir previamente en Authentication. La creación de cuentas desde este panel se añadirá después mediante un servicio seguro, sin exponer claves administrativas en el navegador.</small>
+ </div>
+ <div class="adminsw-panel">
+  <h3 style="margin:0 0 8px">💾 Respaldo y restauración</h3>
+  <p style="margin:0 0 14px;color:#667085;font-size:13px;line-height:1.55">Guarda una copia de los datos de Flackunloker o restaura un respaldo anterior.</p>
+  <div class="botones-respaldo">
+   <button class="boton-respaldo boton-crear-respaldo" type="button" onclick="crearRespaldo()">💾 Crear respaldo</button>
+   <button class="boton-respaldo boton-restaurar-respaldo" type="button" onclick="seleccionarRespaldo()">📥 Restaurar respaldo</button>
+  </div>
+  <input id="archivoRespaldo" type="file" accept=".json,application/json" style="display:none" onchange="restaurarRespaldo(event)">
+  <div id="estadoRespaldo" class="estado-respaldo"></div>
  </div>
  <div id="adminswListaCentros"><div class="sin-productos">Pulsa Actualizar para cargar los centros.</div></div>
 </div>
