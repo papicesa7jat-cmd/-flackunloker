@@ -7495,6 +7495,37 @@ textarea::placeholder{
 }
 </style>
 
+
+<style id="flk-control-pagos-y-numeros-negros-v3">
+/* Control de pagos: mismo formato blanco, grande y en negrita */
+body.flk-v6125 #vistaCuentasPagar .lista-estadisticas h3,
+body.flk-v6125 #vistaCuentasPagar .fila-estadistica span,
+body.flk-v6125 #vistaCuentasPagar .fila-estadistica strong {
+  color:#FFFFFF !important;
+  font-size:15px !important;
+  font-weight:800 !important;
+  line-height:1.55 !important;
+}
+body.flk-v6125 #vistaCuentasPagar .lista-estadisticas h3 {
+  font-size:17px !important;
+  font-weight:900 !important;
+}
+/* Todos los valores numéricos que antes se muestran verdes pasan a negro.
+   Se conservan verdes los botones/estados para mantener su significado visual. */
+body.flk-v6125 .tarjeta.ganancia strong,
+body.flk-v6125 .estadistica-card.positiva strong,
+body.flk-v6125 .finanzas-card.activo strong,
+body.flk-v6125 .finanzas-card.positivo strong,
+body.flk-v6125 .venta-total,
+body.flk-v6125 .cliente-total,
+body.flk-v6125 .cierre-total,
+body.flk-v6125 .ganancia-venta,
+body.flk-v6125 .abono-superior span,
+body.flk-v6125 .reporte-positivo,
+body.flk-v6125 #cuentasTotalPagado {
+  color:#000000 !important;
+}
+</style>
 </head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el estado financiero.");w.document.write(html);w.document.close()
 }
