@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.12-limpieza-usuarios-permisos">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.14-centro-propietario-corregido">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1961,6 +1961,46 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 
 /* ===== INFRAESTRUCTURA OFFLINE FLACKUNLOKER =====
    Esta versión crea la cola y el indicador. Los módulos se conectarán a ella por etapas. */
+const FLK_LOCAL_LEGACY_KEYS=[
+ "flackunloker_productos","flackunloker_historial","flackunloker_ventas",
+ "flackunloker_gastos","flackunloker_cierres","flackunloker_proveedores",
+ "flackunloker_ordenes_compra","flackunloker_movimientos_caja",
+ "flackunloker_offline_queue_v1"
+];
+
+function flkBusinessIdLocalSeguro(){
+ const id=String(localStorage.getItem("flackunloker_business_id_v1")||"").trim();
+ return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)?id:null;
+}
+function flkLocalKey(base,businessId=null){
+ const bid=businessId||flkBusinessIdLocalSeguro();
+ return bid?`${base}::${bid}`:`${base}::sin-centro`;
+}
+function flkMigrarLocalLegacyAlCentro(businessId){
+ if(!businessId)return;
+ const marca=`flackunloker_local_migrado_v61_13::${businessId}`;
+ if(localStorage.getItem(marca)==="1")return;
+ for(const base of FLK_LOCAL_LEGACY_KEYS){
+  const destino=flkLocalKey(base,businessId);
+  if(localStorage.getItem(destino)===null){
+   const antiguo=localStorage.getItem(base);
+   if(antiguo!==null)localStorage.setItem(destino,antiguo);
+  }
+ }
+ localStorage.setItem(marca,"1");
+}
+function flkCambiarContextoLocalCentro(businessId){
+ if(!businessId)return;
+ flkMigrarLocalLegacyAlCentro(businessId);
+ if(typeof cargarDatos==="function")cargarDatos();
+ if(typeof movimientosCajaSupabase!=="undefined"){
+  try{
+   movimientosCajaSupabase=JSON.parse(localStorage.getItem(flkLocalKey("flackunloker_movimientos_caja",businessId))||"[]");
+   if(!Array.isArray(movimientosCajaSupabase))movimientosCajaSupabase=[];
+  }catch(_){movimientosCajaSupabase=[]}
+ }
+}
+
 const FLK_OFFLINE_QUEUE_KEY="flackunloker_offline_queue_v1";
 const FLK_DEVICE_KEY="flackunloker_device_id_v1";
 let flkSincronizando=false;
@@ -1983,7 +2023,7 @@ const FLK_OPERACIONES_LOCAL_FIRST=new Set([
 
 function flkColaOffline(){
  try{
-  const q=JSON.parse(localStorage.getItem(FLK_OFFLINE_QUEUE_KEY)||"[]");
+  const q=JSON.parse(localStorage.getItem(flkLocalKey(FLK_OFFLINE_QUEUE_KEY))||"[]");
   if(!Array.isArray(q))return [];
   let cambio=false;
 
@@ -1999,12 +2039,12 @@ function flkColaOffline(){
    }
   });
 
-  if(cambio)localStorage.setItem(FLK_OFFLINE_QUEUE_KEY,JSON.stringify(q));
+  if(cambio)localStorage.setItem(flkLocalKey(FLK_OFFLINE_QUEUE_KEY),JSON.stringify(q));
   return q;
  }catch(e){return []}
 }
 function flkGuardarColaOffline(q){
- localStorage.setItem(FLK_OFFLINE_QUEUE_KEY,JSON.stringify(q));
+ localStorage.setItem(flkLocalKey(FLK_OFFLINE_QUEUE_KEY),JSON.stringify(q));
  flkActualizarEstadoConexion()
 }
 function flkEncolarOperacion(tipo,payload){
@@ -2873,12 +2913,12 @@ async function ejecutarRestablecimientoTotal(){
  if(!confirm("ÚLTIMA CONFIRMACIÓN: se borrarán permanentemente todos los datos operativos. ¿Continuar?"))return;
  const {error}=await flkSupabase.rpc("flk_full_system_reset",{p_pin:pin,p_confirmation:"RESTABLECER"});
  if(error){if(flkSilenciarSiEsConexion(error))return;return alert("No se pudo restablecer el sistema: "+error.message)};
- localStorage.removeItem("flackunloker_productos");
- localStorage.removeItem("flackunloker_historial");
- localStorage.removeItem("flackunloker_ventas");
- localStorage.removeItem("flackunloker_clientes");
- localStorage.removeItem("flackunloker_gastos");
- localStorage.removeItem("flackunloker_cierres");
+ localStorage.removeItem(flkLocalKey("flackunloker_productos"));
+ localStorage.removeItem(flkLocalKey("flackunloker_historial"));
+ localStorage.removeItem(flkLocalKey("flackunloker_ventas"));
+ localStorage.removeItem(flkLocalKey("flackunloker_clientes"));
+ localStorage.removeItem(flkLocalKey("flackunloker_gastos"));
+ localStorage.removeItem(flkLocalKey("flackunloker_cierres"));
  alert("Restablecimiento completado. Flackunloker quedó sin datos operativos.");
  location.reload();
 }
@@ -3217,6 +3257,16 @@ async function mostrarAppConSesion(session){
   await cargarRolUsuario(session.user);
   if(navigator.onLine){
    await flkComprobarPropietarioSoftware();
+   // v61.14: TODA cuenta, incluido el propietario del software,
+   // vuelve a resolver su centro operativo real al iniciar sesión.
+   // La excepción multidispositivo del propietario afecta la licencia,
+   // no el business_id usado para inventario y demás datos.
+   const centroAnterior=FLK_BUSINESS_ID;
+   await flkCargarCentroActual();
+   flkCambiarContextoLocalCentro(FLK_BUSINESS_ID);
+   if(centroAnterior!==FLK_BUSINESS_ID){
+    console.info("Centro local cambiado:",centroAnterior,"→",FLK_BUSINESS_ID);
+   }
    await flkValidarLicencia();
    setTimeout(()=>flkSincronizarSeguro(),220);
   }
@@ -4755,8 +4805,8 @@ let proximoNumeroRecibo=1;
 let gastoEditandoId=null;
 let proveedorEditandoId=null;
 let ordenEditandoId=null;
-let movimientosCajaSupabase=(()=>{try{return JSON.parse(localStorage.getItem("flackunloker_movimientos_caja")||"[]")}catch(e){return []}})();
-function guardarMovimientosCajaLocal(){localStorage.setItem("flackunloker_movimientos_caja",JSON.stringify(movimientosCajaSupabase||[]))}
+let movimientosCajaSupabase=(()=>{try{return JSON.parse(localStorage.getItem(flkLocalKey("flackunloker_movimientos_caja"))||"[]")}catch(e){return []}})();
+function guardarMovimientosCajaLocal(){localStorage.setItem(flkLocalKey("flackunloker_movimientos_caja"),JSON.stringify(movimientosCajaSupabase||[]))}
 
 let inventarioSupabaseListo=false;
 
@@ -4821,6 +4871,7 @@ async function flkCargarCentroActual(){
 
  FLK_BUSINESS_ID=id;
  localStorage.setItem(FLK_BUSINESS_STORAGE_KEY,id);
+ flkCambiarContextoLocalCentro(id);
  return id;
 }
 
@@ -4997,13 +5048,13 @@ async function ajustarStockSupabase(p,delta,tipo,nota=""){
 
 function cargarDatos(){
  try{
-  const p=localStorage.getItem("flackunloker_productos");
-  const h=localStorage.getItem("flackunloker_historial");
-  const v=localStorage.getItem("flackunloker_ventas");
-   const g=localStorage.getItem("flackunloker_gastos");
-   const c=localStorage.getItem("flackunloker_cierres");
-   const pr=localStorage.getItem("flackunloker_proveedores");
-   const oc=localStorage.getItem("flackunloker_ordenes_compra");
+  const p=localStorage.getItem(flkLocalKey("flackunloker_productos"));
+  const h=localStorage.getItem(flkLocalKey("flackunloker_historial"));
+  const v=localStorage.getItem(flkLocalKey("flackunloker_ventas"));
+   const g=localStorage.getItem(flkLocalKey("flackunloker_gastos"));
+   const c=localStorage.getItem(flkLocalKey("flackunloker_cierres"));
+   const pr=localStorage.getItem(flkLocalKey("flackunloker_proveedores"));
+   const oc=localStorage.getItem(flkLocalKey("flackunloker_ordenes_compra"));
   productos=p?JSON.parse(p):[];
   historial=h?JSON.parse(h):[];
   ventas=v?JSON.parse(v):[];
@@ -5051,7 +5102,7 @@ function cargarDatos(){
  nombresExistentes.forEach(nombre=>{if(!proveedores.some(pr=>String(pr.nombre||"").trim().toLowerCase()===nombre.toLowerCase()))proveedores.push({id:Date.now()+Math.floor(Math.random()*100000)+proveedores.length,nombre,contacto:"",telefono:"",email:"",direccion:"",nota:"",creado:new Date().toISOString()})});
  guardarProveedores();
 }
-function guardarDatos(){localStorage.setItem("flackunloker_productos",JSON.stringify(productos))}
+function guardarDatos(){localStorage.setItem(flkLocalKey("flackunloker_productos"),JSON.stringify(productos))}
 
 function movimientoDesdeSupabase(m){
  const p=productos.find(x=>x.supabaseId===m.product_id);
@@ -5088,8 +5139,8 @@ async function cargarHistorialSupabase(){
  return true
 }
 
-function guardarHistorial(){localStorage.setItem("flackunloker_historial",JSON.stringify(historial))}
-function guardarVentas(){localStorage.setItem("flackunloker_ventas",JSON.stringify(ventas))}
+function guardarHistorial(){localStorage.setItem(flkLocalKey("flackunloker_historial"),JSON.stringify(historial))}
+function guardarVentas(){localStorage.setItem(flkLocalKey("flackunloker_ventas"),JSON.stringify(ventas))}
 
 function gastoDesdeSupabase(r){
  return {
@@ -5163,7 +5214,7 @@ async function cargarGastosSupabase(){
  return true
 }
 
-function guardarGastos(){localStorage.setItem("flackunloker_gastos",JSON.stringify(gastos))}
+function guardarGastos(){localStorage.setItem(flkLocalKey("flackunloker_gastos"),JSON.stringify(gastos))}
 
 function cierreDesdeSupabase(c){
  return {
@@ -5209,7 +5260,7 @@ async function cargarCierresSupabase(){
  cierres=(cloud||[]).map(cierreDesdeSupabase);guardarCierres();mostrarListaCierres();return true
 }
 
-function guardarCierres(){localStorage.setItem("flackunloker_cierres",JSON.stringify(cierres))}
+function guardarCierres(){localStorage.setItem(flkLocalKey("flackunloker_cierres"),JSON.stringify(cierres))}
 
 async function cargarComprasSupabase(){
  if(flkModoRecuperacionPassword)return false;
@@ -5253,8 +5304,9 @@ async function migrarComprasLocalesSupabase(){
  return cargarComprasSupabase()
 }
 
-function guardarOrdenesCompra(){localStorage.setItem("flackunloker_ordenes_compra",JSON.stringify(ordenesCompra))}
-function guardarProveedores(){localStorage.setItem("flackunloker_proveedores",JSON.stringify(proveedores))}
+function guardarOrdenesCompra(){localStorage.setItem(flkLocalKey("flackunloker_ordenes_compra"),JSON.stringify(ordenesCompra))}
+function guardarProveedores(){localStorage.setItem(flkLocalKey("flackunloker_proveedores"),JSON.stringify(proveedores))}
+if(flkUuidValido(FLK_BUSINESS_ID))flkMigrarLocalLegacyAlCentro(FLK_BUSINESS_ID);
 cargarDatos();
 proximoNumeroRecibo=Math.max(0,...ventas.map(v=>Number(v.numeroConsecutivo||0)))+1;
 function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
