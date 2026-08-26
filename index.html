@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.37-titulos-azul-fuerte">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.38-submenus-blancos">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1769,6 +1769,89 @@ button.guardar,
  [id^="vista"] > h2,
  [id^="vista"] > h3{
    font-size:25px !important;
+ }
+}
+</style>
+
+<style id="flk-v6138-submenus-blancos">
+/* ===== v61.38 · TEXTO DE TODOS LOS SUBMENÚS BLANCO Y MÁS GRANDE ===== */
+.submenu,
+.sub-menu,
+.tabs,
+.filtros,
+.filtro,
+.botones-filtro,
+.reporte-controles,
+.botones-respaldo,
+.acciones,
+.acciones-producto,
+[class*="submenu"],
+[class*="filtro"]{
+  --flk-submenu-text:#FFFFFF;
+}
+
+/* Botones de submenús */
+.submenu button,
+.sub-menu button,
+.tabs button,
+.filtros button,
+.filtro button,
+.botones-filtro button,
+.reporte-controles button,
+.botones-respaldo button,
+.acciones button,
+.acciones-producto button,
+[class*="submenu"] button,
+[class*="filtro"] button{
+  color:#FFFFFF !important;
+  font-size:20px !important;
+  font-weight:900 !important;
+  line-height:1.3 !important;
+  opacity:1 !important;
+  text-shadow:0 1px 3px rgba(0,0,0,.48) !important;
+}
+
+/* Cualquier span/div/strong dentro del botón */
+.submenu button *,
+.sub-menu button *,
+.tabs button *,
+.filtros button *,
+.filtro button *,
+.botones-filtro button *,
+.reporte-controles button *,
+.botones-respaldo button *,
+.acciones button *,
+.acciones-producto button *,
+[class*="submenu"] button *,
+[class*="filtro"] button *{
+  color:#FFFFFF !important;
+  font-size:20px !important;
+  font-weight:900 !important;
+  opacity:1 !important;
+}
+
+/* Selectores que funcionan como submenús */
+select{
+  color:#FFFFFF !important;
+  font-size:19px !important;
+  font-weight:900 !important;
+}
+select option{
+  color:#FFFFFF !important;
+  font-size:19px !important;
+  font-weight:900 !important;
+}
+
+/* En móvil apenas reducir para que sigan cabiendo */
+@media(max-width:600px){
+ .submenu button,.sub-menu button,.tabs button,.filtros button,.filtro button,
+ .botones-filtro button,.reporte-controles button,.botones-respaldo button,
+ .acciones button,.acciones-producto button,[class*="submenu"] button,[class*="filtro"] button,
+ .submenu button *,.sub-menu button *,.tabs button *,.filtros button *,.filtro button *,
+ .botones-filtro button *,.reporte-controles button *,.botones-respaldo button *,
+ .acciones button *,.acciones-producto button *,[class*="submenu"] button *,
+ [class*="filtro"] button *{
+   font-size:18px !important;
  }
 }
 </style>
