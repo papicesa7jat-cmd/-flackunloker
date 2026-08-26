@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v45-roles-visual-real">
+<meta name="flackunloker-offline-version" content="2026-08-25-v59-multicentro-uuid-fix">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -966,8 +966,92 @@ body.es-propietario #menuPrincipalFondo #botonLicencias{display:flex!important}
 body:not(.es-propietario) #botonLicencias{display:none!important}
 </style>
 
+
+<style id="flk-client-activation-style">
+#flkActivacionLicencia{
+ display:none;position:fixed;inset:0;z-index:1000000;
+ background:rgba(8,18,35,.78);padding:20px;align-items:center;justify-content:center
+}
+#flkActivacionLicencia .flk-act-card{
+ width:min(460px,100%);background:#fff;border-radius:22px;padding:24px;
+ box-shadow:0 24px 70px rgba(0,0,0,.28)
+}
+#flkActivacionLicencia h2{margin:0 0 8px;text-align:center}
+#flkActivacionLicencia p{font-size:13px;line-height:1.5;color:#667085;text-align:center}
+#flkActivacionLicencia input{
+ width:100%;padding:13px;border:1px solid #ccd7e4;border-radius:12px;
+ font-size:16px;margin:10px 0
+}
+#flkActivacionLicencia button{
+ width:100%;padding:13px;border:0;border-radius:12px;background:#0a84ff;
+ color:#fff;font-weight:800;cursor:pointer
+}
+#flkActivacionEstado{margin-top:10px;font-size:12px;text-align:center;color:#667085}
+</style>
+
+
+<style id="flk-license-list-style">
+#licenciasResumen{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0;
+}
+.lic-resumen-card{
+ background:#fff;border:1px solid #dce8f4;border-radius:16px;padding:14px;text-align:center;
+}
+.lic-resumen-card span{display:block;font-size:11px;color:#667085;margin-bottom:5px}
+.lic-resumen-card strong{font-size:22px}
+.lic-resumen-card.activa strong{color:#168044}
+.lic-resumen-card.suspendida strong{color:#b42318}
+.lic-resumen-card.vencida strong{color:#a15c00}
+.lic-registro-card{
+ background:#fff;border:1px solid #dce8f4;border-radius:18px;padding:16px;margin-bottom:12px;
+ box-shadow:0 6px 18px rgba(20,42,80,.05);
+}
+.lic-registro-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.lic-registro-top h4{margin:0 0 5px;font-size:16px}
+.lic-registro-top p{margin:0;color:#667085;font-size:12px}
+.lic-badge{padding:7px 10px;border-radius:999px;font-size:11px;font-weight:800}
+.lic-badge.active{background:#e9f8ef;color:#168044}
+.lic-badge.suspended{background:#ffecec;color:#b42318}
+.lic-badge.expired{background:#fff7e8;color:#a15c00}
+.lic-registro-grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px;
+}
+.lic-registro-dato{
+ background:#f8fbff;border:1px solid #e3edf7;border-radius:12px;padding:10px;
+ font-size:12px;overflow-wrap:anywhere;
+}
+.lic-registro-dato span{display:block;color:#667085;font-size:10px;margin-bottom:3px}
+.lic-registro-acciones{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px;
+}
+.lic-registro-acciones button{
+ border:0;border-radius:11px;padding:10px;font-size:12px;font-weight:800;cursor:pointer;
+}
+.lic-btn-renovar{background:#eaf4ff;color:#0a84ff}
+.lic-btn-suspender{background:#ffecec;color:#b42318}
+.lic-btn-activar{background:#e9f8ef;color:#168044}
+.lic-btn-liberar{background:#f2edff;color:#6b47c8}
+@media(max-width:600px){
+ #licenciasResumen{grid-template-columns:1fr}
+ .lic-registro-grid{grid-template-columns:1fr}
+ .lic-registro-acciones{grid-template-columns:1fr}
+}
+</style>
+
 </head>
 <body>
+
+<div id="flkActivacionLicencia">
+ <div class="flk-act-card">
+  <h2>🔑 Activar Flackunloker</h2>
+  <p>Introduce la clave de licencia entregada por el propietario del software. Esta licencia quedará vinculada a este dispositivo.</p>
+  <input id="flkClaveActivacion" type="text" autocomplete="off" spellcheck="false" placeholder="Clave de licencia">
+  <button id="flkBotonActivarCliente" type="button" onclick="flkActivarLicenciaCliente()">Activar licencia</button>
+  <button type="button" style="margin-top:9px;background:#eef4fb;color:#175cd3" onclick="flkVolverLicenciaPropietaria()">↩ Volver a licencia propietaria</button>
+  <div id="flkActivacionEstado"></div>
+ </div>
+</div>
+
 
 <div id="flkLicenciaBloqueo" aria-hidden="true">
  <div class="lic-bloqueo-card">
@@ -1629,11 +1713,70 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
  </div>
 
  <div class="lic-panel">
+  <h3 style="margin:0 0 14px">➕ Nueva licencia para tercero</h3>
+  <div class="lic-grid">
+   <div class="campo">
+    <label for="licNuevoCliente">Cliente / negocio</label>
+    <input id="licNuevoCliente" type="text" maxlength="120" placeholder="Nombre del cliente">
+   </div>
+   <div class="campo">
+    <label for="licNuevoVencimiento">Vencimiento</label>
+    <input id="licNuevoVencimiento" type="datetime-local">
+   </div>
+   <div class="campo">
+    <label for="licNuevaGracia">Gracia offline (días)</label>
+    <input id="licNuevaGracia" type="number" min="0" max="30" value="3">
+   </div>
+   <div class="campo">
+    <label for="licNuevasNotas">Notas</label>
+    <input id="licNuevasNotas" type="text" maxlength="250" placeholder="Opcional">
+   </div>
+  </div>
+  <button class="boton-agregar" id="botonCrearLicenciaTercero" type="button" style="width:100%;margin-top:12px" onclick="crearLicenciaTercero()">➕ Crear licencia</button>
+  <div id="licResultadoNueva" class="lic-aviso" style="display:none"></div>
+ </div>
+
+ 
+<div class="lic-panel">
+ <div class="seccion-titulo" style="margin-top:0">
+  <h3 style="margin:0">🔐 Licencia del propietario</h3>
+  <button class="boton-agregar" type="button" onclick="cargarListaLicencias()">↻ Actualizar</button>
+ </div>
+
+ 
+ <div id="licenciaPropietariaSeparada" style="display:none;background:#f7fbff;border:1px solid #cfe3f7;border-radius:16px;padding:14px;margin:14px 0">
+  <div style="font-size:11px;color:#667085;margin-bottom:4px">Licencia interna</div>
+  <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+   <strong id="licOwnerNombre">Flackunloker - Propietario</strong>
+   <span class="lic-badge active" id="licOwnerEstado">ACTIVA</span>
+  </div>
+  <div id="licOwnerDetalle" style="font-size:11px;color:#667085;margin-top:7px"></div>
+ </div>
+
+ <div style="margin:20px 0 10px;border-top:1px solid #dce8f4;padding-top:16px">
+  <h3 style="margin:0">📋 Licencias de clientes</h3>
+  <div style="font-size:11px;color:#667085;margin-top:4px">Licencias entregadas a terceros</div>
+ </div>
+
+<div id="licenciasResumen">
+  <div class="lic-resumen-card activa"><span>Activas</span><strong id="licCountActivas">0</strong></div>
+  <div class="lic-resumen-card suspendida"><span>Suspendidas</span><strong id="licCountSuspendidas">0</strong></div>
+  <div class="lic-resumen-card vencida"><span>Vencidas</span><strong id="licCountVencidas">0</strong></div>
+ </div>
+
+ <div id="listaLicenciasRegistradas">
+  <div class="sin-productos">Pulsa Actualizar para cargar las licencias.</div>
+ </div>
+</div>
+
+<div class="lic-panel">
+  <h3 style="margin:0 0 14px">🔑 Licencia actual de esta instalación</h3>
   <div class="lic-grid">
    <div class="lic-dato"><span>Cliente / instalación</span><strong id="licPanelCliente">—</strong></div>
    <div class="lic-dato"><span>Estado</span><strong id="licPanelEstado">—</strong></div>
    <div class="lic-dato"><span>Vencimiento</span><strong id="licPanelVencimiento">—</strong></div>
    <div class="lic-dato"><span>Gracia offline</span><strong id="licPanelGracia">—</strong></div>
+   <div class="lic-dato"><span>ID de este dispositivo</span><strong id="licPanelDispositivo">—</strong></div>
   </div>
 
   <div class="campo" style="margin-top:16px">
@@ -1645,11 +1788,14 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
    <button class="lic-renovar" type="button" onclick="renovarLicenciaPropietario()">📅 Renovar licencia</button>
    <button class="lic-suspender" id="licBotonSuspender" type="button" onclick="cambiarEstadoLicenciaPropietario('suspended')">⛔ Suspender</button>
    <button class="lic-activar" id="licBotonActivar" type="button" onclick="cambiarEstadoLicenciaPropietario('active')">✅ Reactivar</button>
+   <button class="lic-suspender" type="button" onclick="liberarDispositivoLicencia()">🖥️ Liberar dispositivo</button>
+   <button class="lic-renovar" type="button" onclick="flkPrepararActivacionCliente()">🔑 Probar activación cliente</button>
+   <button class="lic-activar" type="button" onclick="flkVolverLicenciaPropietaria()">↩ Restaurar licencia propietaria</button>
   </div>
 
   <div class="lic-aviso">
    Solo la cuenta propietaria del software puede ver y usar este panel.
-   Los demás administradores no pueden renovar ni cambiar el estado de la licencia.
+   Tu cuenta propietaria puede acceder desde varios dispositivos. Las licencias de terceros permanecen vinculadas a su dispositivo autorizado.
   </div>
  </div>
 </div>
@@ -1690,6 +1836,14 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
  </div>
 </div>
 
+<script>
+(function(){
+ const raw=localStorage.getItem("flackunloker_business_id_v1");
+ if(raw!==null && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(raw)){
+  localStorage.removeItem("flackunloker_business_id_v1");
+ }
+})();
+</script>
 <script>
 
 /* ===== INFRAESTRUCTURA OFFLINE FLACKUNLOKER =====
@@ -2438,7 +2592,7 @@ let flkOrquestandoSync=false;
 async function flkReconciliarInventarioNube(){
  if(!navigator.onLine)return false;
  try{
-  const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).order("created_at",{ascending:true});
+  const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
   if(error)throw error;
   productos=(data||[]).map(productoDesdeSupabase);
   guardarDatos();
@@ -2623,8 +2777,14 @@ const flkSupabase=window.supabase.createClient(FLK_SUPABASE_URL,FLK_SUPABASE_KEY
 let modoAuth="login";
 let rolSesion="employee";
 let flkSesionActiva=false;
-const FLK_LICENSE_KEY="228b72e9-88dd-4c6b-91a1-4a98ff488d0c";
+const FLK_OWNER_LICENSE_KEY="228b72e9-88dd-4c6b-91a1-4a98ff488d0c";
+const FLK_CLIENT_LICENSE_KEY_STORAGE="flackunloker_client_license_key_v1";
+const FLK_LICENSE_TEST_MODE_KEY="flackunloker_license_test_mode_v1";
+let FLK_LICENSE_KEY=localStorage.getItem(FLK_LICENSE_TEST_MODE_KEY)==="1"
+ ? (localStorage.getItem(FLK_CLIENT_LICENSE_KEY_STORAGE)||FLK_OWNER_LICENSE_KEY)
+ : FLK_OWNER_LICENSE_KEY;
 const FLK_LICENSE_CACHE_KEY="flackunloker_license_cache_v1";
+const FLK_DEVICE_ID_KEY="flackunloker_device_id_v1";
 let flkLicenciaInfo=null;
 let flkLicenciaUltimaValidacion=null;
 let flkLicenciaModoPrueba=false; // v43: bloqueo real activado.
@@ -2766,7 +2926,7 @@ async function flkRecuperacionEmergenciaNube(){
 
   // INVENTARIO
   try{
-   const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).order("created_at",{ascending:true});
+   const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
    if(error)throw error;
    productos=(data||[]).map(productoDesdeSupabase);
    guardarDatos();
@@ -3143,6 +3303,117 @@ document.getElementById("formularioNuevaPassword")?.addEventListener("submit",as
 });
 
 
+
+
+function flkMostrarActivacionCliente(mensaje=""){
+ if(flkEsPropietarioSoftware && localStorage.getItem(FLK_LICENSE_TEST_MODE_KEY)!=="1"){
+  FLK_LICENSE_KEY=FLK_OWNER_LICENSE_KEY;
+  flkOcultarActivacionCliente();
+  return;
+ }
+ const box=document.getElementById("flkActivacionLicencia");
+ if(box)box.style.display="flex";
+ const estado=document.getElementById("flkActivacionEstado");
+ if(estado)estado.textContent=mensaje;
+}
+
+function flkOcultarActivacionCliente(){
+ const box=document.getElementById("flkActivacionLicencia");
+ if(box)box.style.display="none";
+}
+
+
+async function flkVolverLicenciaPropietaria(){
+ try{
+  localStorage.removeItem(FLK_CLIENT_LICENSE_KEY_STORAGE);
+  localStorage.removeItem(FLK_LICENSE_TEST_MODE_KEY);
+  FLK_LICENSE_KEY=FLK_OWNER_LICENSE_KEY;
+  flkOcultarActivacionCliente();
+
+  if(flkSesionActiva && navigator.onLine){
+   await flkComprobarPropietarioSoftware();
+  }
+
+  await flkValidarLicencia();
+  flkOcultarActivacionCliente();
+  alert("Licencia propietaria restaurada correctamente.");
+ }catch(err){
+  console.error("Restaurar licencia propietaria:",err);
+  FLK_LICENSE_KEY=FLK_OWNER_LICENSE_KEY;
+  flkOcultarActivacionCliente();
+  alert("Se restauró el modo propietario. Si no aparece la licencia activa, comprueba la conexión y vuelve a cargar.");
+ }
+}
+
+async function flkActivarLicenciaCliente(){
+ if(!navigator.onLine){
+  return flkMostrarActivacionCliente("Debes estar conectado a Internet para activar una licencia por primera vez.");
+ }
+ const input=document.getElementById("flkClaveActivacion");
+ const boton=document.getElementById("flkBotonActivarCliente");
+ const estado=document.getElementById("flkActivacionEstado");
+ const clave=(input?.value||"").trim();
+ if(!clave)return alert("Introduce la clave de licencia.");
+
+ const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+ if(!uuid.test(clave))return alert("La clave de licencia no tiene un formato válido.");
+
+ try{
+  if(boton){boton.disabled=true;boton.textContent="Activando…"}
+  if(estado)estado.textContent="Comprobando licencia con el servidor…";
+
+  const deviceId=flkObtenerDeviceId();
+  const {data,error}=await flkSupabase.rpc("flk_activate_license_device",{
+   p_license_key:clave,
+   p_device_id:deviceId
+  });
+  if(error)throw error;
+  const info=Array.isArray(data)?data[0]:data;
+  if(!info)throw new Error("No se recibió respuesta del servidor.");
+
+  if(!info.valid){
+   const motivo=String(info.license_status||info.device_status||"");
+   if(motivo==="device_mismatch"||info.device_status==="different_device")
+    throw new Error("Esta licencia está vinculada a otro dispositivo.");
+   if(motivo==="expired")throw new Error("Esta licencia está vencida.");
+   if(motivo==="suspended")throw new Error("Esta licencia está suspendida.");
+   throw new Error(info.reason||"La licencia no es válida.");
+  }
+
+  localStorage.setItem(FLK_CLIENT_LICENSE_KEY_STORAGE,clave);
+  FLK_LICENSE_KEY=clave;
+  flkLicenciaInfo=info;
+  flkGuardarCacheLicencia(info);
+  flkOcultarActivacionCliente();
+  alert("Licencia activada correctamente en este dispositivo.");
+  await flkValidarLicencia();
+ }catch(err){
+  console.error("Activación cliente:",err);
+  if(estado)estado.textContent=err?.message||"No se pudo activar la licencia.";
+ }finally{
+  if(boton){boton.disabled=false;boton.textContent="Activar licencia"}
+ }
+}
+
+function flkObtenerDeviceId(){
+ try{
+  let id=localStorage.getItem(FLK_DEVICE_ID_KEY);
+  if(id&&id.length>=16){return id}
+  if(window.crypto&&crypto.randomUUID){
+   id=crypto.randomUUID()
+  }else{
+   const a=new Uint8Array(24);
+   if(window.crypto&&crypto.getRandomValues)crypto.getRandomValues(a);
+   id=Array.from(a,b=>b.toString(16).padStart(2,"0")).join("")+"-"+Date.now().toString(36)
+  }
+  localStorage.setItem(FLK_DEVICE_ID_KEY,id);
+  return id
+ }catch(err){
+  console.error("Device ID:",err);
+  return null
+ }
+}
+
 function flkFechaLicenciaBonita(valor){
  if(!valor)return "—";
  const d=new Date(valor);
@@ -3194,6 +3465,9 @@ function flkMostrarBloqueoLicencia(info,motivo=""){
  }else if(estado==="suspended"){
   titulo.textContent="Licencia suspendida";
   mensaje.textContent="Esta licencia está suspendida. Contacta al proveedor de Flackunloker para reactivarla.";
+ }else if(motivo==="device-mismatch"){
+  titulo.textContent="Licencia vinculada a otro dispositivo";
+  mensaje.textContent="Esta licencia ya está activada en otro equipo. El propietario de Flackunloker debe liberar el dispositivo anterior antes de usarla aquí.";
  }else if(motivo==="offline-grace-expired"){
   titulo.textContent="Se requiere conexión a Internet";
   mensaje.textContent="Se agotó el período autorizado de trabajo offline. Conéctate a Internet para validar la licencia y continuar.";
@@ -3243,6 +3517,10 @@ function flkPintarLicencia(info,modo="online"){
   caja.classList.add("activa");
   texto.textContent="Licencia: activa";
   flkOcultarBloqueoLicencia();
+ }else if(estado==="device_mismatch"){
+  caja.classList.add("error");
+  texto.textContent="Licencia: otro dispositivo";
+  if(!flkLicenciaModoPrueba)flkMostrarBloqueoLicencia(info,"device-mismatch");
  }else if(estado==="expired"){
   caja.classList.add("vencida");
   texto.textContent="Licencia: vencida";
@@ -3280,12 +3558,32 @@ async function flkValidarLicencia(){
 
  if(navigator.onLine){
   try{
-   const {data,error}=await flkSupabase.rpc("flk_check_license",{
-    p_license_key:FLK_LICENSE_KEY
-   });
+   // La cuenta propietaria del software es multidispositivo.
+   // Para todos los demás usuarios se mantiene el vínculo estricto al device_id.
+   let esOwner=false;
+   try{
+    const {data:ownerData,error:ownerError}=await flkSupabase.rpc("flk_is_software_owner");
+    if(!ownerError)esOwner=!!ownerData;
+   }catch(_){}
+
+   let data,error;
+   if(esOwner){
+    ({data,error}=await flkSupabase.rpc("flk_check_license",{
+     p_license_key:FLK_LICENSE_KEY
+    }));
+   }else{
+    const deviceId=flkObtenerDeviceId();
+    if(!deviceId)throw new Error("No se pudo generar el identificador de este dispositivo.");
+    ({data,error}=await flkSupabase.rpc("flk_activate_license_device",{
+     p_license_key:FLK_LICENSE_KEY,
+     p_device_id:deviceId
+    }));
+   }
+
    if(error)throw error;
    const info=Array.isArray(data)?data[0]:data;
    if(!info)throw new Error("Respuesta de licencia vacía.");
+   info.software_owner=esOwner;
    flkGuardarCacheLicencia(info);
    flkPintarLicencia(info,"online");
    return info
@@ -3373,6 +3671,13 @@ async function flkComprobarPropietarioSoftware(){
   if(error)throw error;
   flkEsPropietarioSoftware=!!data;
   document.body.classList.toggle("es-propietario",flkEsPropietarioSoftware);
+  if(flkEsPropietarioSoftware){
+    // La cuenta propietaria siempre prevalece sobre cualquier prueba de cliente.
+    localStorage.removeItem(FLK_CLIENT_LICENSE_KEY_STORAGE);
+    localStorage.removeItem(FLK_LICENSE_TEST_MODE_KEY);
+    FLK_LICENSE_KEY=FLK_OWNER_LICENSE_KEY;
+    flkOcultarActivacionCliente();
+   }
   const botonLic=document.getElementById("botonLicencias");
   if(botonLic)botonLic.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
   return flkEsPropietarioSoftware
@@ -3401,35 +3706,293 @@ function mostrarLicencias(){
  document.querySelectorAll("#menuPrincipalFondo .menu-cuadricula button").forEach(b=>b.classList.remove("activo"));
  document.getElementById("botonLicencias")?.classList.add("activo");
  cargarPanelLicencias();
+ cargarListaLicencias();
  scrollTop()
+}
+
+
+function flkEstadoVisualLicencia(l){
+ const ahora=Date.now();
+ const exp=new Date(l.expires_at||0).getTime();
+ if(String(l.status)==="suspended")return "suspended";
+ if(Number.isFinite(exp)&&exp<ahora)return "expired";
+ return "active";
+}
+
+function flkTextoEstadoLicencia(estado){
+ return estado==="active"?"ACTIVA":estado==="suspended"?"SUSPENDIDA":"VENCIDA";
+}
+
+function flkEscAttr(v){
+ return String(v??"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+async function cargarListaLicencias(){
+ if(!flkEsPropietarioSoftware)return;
+ const lista=document.getElementById("listaLicenciasRegistradas");
+ if(!lista)return;
+
+ if(!navigator.onLine){
+  lista.innerHTML='<div class="sin-productos">Conéctate a Internet para consultar las licencias.</div>';
+  return;
+ }
+
+ lista.innerHTML='<div class="sin-productos">Cargando licencias de clientes...</div>';
+
+ try{
+  const {data,error}=await flkSupabase.rpc("flk_list_licenses");
+  if(error)throw error;
+  const todas=Array.isArray(data)?data:[];
+
+  // La licencia interna del propietario se muestra aparte y NO entra
+  // en los contadores ni en la lista comercial de clientes.
+  const esPropietaria=l=>{
+   const nombre=String(l.customer_name||"").trim().toLowerCase();
+   const notas=String(l.notes||"").trim().toLowerCase();
+   return nombre==="flackunloker - propietario" ||
+          notas.includes("licencia interna del propietario");
+  };
+
+  const owner=todas.find(esPropietaria)||null;
+  const arr=todas.filter(l=>!esPropietaria(l));
+
+  const ownerBox=document.getElementById("licenciaPropietariaSeparada");
+  if(ownerBox){
+   if(owner){
+    ownerBox.style.display="block";
+    const est=flkEstadoVisualLicencia(owner);
+    document.getElementById("licOwnerNombre").textContent=owner.customer_name||"Flackunloker - Propietario";
+    const badge=document.getElementById("licOwnerEstado");
+    badge.className="lic-badge "+est;
+    badge.textContent=flkTextoEstadoLicencia(est);
+    document.getElementById("licOwnerDetalle").textContent=
+     "Vencimiento: "+flkFechaLicenciaBonita(owner.expires_at)+" · Propietario multidispositivo";
+   }else{
+    ownerBox.style.display="none";
+   }
+  }
+
+  let activas=0,suspendidas=0,vencidas=0;
+  arr.forEach(l=>{
+   const e=flkEstadoVisualLicencia(l);
+   if(e==="active")activas++;
+   else if(e==="suspended")suspendidas++;
+   else vencidas++;
+  });
+
+  document.getElementById("licCountActivas").textContent=activas;
+  document.getElementById("licCountSuspendidas").textContent=suspendidas;
+  document.getElementById("licCountVencidas").textContent=vencidas;
+
+  if(!arr.length){
+   lista.innerHTML='<div class="sin-productos">No hay licencias de clientes registradas.</div>';
+   return;
+  }
+
+  lista.innerHTML=arr.map(l=>{
+   const estado=flkEstadoVisualLicencia(l);
+   const device=l.device_id?flkEscAttr(l.device_id):"Sin activar";
+   const ultima=l.device_last_seen_at?flkFechaLicenciaBonita(l.device_last_seen_at):"—";
+   const activada=l.device_activated_at?flkFechaLicenciaBonita(l.device_activated_at):"—";
+   const notas=l.notes?flkEscAttr(l.notes):"—";
+   const key=flkEscAttr(l.license_key);
+   const cliente=flkEscAttr(l.customer_name||"Sin nombre");
+
+   return `
+    <div class="lic-registro-card">
+     <div class="lic-registro-top">
+      <div>
+       <h4>${cliente}</h4>
+       <p>Creada: ${flkFechaLicenciaBonita(l.created_at)}</p>
+      </div>
+      <span class="lic-badge ${estado}">${flkTextoEstadoLicencia(estado)}</span>
+     </div>
+
+     <div class="lic-registro-grid">
+      <div class="lic-registro-dato"><span>Clave</span>${key}</div>
+      <div class="lic-registro-dato"><span>Vencimiento</span>${flkFechaLicenciaBonita(l.expires_at)}</div>
+      <div class="lic-registro-dato"><span>Gracia offline</span>${Number(l.offline_grace_days||0)} día(s)</div>
+      <div class="lic-registro-dato"><span>Dispositivo</span>${device}</div>
+      <div class="lic-registro-dato"><span>Activada</span>${activada}</div>
+      <div class="lic-registro-dato"><span>Última validación</span>${ultima}</div>
+      <div class="lic-registro-dato"><span>Notas</span>${notas}</div>
+     </div>
+
+     <div class="lic-registro-acciones">
+      <button class="lic-btn-renovar" onclick="renovarLicenciaLista('${key}')">📅 Renovar</button>
+      ${
+       estado==="suspended"
+       ? `<button class="lic-btn-activar" onclick="cambiarEstadoLicenciaLista('${key}','active')">✅ Reactivar</button>`
+       : `<button class="lic-btn-suspender" onclick="cambiarEstadoLicenciaLista('${key}','suspended')">⛔ Suspender</button>`
+      }
+      <button class="lic-btn-liberar" onclick="liberarDispositivoLicenciaLista('${key}')">🖥️ Liberar dispositivo</button>
+     </div>
+    </div>`;
+  }).join("");
+
+ }catch(err){
+  console.error("Lista de licencias:",err);
+  lista.innerHTML='<div class="sin-productos">No se pudieron cargar las licencias de clientes.</div>';
+  alert("No se pudo cargar la lista de licencias: "+(err?.message||"Error desconocido"));
+ }
+}
+
+async function renovarLicenciaLista(key){
+ if(!flkEsPropietarioSoftware)return;
+ const valor=prompt("Nueva fecha de vencimiento (AAAA-MM-DD):");
+ if(!valor)return;
+ const fecha=new Date(valor+"T23:59:59");
+ if(Number.isNaN(fecha.getTime())||fecha<=new Date())return alert("La fecha debe ser futura.");
+ try{
+  const {error}=await flkSupabase.rpc("flk_renew_license",{
+   p_license_key:key,
+   p_new_expires_at:fecha.toISOString()
+  });
+  if(error)throw error;
+  alert("Licencia renovada.");
+  await cargarListaLicencias();
+ }catch(err){
+  alert("No se pudo renovar: "+(err?.message||"Error desconocido"));
+ }
+}
+
+async function cambiarEstadoLicenciaLista(key,estado){
+ if(!flkEsPropietarioSoftware)return;
+ const texto=estado==="suspended"?"suspender":"reactivar";
+ if(!confirm("¿Seguro que deseas "+texto+" esta licencia?"))return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_set_license_status",{
+   p_license_key:key,
+   p_status:estado
+  });
+  if(error)throw error;
+  await cargarListaLicencias();
+ }catch(err){
+  alert("No se pudo cambiar el estado: "+(err?.message||"Error desconocido"));
+ }
+}
+
+async function liberarDispositivoLicenciaLista(key){
+ if(!flkEsPropietarioSoftware)return;
+ if(!confirm("¿Liberar el dispositivo asociado a esta licencia?"))return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_release_license_device",{
+   p_license_key:key
+  });
+  if(error)throw error;
+  alert("Dispositivo liberado.");
+  await cargarListaLicencias();
+ }catch(err){
+  alert("No se pudo liberar el dispositivo: "+(err?.message||"Error desconocido"));
+ }
 }
 
 async function cargarPanelLicencias(){
  if(!flkEsPropietarioSoftware)return;
+
  try{
-  const {data,error}=await flkSupabase.rpc("flk_check_license",{p_license_key:FLK_LICENSE_KEY});
-  if(error)throw error;
-  const info=Array.isArray(data)?data[0]:data;
-  if(!info)throw new Error("No se recibió información de la licencia.");
-  flkLicenciaInfo=info;
+  // La licencia principal ya fue validada al iniciar la aplicación.
+  // Reutilizamos esa información para no hacer una segunda llamada RPC
+  // innecesaria que puede fallar por permisos o conectividad.
+  let info=flkLicenciaInfo;
+
+  if(!info){
+   const cache=flkLeerCacheLicencia();
+   if(cache?.info)info=cache.info;
+  }
+
+  if(!info){
+   throw new Error("La aplicación todavía no tiene datos de la licencia principal.");
+  }
 
   document.getElementById("licPanelCliente").textContent=info.customer_name||"—";
-  document.getElementById("licPanelEstado").textContent=String(info.license_status||"—").toUpperCase();
+  document.getElementById("licPanelEstado").textContent=String(info.license_status||info.status||"active").toUpperCase();
   document.getElementById("licPanelVencimiento").textContent=flkFechaLicenciaBonita(info.expires_at);
   document.getElementById("licPanelGracia").textContent=String(info.offline_grace_days??0)+" día(s)";
+
+  const devEl=document.getElementById("licPanelDispositivo");
+  if(devEl)devEl.textContent=flkEsPropietarioSoftware
+   ? "Propietario · multidispositivo"
+   : (flkObtenerDeviceId()||"—");
 
   const d=new Date(info.expires_at);
   if(!Number.isNaN(d.getTime())){
    const local=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
-   document.getElementById("licNuevaFecha").value=local;
+   const campoFecha=document.getElementById("licNuevaFecha");
+   if(campoFecha)campoFecha.value=local;
   }
 
-  const suspendida=String(info.license_status)==="suspended";
-  document.getElementById("licBotonSuspender").style.display=suspendida?"none":"";
-  document.getElementById("licBotonActivar").style.display=suspendida?"":"none";
+  const estado=String(info.license_status||info.status||"active");
+  const suspendida=estado==="suspended";
+  const bs=document.getElementById("licBotonSuspender");
+  const ba=document.getElementById("licBotonActivar");
+  if(bs)bs.style.display=suspendida?"none":"";
+  if(ba)ba.style.display=suspendida?"":"none";
  }catch(err){
   console.error("Panel licencias:",err);
-  alert("No se pudo cargar la información de la licencia.")
+  // No bloquear la creación de licencias de terceros por un fallo
+  // de lectura del resumen de la licencia principal.
+  const cliente=document.getElementById("licPanelCliente");
+  if(cliente)cliente.textContent="Información no disponible";
+ }
+}
+
+async function crearLicenciaTercero(){
+ if(!flkEsPropietarioSoftware)return alert("Solo el propietario puede crear licencias.");
+ if(!navigator.onLine)return alert("Debes estar conectado a Internet para crear una licencia.");
+
+ const boton=document.getElementById("botonCrearLicenciaTercero");
+ if(boton?.disabled)return;
+
+ const cliente=(document.getElementById("licNuevoCliente")?.value||"").trim();
+ const fechaTxt=document.getElementById("licNuevoVencimiento")?.value||"";
+ const gracia=Number(document.getElementById("licNuevaGracia")?.value??3);
+ const notas=(document.getElementById("licNuevasNotas")?.value||"").trim();
+
+ if(cliente.length<2)return alert("Escribe el nombre del cliente o negocio.");
+ const fecha=new Date(fechaTxt);
+ if(!fechaTxt||Number.isNaN(fecha.getTime())||fecha<=new Date())
+  return alert("Selecciona una fecha de vencimiento futura.");
+ if(!Number.isInteger(gracia)||gracia<0||gracia>30)
+  return alert("La gracia offline debe estar entre 0 y 30 días.");
+
+ if(!confirm("¿Crear una nueva licencia para "+cliente+"?"))return;
+
+ try{
+  if(boton){boton.disabled=true;boton.textContent="Creando licencia…";}
+  const resultado=document.getElementById("licResultadoNueva");
+  if(resultado){resultado.style.display="none";resultado.textContent="";}
+
+  const {data,error}=await flkSupabase.rpc("flk_create_license",{
+   p_customer_name:cliente,
+   p_expires_at:fecha.toISOString(),
+   p_offline_grace_days:gracia,
+   p_notes:notas||null
+  });
+  if(error)throw error;
+
+  const lic=Array.isArray(data)?data[0]:data;
+  if(!lic?.license_key)throw new Error("Supabase no devolvió la clave de licencia.");
+
+  const box=document.getElementById("licResultadoNueva");
+  if(box){
+   box.style.display="block";
+   box.innerHTML=
+    "<strong>✅ Licencia creada</strong><br>"+
+    "Cliente: "+escapeHtml(lic.customer_name||cliente)+"<br>"+
+    "Clave: <strong style='overflow-wrap:anywhere'>"+escapeHtml(lic.license_key)+"</strong><br>"+
+    "Vence: "+escapeHtml(flkFechaLicenciaBonita(lic.expires_at))+"<br>"+
+    "Gracia offline: "+Number(lic.offline_grace_days||0)+" día(s)";
+  }
+
+  document.getElementById("licNuevoCliente").value="";
+  document.getElementById("licNuevasNotas").value="";
+  alert("Licencia creada correctamente. Guarda o copia la clave mostrada en el panel.")
+ }catch(err){
+  console.error("Crear licencia:",err);
+  alert("No se pudo crear la licencia.\n\nDetalle: "+(err?.message||err?.details||"Error desconocido"))
+ }finally{
+  if(boton){boton.disabled=false;boton.textContent="➕ Crear licencia";}
  }
 }
 
@@ -3454,6 +4017,37 @@ async function renovarLicenciaPropietario(){
  }catch(err){
   console.error("Renovar licencia:",err);
   alert("No se pudo renovar la licencia: "+(err?.message||"Error desconocido"))
+ }
+}
+
+
+
+function flkPrepararActivacionCliente(){
+ if(!flkEsPropietarioSoftware)return alert("Solo el propietario puede iniciar esta prueba.");
+ if(!confirm("Esto mostrará la pantalla de activación en este navegador. Tu licencia propietaria no se elimina. ¿Continuar?"))return;
+ localStorage.removeItem(FLK_CLIENT_LICENSE_KEY_STORAGE);
+ localStorage.setItem(FLK_LICENSE_TEST_MODE_KEY,"1");
+ FLK_LICENSE_KEY=FLK_OWNER_LICENSE_KEY;
+ flkMostrarActivacionCliente("Modo de prueba: introduce una licencia de tercero.");
+}
+
+async function liberarDispositivoLicencia(){
+ if(!flkEsPropietarioSoftware)return alert("Solo el propietario puede liberar dispositivos.");
+ if(!navigator.onLine)return alert("Debes estar conectado a Internet para liberar un dispositivo.");
+ if(!confirm("¿Liberar el dispositivo asociado a esta licencia? La próxima instalación que valide la licencia quedará vinculada automáticamente."))return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_release_license_device",{
+   p_license_key:FLK_LICENSE_KEY
+  });
+  if(error)throw error;
+  alert("Dispositivo liberado correctamente.");
+  // No borramos el ID local: al validar de nuevo en este mismo equipo,
+  // volvería a asociarse a él. Para mover la licencia, primero debe
+  // validarse desde el nuevo equipo.
+  await cargarPanelLicencias()
+ }catch(err){
+  console.error("Liberar dispositivo:",err);
+  alert("No se pudo liberar el dispositivo: "+(err?.message||"Error desconocido"))
  }
 }
 
@@ -3530,6 +4124,65 @@ function productoDesdeSupabase(r){
   stockMinimo:Number(r.min_stock||0)
  }
 }
+
+// =========================================================
+// FLACKUNLOKER v59 · CONTEXTO MULTI-CENTRO SEGURO
+// =========================================================
+const FLK_BUSINESS_STORAGE_KEY="flackunloker_business_id_v1";
+
+function flkUuidValido(v){
+ return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(v||"").trim());
+}
+
+function flkBusinessGuardado(){
+ const raw=localStorage.getItem(FLK_BUSINESS_STORAGE_KEY);
+ if(!flkUuidValido(raw)){
+  if(raw!==null)localStorage.removeItem(FLK_BUSINESS_STORAGE_KEY);
+  return null;
+ }
+ return raw;
+}
+
+let FLK_BUSINESS_ID=flkBusinessGuardado();
+
+async function flkCargarCentroActual(){
+ if(!flkSupabase || !flkSesionActiva || !navigator.onLine){
+  FLK_BUSINESS_ID=flkBusinessGuardado();
+  return FLK_BUSINESS_ID;
+ }
+
+ const {data,error}=await flkSupabase.rpc("flk_current_business_id");
+ if(error)throw error;
+
+ const id=String(data||"").trim();
+
+ if(!flkUuidValido(id)){
+  FLK_BUSINESS_ID=null;
+  localStorage.removeItem(FLK_BUSINESS_STORAGE_KEY);
+  throw new Error("La cuenta no tiene un centro de trabajo válido asignado.");
+ }
+
+ FLK_BUSINESS_ID=id;
+ localStorage.setItem(FLK_BUSINESS_STORAGE_KEY,id);
+ return id;
+}
+
+async function flkExigirCentroActual(){
+ if(flkUuidValido(FLK_BUSINESS_ID))return FLK_BUSINESS_ID;
+
+ const guardado=flkBusinessGuardado();
+ if(guardado){
+  FLK_BUSINESS_ID=guardado;
+  return guardado;
+ }
+
+ if(!navigator.onLine){
+  throw new Error("Conéctate a Internet para identificar el centro de trabajo.");
+ }
+
+ return await flkCargarCentroActual();
+}
+
 function productoHaciaSupabase(p,stock=0){
  return {
   legacy_id:String(p.id),
@@ -3543,15 +4196,17 @@ function productoHaciaSupabase(p,stock=0){
   price:Number(p.precio||0),
   stock:Number(stock||0),
   min_stock:Number(p.stockMinimo||0),
-  active:true
+  active:true,
+  business_id:flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:null
  }
 }
 async function cargarInventarioSupabase(){
  if(flkModoRecuperacionPassword)return false;
+ if(navigator.onLine)await flkExigirCentroActual();
  if(navigator.onLine&&!flkSesionActiva)return false;
  if(!navigator.onLine){flkAplicarPendientesSobreDatos();mostrarProductos();actualizarEstadisticas();return true}
  const locales=Array.isArray(productos)?[...productos]:[];
- const {data:cloud,error}=await flkSupabase.from("products").select("*").eq("active",true).order("created_at",{ascending:true});
+ const {data:cloud,error}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
  if(error){
   console.error("Supabase inventario:",error);
   if(!flkSilenciarSiEsConexion(error))alert("No se pudo cargar el inventario de Supabase.");
@@ -3586,6 +4241,7 @@ async function cargarInventarioSupabase(){
      if(String(err.code||"")==="23505"){
       const {data:hallado}=await flkSupabase.from("products")
        .select("*")
+       .eq("business_id",await flkExigirCentroActual())
        .or(`legacy_id.eq.${legacy}${sku?`,sku.ilike.${sku}`:""}`)
        .limit(1)
        .maybeSingle();
@@ -3620,7 +4276,7 @@ async function cargarInventarioSupabase(){
   }
 
   // Volver a leer el inventario completo después de completar/reanudar migración.
-  const {data:actualizado,error:errorActualizado}=await flkSupabase.from("products").select("*").eq("active",true).order("created_at",{ascending:true});
+  const {data:actualizado,error:errorActualizado}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
   if(errorActualizado){
    console.error(errorActualizado);
    return false;
@@ -3641,6 +4297,7 @@ async function cargarInventarioSupabase(){
  return true
 }
 async function guardarProductoSupabase(p,esNuevo=false,stockInicial=0){
+ await flkExigirCentroActual();
  if(esNuevo){
   const payload=productoHaciaSupabase(p,0);
   const {data,error}=await flkSupabase.from("products").insert(payload).select("*").single();
