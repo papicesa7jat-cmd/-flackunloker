@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.35-submenus-legibles">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.36-estetica-unificada-azul">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1587,6 +1587,143 @@ select option{
   font-size:16px !important;
   font-weight:900 !important;
   color:#243746 !important;
+}
+</style>
+
+<style id="flk-v6136-estetica-unificada">
+/* ===== v61.36 · REGLA VISUAL ÚNICA PARA MENÚS Y SUBMENÚS ===== */
+
+/* Contenedores: gris claro neutro */
+#menuPrincipalFondo,
+.menu,
+.menu-principal,
+.menu-cuadricula,
+.submenu,
+.sub-menu,
+.tabs,
+.filtros,
+.filtro,
+.botones-filtro,
+.reporte-controles,
+.botones-respaldo,
+[class*="submenu"]{
+  background:#E3E7EB !important;
+  border-color:#CBD3DA !important;
+}
+
+/* Todos los botones de navegación/menú/submenú: azul claro */
+#menuPrincipalFondo .menu-cuadricula button,
+.menu button,
+.menu-principal button,
+nav button,
+.submenu button,
+.sub-menu button,
+.tabs button,
+.filtros button,
+.filtro button,
+.botones-filtro button,
+.reporte-controles button,
+.botones-respaldo button,
+.acciones button,
+.acciones-producto button,
+[class*="submenu"] button,
+[class*="filtro"] button{
+  background:#4A9FE8 !important;
+  border:1px solid #78B9EF !important;
+  color:#FFFFFF !important;
+  font-size:18px !important;
+  font-weight:900 !important;
+  line-height:1.25 !important;
+  min-height:48px !important;
+  opacity:1 !important;
+  text-shadow:0 1px 2px rgba(0,0,0,.35) !important;
+  box-shadow:0 3px 9px rgba(27,79,114,.16) !important;
+}
+
+/* Texto e iconos internos */
+#menuPrincipalFondo .menu-cuadricula button *,
+.menu button *,
+.menu-principal button *,
+nav button *,
+.submenu button *,
+.sub-menu button *,
+.tabs button *,
+.filtros button *,
+.filtro button *,
+.botones-filtro button *,
+.reporte-controles button *,
+.botones-respaldo button *,
+.acciones button *,
+.acciones-producto button *,
+[class*="submenu"] button *,
+[class*="filtro"] button *{
+  color:#FFFFFF !important;
+  font-size:inherit !important;
+  font-weight:900 !important;
+  opacity:1 !important;
+}
+
+/* Botón activo: azul más profundo */
+#menuPrincipalFondo .menu-cuadricula button.activo,
+.menu button.activo,
+.menu-principal button.activo,
+nav button.activo,
+.submenu button.activo,
+.sub-menu button.activo,
+.tabs button.activo,
+.filtros button.activo,
+.filtro button.activo,
+[class*="filtro"] button.activo{
+  background:#1677C8 !important;
+  border-color:#0E68B2 !important;
+  color:#FFFFFF !important;
+}
+
+/* Hover/foco */
+#menuPrincipalFondo .menu-cuadricula button:hover,
+#menuPrincipalFondo .menu-cuadricula button:focus,
+.menu button:hover,.menu button:focus,
+nav button:hover,nav button:focus,
+.submenu button:hover,.submenu button:focus,
+.sub-menu button:hover,.sub-menu button:focus,
+.tabs button:hover,.tabs button:focus,
+.filtros button:hover,.filtros button:focus,
+.filtro button:hover,.filtro button:focus,
+[class*="filtro"] button:hover,[class*="filtro"] button:focus{
+  background:#2F8DDC !important;
+}
+
+/* Desplegables: misma familia visual */
+select{
+  background:#4A9FE8 !important;
+  border:1px solid #78B9EF !important;
+  color:#FFFFFF !important;
+  font-size:17px !important;
+  font-weight:900 !important;
+  min-height:48px !important;
+}
+select option{
+  background:#4A9FE8 !important;
+  color:#FFFFFF !important;
+  font-size:17px !important;
+  font-weight:800 !important;
+}
+
+/* No convertir acciones destructivas en azul */
+#panelRestablecimientoTotal button,
+button[style*="background:#d93025"],
+button[style*="background: #d93025"]{
+  background:#D93025 !important;
+  border-color:#B3261E !important;
+  color:#FFFFFF !important;
+}
+
+/* Botones de guardar/confirmar mantienen jerarquía, pero legibles */
+.guardar,
+button.guardar,
+.boton-agregar{
+  color:#FFFFFF !important;
+  font-weight:900 !important;
 }
 </style>
 </head>
