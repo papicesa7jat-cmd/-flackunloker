@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.25-gris-definitivo">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.26-restauracion-nube">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -7626,10 +7626,344 @@ function nombreRespaldoFlackunloker(){
 
 function crearRespaldo(){const datos={aplicacion:"Flackunloker",version:"2.0",fecha:new Date().toISOString(),productos,historial,ventas,gastos,cierres,ordenesCompra,proveedores};const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=nombreRespaldoFlackunloker();document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);mostrarEstadoRespaldo("✅ Respaldo creado correctamente.")}
 function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
-function restaurarRespaldo(event){
- const archivo=event.target.files[0];if(!archivo)return;const lector=new FileReader();
- lector.onload=()=>{try{const datos=JSON.parse(lector.result);if(!datos||datos.aplicacion!=="Flackunloker")return alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial))return alert("El respaldo está incompleto o dañado.");if(!confirm("¿Quieres restaurar este respaldo?\n\nLos productos y el historial actuales serán reemplazados por los datos del respaldo."))return;productos=datos.productos;historial=datos.historial;ventas=Array.isArray(datos.ventas)?datos.ventas:[];gastos=Array.isArray(datos.gastos)?datos.gastos:[];cierres=Array.isArray(datos.cierres)?datos.cierres:[];ordenesCompra=Array.isArray(datos.ordenesCompra)?datos.ordenesCompra:[];proveedores=Array.isArray(datos.proveedores)?datos.proveedores:[];productos.forEach(p=>{if(p.stockMinimo===undefined||p.stockMinimo===null)p.stockMinimo=5;if(p.costo===undefined||p.costo===null||p.costo==="")p.costo=0;if(p.categoria===undefined||p.categoria===null)p.categoria="";if(p.proveedor===undefined||p.proveedor===null)p.proveedor="";if(p.ubicacion===undefined||p.ubicacion===null)p.ubicacion=""});[...productos.map(p=>String(p.proveedor||"").trim()),...ordenesCompra.map(o=>String(o.proveedor||"").trim())].filter(Boolean).forEach(nombre=>{if(!proveedores.some(pr=>nombreProveedorNorm(pr.nombre)===nombreProveedorNorm(nombre)))proveedores.push({id:Date.now()+Math.floor(Math.random()*100000)+proveedores.length,nombre,contacto:"",telefono:"",email:"",direccion:"",nota:"",creado:new Date().toISOString()})});recalcularSaldos();guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();guardarOrdenesCompra();guardarProveedores();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarReporte();actualizarFlujoCaja();actualizarFinanzas();actualizarCentroAlertas();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarFlujoCaja();actualizarEstadisticas();mostrarEstadoRespaldo("✅ Respaldo restaurado correctamente.");alert("Respaldo restaurado correctamente.")}catch(err){console.error(err);alert("No se pudo leer el respaldo. Comprueba que el archivo sea válido.")}finally{event.target.value=""}};lector.readAsText(archivo)
+
+async function flkInsertarLotes(tabla,filas,tamano=100){
+ if(!Array.isArray(filas)||!filas.length)return;
+ for(let i=0;i<filas.length;i+=tamano){
+  const lote=filas.slice(i,i+tamano);
+  const {error}=await flkSupabase.from(tabla).insert(lote);
+  if(error)throw error;
+ }
 }
+
+async function flkRestaurarHistorialNube(historialBackup,businessId,userId){
+ const {data:remotos,error:prodErr}=await flkSupabase.from("products")
+  .select("id,legacy_id")
+  .eq("business_id",businessId);
+ if(prodErr)throw prodErr;
+
+ const mapa=new Map((remotos||[]).map(p=>[String(p.legacy_id||""),p.id]));
+ const filas=(Array.isArray(historialBackup)?historialBackup:[]).map(m=>{
+  const pid=mapa.get(String(m.productoId??""));
+  if(!pid)return null;
+  return {
+   product_id:pid,
+   movement_type:m.tipo==="entrada"?"entrada":"salida",
+   quantity:Math.abs(Number(m.cantidad||0)),
+   stock_after:Number(m.saldo||0),
+   note:String(m.detalle||"Restaurado desde respaldo"),
+   created_by:userId,
+   created_at:m.fecha||new Date().toISOString(),
+   business_id:businessId
+  };
+ }).filter(x=>x&&x.quantity>0);
+
+ // En una restauración sobre una base vacía, reemplazar los movimientos
+ // generados automáticamente al recrear el stock por el historial real del respaldo.
+ const {error:delErr}=await flkSupabase.from("stock_movements")
+  .delete()
+  .eq("business_id",businessId);
+ if(delErr)throw delErr;
+
+ await flkInsertarLotes("stock_movements",filas,100);
+}
+
+async function flkRestaurarDevolucionesNube(ventasBackup,businessId,userId){
+ const {data:salesCloud,error:sErr}=await flkSupabase.from("sales")
+  .select("id,legacy_id,sale_items(id,product_id)")
+  .eq("business_id",businessId);
+ if(sErr)throw sErr;
+
+ const {data:productsCloud,error:pErr}=await flkSupabase.from("products")
+  .select("id,legacy_id")
+  .eq("business_id",businessId);
+ if(pErr)throw pErr;
+
+ const prodPorLegacy=new Map((productsCloud||[]).map(p=>[String(p.legacy_id||""),p.id]));
+ const salePorLegacy=new Map((salesCloud||[]).map(s=>[String(s.legacy_id||""),s]));
+ const filas=[];
+
+ for(const v of (Array.isArray(ventasBackup)?ventasBackup:[])){
+  const s=salePorLegacy.get(String(v.id));
+  if(!s)continue;
+  for(const d of (Array.isArray(v.devoluciones)?v.devoluciones:[])){
+   const productId=prodPorLegacy.get(String(d.productoId??""));
+   if(!productId)continue;
+   const item=(s.sale_items||[]).find(i=>String(i.product_id)===String(productId));
+   if(!item)continue;
+   filas.push({
+    sale_id:s.id,
+    sale_item_id:item.id,
+    product_id:productId,
+    quantity:Number(d.cantidad||0),
+    refund_amount:Number(d.monto||0),
+    reason:d.motivo||null,
+    created_by:userId,
+    created_at:d.fecha||new Date().toISOString(),
+    return_number:d.numeroDevolucion||null,
+    business_id:businessId
+   });
+  }
+ }
+ if(filas.length)await flkInsertarLotes("sale_returns",filas,100);
+}
+
+async function flkRestaurarComprasNube(proveedoresBackup,ordenesBackup,businessId,userId){
+ const proveedoresLocal=Array.isArray(proveedoresBackup)?proveedoresBackup:[];
+ const ordenesLocal=Array.isArray(ordenesBackup)?ordenesBackup:[];
+
+ // Proveedores
+ for(const p of proveedoresLocal){
+  const legacy=String(p.id);
+  let {data:existente,error:qErr}=await flkSupabase.from("suppliers")
+   .select("id")
+   .eq("business_id",businessId)
+   .eq("legacy_id",legacy)
+   .maybeSingle();
+  if(qErr)throw qErr;
+  if(!existente){
+   const {data:creado,error}=await flkSupabase.from("suppliers").insert({
+    legacy_id:legacy,
+    name:p.nombre||"Proveedor",
+    contact_name:p.contacto||null,
+    phone:p.telefono||null,
+    email:p.email||null,
+    address:p.direccion||null,
+    notes:p.nota||null,
+    business_id:businessId
+   }).select("id").single();
+   if(error)throw error;
+  }
+ }
+
+ const {data:suppliersCloud,error:supErr}=await flkSupabase.from("suppliers")
+  .select("id,legacy_id,name")
+  .eq("business_id",businessId);
+ if(supErr)throw supErr;
+ const supLegacy=new Map((suppliersCloud||[]).map(p=>[String(p.legacy_id||""),p]));
+ const supNombre=new Map((suppliersCloud||[]).map(p=>[nombreProveedorNorm(p.name),p]));
+
+ const {data:productsCloud,error:prodErr}=await flkSupabase.from("products")
+  .select("id,legacy_id")
+  .eq("business_id",businessId);
+ if(prodErr)throw prodErr;
+ const prodLegacy=new Map((productsCloud||[]).map(p=>[String(p.legacy_id||""),p.id]));
+
+ for(const o of ordenesLocal){
+  const legacy=String(o.id);
+  const {data:ya,error:qErr}=await flkSupabase.from("purchase_orders")
+   .select("id")
+   .eq("business_id",businessId)
+   .eq("legacy_id",legacy)
+   .maybeSingle();
+  if(qErr)throw qErr;
+  if(ya)continue;
+
+  let prov=supNombre.get(nombreProveedorNorm(o.proveedor||""));
+  if(!prov){
+   const original=proveedoresLocal.find(p=>nombreProveedorNorm(p.nombre)===nombreProveedorNorm(o.proveedor||""));
+   if(original)prov=supLegacy.get(String(original.id));
+  }
+  const productId=prodLegacy.get(String(o.productoId??""));
+  if(!prov?.id||!productId)continue;
+
+  const total=Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0));
+  const pagado=Number(o.totalPagadoProveedor||0);
+  const saldo=Number(o.saldoProveedor??Math.max(0,total-pagado));
+
+  const {data:orden,error}=await flkSupabase.from("purchase_orders").insert({
+   legacy_id:legacy,
+   order_number:Number(o.numero||0)||null,
+   supplier_id:prov.id,
+   product_id:productId,
+   quantity:Number(o.cantidad||0),
+   unit_cost:Number(o.costoUnitario||0),
+   order_date:o.fechaOrden||new Date().toISOString().slice(0,10),
+   status:o.estado==="recibida"?"received":o.estado==="ordenada"?"ordered":"pending",
+   note:o.nota||null,
+   ordered_at:o.fechaOrdenada||null,
+   received_at:o.fechaRecibida||null,
+   payment_condition:o.condicionPagoProveedor||null,
+   payment_method:o.metodoPagoProveedor||null,
+   due_date:o.fechaVencimientoProveedor||null,
+   total_amount:total,
+   paid_amount:pagado,
+   balance_due:saldo,
+   created_by:userId,
+   created_at:o.fechaCreacion||new Date().toISOString(),
+   business_id:businessId
+  }).select("id").single();
+  if(error)throw error;
+
+  const pagos=(Array.isArray(o.pagosProveedor)?o.pagosProveedor:[]).filter(p=>Number(p.cantidad||0)>0);
+  const filasPagos=pagos.map(p=>({
+   purchase_order_id:orden.id,
+   amount:Number(p.cantidad||0),
+   payment_method:p.metodo||o.metodoPagoProveedor||"Efectivo",
+   payment_date:p.fecha||new Date().toISOString(),
+   note:p.nota||null,
+   created_by:userId,
+   created_at:p.fecha||new Date().toISOString(),
+   business_id:businessId
+  }));
+  if(filasPagos.length)await flkInsertarLotes("supplier_payments",filasPagos,100);
+ }
+}
+
+async function flkRestaurarRespaldoEnNube(datos){
+ if(!navigator.onLine)throw new Error("Conéctate a Internet para restaurar también la copia de Supabase.");
+ if(rolSesion!=="admin")throw new Error("Solo el Administrador puede restaurar un respaldo en la nube.");
+
+ const businessId=await flkExigirCentroActual();
+ const {data:u,error:uErr}=await flkSupabase.auth.getUser();
+ if(uErr||!u?.user)throw uErr||new Error("No hay una sesión válida.");
+ const userId=u.user.id;
+
+ // Seguridad: esta reconstrucción automática solo se ejecuta sobre un centro operativo vacío.
+ const tablas=["products","sales","expenses","purchase_orders"];
+ for(const tabla of tablas){
+  const {count,error}=await flkSupabase.from(tabla)
+   .select("*",{count:"exact",head:true})
+   .eq("business_id",businessId);
+  if(error)throw error;
+  if(Number(count||0)>0){
+   throw new Error("La nube ya contiene datos operativos. Para evitar mezclar o duplicar información, la restauración automática solo se permite después de un restablecimiento total del centro.");
+  }
+ }
+
+ const historialBackup=JSON.parse(JSON.stringify(Array.isArray(datos.historial)?datos.historial:[]));
+ const ventasBackup=JSON.parse(JSON.stringify(Array.isArray(datos.ventas)?datos.ventas:[]));
+ const proveedoresBackup=JSON.parse(JSON.stringify(Array.isArray(datos.proveedores)?datos.proveedores:[]));
+ const ordenesBackup=JSON.parse(JSON.stringify(Array.isArray(datos.ordenesCompra)?datos.ordenesCompra:[]));
+
+ // Los UUID guardados pertenecían a los registros borrados por el restablecimiento.
+ // Se eliminan únicamente las referencias de nube; los IDs locales del respaldo se conservan.
+ productos.forEach(p=>{
+  p.supabaseId=null;
+  delete p.offlineCreateOperationId;
+  delete p.offlineOperationId;
+  delete p.offlinePendiente;
+ });
+ ventas.forEach(v=>{
+  v.supabaseId=null;
+  delete v.offlineOperationId;
+  delete v.offlinePendiente;
+  (v.items||[]).forEach(i=>{i.supabaseProductId=null;i.supabaseSaleItemId=null});
+  (v.pagos||[]).forEach(p=>p.supabaseId=null);
+  (v.devoluciones||[]).forEach(d=>d.supabaseId=null);
+ });
+ gastos.forEach(g=>{g.supabaseId=null;delete g.offlineOperationId;delete g.offlinePendiente});
+ cierres.forEach(c=>{c.supabaseId=null;delete c.offlineOperationId;delete c.offlinePendiente});
+ proveedores.forEach(p=>{p.supabaseId=null;delete p.offlineOperationId;delete p.offlinePendiente});
+ ordenesCompra.forEach(o=>{
+  o.supabaseId=null;delete o.offlineOperationId;delete o.offlinePendiente;
+  (o.pagosProveedor||[]).forEach(p=>p.supabaseId=null);
+ });
+
+ guardarDatos();guardarVentas();guardarGastos();guardarCierres();guardarProveedores();guardarOrdenesCompra();
+
+ mostrarEstadoRespaldo("⏳ Restaurando inventario en Supabase…");
+ if(!await cargarInventarioSupabase())throw new Error("No se pudo reconstruir el inventario.");
+
+ mostrarEstadoRespaldo("⏳ Restaurando historial…");
+ await flkRestaurarHistorialNube(historialBackup,businessId,userId);
+
+ mostrarEstadoRespaldo("⏳ Restaurando ventas y abonos…");
+ // conservar copia local antes de que cargarVentasSupabase la reemplace
+ ventas=JSON.parse(JSON.stringify(ventasBackup));
+ guardarVentas();
+ if(!await cargarVentasSupabase())throw new Error("No se pudieron reconstruir las ventas.");
+ await flkRestaurarDevolucionesNube(ventasBackup,businessId,userId);
+
+ mostrarEstadoRespaldo("⏳ Restaurando gastos…");
+ gastos=JSON.parse(JSON.stringify(Array.isArray(datos.gastos)?datos.gastos:[]));
+ gastos.forEach(g=>g.supabaseId=null);
+ guardarGastos();
+ if(!await cargarGastosSupabase())throw new Error("No se pudieron reconstruir los gastos.");
+
+ mostrarEstadoRespaldo("⏳ Restaurando proveedores y órdenes…");
+ await flkRestaurarComprasNube(proveedoresBackup,ordenesBackup,businessId,userId);
+
+ mostrarEstadoRespaldo("⏳ Restaurando cierres…");
+ cierres=JSON.parse(JSON.stringify(Array.isArray(datos.cierres)?datos.cierres:[]));
+ cierres.forEach(c=>c.supabaseId=null);
+ guardarCierres();
+ if(!await cargarCierresSupabase())throw new Error("No se pudieron reconstruir los cierres.");
+
+ // Verificación final leyendo la nube como fuente de verdad.
+ await cargarInventarioSupabase();
+ await cargarHistorialSupabase();
+ await cargarVentasSupabase();
+ await cargarGastosSupabase();
+ await cargarComprasSupabase();
+ await cargarCierresSupabase();
+ if(typeof cargarMovimientosCajaSupabase==="function")await cargarMovimientosCajaSupabase();
+
+ return true;
+}
+
+function restaurarRespaldo(event){
+ const archivo=event.target.files[0];
+ if(!archivo)return;
+ const lector=new FileReader();
+
+ lector.onload=async()=>{
+  try{
+   const datos=JSON.parse(lector.result);
+   if(!datos||datos.aplicacion!=="Flackunloker")return alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");
+   if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial))return alert("El respaldo está incompleto o dañado.");
+
+   if(!confirm("¿Quieres restaurar este respaldo?\n\nLa restauración recuperará los datos locales y, si estás conectado, reconstruirá también el centro en Supabase para que no vuelvan a desaparecer."))return;
+
+   productos=JSON.parse(JSON.stringify(datos.productos));
+   historial=JSON.parse(JSON.stringify(datos.historial));
+   ventas=Array.isArray(datos.ventas)?JSON.parse(JSON.stringify(datos.ventas)):[];
+   gastos=Array.isArray(datos.gastos)?JSON.parse(JSON.stringify(datos.gastos)):[];
+   cierres=Array.isArray(datos.cierres)?JSON.parse(JSON.stringify(datos.cierres)):[];
+   ordenesCompra=Array.isArray(datos.ordenesCompra)?JSON.parse(JSON.stringify(datos.ordenesCompra)):[];
+   proveedores=Array.isArray(datos.proveedores)?JSON.parse(JSON.stringify(datos.proveedores)):[];
+
+   productos.forEach(p=>{
+    if(p.stockMinimo===undefined||p.stockMinimo===null)p.stockMinimo=5;
+    if(p.costo===undefined||p.costo===null||p.costo==="")p.costo=0;
+    if(p.categoria===undefined||p.categoria===null)p.categoria="";
+    if(p.proveedor===undefined||p.proveedor===null)p.proveedor="";
+    if(p.ubicacion===undefined||p.ubicacion===null)p.ubicacion="";
+   });
+
+   [...productos.map(p=>String(p.proveedor||"").trim()),...ordenesCompra.map(o=>String(o.proveedor||"").trim())]
+    .filter(Boolean)
+    .forEach(nombre=>{
+     if(!proveedores.some(pr=>nombreProveedorNorm(pr.nombre)===nombreProveedorNorm(nombre)))
+      proveedores.push({id:Date.now()+Math.floor(Math.random()*100000)+proveedores.length,nombre,contacto:"",telefono:"",email:"",direccion:"",nota:"",creado:new Date().toISOString()});
+    });
+
+   recalcularSaldos();
+   guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();guardarOrdenesCompra();guardarProveedores();
+   mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarReporte();actualizarFlujoCaja();actualizarFinanzas();actualizarCentroAlertas();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarEstadisticas();
+
+   mostrarEstadoRespaldo("✅ Respaldo recuperado localmente.");
+
+   if(navigator.onLine){
+    mostrarEstadoRespaldo("⏳ Reconstruyendo la copia de Supabase. No cierres esta página…");
+    await flkRestaurarRespaldoEnNube(datos);
+    mostrarEstadoRespaldo("✅ Restauración completa: datos locales y Supabase verificados.");
+    alert("✅ Respaldo restaurado completamente.\n\nLos datos fueron reconstruidos también en Supabase y ya no deben volver a cero.");
+   }else{
+    mostrarEstadoRespaldo("🟠 Respaldo restaurado localmente. Conéctate a Internet y vuelve a restaurar este mismo archivo para reconstruir Supabase.");
+    alert("🟠 Respaldo recuperado localmente.\n\nComo estás sin Internet, Supabase todavía no fue reconstruido. Conéctate y restaura nuevamente este mismo respaldo.");
+   }
+  }catch(err){
+   console.error("Restauración de respaldo:",err);
+   mostrarEstadoRespaldo("❌ Restauración incompleta: "+(err?.message||"Error desconocido"));
+   alert("No se pudo completar la restauración.\n\n"+(err?.message||"Comprueba el respaldo y la conexión."));
+  }finally{
+   event.target.value="";
+  }
+ };
+ lector.readAsText(archivo);
+}
+
 
 document.getElementById("modalProducto").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarFormulario()});
 document.getElementById("modalMovimiento").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarMovimiento()});
