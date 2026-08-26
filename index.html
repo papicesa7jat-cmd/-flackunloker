@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.36-estetica-unificada-azul">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.37-titulos-azul-fuerte">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1724,6 +1724,52 @@ button.guardar,
 .boton-agregar{
   color:#FFFFFF !important;
   font-weight:900 !important;
+}
+</style>
+
+<style id="flk-v6137-titulos-azul-fuerte">
+/* ===== v61.37 · TÍTULOS DE SECCIONES MÁS LEGIBLES ===== */
+/* Inventario, Historial, Ventas, Clientes, Gastos, Caja, Reportes, etc. */
+.seccion-titulo h1,
+.seccion-titulo h2,
+.seccion-titulo h3,
+.vista h1,
+.vista h2,
+.vista h3,
+[id^="vista"] > h1,
+[id^="vista"] > h2,
+[id^="vista"] > h3{
+  color:#075EA8 !important;
+  font-size:28px !important;
+  font-weight:900 !important;
+  line-height:1.2 !important;
+  letter-spacing:.1px !important;
+  text-shadow:none !important;
+  opacity:1 !important;
+}
+
+/* Títulos de bloques internos */
+.adminsw-panel h3,
+.lista-estadisticas h3,
+.lic-panel h3{
+  color:#075EA8 !important;
+  font-size:21px !important;
+  font-weight:900 !important;
+  line-height:1.25 !important;
+  text-shadow:none !important;
+}
+
+/* En móvil mantenerlos grandes pero sin desbordar */
+@media(max-width:600px){
+ .seccion-titulo h1,
+ .seccion-titulo h2,
+ .seccion-titulo h3,
+ .vista h1,.vista h2,.vista h3,
+ [id^="vista"] > h1,
+ [id^="vista"] > h2,
+ [id^="vista"] > h3{
+   font-size:25px !important;
+ }
 }
 </style>
 </head>
