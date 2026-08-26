@@ -1,4 +1,4 @@
-const CACHE_NAME = "flackunloker-offline-v10";
+const CACHE_NAME = "flackunloker-offline-v12-ui-6124";
 const PAGE_FALLBACK = "./index.html";
 
 const APP_SHELL = [
