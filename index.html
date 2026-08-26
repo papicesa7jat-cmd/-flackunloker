@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.30-reset-en-software">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.31-reset-al-final">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2024,12 +2024,14 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   <input id="archivoRespaldo" type="file" accept=".json,application/json" style="display:none" onchange="restaurarRespaldo(event)">
   <div id="estadoRespaldo" class="estado-respaldo"></div>
  </div>
+ 
+ <div id="adminswListaCentros"><div class="sin-productos">Pulsa Actualizar para cargar los centros.</div></div>
+
  <div class="adminsw-panel" id="panelRestablecimientoTotal" style="display:none;border:1px solid #f2b8b5">
   <h3 style="margin:0 0 8px;color:#b3261e">⚠️ Restablecimiento total</h3>
   <p style="margin:0 0 14px;color:#667085;font-size:13px;line-height:1.55">Elimina los datos operativos del centro actual sin borrar las cuentas de acceso. Disponible únicamente para <strong>Administradores</strong> y el <strong>Propietario del Software</strong>.</p>
   <button class="boton-agregar" type="button" onclick="abrirRestablecimientoTotal()" style="background:#d93025;width:100%">🔐 Abrir restablecimiento total</button>
  </div>
- <div id="adminswListaCentros"><div class="sin-productos">Pulsa Actualizar para cargar los centros.</div></div>
 </div>
 
 <div id="vistaLicencias" style="display:none">
