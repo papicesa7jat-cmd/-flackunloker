@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.11-licencia-automatica-por-centro">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.12-limpieza-usuarios-permisos">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -630,6 +630,10 @@ button:active{transform:none!important}
 .adminsw-license-device{background:#eef0ff;color:#5146a6}
 @media(max-width:520px){.adminsw-license-actions{grid-template-columns:1fr}}
 
+
+/* ===== v61.12 · ADMINISTRACIÓN DE USUARIOS CENTRALIZADA =====
+   La gestión de usuarios se realiza exclusivamente desde ⚙️ Software. */
+#vistaUsuarios,#botonUsuarios{display:none!important}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="manifest" href="./manifest.webmanifest">
@@ -1717,7 +1721,6 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 </form>
 </div>
 
-<div id="vistaUsuarios" style="display:none"><div class="seccion-titulo"><h2>👥 Gestión de usuarios</h2><button class="boton-agregar" onclick="cargarUsuariosAdmin()">↻ Actualizar</button></div><div class="reporte-controles"><p class="reporte-periodo">Solo Administrador. Revisa las cuentas registradas y asigna el rol Administrador o Empleado.</p></div><div id="listaUsuariosAdmin"></div></div>
 <div class="modal" id="modalRecuperarPassword">
   <div class="formulario">
     <h2>🔐 Recuperar contraseña</h2>
@@ -1914,7 +1917,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div id="menuPrincipalFondo" class="menu-panel-fondo" onclick="cerrarMenuPrincipal(event)">
  <div class="menu-panel" onclick="event.stopPropagation()">
   <div class="menu-panel-cabecera"><h2>☰ Menú principal</h2><button class="cerrar-menu" onclick="cerrarMenuPrincipal()">✕</button></div>
-  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button class="solo-admin" onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button class="solo-admin" id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button class="solo-admin" id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button class="solo-admin" id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button class="solo-admin" id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button class="solo-admin" id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button class="solo-admin" id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button class="solo-admin" id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button class="solo-admin" id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button class="solo-admin" id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button class="solo-admin" id="botonUsuarios" onclick="mostrarUsuarios()">👥 Usuarios</button><button class="solo-propietario" id="botonAdminSoftware" onclick="mostrarAdminSoftware()">⚙️ Software</button><button class="solo-propietario" id="botonLicencias" onclick="mostrarLicencias()">🔐 Licencias</button></div>
+  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button class="solo-admin" onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button class="solo-admin" id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button class="solo-admin" id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button class="solo-admin" id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button class="solo-admin" id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button class="solo-admin" id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button class="solo-admin" id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button class="solo-admin" id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button class="solo-admin" id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button class="solo-admin" id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button class="solo-propietario" id="botonAdminSoftware" onclick="mostrarAdminSoftware()">⚙️ Software</button><button class="solo-propietario" id="botonLicencias" onclick="mostrarLicencias()">🔐 Licencias</button></div>
  </div>
 </div>
 
@@ -3016,7 +3019,7 @@ function aplicarPermisosVisuales(){
  document.body.classList.toggle("rol-empleado",!admin);
  const btnArr=document.getElementById("botonGuardarArrendamiento");if(btnArr)btnArr.style.display=admin?"":"none";
  document.body.classList.toggle("rol-admin",admin);
- const idsAdmin=["botonGastos","botonCierre","botonReportes","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonEstadisticas","botonUsuarios"];
+ const idsAdmin=["botonGastos","botonCierre","botonReportes","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonEstadisticas"];
  idsAdmin.forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=admin?"":"none"});
  if(typeof mostrarProductos==="function")mostrarProductos();
  if(typeof mostrarListaHistorial==="function")mostrarListaHistorial();
@@ -3824,9 +3827,6 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
 })();
 
 
-async function cargarUsuariosAdmin(){const lista=document.getElementById("listaUsuariosAdmin");if(rolSesion!=="admin"){lista.innerHTML='<div class="sin-productos">Acceso reservado al Administrador.</div>';return}if(!navigator.onLine){lista.innerHTML='<div class="sin-productos">Usuarios disponibles cuando vuelva la conexión.</div>';flkActualizarEstadoConexion();return}lista.innerHTML='<div class="sin-productos">Cargando usuarios...</div>';const {data,error}=await flkSupabase.from("profiles").select("id,email,full_name,role,created_at").order("created_at",{ascending:true});if(error){if(!flkSesionActiva)return;if(flkSilenciarSiEsConexion(error)){lista.innerHTML='<div class="sin-productos">Usuarios disponibles cuando vuelva la conexión.</div>';return}lista.innerHTML='<div class="sin-productos">No se pudieron cargar los usuarios: '+escapeHtml(error.message)+'</div>';return}const {data:ses}=await flkSupabase.auth.getSession(),miId=ses?.session?.user?.id||"";lista.innerHTML=data?.length?data.map(u=>{const propio=u.id===miId,admin=u.role==="admin";return `<div class="usuario-card"><div class="usuario-superior"><div><h3>${escapeHtml(u.full_name||u.email||"Usuario")}</h3><p>${escapeHtml(u.email||"")}</p></div><span class="usuario-rol ${admin?"admin":"employee"}">${admin?"👑 Administrador":"👤 Empleado"}</span></div>${propio?'<div class="usuario-propio">Esta es tu cuenta. Tu propio rol está protegido.</div>':`<div class="usuario-acciones"><button class="usuario-hacer-admin" ${admin?"disabled":""} onclick="cambiarRolUsuario('${u.id}','admin')">👑 Hacer Admin</button><button class="usuario-hacer-empleado" ${!admin?"disabled":""} onclick="cambiarRolUsuario('${u.id}','employee')">👤 Hacer Empleado</button></div>`}</div>`}).join(""):'<div class="sin-productos">No hay perfiles registrados.</div>'}
-async function cambiarRolUsuario(id,rol){if(rolSesion!=="admin")return alert("Acceso denegado.");if(!confirm("¿Cambiar esta cuenta a "+(rol==="admin"?"Administrador":"Empleado")+"?"))return;const {error}=await flkSupabase.rpc("admin_set_user_role",{target_user:id,new_role:rol});if(error){if(!flkSesionActiva)return;if(flkDebeMostrarErrorNube(error))return alert("No se pudo cambiar el rol: "+error.message);return;}await cargarUsuariosAdmin();alert("Rol actualizado correctamente.")}
-
 // ===== v60.5 · CONTROL ÚNICO DE VISTAS =====
 // Evita que una sección quede visible al entrar en otro módulo.
 function flkOcultarTodasLasVistas(){
@@ -3834,7 +3834,7 @@ function flkOcultarTodasLasVistas(){
   "vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos",
   "vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores",
   "vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas",
-  "vistaUsuarios","vistaAdminSoftware","vistaLicencias"
+  "vistaAdminSoftware","vistaLicencias"
  ];
  ids.forEach(id=>{
   const el=document.getElementById(id);
@@ -3842,15 +3842,7 @@ function flkOcultarTodasLasVistas(){
  });
 }
 
-function mostrarUsuarios(){flkOcultarTodasLasVistas();
- if(!requiereAdmin())return;
- if(rolSesion!=="admin")return alert("Esta sección es solo para Administradores.");
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
- document.getElementById("vistaUsuarios").style.display="block";actualizarMenu("usuarios");scrollTop();
- const lista=document.getElementById("listaUsuariosAdmin");
- if(!navigator.onLine){if(lista)lista.innerHTML='<div class="sin-productos">Gestión de usuarios disponible cuando vuelva la conexión.</div>';return}
- requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(()=>cargarUsuariosAdmin(),40)));
-}
+
 
 let flkEsPropietarioSoftware=false;
 
@@ -3894,7 +3886,7 @@ function flkAdminSwEsc(v){return escapeHtml(String(v??""))}
 
 function mostrarAdminSoftware(){flkOcultarTodasLasVistas();
  if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
- const vistas=["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios","vistaLicencias"];
+ const vistas=["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaLicencias"];
  vistas.forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  const v=document.getElementById("vistaAdminSoftware");if(v)v.style.display="block";
  document.querySelectorAll("#menuPrincipalFondo .menu-cuadricula button").forEach(b=>b.classList.remove("activo"));
@@ -4332,7 +4324,7 @@ function mostrarLicencias(){flkOcultarTodasLasVistas();
  const vistas=[
   "vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos",
   "vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores",
-  "vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"
+  "vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas"
  ];
  vistas.forEach(id=>{const el=document.getElementById(id);if(el)el.style.display="none"});
  const vl=document.getElementById("vistaLicencias");
@@ -6348,7 +6340,7 @@ function mostrarListaProveedores(){const q=document.getElementById("busquedaProv
 function actualizarProveedores(){const rec=ordenesCompra.filter(o=>o.estado==="recibida"),total=rec.reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),vencido=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").reduce((t,o)=>t+Number(o.saldoProveedor||0),0);document.getElementById("totalProveedores").textContent=proveedores.length;document.getElementById("proveedoresPendientes").textContent=proveedores.filter(p=>ordenesCompra.some(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)&&o.estado!=="recibida")).length;document.getElementById("totalCompradoProveedores").textContent="$"+total.toFixed(2);document.getElementById("totalPagadoProveedores").textContent="$"+pagado.toFixed(2);document.getElementById("saldoPorPagarProveedores").textContent="$"+saldo.toFixed(2);document.getElementById("deudaVencidaProveedores").textContent="$"+vencido.toFixed(2);mostrarListaProveedores()}
 function mostrarProveedores(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaProveedores").style.display="block";actualizarMenu("proveedores");scrollTop();
  requestAnimationFrame(()=>actualizarProveedores());
  if(navigator.onLine)setTimeout(()=>cargarComprasSupabase().then(()=>actualizarProveedores()).catch(()=>{}),0);
@@ -6492,7 +6484,7 @@ function mostrarListaOrdenes(){actualizarFiltrosOrdenes();const q=document.getEl
 function actualizarOrdenesCompra(){document.getElementById("ordenesPendientes").textContent=ordenesCompra.filter(o=>o.estado==="pendiente").length;document.getElementById("ordenesOrdenadas").textContent=ordenesCompra.filter(o=>o.estado==="ordenada").length;document.getElementById("ordenesRecibidas").textContent=ordenesCompra.filter(o=>o.estado==="recibida").length;document.getElementById("valorOrdenesRecibidas").textContent="$"+ordenesCompra.filter(o=>o.estado==="recibida").reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0).toFixed(2);mostrarListaOrdenes()}
 function mostrarOrdenes(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaOrdenes").style.display="block";actualizarMenu("ordenes");scrollTop();
  requestAnimationFrame(()=>actualizarOrdenesCompra());
  if(navigator.onLine)setTimeout(()=>cargarComprasSupabase().then(()=>actualizarOrdenesCompra()).catch(()=>{}),0);
@@ -6539,7 +6531,7 @@ function mostrarListaCuentasPagar(){actualizarFiltroProveedorCuentas();const lis
 function actualizarCuentasPagar(){const rec=ordenesCompra.filter(o=>o.estado==="recibida"),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),vencido=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").reduce((t,o)=>t+Number(o.saldoProveedor||0),0);if(document.getElementById("cuentasSaldoTotal")){document.getElementById("cuentasSaldoTotal").textContent="$"+saldo.toFixed(2);document.getElementById("cuentasSaldoVencido").textContent="$"+vencido.toFixed(2);document.getElementById("cuentasPendientes").textContent=rec.filter(o=>Number(o.saldoProveedor||0)>0.009).length;document.getElementById("cuentasTotalPagado").textContent="$"+pagado.toFixed(2);mostrarListaCuentasPagar()}}
 function mostrarCuentasPagar(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaCuentasPagar").style.display="block";actualizarMenu("cuentasPagar");scrollTop();
  requestAnimationFrame(()=>actualizarCuentasPagar());
  if(navigator.onLine)setTimeout(()=>cargarComprasSupabase().then(()=>actualizarCuentasPagar()).catch(()=>{}),0);
@@ -6760,7 +6752,7 @@ function actualizarFlujoCaja(){
 }
 function mostrarFlujoCaja(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaFlujoCaja").style.display="block";actualizarMenu("flujoCaja");scrollTop();
  actualizarSaldoCajaFisica();
  requestAnimationFrame(()=>actualizarFlujoCaja());
@@ -6974,7 +6966,7 @@ function actualizarFinanzas(){
 }
 function mostrarFinanzas(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaFinanzas").style.display="block";actualizarMenu("finanzas");scrollTop();
  requestAnimationFrame(()=>actualizarFinanzas());
  if(navigator.onLine)setTimeout(async()=>{
@@ -7198,7 +7190,7 @@ function actualizarCentroAlertas(){
  actualizarIndicadorAlertas()
 }
 function mostrarAlertas(){flkOcultarTodasLasVistas();
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaAlertas").style.display="block";actualizarMenu("alertas");scrollTop();
  requestAnimationFrame(()=>actualizarCentroAlertas());
  if(navigator.onLine)setTimeout(async()=>{
@@ -7208,7 +7200,7 @@ function mostrarAlertas(){flkOcultarTodasLasVistas();
 }
 function mostrarEstadisticas(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaEstadisticas").style.display="block";actualizarMenu("estadisticas");scrollTop();
  requestAnimationFrame(()=>actualizarEstadisticas());
  if(navigator.onLine)setTimeout(async()=>{
@@ -7237,7 +7229,7 @@ function actualizarEstadisticas(){
  const conteo={};historial.forEach(m=>{const id=m.productoId;if(!conteo[id])conteo[id]={nombre:m.nombre,movimientos:0};conteo[id].movimientos++});const rm=Object.values(conteo).sort((a,b)=>b.movimientos-a.movimientos).slice(0,5);document.getElementById("rankingMovimientos").innerHTML=rm.length?rm.map(x=>`<div class="fila-estadistica"><span>${escapeHtml(x.nombre)}</span><strong>${x.movimientos} movimiento(s)</strong></div>`).join(""):`<div class="fila-estadistica"><span>No hay movimientos.</span><strong>—</strong></div>`;
  const bajos=productos.filter(p=>Number(p.cantidad)<=Number(p.stockMinimo??5));document.getElementById("rankingStockBajo").innerHTML=bajos.length?bajos.map(p=>`<div class="fila-estadistica"><span>${escapeHtml(p.nombre)}</span><strong>${p.cantidad} / ${Number(p.stockMinimo??5)}</strong></div>`).join(""):`<div class="fila-estadistica"><span>Todo el inventario está por encima del mínimo.</span><strong>✓ OK</strong></div>`
 }
-function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonEstadisticas","botonUsuarios","botonLicencias"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";if(sec!=="cuentasPagar")document.getElementById("vistaCuentasPagar").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",cuentasPagar:"botonCuentasPagar",flujoCaja:"botonFlujoCaja",finanzas:"botonFinanzas",estadisticas:"botonEstadisticas",usuarios:"botonUsuarios"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo")}
+function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonEstadisticas","botonLicencias"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";if(sec!=="cuentasPagar")document.getElementById("vistaCuentasPagar").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",cuentasPagar:"botonCuentasPagar",flujoCaja:"botonFlujoCaja",finanzas:"botonFinanzas",estadisticas:"botonEstadisticas"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo")}
 function mostrarInventario(){flkOcultarTodasLasVistas();document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";document.getElementById("vistaFlujoCaja").style.display="none";document.getElementById("vistaFinanzas").style.display="none";const vl=document.getElementById("vistaLicencias");if(vl)vl.style.display="none";const va=document.getElementById("vistaAdminSoftware");if(va)va.style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
 function scrollTop(){window.scrollTo({top:0,behavior:"auto"})}
 document.addEventListener("visibilitychange",()=>{
@@ -7371,7 +7363,6 @@ if("serviceWorker" in navigator){
   botonFlujoCaja:()=>mostrarFlujoCaja(),
   botonFinanzas:()=>mostrarFinanzas(),
   botonEstadisticas:()=>mostrarEstadisticas(),
-  botonUsuarios:()=>mostrarUsuarios(),
   botonAdminSoftware:()=>mostrarAdminSoftware(),
   botonLicencias:()=>mostrarLicencias()
  };
