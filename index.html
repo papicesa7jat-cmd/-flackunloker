@@ -1741,6 +1741,17 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   </div>
  </div>
  <div class="adminsw-panel">
+  <h3 style="margin:0 0 14px">➕ Crear usuario y asignar</h3>
+  <div class="adminsw-form" style="grid-template-columns:1.25fr 1.1fr 1fr 1fr auto">
+   <div class="campo"><label>Correo del nuevo usuario</label><input id="adminswNuevoEmail" type="email" autocomplete="off" placeholder="usuario@correo.com"></div>
+   <div class="campo"><label>Contraseña inicial</label><input id="adminswNuevoPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Mínimo 8 caracteres"></div>
+   <div class="campo"><label>Centro</label><select id="adminswNuevoCentro"><option value="">Selecciona</option></select></div>
+   <div class="campo"><label>Rol</label><select id="adminswNuevoRol"><option value="owner">Propietario</option><option value="admin">Administrador</option><option value="employee">Empleado</option></select></div>
+   <button class="boton-agregar" id="adminswBotonCrearUsuario" type="button" onclick="crearUsuarioAdminSoftware()">Crear y asignar</button>
+  </div>
+  <small class="ayuda-campo">La contraseña se envía únicamente a una función segura de Supabase. La clave administrativa nunca se guarda en este index.html.</small>
+ </div>
+ <div class="adminsw-panel">
   <h3 style="margin:0 0 14px">👤 Asignar usuario existente</h3>
   <div class="adminsw-form" style="grid-template-columns:1.3fr 1fr 1fr auto">
    <div class="campo"><label>Correo del usuario</label><input id="adminswUsuarioEmail" type="email" placeholder="usuario@correo.com"></div>
@@ -3767,8 +3778,9 @@ async function cargarAdminSoftware(){
   document.getElementById("adminswTotalCentros").textContent=flkAdminSoftwareCentros.length;
   document.getElementById("adminswCentrosActivos").textContent=flkAdminSoftwareCentros.filter(c=>String(c.status)==="active").length;
   document.getElementById("adminswTotalMiembros").textContent=flkAdminSoftwareCentros.reduce((a,c)=>a+Number(c.members_count||0),0);
-  const sel=document.getElementById("adminswUsuarioCentro");
-  sel.innerHTML='<option value="">Selecciona</option>'+flkAdminSoftwareCentros.map(c=>`<option value="${flkEscAttr(c.business_id)}">${flkAdminSwEsc(c.name)} · ${flkAdminSwEsc(c.code||"")}</option>`).join("");
+  const opcionesCentros='<option value="">Selecciona</option>'+flkAdminSoftwareCentros.map(c=>`<option value="${flkEscAttr(c.business_id)}">${flkAdminSwEsc(c.name)} · ${flkAdminSwEsc(c.code||"")}</option>`).join("");
+  const sel=document.getElementById("adminswUsuarioCentro");if(sel)sel.innerHTML=opcionesCentros;
+  const selNuevo=document.getElementById("adminswNuevoCentro");if(selNuevo)selNuevo.innerHTML=opcionesCentros;
   if(!flkAdminSoftwareCentros.length){lista.innerHTML='<div class="sin-productos">No hay centros registrados.</div>';return}
   lista.innerHTML=flkAdminSoftwareCentros.map(c=>`<div class="adminsw-centro" id="adminsw-centro-${flkEscAttr(c.business_id)}"><div class="adminsw-centro-top"><div><h3>${flkAdminSwEsc(c.name)}</h3><p>Código: ${flkAdminSwEsc(c.code||"—")}<br>ID: ${flkAdminSwEsc(c.business_id)}</p></div><span class="adminsw-badge ${String(c.status)==="active"?"active":"inactive"}">${String(c.status)==="active"?"ACTIVO":"INACTIVO"}</span></div><div class="adminsw-acciones"><button class="adminsw-btn azul" onclick="cargarMiembrosCentroAdminSoftware('${flkEscAttr(c.business_id)}')">👥 Ver usuarios</button><button class="adminsw-btn ${String(c.status)==="active"?"rojo":"verde"}" onclick="cambiarEstadoCentroAdminSoftware('${flkEscAttr(c.business_id)}','${String(c.status)==="active"?"inactive":"active"}')">${String(c.status)==="active"?"⛔ Desactivar":"✅ Activar"}</button></div><div class="adminsw-miembros" id="adminsw-miembros-${flkEscAttr(c.business_id)}" style="display:none"></div></div>`).join("");
  }catch(err){console.error("Administración software:",err);lista.innerHTML='<div class="sin-productos">No se pudo cargar la administración de centros.</div>';alert("Falta instalar o actualizar las funciones de Administración del Software en Supabase.\n\nDetalle: "+(err?.message||"Error desconocido"))}
@@ -3782,6 +3794,41 @@ async function crearCentroAdminSoftware(){
  if(code.length<2)return alert("Escribe un código para el centro.");
  if(!confirm(`¿Crear el centro ${name} (${code})?`))return;
  try{const {error}=await flkSupabase.rpc("flk_software_admin_create_center",{p_name:name,p_code:code});if(error)throw error;document.getElementById("adminswCentroNombre").value="";document.getElementById("adminswCentroCodigo").value="";await cargarAdminSoftware();alert("Centro creado correctamente.")}catch(err){alert("No se pudo crear el centro: "+(err?.message||"Error desconocido"))}
+}
+
+async function crearUsuarioAdminSoftware(){
+ if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
+ if(!navigator.onLine)return alert("Debes estar conectado a Internet para crear usuarios.");
+ const email=(document.getElementById("adminswNuevoEmail")?.value||"").trim().toLowerCase();
+ const password=document.getElementById("adminswNuevoPassword")?.value||"";
+ const business=document.getElementById("adminswNuevoCentro")?.value||"";
+ const role=document.getElementById("adminswNuevoRol")?.value||"employee";
+ if(!email||!email.includes("@"))return alert("Escribe un correo válido.");
+ if(password.length<8)return alert("La contraseña inicial debe tener al menos 8 caracteres.");
+ if(!business)return alert("Selecciona el centro al que pertenecerá el usuario.");
+ if(!["owner","admin","employee"].includes(role))return alert("Rol inválido.");
+ if(!confirm(`¿Crear ${email} y asignarlo al centro seleccionado como ${role}?`))return;
+ const boton=document.getElementById("adminswBotonCrearUsuario");
+ try{
+  if(boton){boton.disabled=true;boton.textContent="Creando..."}
+  const {data,error}=await flkSupabase.functions.invoke("flk-create-user",{body:{email,password,business_id:business,role}});
+  if(error){
+   let detalle=error.message||"Error al invocar la función segura";
+   try{if(error.context){const j=await error.context.json();detalle=j?.error||j?.message||detalle}}catch(_e){}
+   throw new Error(detalle);
+  }
+  if(!data?.ok)throw new Error(data?.error||"No se pudo crear el usuario.");
+  document.getElementById("adminswNuevoEmail").value="";
+  document.getElementById("adminswNuevoPassword").value="";
+  await cargarAdminSoftware();
+  await cargarMiembrosCentroAdminSoftware(business);
+  alert("Usuario creado y asignado correctamente. Ya puede iniciar sesión con su correo y contraseña.");
+ }catch(err){
+  console.error("Crear usuario software:",err);
+  alert("No se pudo crear el usuario.\n\nDetalle: "+(err?.message||"Error desconocido"));
+ }finally{
+  if(boton){boton.disabled=false;boton.textContent="Crear y asignar"}
+ }
 }
 
 async function asignarUsuarioAdminSoftware(){
