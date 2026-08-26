@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.41-submenus-blancos-negativos-marron">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.43-nombres-productos-azul">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2171,6 +2171,59 @@ document.addEventListener('DOMContentLoaded',()=>{
 .flk-numero-negativo{
  color:#5A2D0C !important;
  font-weight:900 !important;
+}
+</style>
+
+<style id="flk-v6142-etiquetas-blancas">
+/* ===== v61.42 · ETIQUETAS DE CÁLCULO EN BLANCO Y NEGRITA =====
+   Mantiene intactos los números y su color, incluidos los negativos marrón. */
+
+/* Etiquetas de tarjetas de resumen/cálculo:
+   Productos, Unidades, Valor inventario, Costo, Ganancia, Valor del costo, etc. */
+.resumen-card span,
+.resumen-item span,
+.estadistica span,
+.estadistica-card span,
+.lista-estadisticas span,
+.tarjeta-resumen span,
+[class*="resumen"] span,
+[class*="estadistica"] span,
+[class*="summary"] span{
+  color:#FFFFFF !important;
+  font-weight:900 !important;
+  font-style:normal !important;
+  opacity:1 !important;
+  text-shadow:0 1px 2px rgba(0,0,0,.38) !important;
+}
+
+/* Los valores numéricos conservan su formato/color anterior */
+.resumen-card strong,
+.resumen-item strong,
+.estadistica strong,
+.estadistica-card strong,
+.lista-estadisticas strong,
+.tarjeta-resumen strong,
+[class*="resumen"] strong,
+[class*="estadistica"] strong,
+[class*="summary"] strong{
+  font-style:normal !important;
+}
+</style>
+
+<style id="flk-v6143-nombres-productos">
+/* ===== v61.43 · NOMBRE DE PRODUCTOS EN AZUL OSCURO =====
+   Solo afecta el nombre principal de cada producto del inventario. */
+.producto h3,
+.producto-card h3,
+.tarjeta-producto h3,
+.producto .nombre-producto,
+.producto-card .nombre-producto,
+.tarjeta-producto .nombre-producto{
+  color:#064F86 !important;
+  font-weight:900 !important;
+  font-style:normal !important;
+  text-shadow:none !important;
+  opacity:1 !important;
 }
 </style>
 </head>
