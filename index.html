@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.15-sin-cartel-offline">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.16-fondo-azul-marino">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -52,14 +52,23 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
   --texto:#101828;--muted:#667085;--borde:#e8edf5;--verde:#168044;
   --rojo:#d93025;--naranja:#a15c00;--radio:20px;
 }
-html{scroll-behavior:auto}
+html{
+  scroll-behavior:auto;
+  background:#071A2F;
+}
 body{
+  background:#071A2F;
+  color:var(--texto);
+}
+.contenedor{
+  max-width:720px;
+  min-height:100vh;
+  padding:20px 18px 145px;
   background:
     radial-gradient(circle at 50% -160px,rgba(10,132,255,.15),transparent 420px),
     var(--fondo);
-  color:var(--texto);
+  box-shadow:0 0 42px rgba(0,0,0,.24);
 }
-.contenedor{max-width:720px;padding:20px 18px 145px}
 .encabezado{
   position:relative;text-align:left;margin:8px 0 24px;padding:18px 20px;
   border:1px solid rgba(255,255,255,.8);border-radius:26px;
