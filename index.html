@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.29-gris-claro-real">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.30-reset-en-software">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1304,6 +1304,17 @@ textarea::placeholder{
 }
 </style>
 
+<style id="flk-v6130-reset-software">
+#vistaAdminSoftware #panelRestablecimientoTotal{
+ position:static !important;left:auto !important;bottom:auto !important;z-index:auto !important;
+ width:100% !important;height:auto !important;padding:18px !important;overflow:visible !important;
+ border-radius:20px !important;cursor:default !important;box-shadow:none !important;
+}
+#vistaAdminSoftware #panelRestablecimientoTotal::before{display:none !important;content:none !important}
+#vistaAdminSoftware #panelRestablecimientoTotal h3,
+#vistaAdminSoftware #panelRestablecimientoTotal p,
+#vistaAdminSoftware #panelRestablecimientoTotal .boton-agregar{display:block !important}
+</style>
 </head>
 <body>
 
@@ -1362,13 +1373,6 @@ textarea::placeholder{
  </div>
 </div>
 
-<div class="lista-estadisticas" id="panelRestablecimientoTotal" tabindex="0" aria-label="Restablecimiento total" style="display:none;border:1px solid #ffd5d2">
- <h3>⚠️ Restablecer Flackunloker</h3>
- <p style="margin:0 0 14px">
-  <strong>Solo Administrador.</strong> Deja el sistema como nuevo sin borrar las cuentas de acceso.
- </p>
- <button class="boton-agregar" type="button" onclick="abrirRestablecimientoTotal()" style="background:#d93025;width:100%">🔐 Abrir restablecimiento total</button>
-</div>
 <div id="authUsuario" class="auth-user">
  <strong id="authUsuarioEmail">—</strong>
  <span id="authUsuarioRol">Usuario</span>
@@ -2019,6 +2023,11 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   </div>
   <input id="archivoRespaldo" type="file" accept=".json,application/json" style="display:none" onchange="restaurarRespaldo(event)">
   <div id="estadoRespaldo" class="estado-respaldo"></div>
+ </div>
+ <div class="adminsw-panel" id="panelRestablecimientoTotal" style="display:none;border:1px solid #f2b8b5">
+  <h3 style="margin:0 0 8px;color:#b3261e">⚠️ Restablecimiento total</h3>
+  <p style="margin:0 0 14px;color:#667085;font-size:13px;line-height:1.55">Elimina los datos operativos del centro actual sin borrar las cuentas de acceso. Disponible únicamente para <strong>Administradores</strong> y el <strong>Propietario del Software</strong>.</p>
+  <button class="boton-agregar" type="button" onclick="abrirRestablecimientoTotal()" style="background:#d93025;width:100%">🔐 Abrir restablecimiento total</button>
  </div>
  <div id="adminswListaCentros"><div class="sin-productos">Pulsa Actualizar para cargar los centros.</div></div>
 </div>
@@ -3085,9 +3094,13 @@ document.addEventListener("DOMContentLoaded",()=>{
 
 
 
+function flkPuedeRestablecerTotal(){return rolSesion==="admin"||flkEsPropietarioSoftware}
+function flkActualizarPermisoRestablecimiento(){
+ const panel=document.getElementById("panelRestablecimientoTotal");
+ if(panel)panel.style.display=flkPuedeRestablecerTotal()?"block":"none";
+}
 async function abrirRestablecimientoTotal(){
- if(!requiereAdmin())return;
- if(rolSesion!=="admin")return alert("Solo el Administrador puede usar el restablecimiento total.");
+ if(!flkPuedeRestablecerTotal())return alert("Solo los Administradores y el Propietario del Software pueden usar el restablecimiento total.");
  document.getElementById("modalRestablecimientoTotal").classList.add("visible");
  const {data,error}=await flkSupabase.rpc("flk_reset_pin_configured");
  if(error){if(flkSilenciarSiEsConexion(error))return;return alert("No se pudo verificar la seguridad: "+error.message)};
@@ -3103,6 +3116,7 @@ function mostrarCambioPinReset(){
  document.getElementById("bloqueEjecutarReset").style.display="none";
 }
 async function guardarPinReset(){
+ if(!flkPuedeRestablecerTotal())return alert("No tienes permiso para cambiar el PIN de restablecimiento.");
  const a=document.getElementById("nuevoPinReset").value,b=document.getElementById("confirmarPinReset").value;
  if(!/^\d{6}$/.test(a))return alert("El PIN debe tener exactamente 6 dígitos.");
  if(a!==b)return alert("Los dos PIN no coinciden.");
@@ -3113,6 +3127,7 @@ async function guardarPinReset(){
  alert("PIN de restablecimiento configurado correctamente.");
 }
 async function ejecutarRestablecimientoTotal(){
+ if(!flkPuedeRestablecerTotal())return alert("No tienes permiso para restablecer el sistema.");
  const pin=document.getElementById("pinEjecutarReset").value;
  const texto=document.getElementById("textoConfirmarReset").value.trim().toUpperCase();
  if(!/^\d{6}$/.test(pin))return alert("Introduce tu PIN de 6 dígitos.");
@@ -4126,7 +4141,7 @@ async function flkComprobarPropietarioSoftware(){
   const botonLic=document.getElementById("botonLicencias");
   if(botonLic)botonLic.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
    const botonAdmin=document.getElementById("botonAdminSoftware");
-   if(botonAdmin)botonAdmin.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
+   if(botonAdmin)botonAdmin.style.setProperty("display",(rolSesion==="admin"||flkEsPropietarioSoftware)?"flex":"none","important");
   return flkEsPropietarioSoftware
  }catch(err){
   console.error("Comprobación propietario software:",err);
@@ -4142,10 +4157,10 @@ let flkAdminSoftwareCentros=[];
 function flkAdminSwEsc(v){return escapeHtml(String(v??""))}
 
 function mostrarAdminSoftware(){flkOcultarTodasLasVistas();
- if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
+ if(!(rolSesion==="admin"||flkEsPropietarioSoftware))return alert("Este panel está disponible únicamente para Administradores y el Propietario del Software.");
  const vistas=["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaLicencias"];
  vistas.forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
- const v=document.getElementById("vistaAdminSoftware");if(v)v.style.display="block";
+ const v=document.getElementById("vistaAdminSoftware");if(v)v.style.display="block";flkActualizarPermisoRestablecimiento();
  document.querySelectorAll("#menuPrincipalFondo .menu-cuadricula button").forEach(b=>b.classList.remove("activo"));
  document.getElementById("botonAdminSoftware")?.classList.add("activo");
  cargarAdminSoftware();scrollTop();
@@ -4351,7 +4366,8 @@ async function flkCargarUsuariosExistentesAdminSoftware(){
 }
 
 async function cargarAdminSoftware(){
- if(!flkEsPropietarioSoftware)return;
+ if(!(rolSesion==="admin"||flkEsPropietarioSoftware))return;
+ flkActualizarPermisoRestablecimiento();
  flkCargarUsuariosExistentesAdminSoftware();
  const lista=document.getElementById("adminswListaCentros");
  if(!navigator.onLine){lista.innerHTML='<div class="sin-productos">Conéctate a Internet para administrar centros.</div>';return}
