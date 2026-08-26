@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v60.1-admin-software-menu-fix">
+<meta name="flackunloker-offline-version" content="2026-08-26-v60.3-licencias-por-centro">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1774,8 +1774,11 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   <h3 style="margin:0 0 14px">➕ Nueva licencia para tercero</h3>
   <div class="lic-grid">
    <div class="campo">
-    <label for="licNuevoCliente">Cliente / negocio</label>
-    <input id="licNuevoCliente" type="text" maxlength="120" placeholder="Nombre del cliente">
+    <label for="licNuevoCentro">Centro</label>
+    <select id="licNuevoCentro">
+     <option value="">Cargando centros...</option>
+    </select>
+    <small class="ayuda-campo">La licencia quedará vinculada al centro seleccionado.</small>
    </div>
    <div class="campo">
     <label for="licNuevoVencimiento">Vencimiento</label>
@@ -4053,8 +4056,35 @@ async function liberarDispositivoLicenciaLista(key){
  }
 }
 
+async function cargarCentrosSelectorLicencias(){
+ if(!flkEsPropietarioSoftware)return;
+ const sel=document.getElementById("licNuevoCentro");
+ if(!sel)return;
+ if(!navigator.onLine){
+  sel.innerHTML='<option value="">Conéctate a Internet</option>';
+  return;
+ }
+ sel.innerHTML='<option value="">Cargando centros...</option>';
+ try{
+  const {data,error}=await flkSupabase.rpc("flk_software_admin_list_centers");
+  if(error)throw error;
+  flkAdminSoftwareCentros=Array.isArray(data)?data:[];
+  const activos=flkAdminSoftwareCentros
+   .filter(c=>String(c.status)==="active")
+   .sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"es",{sensitivity:"base"}));
+  sel.innerHTML=activos.length
+   ? '<option value="">Selecciona un centro...</option>'+activos.map(c=>`<option value="${flkEscAttr(c.business_id)}">${flkAdminSwEsc(c.name)}${c.code?" · "+flkAdminSwEsc(c.code):""}</option>`).join("")
+   : '<option value="">No hay centros activos</option>';
+ }catch(err){
+  console.error("Centros para licencias:",err);
+  sel.innerHTML='<option value="">No se pudieron cargar los centros</option>';
+ }
+}
+
 async function cargarPanelLicencias(){
  if(!flkEsPropietarioSoftware)return;
+
+ await cargarCentrosSelectorLicencias();
 
  try{
   // La licencia principal ya fue validada al iniciar la aplicación.
@@ -4110,19 +4140,21 @@ async function crearLicenciaTercero(){
  const boton=document.getElementById("botonCrearLicenciaTercero");
  if(boton?.disabled)return;
 
- const cliente=(document.getElementById("licNuevoCliente")?.value||"").trim();
+ const centroSel=document.getElementById("licNuevoCentro");
+ const businessId=(centroSel?.value||"").trim();
+ const centroNombre=centroSel?.selectedOptions?.[0]?.textContent?.trim()||"";
  const fechaTxt=document.getElementById("licNuevoVencimiento")?.value||"";
  const gracia=Number(document.getElementById("licNuevaGracia")?.value??3);
  const notas=(document.getElementById("licNuevasNotas")?.value||"").trim();
 
- if(cliente.length<2)return alert("Escribe el nombre del cliente o negocio.");
+ if(!businessId)return alert("Selecciona el centro que recibirá la licencia.");
  const fecha=new Date(fechaTxt);
  if(!fechaTxt||Number.isNaN(fecha.getTime())||fecha<=new Date())
   return alert("Selecciona una fecha de vencimiento futura.");
  if(!Number.isInteger(gracia)||gracia<0||gracia>30)
   return alert("La gracia offline debe estar entre 0 y 30 días.");
 
- if(!confirm("¿Crear una nueva licencia para "+cliente+"?"))return;
+ if(!confirm("¿Crear una nueva licencia para "+centroNombre+"?"))return;
 
  try{
   if(boton){boton.disabled=true;boton.textContent="Creando licencia…";}
@@ -4130,10 +4162,11 @@ async function crearLicenciaTercero(){
   if(resultado){resultado.style.display="none";resultado.textContent="";}
 
   const {data,error}=await flkSupabase.rpc("flk_create_license",{
-   p_customer_name:cliente,
+   p_customer_name:centroNombre,
    p_expires_at:fecha.toISOString(),
    p_offline_grace_days:gracia,
-   p_notes:notas||null
+   p_notes:notas||null,
+   p_business_id:businessId
   });
   if(error)throw error;
 
@@ -4145,18 +4178,19 @@ async function crearLicenciaTercero(){
    box.style.display="block";
    box.innerHTML=
     "<strong>✅ Licencia creada</strong><br>"+
-    "Cliente: "+escapeHtml(lic.customer_name||cliente)+"<br>"+
+    "Centro: "+escapeHtml(lic.customer_name||centroNombre)+"<br>"+
     "Clave: <strong style='overflow-wrap:anywhere'>"+escapeHtml(lic.license_key)+"</strong><br>"+
     "Vence: "+escapeHtml(flkFechaLicenciaBonita(lic.expires_at))+"<br>"+
     "Gracia offline: "+Number(lic.offline_grace_days||0)+" día(s)";
   }
 
-  document.getElementById("licNuevoCliente").value="";
+  if(centroSel)centroSel.value="";
   document.getElementById("licNuevasNotas").value="";
-  alert("Licencia creada correctamente. Guarda o copia la clave mostrada en el panel.")
+  alert("Licencia creada y vinculada al centro correctamente. Guarda o copia la clave mostrada en el panel.");
+  await cargarListaLicencias();
  }catch(err){
   console.error("Crear licencia:",err);
-  alert("No se pudo crear la licencia.\n\nDetalle: "+(err?.message||err?.details||"Error desconocido"))
+  alert("No se pudo crear la licencia.\n\nDetalle: "+(err?.message||err?.details||"Error desconocido"));
  }finally{
   if(boton){boton.disabled=false;boton.textContent="➕ Crear licencia";}
  }
