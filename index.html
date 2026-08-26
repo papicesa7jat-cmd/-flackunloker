@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.20-estetica-profesional">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.21-gris-software-ancho">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -7311,6 +7311,51 @@ function imprimirFinanzas(){
   margin-left:0 !important;
   margin-right:0 !important;
 }
+
+/* ===== v61.21 · Contraste gris + Software ancho uniforme ===== */
+/* Casillas de datos: gris más marcado, manteniendo lectura limpia */
+.tarjeta,.estadistica-card,.tarjeta-historial,.finanzas-card,.adminsw-card,
+.producto,.movimiento,.lista-estadisticas,.respaldo-box,.venta-card,.cliente-card,
+.gasto-card,.cierre-card,.alerta-card,.centro-alerta,.orden-card,.proveedor-card,
+.cuenta-proveedor-card,.reporte-controles,.adminsw-panel,.adminsw-centro{
+  background:#E7EBF0 !important;
+  border-color:#C9D1DB !important;
+}
+
+/* Buscadores, filtros y campos: mismo lenguaje gris */
+.busqueda,.busqueda-historial,.filtro-inventario,
+input,select,textarea,.campo input,.campo select,#adminswUsuarioEmail{
+  background:#E1E6EC !important;
+  border-color:#C3CCD7 !important;
+  color:#172333 !important;
+}
+.busqueda::placeholder,.busqueda-historial::placeholder,input::placeholder,textarea::placeholder{
+  color:#687586 !important;
+}
+
+/* Administración del Software: mismo ancho útil que las demás vistas */
+#vistaAdminSoftware{
+  width:100% !important;
+  max-width:none !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+#vistaAdminSoftware > .seccion-titulo,
+#vistaAdminSoftware > .reporte-controles,
+#vistaAdminSoftware > .adminsw-grid,
+#vistaAdminSoftware > .adminsw-panel,
+#vistaAdminSoftware > #adminswListaCentros{
+  width:100% !important;
+  max-width:none !important;
+  margin-left:0 !important;
+  margin-right:0 !important;
+}
+#vistaAdminSoftware .adminsw-form{width:100% !important;}
+
+@media(max-width:700px){
+  #vistaAdminSoftware{width:100% !important;}
+}
+
 </style>
 
 </head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
