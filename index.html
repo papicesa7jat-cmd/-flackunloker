@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.1-licencias-rpc-corregidas">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.2-usuarios-por-sucursal">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -3938,9 +3938,117 @@ async function asignarUsuarioAdminSoftware(){
  try{const {error}=await flkSupabase.rpc("flk_software_admin_assign_user",{p_email:email,p_business_id:business,p_role:role});if(error)throw error;document.getElementById("adminswUsuarioEmail").value="";await cargarAdminSoftware();await cargarMiembrosCentroAdminSoftware(business);alert("Usuario asignado correctamente.")}catch(err){alert("No se pudo asignar el usuario: "+(err?.message||"Error desconocido"))}
 }
 
+
+async function flkCambiarRolMiembro(businessId,userId,email,rolActual){
+ if(!flkEsPropietarioSoftware)return;
+ const nuevo=prompt(
+  "Cambiar rol de "+email+"\n\nEscribe uno de estos valores:\nowner\nadmin\nemployee",
+  String(rolActual||"employee")
+ );
+ if(nuevo===null)return;
+ const rol=String(nuevo).trim().toLowerCase();
+ if(!["owner","admin","employee"].includes(rol))return alert("Rol inválido. Usa owner, admin o employee.");
+ if(rol===String(rolActual||"").toLowerCase())return;
+ if(!confirm("¿Cambiar el rol de "+email+" a "+rol+"?"))return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_software_admin_set_member_role",{
+   p_business_id:businessId,p_user_id:userId,p_role:rol
+  });
+  if(error)throw error;
+  alert("Rol actualizado correctamente.");
+  await flkRefrescarMiembrosCentro(businessId);
+ }catch(err){
+  console.error("Cambiar rol:",err);
+  alert("No se pudo cambiar el rol.\n\n"+(err?.message||"Error desconocido"));
+ }
+}
+
+async function flkCambiarEstadoMiembro(businessId,userId,email,estadoActual){
+ if(!flkEsPropietarioSoftware)return;
+ const actual=String(estadoActual||"active").toLowerCase();
+ const nuevo=actual==="active"?"inactive":"active";
+ const verbo=nuevo==="active"?"activar":"desactivar";
+ if(!confirm("¿Seguro que deseas "+verbo+" a "+email+" en este centro?"))return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_software_admin_set_member_status",{
+   p_business_id:businessId,p_user_id:userId,p_status:nuevo
+  });
+  if(error)throw error;
+  alert("Estado actualizado correctamente.");
+  await flkRefrescarMiembrosCentro(businessId);
+ }catch(err){
+  console.error("Cambiar estado:",err);
+  alert("No se pudo cambiar el estado.\n\n"+(err?.message||"Error desconocido"));
+ }
+}
+
+async function flkQuitarMiembroCentro(businessId,userId,email){
+ if(!flkEsPropietarioSoftware)return;
+ if(!confirm("¿Quitar a "+email+" de esta sucursal?\n\nLa cuenta de Authentication no será eliminada."))return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_software_admin_remove_user",{
+   p_business_id:businessId,p_user_id:userId
+  });
+  if(error)throw error;
+  alert("Usuario retirado del centro.");
+  await flkRefrescarMiembrosCentro(businessId);
+ }catch(err){
+  console.error("Quitar usuario:",err);
+  alert("No se pudo quitar el usuario.\n\n"+(err?.message||"Error desconocido"));
+ }
+}
+
+async function flkRefrescarMiembrosCentro(businessId){
+ const box=document.querySelector(`[data-members-business-id="${CSS.escape(String(businessId))}"]`);
+ if(!box)return cargarAdminSoftware();
+ box.innerHTML='<div class="sin-productos">Actualizando usuarios...</div>';
+ try{
+  const {data,error}=await flkSupabase.rpc("flk_software_admin_list_members",{p_business_id:businessId});
+  if(error)throw error;
+  const miembros=Array.isArray(data)?data:[];
+  box.innerHTML=flkHtmlMiembrosCentro(businessId,miembros);
+  const total=flkAdminSoftwareCentros.reduce((n,c)=>n+Number(c.member_count||c.members_count||0),0);
+  // contador principal se actualiza completamente al recargar el panel cuando cambia membresía
+ }catch(err){
+  console.error("Actualizar usuarios:",err);
+  box.innerHTML='<div class="sin-productos">No se pudieron cargar los usuarios.</div>';
+ }
+}
+
+function flkHtmlMiembrosCentro(businessId,miembros){
+ if(!miembros.length)return '<div class="sin-productos">No hay usuarios asignados a este centro.</div>';
+ return miembros.map(m=>{
+  const email=String(m.email||"Sin correo");
+  const role=String(m.role||"employee");
+  const status=String(m.status||"active");
+  const activo=status==="active";
+  return `<div style="padding:12px 0;border-top:1px solid #eef1f5">
+   <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap">
+    <div><strong>${flkAdminSwEsc(email)}</strong><div style="margin-top:3px;color:#667085;font-size:12px">${flkAdminSwEsc(role)} · ${activo?"🟢 active":"⚪ inactive"}</div></div>
+   </div>
+   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:9px">
+    <button type="button" class="boton-secundario" onclick='flkCambiarRolMiembro(${JSON.stringify(String(businessId))},${JSON.stringify(String(m.user_id))},${JSON.stringify(email)},${JSON.stringify(role)})'>🪪 Rol</button>
+    <button type="button" class="boton-secundario" onclick='flkCambiarEstadoMiembro(${JSON.stringify(String(businessId))},${JSON.stringify(String(m.user_id))},${JSON.stringify(email)},${JSON.stringify(status)})'>${activo?"⏸ Desactivar":"▶ Activar"}</button>
+    <button type="button" class="boton-peligro" onclick='flkQuitarMiembroCentro(${JSON.stringify(String(businessId))},${JSON.stringify(String(m.user_id))},${JSON.stringify(email)})'>🗑 Quitar</button>
+   </div>
+  </div>`;
+ }).join("");
+}
+
 async function cargarMiembrosCentroAdminSoftware(businessId){
  const box=document.getElementById("adminsw-miembros-"+businessId);if(!box)return;box.style.display="block";box.innerHTML="Cargando usuarios...";
- try{const {data,error}=await flkSupabase.rpc("flk_software_admin_list_members",{p_business_id:businessId});if(error)throw error;const arr=Array.isArray(data)?data:[];box.innerHTML=arr.length?arr.map(m=>`<div class="adminsw-miembro"><div class="adminsw-miembro-info"><strong>${flkAdminSwEsc(m.email||m.user_id)}</strong><small>${flkAdminSwEsc(m.role)} · ${flkAdminSwEsc(m.status)}</small></div><button class="adminsw-btn rojo" onclick="quitarUsuarioCentroAdminSoftware('${flkEscAttr(businessId)}','${flkEscAttr(m.user_id)}','${flkEscAttr(m.email||"")}')">Quitar</button></div>`).join(""):'<div style="color:#667085;font-size:12px">Este centro no tiene usuarios asignados.</div>'}catch(err){box.innerHTML='<div style="color:#b42318;font-size:12px">No se pudieron cargar los usuarios.</div>'}
+ try{const {data,error}=await flkSupabase.rpc("flk_software_admin_list_members",{p_business_id:businessId});if(error)throw error;
+  const flkMiembros=Array.isArray(data)?data:[];
+  let flkBox=document.querySelector(`[data-members-business-id="${CSS.escape(String(businessId))}"]`);
+  if(!flkBox){
+   flkBox=document.createElement("div");
+   flkBox.setAttribute("data-members-business-id",String(businessId));
+   flkBox.style.marginTop="10px";
+   const card=document.querySelector(`[data-business-id="${CSS.escape(String(businessId))}"]`);
+   if(card)card.appendChild(flkBox);
+  }
+  if(flkBox)flkBox.innerHTML=flkHtmlMiembrosCentro(businessId,flkMiembros);
+const arr=Array.isArray(data)?data:[];box.innerHTML=arr.length?arr.map(m=>`<div class="adminsw-miembro"><div class="adminsw-miembro-info"><strong>${flkAdminSwEsc(m.email||m.user_id)}</strong><small>${flkAdminSwEsc(m.role)} · ${flkAdminSwEsc(m.status)}</small></div><button class="adminsw-btn rojo" onclick="quitarUsuarioCentroAdminSoftware('${flkEscAttr(businessId)}','${flkEscAttr(m.user_id)}','${flkEscAttr(m.email||"")}')">Quitar</button></div>`).join(""):'<div style="color:#667085;font-size:12px">Este centro no tiene usuarios asignados.</div>'}catch(err){box.innerHTML='<div style="color:#b42318;font-size:12px">No se pudieron cargar los usuarios.</div>'}
 }
 
 async function quitarUsuarioCentroAdminSoftware(businessId,userId,email){
