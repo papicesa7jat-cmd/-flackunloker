@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v60.7-respaldo-en-software">
+<meta name="flackunloker-offline-version" content="2026-08-26-v60.8-panel-centros-usuarios-licencias">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -3792,6 +3792,42 @@ function mostrarAdminSoftware(){flkOcultarTodasLasVistas();
  cargarAdminSoftware();scrollTop();
 }
 
+
+function flkEstadoLicenciaTexto(status){
+ const x=String(status||"").toLowerCase();
+ if(x==="active")return "🟢 Activa";
+ if(x==="suspended")return "🟠 Suspendida";
+ if(x==="expired")return "🔴 Vencida";
+ return "⚪ Sin licencia";
+}
+function flkFechaCortaLic(v){
+ if(!v)return "—";
+ const d=new Date(v);
+ return Number.isNaN(d.getTime())?"—":d.toLocaleDateString("es-PR");
+}
+async function flkEnriquecerCentrosConLicencias(){
+ if(!flkEsPropietarioSoftware||!navigator.onLine)return;
+ try{
+  const {data,error}=await flkSupabase.rpc("flk_list_licenses");
+  if(error)throw error;
+  const licencias=Array.isArray(data)?data:[];
+  document.querySelectorAll("#adminswListaCentros [data-business-id]").forEach(card=>{
+   const bid=card.getAttribute("data-business-id");
+   const lic=licencias.find(x=>String(x.business_id||"")===String(bid));
+   let box=card.querySelector(".adminsw-licencia-centro");
+   if(!box){
+    box=document.createElement("div");
+    box.className="adminsw-licencia-centro";
+    box.style.cssText="margin-top:12px;padding:12px;border-radius:12px;background:#f7f9fc;border:1px solid #e5e7eb;font-size:13px;line-height:1.55";
+    card.appendChild(box);
+   }
+   box.innerHTML=lic
+    ? `<strong>🔐 Licencia: ${flkEstadoLicenciaTexto(lic.status)}</strong><br>Vence: ${flkFechaCortaLic(lic.expires_at)}<br>Dispositivo: ${lic.device_id?"Vinculado":"Libre"}`
+    : `<strong>🔐 Licencia: ⚪ Sin licencia</strong><br><span style="color:#667085">Este centro todavía no tiene una licencia vinculada.</span>`;
+  });
+ }catch(err){console.error("Licencias por centro:",err)}
+}
+
 async function cargarAdminSoftware(){
  if(!flkEsPropietarioSoftware)return;
  const lista=document.getElementById("adminswListaCentros");
@@ -3801,6 +3837,7 @@ async function cargarAdminSoftware(){
   const {data,error}=await flkSupabase.rpc("flk_software_admin_list_centers");
   if(error)throw error;
   flkAdminSoftwareCentros=Array.isArray(data)?data:[];
+   setTimeout(()=>flkEnriquecerCentrosConLicencias(),120);
   document.getElementById("adminswTotalCentros").textContent=flkAdminSoftwareCentros.length;
   document.getElementById("adminswCentrosActivos").textContent=flkAdminSoftwareCentros.filter(c=>String(c.status)==="active").length;
   document.getElementById("adminswTotalMiembros").textContent=flkAdminSoftwareCentros.reduce((a,c)=>a+Number(c.members_count||0),0);
