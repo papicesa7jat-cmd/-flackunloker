@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.0-licencias-centro-corregidas">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.1-licencias-rpc-corregidas">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -3808,12 +3808,7 @@ function flkFechaCortaLic(v){
 async function flkEnriquecerCentrosConLicencias(){
  if(!flkEsPropietarioSoftware||!navigator.onLine)return;
  try{
-  // flk_list_licenses fue creada antes de business_id y puede no devolver esa columna.
-  // Para el panel Software consultamos software_licenses directamente, donde business_id sí existe.
-  const {data,error}=await flkSupabase
-   .from("software_licenses")
-   .select("license_key,customer_name,status,expires_at,device_id,business_id,created_at")
-   .order("created_at",{ascending:false});
+  const {data,error}=await flkSupabase.rpc("flk_list_licenses");
   if(error)throw error;
 
   const licencias=Array.isArray(data)?data:[];
@@ -3829,7 +3824,6 @@ async function flkEnriquecerCentrosConLicencias(){
    const bid=String(centro.business_id||"").trim();
    card.setAttribute("data-business-id",bid);
 
-   // Si hubiera más de una licencia vinculada al centro, prioriza activa y luego la más reciente.
    const delCentro=licencias.filter(x=>String(x.business_id||"").trim()===bid);
    const lic=delCentro.find(x=>String(x.status||"").toLowerCase()==="active") || delCentro[0] || null;
 
@@ -3842,15 +3836,21 @@ async function flkEnriquecerCentrosConLicencias(){
    }
 
    if(lic){
-    const estado=flkEstadoLicenciaTexto(lic.status);
+    const exp = new Date(lic.expires_at||0);
+    const vencida = Number.isFinite(exp.getTime()) && exp.getTime() < Date.now();
+    const estadoRaw = vencida ? "expired" : String(lic.status||"");
+    const estado=flkEstadoLicenciaTexto(estadoRaw);
     const vence=flkFechaCortaLic(lic.expires_at);
     const dispositivo=lic.device_id?"📱 Dispositivo: Vinculado":"📱 Dispositivo: Libre";
+    const nombre=lic.business_name||lic.customer_name||centro.name||"Centro";
+
     box.innerHTML=
      `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">`+
       `<strong>🔐 Licencia: ${estado}</strong>`+
       `<span style="color:#667085">Vence: ${flkAdminSwEsc(vence)}</span>`+
      `</div>`+
-     `<div style="margin-top:3px;color:#475467">${dispositivo}</div>`;
+     `<div style="margin-top:3px;color:#475467">${dispositivo}</div>`+
+     `<div style="margin-top:3px;color:#667085">Centro: ${flkAdminSwEsc(nombre)}</div>`;
    }else{
     box.innerHTML=
      `<strong>🔐 Licencia: ⚪ Sin licencia</strong>`+
@@ -3859,10 +3859,6 @@ async function flkEnriquecerCentrosConLicencias(){
   });
  }catch(err){
   console.error("Licencias por centro:",err);
-  const cont=document.getElementById("adminswListaCentros");
-  cont?.querySelectorAll(".adminsw-licencia-centro").forEach(box=>{
-   box.innerHTML="<strong>🔐 Licencia: no se pudo consultar</strong><div style='color:#667085'>Revisa la consola o los permisos de lectura.</div>";
-  });
  }
 }
 async function cargarAdminSoftware(){
