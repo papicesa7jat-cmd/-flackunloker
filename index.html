@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.31-reset-al-final">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.32-textos-legibles">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1314,6 +1314,102 @@ textarea::placeholder{
 #vistaAdminSoftware #panelRestablecimientoTotal h3,
 #vistaAdminSoftware #panelRestablecimientoTotal p,
 #vistaAdminSoftware #panelRestablecimientoTotal .boton-agregar{display:block !important}
+</style>
+
+<style id="flk-v6132-contraste-textos">
+/* ===== v61.32 · CONTRASTE Y LEGIBILIDAD GLOBAL ===== */
+
+/* Texto general sobre fondos claros */
+body,
+.contenedor,
+.seccion-titulo,
+.reporte-controles,
+.adminsw-panel,
+.adminsw-card,
+.adminsw-centro,
+.lista-estadisticas,
+.tarjeta,
+.card{
+  color:#17202A !important;
+}
+
+/* Títulos principales y de panel */
+h1,h2,h3,h4,
+.seccion-titulo h2,
+.adminsw-panel h3,
+.lista-estadisticas h3{
+  color:#102A43 !important;
+}
+
+/* Textos secundarios y explicativos */
+p, small,
+.ayuda-campo,
+.reporte-periodo,
+.adminsw-card span,
+.lic-panel div,
+.estado-respaldo{
+  color:#405261 !important;
+}
+
+/* Etiquetas y valores de formularios */
+label{
+  color:#243746 !important;
+  font-weight:700 !important;
+}
+input,select,textarea{
+  color:#17202A !important;
+}
+input::placeholder,textarea::placeholder{
+  color:#667684 !important;
+  opacity:1 !important;
+}
+
+/* Menú principal: texto blanco de alto contraste sobre azul */
+#menuPrincipalFondo .menu-cuadricula button,
+#menuPrincipalFondo .menu-cuadricula button span,
+#menuPrincipalFondo .menu-cuadricula button strong{
+  color:#FFFFFF !important;
+  text-shadow:0 1px 2px rgba(0,0,0,.28);
+  font-weight:800 !important;
+}
+
+/* Botones de acción */
+.boton-agregar,
+.boton-respaldo,
+.guardar,
+button.guardar{
+  color:#FFFFFF !important;
+  font-weight:800 !important;
+}
+
+/* Tarjetas grises visibles: texto oscuro y nítido */
+.resumen-card,
+.resumen-item,
+.estadistica,
+.estadistica-card,
+[class*="resumen"] .card{
+  color:#17202A !important;
+}
+.resumen-card span,
+.resumen-item span,
+.estadistica span,
+.estadistica-card span{
+  color:#34495A !important;
+}
+.resumen-card strong,
+.resumen-item strong,
+.estadistica strong,
+.estadistica-card strong{
+  color:#102A43 !important;
+}
+
+/* Restablecimiento: conservar advertencia roja legible */
+#panelRestablecimientoTotal h3{
+  color:#A61B1B !important;
+}
+#panelRestablecimientoTotal p{
+  color:#405261 !important;
+}
 </style>
 </head>
 <body>
