@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.16-fondo-azul-marino">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.18-fondo-central-azul-oscuro">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -54,19 +54,17 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 }
 html{
   scroll-behavior:auto;
-  background:#071A2F;
+  background:#06182B;
 }
 body{
-  background:#071A2F;
+  background:#06182B;
   color:var(--texto);
 }
 .contenedor{
   max-width:720px;
   min-height:100vh;
   padding:20px 18px 145px;
-  background:
-    radial-gradient(circle at 50% -160px,rgba(10,132,255,.15),transparent 420px),
-    var(--fondo);
+  background:#0B2A4A;
   box-shadow:0 0 42px rgba(0,0,0,.24);
 }
 .encabezado{
@@ -643,6 +641,13 @@ button:active{transform:none!important}
 /* ===== v61.12 · ADMINISTRACIÓN DE USUARIOS CENTRALIZADA =====
    La gestión de usuarios se realiza exclusivamente desde ⚙️ Software. */
 #vistaUsuarios,#botonUsuarios{display:none!important}
+
+/* v61.17: fondo exterior visible entre las plantillas */
+.encabezado h1,
+.encabezado p{
+  color:#ffffff;
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="manifest" href="./manifest.webmanifest">
