@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.8-controles-licencia-por-centro">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.9-selector-usuarios-corregido">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -3975,6 +3975,61 @@ async function flkLiberarDispositivoCentro(licenseKey,nombreCentro,tieneDisposit
  }catch(err){
   console.error("Liberar dispositivo centro:",err);
   alert("No se pudo liberar el dispositivo.\n\n"+(err?.message||"Error desconocido"));
+ }
+}
+
+
+async function flkCargarUsuariosExistentesAdminSoftware(){
+ if(!flkEsPropietarioSoftware)return;
+ const sel=document.getElementById("adminswUsuarioEmail");
+ if(!sel)return;
+
+ if(!navigator.onLine){
+  sel.innerHTML='<option value="">Conéctate a Internet</option>';
+  return;
+ }
+
+ sel.innerHTML='<option value="">Cargando usuarios...</option>';
+
+ try{
+  const {data,error}=await flkSupabase.rpc("flk_software_admin_list_users");
+  if(error)throw error;
+
+  const filas=Array.isArray(data)?data:[];
+  const mapa=new Map();
+
+  filas.forEach(u=>{
+   const id=String(u.user_id||"").trim();
+   if(!id)return;
+
+   const previo=mapa.get(id);
+   if(!previo || (!previo.business_id && u.business_id)){
+    mapa.set(id,u);
+   }
+  });
+
+  const usuarios=[...mapa.values()].sort((a,b)=>
+   String(a.email||"").localeCompare(
+    String(b.email||""),
+    "es",
+    {sensitivity:"base"}
+   )
+  );
+
+  sel.innerHTML=
+   '<option value="">Selecciona un usuario...</option>'+
+   usuarios.map(u=>{
+    const email=String(u.email||"");
+    const contexto=u.business_name
+     ? ` · ${flkAdminSwEsc(u.business_name)} · ${flkAdminSwEsc(u.member_role||"")}`
+     : ' · Sin centro';
+
+    return `<option value="${flkEscAttr(email)}">${flkAdminSwEsc(email)}${contexto}</option>`;
+   }).join("");
+
+ }catch(err){
+  console.error("Usuarios existentes:",err);
+  sel.innerHTML='<option value="">No se pudieron cargar los usuarios</option>';
  }
 }
 
