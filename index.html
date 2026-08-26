@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.6-roles-admin-empleado">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.7-selector-usuarios-existentes">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -607,6 +607,15 @@ button:active{transform:none!important}
 .adminsw-role-owner{
  width:100%;border:1px solid #d9e2ef;border-radius:10px;padding:9px 10px;
  background:#f4f7fb;color:#344054;font-weight:700
+}
+
+
+#adminswUsuarioEmail{
+ width:100%;border:1px solid #d8e8f6;border-radius:12px;padding:13px;
+ background:#f9fcff;font-size:14px;outline:none
+}
+#adminswUsuarioEmail:focus{
+ border-color:#0a84ff;box-shadow:0 0 0 4px rgba(10,132,255,.08)
 }
 
 </style>
@@ -1772,7 +1781,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
  <div class="adminsw-panel">
   <h3 style="margin:0 0 14px">👤 Asignar usuario existente</h3>
   <div class="adminsw-form" style="grid-template-columns:1.3fr 1fr 1fr auto">
-   <div class="campo"><label>Correo del usuario</label><input id="adminswUsuarioEmail" type="email" placeholder="usuario@correo.com"></div>
+   <div class="campo"><label for="adminswUsuarioEmail">Usuario existente</label><select id="adminswUsuarioEmail"><option value="">Cargando usuarios...</option></select></div>
    <div class="campo"><label>Centro</label><select id="adminswUsuarioCentro"><option value="">Selecciona</option></select></div>
    <div class="campo"><label>Rol</label><select id="adminswUsuarioRol"><option value="admin">Administrador</option><option value="employee">Empleado</option></select></div>
    <button class="boton-agregar" type="button" onclick="asignarUsuarioAdminSoftware()">Asignar</button>
@@ -3882,8 +3891,44 @@ async function flkEnriquecerCentrosConLicencias(){
   console.error("Licencias por centro:",err);
  }
 }
+
+async function flkCargarUsuariosExistentesAdminSoftware(){
+ if(!flkEsPropietarioSoftware)return;
+ const sel=document.getElementById("adminswUsuarioEmail");
+ if(!sel)return;
+ if(!navigator.onLine){
+  sel.innerHTML='<option value="">Conéctate a Internet</option>';
+  return;
+ }
+ sel.innerHTML='<option value="">Cargando usuarios...</option>';
+ try{
+  const {data,error}=await flkSupabase.rpc("flk_software_admin_list_users");
+  if(error)throw error;
+  const filas=Array.isArray(data)?data:[];
+  const mapa=new Map();
+  filas.forEach(u=>{
+   const id=String(u.user_id||"").trim();
+   if(!id)return;
+   const previo=mapa.get(id);
+   if(!previo || (!previo.business_id && u.business_id))mapa.set(id,u);
+  });
+  const usuarios=[...mapa.values()].sort((a,b)=>String(a.email||"").localeCompare(String(b.email||""),"es",{sensitivity:"base"}));
+  sel.innerHTML='<option value="">Selecciona un usuario...</option>'+usuarios.map(u=>{
+   const email=String(u.email||"");
+   const contexto=u.business_name
+    ? ` · ${flkAdminSwEsc(u.business_name)} · ${flkAdminSwEsc(u.member_role||"")}`
+    : ' · Sin centro';
+   return `<option value="${flkEscAttr(email)}">${flkAdminSwEsc(email)}${contexto}</option>`;
+  }).join("");
+ }catch(err){
+  console.error("Usuarios existentes:",err);
+  sel.innerHTML='<option value="">No se pudieron cargar los usuarios</option>';
+ }
+}
+
 async function cargarAdminSoftware(){
  if(!flkEsPropietarioSoftware)return;
+ flkCargarUsuariosExistentesAdminSoftware();
  const lista=document.getElementById("adminswListaCentros");
  if(!navigator.onLine){lista.innerHTML='<div class="sin-productos">Conéctate a Internet para administrar centros.</div>';return}
  lista.innerHTML='<div class="sin-productos">Cargando centros...</div>';
@@ -3954,9 +3999,9 @@ async function asignarUsuarioAdminSoftware(){
  const email=(document.getElementById("adminswUsuarioEmail").value||"").trim().toLowerCase();
  const business=document.getElementById("adminswUsuarioCentro").value;
  const role=document.getElementById("adminswUsuarioRol").value;
- if(!email||!business)return alert("Escribe el correo y selecciona el centro.");
+ if(!email||!business)return alert("Selecciona el usuario y el centro.");
  if(!confirm(`¿Asignar ${email} al centro seleccionado como ${role}?`))return;
- try{const {error}=await flkSupabase.rpc("flk_software_admin_assign_user",{p_email:email,p_business_id:business,p_role:role});if(error)throw error;document.getElementById("adminswUsuarioEmail").value="";await cargarAdminSoftware();await cargarMiembrosCentroAdminSoftware(business);alert("Usuario asignado correctamente.")}catch(err){alert("No se pudo asignar el usuario: "+(err?.message||"Error desconocido"))}
+ try{const {error}=await flkSupabase.rpc("flk_software_admin_assign_user",{p_email:email,p_business_id:business,p_role:role});if(error)throw error;document.getElementById("adminswUsuarioEmail").value="";await cargarAdminSoftware();await flkCargarUsuariosExistentesAdminSoftware();await cargarMiembrosCentroAdminSoftware(business);alert("Usuario asignado correctamente.")}catch(err){alert("No se pudo asignar el usuario: "+(err?.message||"Error desconocido"))}
 }
 
 
