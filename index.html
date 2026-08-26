@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.19-azules-aclarados">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.20-estetica-profesional">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -646,6 +646,108 @@ button:active{transform:none!important}
 .encabezado h1,
 .encabezado p{
   color:#ffffff;
+}
+
+
+/* ===== v61.20 · Acabado visual profesional ===== */
+html{
+  background:#D9EAF7 !important;
+}
+body{
+  background:#D9EAF7 !important;
+}
+.contenedor{
+  max-width:830px !important;
+  background:#1E527A !important;
+  padding:18px 22px 145px !important;
+  box-shadow:0 0 34px rgba(15,42,64,.18) !important;
+}
+
+/* Cabecera/logo: más contenida y con mejor aire */
+.encabezado{
+  margin:0 0 18px !important;
+  padding:18px 20px !important;
+  border-radius:20px !important;
+  background:#EAF4FC !important;
+  border:1px solid rgba(10,132,255,.18) !important;
+  box-shadow:0 8px 22px rgba(13,45,72,.10) !important;
+}
+.encabezado img,
+.logo-img,
+.logo-imagen{
+  max-height:250px !important;
+  object-fit:contain !important;
+}
+.encabezado h1,
+.encabezado p{
+  color:#17324A !important;
+}
+
+/* Tarjetas claras y uniformes */
+.tarjeta,
+.card,
+.resumen-card,
+.stat-card,
+.kpi-card{
+  background:#F8FAFC !important;
+  border-color:#D8E2EC !important;
+  box-shadow:0 5px 15px rgba(16,44,68,.09) !important;
+}
+
+/* Mejor separación entre bloques */
+.resumen,
+.grid-resumen,
+.stats-grid,
+.resumen-grid{
+  gap:12px !important;
+}
+
+/* Campos de búsqueda y formularios más limpios */
+input,
+select,
+textarea{
+  background:#FFFFFF !important;
+  border-color:#D8E2EC !important;
+}
+input:focus,
+select:focus,
+textarea:focus{
+  border-color:#0A84FF !important;
+  box-shadow:0 0 0 3px rgba(10,132,255,.12) !important;
+}
+
+/* Botón flotante de menú: más compacto y sobrio */
+#botonMenu,
+.boton-menu,
+.menu-flotante button,
+button.menu-toggle{
+  box-shadow:0 6px 16px rgba(8,54,94,.20) !important;
+}
+
+/* Caja de sesión: integrada con la estética */
+.usuario-flotante,
+.user-box,
+.session-box,
+.cuenta-flotante{
+  background:rgba(248,250,252,.96) !important;
+  border:1px solid #D8E2EC !important;
+  box-shadow:0 6px 18px rgba(16,44,68,.12) !important;
+}
+
+/* En pantallas pequeñas conserva espacio útil */
+@media(max-width:600px){
+  .contenedor{
+    padding-left:14px !important;
+    padding-right:14px !important;
+  }
+  .encabezado{
+    padding:14px !important;
+  }
+  .encabezado img,
+  .logo-img,
+  .logo-imagen{
+    max-height:210px !important;
+  }
 }
 
 </style>
