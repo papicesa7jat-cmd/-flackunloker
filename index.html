@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.13-offline-aislado-por-centro">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.14-centro-propietario-corregido">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -3257,17 +3257,15 @@ async function mostrarAppConSesion(session){
   await cargarRolUsuario(session.user);
   if(navigator.onLine){
    await flkComprobarPropietarioSoftware();
-   // v61.13: resolver SIEMPRE el centro real de la cuenta al iniciar sesión.
-   // Evita reutilizar el business_id del usuario anterior en el mismo navegador.
-   if(!flkEsPropietarioSoftware){
-    const centroAnterior=FLK_BUSINESS_ID;
-    await flkCargarCentroActual();
-    flkCambiarContextoLocalCentro(FLK_BUSINESS_ID);
-    if(centroAnterior!==FLK_BUSINESS_ID){
-     console.info("Centro local cambiado:",centroAnterior,"→",FLK_BUSINESS_ID);
-    }
-   }else if(flkUuidValido(FLK_BUSINESS_ID)){
-    flkCambiarContextoLocalCentro(FLK_BUSINESS_ID);
+   // v61.14: TODA cuenta, incluido el propietario del software,
+   // vuelve a resolver su centro operativo real al iniciar sesión.
+   // La excepción multidispositivo del propietario afecta la licencia,
+   // no el business_id usado para inventario y demás datos.
+   const centroAnterior=FLK_BUSINESS_ID;
+   await flkCargarCentroActual();
+   flkCambiarContextoLocalCentro(FLK_BUSINESS_ID);
+   if(centroAnterior!==FLK_BUSINESS_ID){
+    console.info("Centro local cambiado:",centroAnterior,"→",FLK_BUSINESS_ID);
    }
    await flkValidarLicencia();
    setTimeout(()=>flkSincronizarSeguro(),220);
