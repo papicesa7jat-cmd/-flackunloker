@@ -5398,7 +5398,7 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
    guardarHistorial();actualizarResumenHistorial();mostrarListaHistorial()
   }
   guardarDatos();mostrarProductos();actualizarEstadisticas();cerrarMovimiento();
-  if(!navigator.onLine)alert("Movimiento guardado localmente. Se sincronizará cuando regrese Internet.");
+  // En modo offline el movimiento ya quedó guardado localmente; no mostrar alerta.
  }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el movimiento: "+(err.message||err))}
  finally{procesandoGuardado=false}
 });
