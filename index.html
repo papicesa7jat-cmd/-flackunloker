@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.26-restauracion-nube">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.27-respaldo-por-centro">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -7624,7 +7624,43 @@ function nombreRespaldoFlackunloker(){
  return `Flackunloker_Respaldo_${dos(d.getDate())}-${dos(d.getMonth()+1)}-${d.getFullYear()}_${dos(h)}-${dos(d.getMinutes())}-${dos(d.getSeconds())}_${ampm}.json`;
 }
 
-function crearRespaldo(){const datos={aplicacion:"Flackunloker",version:"2.0",fecha:new Date().toISOString(),productos,historial,ventas,gastos,cierres,ordenesCompra,proveedores};const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=nombreRespaldoFlackunloker();document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);mostrarEstadoRespaldo("✅ Respaldo creado correctamente.")}
+const FLK_CENTRO_PRINCIPAL_ID="9b0b597d-5ca3-47ec-bd2e-9f5e3b0537f5";
+const FLK_CENTRO_PRINCIPAL_NOMBRE="Flackunloker - Centro Principal";
+const FLK_CENTRO_PRINCIPAL_CODIGO="FLK-PRINCIPAL";
+
+async function flkCentroMetadataRespaldo(){
+ let id=flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:flkBusinessGuardado();
+ let name="",code="";
+ if(navigator.onLine&&id){
+  try{
+   const {data,error}=await flkSupabase.from("businesses").select("id,name,code").eq("id",id).maybeSingle();
+   if(!error&&data){name=data.name||"";code=data.code||""}
+  }catch(_){}
+ }
+ if(id===FLK_CENTRO_PRINCIPAL_ID){
+  if(!name)name=FLK_CENTRO_PRINCIPAL_NOMBRE;
+  if(!code)code=FLK_CENTRO_PRINCIPAL_CODIGO;
+ }
+ return {business_id:id||null,name:name||null,code:code||null};
+}
+
+async function crearRespaldo(){
+ try{
+  const centro=await flkCentroMetadataRespaldo();
+  const datos={
+   aplicacion:"Flackunloker",version:"2.1",fecha:new Date().toISOString(),
+   business_id:centro.business_id,centro,
+   productos,historial,ventas,gastos,cierres,ordenesCompra,proveedores
+  };
+  const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"}),
+        url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download=nombreRespaldoFlackunloker();
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  mostrarEstadoRespaldo("✅ Respaldo creado correctamente"+(centro.name?` · ${centro.name}`:"")+".");
+ }catch(err){
+  console.error(err);alert("No se pudo crear el respaldo: "+(err?.message||err));
+ }
+}
 function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
 
 async function flkInsertarLotes(tabla,filas,tamano=100){
@@ -7810,11 +7846,53 @@ async function flkRestaurarComprasNube(proveedoresBackup,ordenesBackup,businessI
  }
 }
 
-async function flkRestaurarRespaldoEnNube(datos){
+
+async function flkResolverCentroDestinoRespaldo(datos){
+ let id=String(datos?.centro?.business_id||datos?.business_id||"").trim();
+ let name=String(datos?.centro?.name||"").trim();
+ let code=String(datos?.centro?.code||"").trim();
+ let legado=false;
+ if(!flkUuidValido(id)){
+  id=FLK_CENTRO_PRINCIPAL_ID;
+  name=FLK_CENTRO_PRINCIPAL_NOMBRE;
+  code=FLK_CENTRO_PRINCIPAL_CODIGO;
+  legado=true;
+ }
+ if(navigator.onLine){
+  try{
+   const {data,error}=await flkSupabase.from("businesses").select("id,name,code").eq("id",id).maybeSingle();
+   if(!error&&data){name=data.name||name;code=data.code||code}
+  }catch(_){}
+ }
+ return {business_id:id,name:name||id,code:code||"",legado};
+}
+
+function flkActivarCentroRespaldo(centro){
+ const id=String(centro?.business_id||"").trim();
+ if(!flkUuidValido(id))throw new Error("El respaldo no tiene un centro de destino válido.");
+ FLK_BUSINESS_ID=id;
+ localStorage.setItem(FLK_BUSINESS_STORAGE_KEY,id);
+ flkCambiarContextoLocalCentro(id);
+ return id;
+}
+
+async function flkVerificarCentroRpcParaRestauracion(targetId){
+ const {data,error}=await flkSupabase.rpc("flk_current_business_id");
+ if(error)throw error;
+ const rpcId=String(data||"").trim();
+ if(!flkUuidValido(rpcId))throw new Error("La cuenta no tiene un centro activo asignado.");
+ if(rpcId!==targetId){
+  throw new Error("Por seguridad se detuvo la restauración porque la sesión de Supabase está trabajando en otro centro. Destino solicitado: "+targetId+" · Centro activo: "+rpcId+".");
+ }
+ return true;
+}
+
+async function flkRestaurarRespaldoEnNube(datos,centroDestino){
  if(!navigator.onLine)throw new Error("Conéctate a Internet para restaurar también la copia de Supabase.");
  if(rolSesion!=="admin")throw new Error("Solo el Administrador puede restaurar un respaldo en la nube.");
 
- const businessId=await flkExigirCentroActual();
+ const businessId=flkActivarCentroRespaldo(centroDestino);
+ await flkVerificarCentroRpcParaRestauracion(businessId);
  const {data:u,error:uErr}=await flkSupabase.auth.getUser();
  if(uErr||!u?.user)throw uErr||new Error("No hay una sesión válida.");
  const userId=u.user.id;
@@ -7906,14 +7984,25 @@ function restaurarRespaldo(event){
  const archivo=event.target.files[0];
  if(!archivo)return;
  const lector=new FileReader();
-
  lector.onload=async()=>{
   try{
    const datos=JSON.parse(lector.result);
    if(!datos||datos.aplicacion!=="Flackunloker")return alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");
    if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial))return alert("El respaldo está incompleto o dañado.");
 
-   if(!confirm("¿Quieres restaurar este respaldo?\n\nLa restauración recuperará los datos locales y, si estás conectado, reconstruirá también el centro en Supabase para que no vuelvan a desaparecer."))return;
+   const centroDestino=await flkResolverCentroDestinoRespaldo(datos);
+   const avisoLegado=centroDestino.legado
+    ? "\n\nEste respaldo es antiguo y no guardaba business_id. Se identificó como perteneciente al CENTRO PRINCIPAL."
+    : "";
+
+   if(!confirm(
+    "¿Quieres restaurar este respaldo?\n\nCentro de destino:\n"+
+    centroDestino.name+(centroDestino.code?" · "+centroDestino.code:"")+
+    "\nID: "+centroDestino.business_id+avisoLegado+
+    "\n\nLos datos del otro centro no serán modificados."
+   ))return;
+
+   flkActivarCentroRespaldo(centroDestino);
 
    productos=JSON.parse(JSON.stringify(datos.productos));
    historial=JSON.parse(JSON.stringify(datos.historial));
@@ -7942,16 +8031,16 @@ function restaurarRespaldo(event){
    guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();guardarOrdenesCompra();guardarProveedores();
    mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarReporte();actualizarFlujoCaja();actualizarFinanzas();actualizarCentroAlertas();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarEstadisticas();
 
-   mostrarEstadoRespaldo("✅ Respaldo recuperado localmente.");
+   mostrarEstadoRespaldo("✅ Respaldo recuperado localmente en "+centroDestino.name+".");
 
    if(navigator.onLine){
-    mostrarEstadoRespaldo("⏳ Reconstruyendo la copia de Supabase. No cierres esta página…");
-    await flkRestaurarRespaldoEnNube(datos);
-    mostrarEstadoRespaldo("✅ Restauración completa: datos locales y Supabase verificados.");
-    alert("✅ Respaldo restaurado completamente.\n\nLos datos fueron reconstruidos también en Supabase y ya no deben volver a cero.");
+    mostrarEstadoRespaldo("⏳ Reconstruyendo "+centroDestino.name+" en Supabase. No cierres esta página…");
+    await flkRestaurarRespaldoEnNube(datos,centroDestino);
+    mostrarEstadoRespaldo("✅ Restauración completa y verificada · "+centroDestino.name+".");
+    alert("✅ Respaldo restaurado completamente.\n\nCentro: "+centroDestino.name+"\nID: "+centroDestino.business_id+"\n\nEl otro centro quedó separado y sin cambios.");
    }else{
-    mostrarEstadoRespaldo("🟠 Respaldo restaurado localmente. Conéctate a Internet y vuelve a restaurar este mismo archivo para reconstruir Supabase.");
-    alert("🟠 Respaldo recuperado localmente.\n\nComo estás sin Internet, Supabase todavía no fue reconstruido. Conéctate y restaura nuevamente este mismo respaldo.");
+    mostrarEstadoRespaldo("🟠 Respaldo restaurado localmente en "+centroDestino.name+". Conéctate a Internet y restaura este mismo archivo para reconstruir Supabase.");
+    alert("🟠 Respaldo recuperado localmente.\n\nCentro: "+centroDestino.name+"\n\nComo estás sin Internet, Supabase todavía no fue reconstruido.");
    }
   }catch(err){
    console.error("Restauración de respaldo:",err);
