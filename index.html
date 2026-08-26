@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v60.8-panel-centros-usuarios-licencias">
+<meta name="flackunloker-offline-version" content="2026-08-26-v60.9-centros-con-licencia">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -3811,23 +3811,49 @@ async function flkEnriquecerCentrosConLicencias(){
   const {data,error}=await flkSupabase.rpc("flk_list_licenses");
   if(error)throw error;
   const licencias=Array.isArray(data)?data:[];
-  document.querySelectorAll("#adminswListaCentros [data-business-id]").forEach(card=>{
-   const bid=card.getAttribute("data-business-id");
-   const lic=licencias.find(x=>String(x.business_id||"")===String(bid));
+
+  // Las tarjetas actuales no tienen data-business-id.
+  // Se enlazan con flkAdminSoftwareCentros en el mismo orden en que se renderizan.
+  const cont=document.getElementById("adminswListaCentros");
+  if(!cont)return;
+  const cards=Array.from(cont.children).filter(el=>el && el.nodeType===1);
+
+  cards.forEach((card,i)=>{
+   const centro=flkAdminSoftwareCentros[i];
+   if(!centro)return;
+   const bid=String(centro.business_id||"");
+   const lic=licencias.find(x=>String(x.business_id||"")===bid);
+
+   card.setAttribute("data-business-id",bid);
+
    let box=card.querySelector(".adminsw-licencia-centro");
    if(!box){
     box=document.createElement("div");
     box.className="adminsw-licencia-centro";
-    box.style.cssText="margin-top:12px;padding:12px;border-radius:12px;background:#f7f9fc;border:1px solid #e5e7eb;font-size:13px;line-height:1.55";
+    box.style.cssText="margin-top:12px;padding:12px 14px;border-radius:12px;background:#f7f9fc;border:1px solid #e5e7eb;font-size:13px;line-height:1.6";
     card.appendChild(box);
    }
-   box.innerHTML=lic
-    ? `<strong>🔐 Licencia: ${flkEstadoLicenciaTexto(lic.status)}</strong><br>Vence: ${flkFechaCortaLic(lic.expires_at)}<br>Dispositivo: ${lic.device_id?"Vinculado":"Libre"}`
-    : `<strong>🔐 Licencia: ⚪ Sin licencia</strong><br><span style="color:#667085">Este centro todavía no tiene una licencia vinculada.</span>`;
-  });
- }catch(err){console.error("Licencias por centro:",err)}
-}
 
+   if(lic){
+    const estado=flkEstadoLicenciaTexto(lic.status);
+    const vence=flkFechaCortaLic(lic.expires_at);
+    const dispositivo=lic.device_id?"📱 Vinculado":"📱 Libre";
+    box.innerHTML=
+     `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">`+
+      `<strong>🔐 Licencia: ${estado}</strong>`+
+      `<span style="color:#667085">Vence: ${flkAdminSwEsc(vence)}</span>`+
+     `</div>`+
+     `<div style="margin-top:3px;color:#475467">${dispositivo}</div>`;
+   }else{
+    box.innerHTML=
+     `<strong>🔐 Licencia: ⚪ Sin licencia</strong>`+
+     `<div style="margin-top:3px;color:#667085">Este centro todavía no tiene una licencia vinculada.</div>`;
+   }
+  });
+ }catch(err){
+  console.error("Licencias por centro:",err);
+ }
+}
 async function cargarAdminSoftware(){
  if(!flkEsPropietarioSoftware)return;
  const lista=document.getElementById("adminswListaCentros");
@@ -3837,7 +3863,7 @@ async function cargarAdminSoftware(){
   const {data,error}=await flkSupabase.rpc("flk_software_admin_list_centers");
   if(error)throw error;
   flkAdminSoftwareCentros=Array.isArray(data)?data:[];
-   setTimeout(()=>flkEnriquecerCentrosConLicencias(),120);
+   
   document.getElementById("adminswTotalCentros").textContent=flkAdminSoftwareCentros.length;
   document.getElementById("adminswCentrosActivos").textContent=flkAdminSoftwareCentros.filter(c=>String(c.status)==="active").length;
   document.getElementById("adminswTotalMiembros").textContent=flkAdminSoftwareCentros.reduce((a,c)=>a+Number(c.members_count||0),0);
@@ -3846,6 +3872,7 @@ async function cargarAdminSoftware(){
   const selNuevo=document.getElementById("adminswNuevoCentro");if(selNuevo)selNuevo.innerHTML=opcionesCentros;
   if(!flkAdminSoftwareCentros.length){lista.innerHTML='<div class="sin-productos">No hay centros registrados.</div>';return}
   lista.innerHTML=flkAdminSoftwareCentros.map(c=>`<div class="adminsw-centro" id="adminsw-centro-${flkEscAttr(c.business_id)}"><div class="adminsw-centro-top"><div><h3>${flkAdminSwEsc(c.name)}</h3><p>Código: ${flkAdminSwEsc(c.code||"—")}<br>ID: ${flkAdminSwEsc(c.business_id)}</p></div><span class="adminsw-badge ${String(c.status)==="active"?"active":"inactive"}">${String(c.status)==="active"?"ACTIVO":"INACTIVO"}</span></div><div class="adminsw-acciones"><button class="adminsw-btn azul" onclick="cargarMiembrosCentroAdminSoftware('${flkEscAttr(c.business_id)}')">👥 Ver usuarios</button><button class="adminsw-btn ${String(c.status)==="active"?"rojo":"verde"}" onclick="cambiarEstadoCentroAdminSoftware('${flkEscAttr(c.business_id)}','${String(c.status)==="active"?"inactive":"active"}')">${String(c.status)==="active"?"⛔ Desactivar":"✅ Activar"}</button></div><div class="adminsw-miembros" id="adminsw-miembros-${flkEscAttr(c.business_id)}" style="display:none"></div></div>`).join("");
+  await flkEnriquecerCentrosConLicencias();
  }catch(err){console.error("Administración software:",err);lista.innerHTML='<div class="sin-productos">No se pudo cargar la administración de centros.</div>';alert("Falta instalar o actualizar las funciones de Administración del Software en Supabase.\n\nDetalle: "+(err?.message||"Error desconocido"))}
 }
 
