@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.9-selector-usuarios-corregido">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.10-propietario-multidispositivo">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -3212,7 +3212,11 @@ async function mostrarAppConSesion(session){
   document.getElementById("authOverlay").classList.add("oculto");
   flkPintarSesionLocal(session.user);
   await cargarRolUsuario(session.user);
-  if(navigator.onLine)setTimeout(()=>flkSincronizarSeguro(),220);
+  if(navigator.onLine){
+   await flkComprobarPropietarioSoftware();
+   await flkValidarLicencia();
+   setTimeout(()=>flkSincronizarSeguro(),220);
+  }
  }else{
   flkSesionActiva=false;
   const cache=flkSesionLocal();
@@ -3668,18 +3672,35 @@ async function flkValidarLicencia(){
 
  if(navigator.onLine){
   try{
-   // La cuenta propietaria del software es multidispositivo.
-   // Para todos los demás usuarios se mantiene el vínculo estricto al device_id.
+   // v61.10: nunca validar/vincular un dispositivo antes de conocer la sesión.
+   // Esto evita que la cuenta propietaria quede atrapada por una validación
+   // prematura durante la carga inicial de Safari/PWA.
+   const {data:sesionData,error:sesionError}=await flkSupabase.auth.getSession();
+   if(sesionError)throw sesionError;
+   const usuarioSesion=sesionData?.session?.user||null;
+   if(!usuarioSesion){
+    flkOcultarBloqueoLicencia();
+    return null;
+   }
+
+   // La cuenta propietaria del software es siempre multidispositivo.
+   // Administradores y empleados mantienen el vínculo estricto al device_id.
    let esOwner=false;
-   try{
-    const {data:ownerData,error:ownerError}=await flkSupabase.rpc("flk_is_software_owner");
-    if(!ownerError)esOwner=!!ownerData;
-   }catch(_){}
+   const {data:ownerData,error:ownerError}=await flkSupabase.rpc("flk_is_software_owner");
+   if(ownerError)throw ownerError;
+   esOwner=!!ownerData;
 
    let data,error;
    if(esOwner){
+    flkEsPropietarioSoftware=true;
+    document.body.classList.add("es-propietario");
+    localStorage.removeItem(FLK_CLIENT_LICENSE_KEY_STORAGE);
+    localStorage.removeItem(FLK_LICENSE_TEST_MODE_KEY);
+    FLK_LICENSE_KEY=FLK_OWNER_LICENSE_KEY;
+    flkOcultarActivacionCliente();
+    flkOcultarBloqueoLicencia();
     ({data,error}=await flkSupabase.rpc("flk_check_license",{
-     p_license_key:FLK_LICENSE_KEY
+     p_license_key:FLK_OWNER_LICENSE_KEY
     }));
    }else{
     const deviceId=flkObtenerDeviceId();
