@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-25-v59-multicentro-uuid-fix">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.8-controles-licencia-por-centro">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -588,6 +588,48 @@ button:active{transform:none!important}
   #vistaUsuarios .usuario-acciones{grid-template-columns:1fr}
   #vistaUsuarios .seccion-titulo .boton-agregar{width:100%;max-width:280px}
 }
+
+.adminsw-user-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:9px}
+.adminsw-user-actions button{border:0;border-radius:10px;padding:9px 7px;font-weight:700;cursor:pointer}
+.adminsw-user-role{background:#e8f2ff;color:#0562c8}
+.adminsw-user-status{background:#fff3d6;color:#8a5a00}
+.adminsw-user-remove{background:#ffe7e7;color:#c62828}
+@media(max-width:520px){.adminsw-user-actions{grid-template-columns:1fr}}
+
+
+.adminsw-role-select{
+ width:100%;border:1px solid #cfd8e6;border-radius:10px;padding:9px 10px;
+ background:#e8f2ff;color:#0562c8;font-weight:700;outline:none;cursor:pointer
+}
+.adminsw-role-select:focus{border-color:#0a84ff;box-shadow:0 0 0 3px rgba(10,132,255,.12)}
+
+
+.adminsw-role-owner{
+ width:100%;border:1px solid #d9e2ef;border-radius:10px;padding:9px 10px;
+ background:#f4f7fb;color:#344054;font-weight:700
+}
+
+
+#adminswUsuarioEmail{
+ width:100%;border:1px solid #d8e8f6;border-radius:12px;padding:13px;
+ background:#f9fcff;font-size:14px;outline:none
+}
+#adminswUsuarioEmail:focus{
+ border-color:#0a84ff;box-shadow:0 0 0 4px rgba(10,132,255,.08)
+}
+
+
+.adminsw-license-actions{
+ display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px
+}
+.adminsw-license-actions button{
+ border:0;border-radius:10px;padding:9px 7px;font-weight:750;cursor:pointer
+}
+.adminsw-license-renew{background:#e8f2ff;color:#0562c8}
+.adminsw-license-status{background:#fff3d6;color:#8a5a00}
+.adminsw-license-device{background:#eef0ff;color:#5146a6}
+@media(max-width:520px){.adminsw-license-actions{grid-template-columns:1fr}}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="manifest" href="./manifest.webmanifest">
@@ -1038,6 +1080,19 @@ body:not(.es-propietario) #botonLicencias{display:none!important}
 }
 </style>
 
+
+<style>
+/* ===== v60 · ADMINISTRACIÓN DEL SOFTWARE ===== */
+#vistaAdminSoftware{display:none;width:100%;max-width:920px;margin:0 auto}
+.adminsw-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.adminsw-card,.adminsw-centro{background:rgba(255,255,255,.96);border:1px solid #d9eafa;border-radius:20px;padding:17px;box-shadow:0 8px 28px rgba(20,42,80,.055)}
+.adminsw-card span{display:block;color:#667085;font-size:12px;font-weight:700;margin-bottom:7px}.adminsw-card strong{font-size:25px}
+.adminsw-panel{background:rgba(255,255,255,.96);border:1px solid #d9eafa;border-radius:20px;padding:18px;margin-bottom:15px}
+.adminsw-form{display:grid;grid-template-columns:1.4fr 1fr auto;gap:10px;align-items:end}.adminsw-form .campo{margin:0}.adminsw-form button{min-height:46px}
+.adminsw-centro{margin-bottom:10px}.adminsw-centro-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.adminsw-centro h3{margin:0 0 5px;font-size:17px}.adminsw-centro p{margin:0;color:#667085;font-size:12px;line-height:1.6}.adminsw-badge{display:inline-flex;padding:7px 10px;border-radius:999px;font-size:11px;font-weight:850}.adminsw-badge.active{background:#e9f8ef;color:#168044}.adminsw-badge.inactive{background:#ffecec;color:#b42318}.adminsw-miembros{margin-top:13px;padding-top:12px;border-top:1px solid #e8edf5}.adminsw-miembro{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 0;border-top:1px solid #eef2f6}.adminsw-miembro:first-child{border-top:0}.adminsw-miembro-info{min-width:0}.adminsw-miembro-info strong,.adminsw-miembro-info small{display:block;overflow-wrap:anywhere}.adminsw-miembro-info small{color:#667085;margin-top:3px}.adminsw-acciones{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.adminsw-btn{border:0;border-radius:11px;padding:9px 11px;font-weight:750;cursor:pointer}.adminsw-btn.azul{background:#eaf4ff;color:#0a84ff}.adminsw-btn.rojo{background:#ffecec;color:#b42318}.adminsw-btn.verde{background:#e9f8ef;color:#168044}
+@media(max-width:700px){.adminsw-grid,.adminsw-form{grid-template-columns:1fr}.adminsw-centro-top,.adminsw-miembro{align-items:flex-start;flex-direction:column}.adminsw-miembro .adminsw-btn{width:100%}}
+</style>
+
 </head>
 <body>
 
@@ -1269,7 +1324,6 @@ body:not(.es-propietario) #botonLicencias{display:none!important}
 </div>
 <div class="lista-estadisticas"><h3>🏆 Productos vendidos en el período</h3><div id="reporteProductos"></div></div>
 <div class="lista-estadisticas"><h3>💸 Gastos por categoría</h3><div id="reporteCategoriasGasto"></div></div>
-</div>
 
 <div class="lista-estadisticas" id="reporteArrendamientoContribucion">
  <h3>🏢 Informe mensual de arrendamiento por contribución</h3>
@@ -1293,6 +1347,7 @@ body:not(.es-propietario) #botonLicencias{display:none!important}
   <div class="fila-estadistica"><span>Ganancia bruta del mes</span><strong id="repArrGanancia">$0.00</strong></div>
   <div class="fila-estadistica"><span>Ganancia bruta después del arrendamiento</span><strong id="repArrResultado">$0.00</strong></div>
  </div>
+</div>
 </div>
 
 <div id="vistaAlertas" style="display:none">
@@ -1429,8 +1484,6 @@ body:not(.es-propietario) #botonLicencias{display:none!important}
 <div class="fila-estadistica"><span>Caja + Inventario + Por cobrar − Por pagar</span><strong id="finFormulaPatrimonio">—</strong></div>
 </div>
 
-</div>
-
 <div class="lista-estadisticas"><h3>📈 Resultados del período</h3>
 <div class="fila-estadistica"><span>Ventas</span><strong id="finVentas">$0.00</strong></div>
 <div class="fila-estadistica"><span>Costo de mercancía vendida</span><strong id="finCosto">$0.00</strong></div>
@@ -1489,6 +1542,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="fila-estadistica"><span>Margen neto sobre ventas</span><strong id="finMargenNeto">0.0%</strong></div>
 <div class="fila-estadistica"><span>Relación por cobrar / por pagar</span><strong id="finRelacion">—</strong></div>
 </div>
+</div>
 
 <div id="vistaEstadisticas" style="display:none">
 <div class="seccion-titulo"><h2>📊 Estadísticas</h2></div>
@@ -1504,8 +1558,6 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="lista-estadisticas"><h3>📦 Productos con mayor existencia</h3><div id="rankingProductos"></div></div>
 <div class="lista-estadisticas"><h3>🔄 Productos con más movimientos</h3><div id="rankingMovimientos"></div></div>
 <div class="lista-estadisticas"><h3>⚠️ Productos con stock bajo</h3><div id="rankingStockBajo"></div></div>
-<div class="seccion-titulo"><h2>💾 Datos</h2></div>
-<div class="respaldo-box"><h3>Respaldo y restauración</h3><p>Guarda una copia de tus productos, stock mínimo e historial para poder recuperarlos posteriormente.</p><div class="botones-respaldo"><button class="boton-respaldo boton-crear-respaldo" onclick="crearRespaldo()">💾 Crear respaldo</button><button class="boton-respaldo boton-restaurar-respaldo" onclick="seleccionarRespaldo()">📥 Restaurar respaldo</button></div><input id="archivoRespaldo" type="file" accept=".json,application/json" style="display:none" onchange="restaurarRespaldo(event)"><div id="estadoRespaldo" class="estado-respaldo"></div></div>
 </div>
 </div>
 
@@ -1706,6 +1758,61 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 </div>
 
 
+
+
+<div id="vistaAdminSoftware" style="display:none">
+ <div class="seccion-titulo">
+  <h2>⚙️ Administración del Software</h2>
+  <button class="boton-agregar" type="button" onclick="cargarAdminSoftware()">↻ Actualizar</button>
+ </div>
+ <div class="reporte-controles"><p class="reporte-periodo">Panel exclusivo del propietario de Flackunloker. Administra centros y asigna cuentas existentes sin entrar al SQL.</p></div>
+ <div class="adminsw-grid">
+  <div class="adminsw-card"><span>Centros</span><strong id="adminswTotalCentros">0</strong></div>
+  <div class="adminsw-card"><span>Activos</span><strong id="adminswCentrosActivos">0</strong></div>
+  <div class="adminsw-card"><span>Usuarios asignados</span><strong id="adminswTotalMiembros">0</strong></div>
+ </div>
+ <div class="adminsw-panel">
+  <h3 style="margin:0 0 14px">🏢 Crear centro</h3>
+  <div class="adminsw-form">
+   <div class="campo"><label>Nombre del centro</label><input id="adminswCentroNombre" maxlength="120" placeholder="Ej. Flackunloker - Sucursal Norte"></div>
+   <div class="campo"><label>Código</label><input id="adminswCentroCodigo" maxlength="40" placeholder="SUC-NORTE"></div>
+   <button class="boton-agregar" type="button" onclick="crearCentroAdminSoftware()">➕ Crear</button>
+  </div>
+ </div>
+ <div class="adminsw-panel">
+  <h3 style="margin:0 0 14px">➕ Crear usuario y asignar</h3>
+  <div class="adminsw-form" style="grid-template-columns:1.25fr 1.1fr 1fr 1fr auto">
+   <div class="campo"><label>Correo del nuevo usuario</label><input id="adminswNuevoEmail" type="email" autocomplete="off" placeholder="usuario@correo.com"></div>
+   <div class="campo"><label>Contraseña inicial</label><input id="adminswNuevoPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Mínimo 8 caracteres"></div>
+   <div class="campo"><label>Centro</label><select id="adminswNuevoCentro"><option value="">Selecciona</option></select></div>
+   <div class="campo"><label>Rol</label><select id="adminswNuevoRol"><option value="admin">Administrador</option><option value="employee">Empleado</option></select></div>
+   <button class="boton-agregar" id="adminswBotonCrearUsuario" type="button" onclick="crearUsuarioAdminSoftware()">Crear y asignar</button>
+  </div>
+  <small class="ayuda-campo">La contraseña se envía únicamente a una función segura de Supabase. La clave administrativa nunca se guarda en este index.html.</small>
+ </div>
+ <div class="adminsw-panel">
+  <h3 style="margin:0 0 14px">👤 Asignar usuario existente</h3>
+  <div class="adminsw-form" style="grid-template-columns:1.3fr 1fr 1fr auto">
+   <div class="campo"><label for="adminswUsuarioEmail">Usuario existente</label><select id="adminswUsuarioEmail"><option value="">Cargando usuarios...</option></select></div>
+   <div class="campo"><label>Centro</label><select id="adminswUsuarioCentro"><option value="">Selecciona</option></select></div>
+   <div class="campo"><label>Rol</label><select id="adminswUsuarioRol"><option value="admin">Administrador</option><option value="employee">Empleado</option></select></div>
+   <button class="boton-agregar" type="button" onclick="asignarUsuarioAdminSoftware()">Asignar</button>
+  </div>
+  <small class="ayuda-campo">En esta primera etapa el usuario debe existir previamente en Authentication. La creación de cuentas desde este panel se añadirá después mediante un servicio seguro, sin exponer claves administrativas en el navegador.</small>
+ </div>
+ <div class="adminsw-panel">
+  <h3 style="margin:0 0 8px">💾 Respaldo y restauración</h3>
+  <p style="margin:0 0 14px;color:#667085;font-size:13px;line-height:1.55">Guarda una copia de los datos de Flackunloker o restaura un respaldo anterior.</p>
+  <div class="botones-respaldo">
+   <button class="boton-respaldo boton-crear-respaldo" type="button" onclick="crearRespaldo()">💾 Crear respaldo</button>
+   <button class="boton-respaldo boton-restaurar-respaldo" type="button" onclick="seleccionarRespaldo()">📥 Restaurar respaldo</button>
+  </div>
+  <input id="archivoRespaldo" type="file" accept=".json,application/json" style="display:none" onchange="restaurarRespaldo(event)">
+  <div id="estadoRespaldo" class="estado-respaldo"></div>
+ </div>
+ <div id="adminswListaCentros"><div class="sin-productos">Pulsa Actualizar para cargar los centros.</div></div>
+</div>
+
 <div id="vistaLicencias" style="display:none">
  <div class="seccion-titulo">
   <h2>🔐 Licencias</h2>
@@ -1716,8 +1823,11 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   <h3 style="margin:0 0 14px">➕ Nueva licencia para tercero</h3>
   <div class="lic-grid">
    <div class="campo">
-    <label for="licNuevoCliente">Cliente / negocio</label>
-    <input id="licNuevoCliente" type="text" maxlength="120" placeholder="Nombre del cliente">
+    <label for="licNuevoCentro">Centro</label>
+    <select id="licNuevoCentro">
+     <option value="">Cargando centros...</option>
+    </select>
+    <small class="ayuda-campo">La licencia quedará vinculada al centro seleccionado.</small>
    </div>
    <div class="campo">
     <label for="licNuevoVencimiento">Vencimiento</label>
@@ -1804,7 +1914,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div id="menuPrincipalFondo" class="menu-panel-fondo" onclick="cerrarMenuPrincipal(event)">
  <div class="menu-panel" onclick="event.stopPropagation()">
   <div class="menu-panel-cabecera"><h2>☰ Menú principal</h2><button class="cerrar-menu" onclick="cerrarMenuPrincipal()">✕</button></div>
-  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button class="solo-admin" onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button class="solo-admin" id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button class="solo-admin" id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button class="solo-admin" id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button class="solo-admin" id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button class="solo-admin" id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button class="solo-admin" id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button class="solo-admin" id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button class="solo-admin" id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button class="solo-admin" id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button class="solo-admin" id="botonUsuarios" onclick="mostrarUsuarios()">👥 Usuarios</button><button class="solo-propietario" id="botonLicencias" onclick="mostrarLicencias()">🔐 Licencias</button></div>
+  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button class="solo-admin" onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button class="solo-admin" id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button class="solo-admin" id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button class="solo-admin" id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button class="solo-admin" id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button class="solo-admin" id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button class="solo-admin" id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button class="solo-admin" id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button class="solo-admin" id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button class="solo-admin" id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button class="solo-admin" id="botonUsuarios" onclick="mostrarUsuarios()">👥 Usuarios</button><button class="solo-propietario" id="botonAdminSoftware" onclick="mostrarAdminSoftware()">⚙️ Software</button><button class="solo-propietario" id="botonLicencias" onclick="mostrarLicencias()">🔐 Licencias</button></div>
  </div>
 </div>
 
@@ -3648,10 +3758,26 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
 
 async function cargarUsuariosAdmin(){const lista=document.getElementById("listaUsuariosAdmin");if(rolSesion!=="admin"){lista.innerHTML='<div class="sin-productos">Acceso reservado al Administrador.</div>';return}if(!navigator.onLine){lista.innerHTML='<div class="sin-productos">Usuarios disponibles cuando vuelva la conexión.</div>';flkActualizarEstadoConexion();return}lista.innerHTML='<div class="sin-productos">Cargando usuarios...</div>';const {data,error}=await flkSupabase.from("profiles").select("id,email,full_name,role,created_at").order("created_at",{ascending:true});if(error){if(!flkSesionActiva)return;if(flkSilenciarSiEsConexion(error)){lista.innerHTML='<div class="sin-productos">Usuarios disponibles cuando vuelva la conexión.</div>';return}lista.innerHTML='<div class="sin-productos">No se pudieron cargar los usuarios: '+escapeHtml(error.message)+'</div>';return}const {data:ses}=await flkSupabase.auth.getSession(),miId=ses?.session?.user?.id||"";lista.innerHTML=data?.length?data.map(u=>{const propio=u.id===miId,admin=u.role==="admin";return `<div class="usuario-card"><div class="usuario-superior"><div><h3>${escapeHtml(u.full_name||u.email||"Usuario")}</h3><p>${escapeHtml(u.email||"")}</p></div><span class="usuario-rol ${admin?"admin":"employee"}">${admin?"👑 Administrador":"👤 Empleado"}</span></div>${propio?'<div class="usuario-propio">Esta es tu cuenta. Tu propio rol está protegido.</div>':`<div class="usuario-acciones"><button class="usuario-hacer-admin" ${admin?"disabled":""} onclick="cambiarRolUsuario('${u.id}','admin')">👑 Hacer Admin</button><button class="usuario-hacer-empleado" ${!admin?"disabled":""} onclick="cambiarRolUsuario('${u.id}','employee')">👤 Hacer Empleado</button></div>`}</div>`}).join(""):'<div class="sin-productos">No hay perfiles registrados.</div>'}
 async function cambiarRolUsuario(id,rol){if(rolSesion!=="admin")return alert("Acceso denegado.");if(!confirm("¿Cambiar esta cuenta a "+(rol==="admin"?"Administrador":"Empleado")+"?"))return;const {error}=await flkSupabase.rpc("admin_set_user_role",{target_user:id,new_role:rol});if(error){if(!flkSesionActiva)return;if(flkDebeMostrarErrorNube(error))return alert("No se pudo cambiar el rol: "+error.message);return;}await cargarUsuariosAdmin();alert("Rol actualizado correctamente.")}
-function mostrarUsuarios(){
+
+// ===== v60.5 · CONTROL ÚNICO DE VISTAS =====
+// Evita que una sección quede visible al entrar en otro módulo.
+function flkOcultarTodasLasVistas(){
+ const ids=[
+  "vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos",
+  "vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores",
+  "vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas",
+  "vistaUsuarios","vistaAdminSoftware","vistaLicencias"
+ ];
+ ids.forEach(id=>{
+  const el=document.getElementById(id);
+  if(el)el.style.display="none";
+ });
+}
+
+function mostrarUsuarios(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;
  if(rolSesion!=="admin")return alert("Esta sección es solo para Administradores.");
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaUsuarios").style.display="block";actualizarMenu("usuarios");scrollTop();
  const lista=document.getElementById("listaUsuariosAdmin");
  if(!navigator.onLine){if(lista)lista.innerHTML='<div class="sin-productos">Gestión de usuarios disponible cuando vuelva la conexión.</div>';return}
@@ -3664,6 +3790,8 @@ async function flkComprobarPropietarioSoftware(){
  flkEsPropietarioSoftware=false;
  document.body.classList.remove("es-propietario");
  const botonLicInicial=document.getElementById("botonLicencias");
+ const botonAdminInicial=document.getElementById("botonAdminSoftware");
+ if(botonAdminInicial)botonAdminInicial.style.setProperty("display","none","important");
  if(botonLicInicial)botonLicInicial.style.setProperty("display","none","important");
  if(!flkSesionActiva||!navigator.onLine)return false;
  try{
@@ -3680,6 +3808,8 @@ async function flkComprobarPropietarioSoftware(){
    }
   const botonLic=document.getElementById("botonLicencias");
   if(botonLic)botonLic.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
+   const botonAdmin=document.getElementById("botonAdminSoftware");
+   if(botonAdmin)botonAdmin.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
   return flkEsPropietarioSoftware
  }catch(err){
   console.error("Comprobación propietario software:",err);
@@ -3690,7 +3820,388 @@ async function flkComprobarPropietarioSoftware(){
  }
 }
 
-function mostrarLicencias(){
+let flkAdminSoftwareCentros=[];
+
+function flkAdminSwEsc(v){return escapeHtml(String(v??""))}
+
+function mostrarAdminSoftware(){flkOcultarTodasLasVistas();
+ if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
+ const vistas=["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios","vistaLicencias"];
+ vistas.forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ const v=document.getElementById("vistaAdminSoftware");if(v)v.style.display="block";
+ document.querySelectorAll("#menuPrincipalFondo .menu-cuadricula button").forEach(b=>b.classList.remove("activo"));
+ document.getElementById("botonAdminSoftware")?.classList.add("activo");
+ cargarAdminSoftware();scrollTop();
+}
+
+
+function flkEstadoLicenciaTexto(status){
+ const x=String(status||"").toLowerCase();
+ if(x==="active")return "🟢 Activa";
+ if(x==="suspended")return "🟠 Suspendida";
+ if(x==="expired")return "🔴 Vencida";
+ return "⚪ Sin licencia";
+}
+function flkFechaCortaLic(v){
+ if(!v)return "—";
+ const d=new Date(v);
+ return Number.isNaN(d.getTime())?"—":d.toLocaleDateString("es-PR");
+}
+async function flkEnriquecerCentrosConLicencias(){
+ if(!flkEsPropietarioSoftware||!navigator.onLine)return;
+ try{
+  const {data,error}=await flkSupabase.rpc("flk_list_licenses");
+  if(error)throw error;
+
+  const licencias=Array.isArray(data)?data:[];
+  const cont=document.getElementById("adminswListaCentros");
+  if(!cont)return;
+
+  const cards=Array.from(cont.children).filter(el=>el && el.nodeType===1);
+
+  cards.forEach((card,i)=>{
+   const centro=flkAdminSoftwareCentros[i];
+   if(!centro)return;
+
+   const bid=String(centro.business_id||"").trim();
+   card.setAttribute("data-business-id",bid);
+
+   const delCentro=licencias.filter(x=>String(x.business_id||"").trim()===bid);
+   const lic=delCentro.find(x=>String(x.status||"").toLowerCase()==="active") || delCentro[0] || null;
+
+   let box=card.querySelector(".adminsw-licencia-centro");
+   if(!box){
+    box=document.createElement("div");
+    box.className="adminsw-licencia-centro";
+    box.style.cssText="margin-top:12px;padding:12px 14px;border-radius:12px;background:#f7f9fc;border:1px solid #e5e7eb;font-size:13px;line-height:1.6";
+    card.appendChild(box);
+   }
+
+   if(lic){
+    const exp=new Date(lic.expires_at||0);
+    const vencida=Number.isFinite(exp.getTime()) && exp.getTime()<Date.now();
+    const estadoRaw=vencida?"expired":String(lic.status||"");
+    const estado=flkEstadoLicenciaTexto(estadoRaw);
+    const vence=flkFechaCortaLic(lic.expires_at);
+    const dispositivo=lic.device_id?"📱 Dispositivo: Vinculado":"📱 Dispositivo: Libre";
+    const nombre=lic.business_name||lic.customer_name||centro.name||"Centro";
+    const key=String(lic.license_key||"");
+    const suspendida=String(lic.status||"").toLowerCase()==="suspended";
+
+    box.innerHTML=
+     `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">`+
+      `<strong>🔐 Licencia: ${estado}</strong>`+
+      `<span style="color:#667085">Vence: ${flkAdminSwEsc(vence)}</span>`+
+     `</div>`+
+     `<div style="margin-top:3px;color:#475467">${dispositivo}</div>`+
+     `<div style="margin-top:3px;color:#667085">Centro: ${flkAdminSwEsc(nombre)}</div>`+
+     `<div class="adminsw-license-actions">`+
+      `<button type="button" class="adminsw-license-renew" onclick='flkRenovarLicenciaCentro(${JSON.stringify(key)},${JSON.stringify(nombre)},${JSON.stringify(lic.expires_at||"")})'>📅 Renovar</button>`+
+      `<button type="button" class="adminsw-license-status" onclick='flkCambiarEstadoLicenciaCentro(${JSON.stringify(key)},${JSON.stringify(nombre)},${JSON.stringify(suspendida?"active":"suspended")})'>${suspendida?"▶ Activar":"⏸ Suspender"}</button>`+
+      `<button type="button" class="adminsw-license-device" onclick='flkLiberarDispositivoCentro(${JSON.stringify(key)},${JSON.stringify(nombre)},${JSON.stringify(!!lic.device_id)})'>📱 Liberar</button>`+
+     `</div>`;
+   }else{
+    box.innerHTML=
+     `<strong>🔐 Licencia: ⚪ Sin licencia</strong>`+
+     `<div style="margin-top:3px;color:#667085">Este centro todavía no tiene una licencia vinculada.</div>`;
+   }
+  });
+ }catch(err){
+  console.error("Licencias por centro:",err);
+ }
+}
+
+async function flkRenovarLicenciaCentro(licenseKey,nombreCentro,fechaActual){
+ if(!flkEsPropietarioSoftware)return;
+ const actual=new Date(fechaActual||Date.now());
+ const base=Number.isNaN(actual.getTime())?new Date():actual;
+ const sugerida=new Date(base);
+ sugerida.setFullYear(sugerida.getFullYear()+1);
+ const yyyy=sugerida.getFullYear();
+ const mm=String(sugerida.getMonth()+1).padStart(2,"0");
+ const dd=String(sugerida.getDate()).padStart(2,"0");
+ const valor=prompt(
+  "Nueva fecha de vencimiento para "+nombreCentro+"\n\nFormato: AAAA-MM-DD",
+  `${yyyy}-${mm}-${dd}`
+ );
+ if(valor===null)return;
+ const nueva=new Date(String(valor).trim()+"T23:59:59");
+ if(Number.isNaN(nueva.getTime())||nueva<=new Date())return alert("La fecha debe ser válida y futura.");
+ if(!confirm("¿Renovar la licencia de "+nombreCentro+" hasta "+nueva.toLocaleDateString("es-PR")+"?"))return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_renew_license",{
+   p_license_key:licenseKey,
+   p_new_expires_at:nueva.toISOString()
+  });
+  if(error)throw error;
+  alert("Licencia renovada correctamente.");
+  await cargarAdminSoftware();
+ }catch(err){
+  console.error("Renovar licencia centro:",err);
+  alert("No se pudo renovar la licencia.\n\n"+(err?.message||"Error desconocido"));
+ }
+}
+
+async function flkCambiarEstadoLicenciaCentro(licenseKey,nombreCentro,nuevoEstado){
+ if(!flkEsPropietarioSoftware)return;
+ const activar=String(nuevoEstado)==="active";
+ const accion=activar?"activar":"suspender";
+ if(!confirm("¿Seguro que deseas "+accion+" la licencia de "+nombreCentro+"?"))return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_set_license_status",{
+   p_license_key:licenseKey,
+   p_status:nuevoEstado
+  });
+  if(error)throw error;
+  alert(activar?"Licencia activada correctamente.":"Licencia suspendida correctamente.");
+  await cargarAdminSoftware();
+ }catch(err){
+  console.error("Estado licencia centro:",err);
+  alert("No se pudo cambiar el estado de la licencia.\n\n"+(err?.message||"Error desconocido"));
+ }
+}
+
+async function flkLiberarDispositivoCentro(licenseKey,nombreCentro,tieneDispositivo){
+ if(!flkEsPropietarioSoftware)return;
+ if(!tieneDispositivo)return alert("Esta licencia no tiene ningún dispositivo vinculado.");
+ if(!confirm("¿Liberar el dispositivo de la licencia de "+nombreCentro+"?\n\nEl próximo dispositivo que la active quedará vinculado."))return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_release_license_device",{
+   p_license_key:licenseKey
+  });
+  if(error)throw error;
+  alert("Dispositivo liberado correctamente.");
+  await cargarAdminSoftware();
+ }catch(err){
+  console.error("Liberar dispositivo centro:",err);
+  alert("No se pudo liberar el dispositivo.\n\n"+(err?.message||"Error desconocido"));
+ }
+}
+
+async function cargarAdminSoftware(){
+ if(!flkEsPropietarioSoftware)return;
+ flkCargarUsuariosExistentesAdminSoftware();
+ const lista=document.getElementById("adminswListaCentros");
+ if(!navigator.onLine){lista.innerHTML='<div class="sin-productos">Conéctate a Internet para administrar centros.</div>';return}
+ lista.innerHTML='<div class="sin-productos">Cargando centros...</div>';
+ try{
+  const {data,error}=await flkSupabase.rpc("flk_software_admin_list_centers");
+  if(error)throw error;
+  flkAdminSoftwareCentros=Array.isArray(data)?data:[];
+   
+  document.getElementById("adminswTotalCentros").textContent=flkAdminSoftwareCentros.length;
+  document.getElementById("adminswCentrosActivos").textContent=flkAdminSoftwareCentros.filter(c=>String(c.status)==="active").length;
+  document.getElementById("adminswTotalMiembros").textContent=flkAdminSoftwareCentros.reduce((a,c)=>a+Number(c.members_count||0),0);
+  const opcionesCentros='<option value="">Selecciona</option>'+flkAdminSoftwareCentros.map(c=>`<option value="${flkEscAttr(c.business_id)}">${flkAdminSwEsc(c.name)} · ${flkAdminSwEsc(c.code||"")}</option>`).join("");
+  const sel=document.getElementById("adminswUsuarioCentro");if(sel)sel.innerHTML=opcionesCentros;
+  const selNuevo=document.getElementById("adminswNuevoCentro");if(selNuevo)selNuevo.innerHTML=opcionesCentros;
+  if(!flkAdminSoftwareCentros.length){lista.innerHTML='<div class="sin-productos">No hay centros registrados.</div>';return}
+  lista.innerHTML=flkAdminSoftwareCentros.map(c=>`<div class="adminsw-centro" id="adminsw-centro-${flkEscAttr(c.business_id)}"><div class="adminsw-centro-top"><div><h3>${flkAdminSwEsc(c.name)}</h3><p>Código: ${flkAdminSwEsc(c.code||"—")}<br>ID: ${flkAdminSwEsc(c.business_id)}</p></div><span class="adminsw-badge ${String(c.status)==="active"?"active":"inactive"}">${String(c.status)==="active"?"ACTIVO":"INACTIVO"}</span></div><div class="adminsw-acciones"><button class="adminsw-btn azul" onclick="cargarMiembrosCentroAdminSoftware('${flkEscAttr(c.business_id)}')">👥 Ver usuarios</button><button class="adminsw-btn ${String(c.status)==="active"?"rojo":"verde"}" onclick="cambiarEstadoCentroAdminSoftware('${flkEscAttr(c.business_id)}','${String(c.status)==="active"?"inactive":"active"}')">${String(c.status)==="active"?"⛔ Desactivar":"✅ Activar"}</button></div><div class="adminsw-miembros" id="adminsw-miembros-${flkEscAttr(c.business_id)}" style="display:none"></div></div>`).join("");
+  await flkEnriquecerCentrosConLicencias();
+ }catch(err){console.error("Administración software:",err);lista.innerHTML='<div class="sin-productos">No se pudo cargar la administración de centros.</div>';alert("Falta instalar o actualizar las funciones de Administración del Software en Supabase.\n\nDetalle: "+(err?.message||"Error desconocido"))}
+}
+
+async function crearCentroAdminSoftware(){
+ if(!flkEsPropietarioSoftware)return;
+ const name=(document.getElementById("adminswCentroNombre").value||"").trim();
+ const code=(document.getElementById("adminswCentroCodigo").value||"").trim().toUpperCase();
+ if(name.length<3)return alert("Escribe un nombre válido para el centro.");
+ if(code.length<2)return alert("Escribe un código para el centro.");
+ if(!confirm(`¿Crear el centro ${name} (${code})?`))return;
+ try{const {error}=await flkSupabase.rpc("flk_software_admin_create_center",{p_name:name,p_code:code});if(error)throw error;document.getElementById("adminswCentroNombre").value="";document.getElementById("adminswCentroCodigo").value="";await cargarAdminSoftware();alert("Centro creado correctamente.")}catch(err){alert("No se pudo crear el centro: "+(err?.message||"Error desconocido"))}
+}
+
+async function crearUsuarioAdminSoftware(){
+ if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
+ if(!navigator.onLine)return alert("Debes estar conectado a Internet para crear usuarios.");
+ const email=(document.getElementById("adminswNuevoEmail")?.value||"").trim().toLowerCase();
+ const password=document.getElementById("adminswNuevoPassword")?.value||"";
+ const business=document.getElementById("adminswNuevoCentro")?.value||"";
+ const role=document.getElementById("adminswNuevoRol")?.value||"employee";
+ if(!email||!email.includes("@"))return alert("Escribe un correo válido.");
+ if(password.length<8)return alert("La contraseña inicial debe tener al menos 8 caracteres.");
+ if(!business)return alert("Selecciona el centro al que pertenecerá el usuario.");
+ if(!["owner","admin","employee"].includes(role))return alert("Rol inválido.");
+ if(!confirm(`¿Crear ${email} y asignarlo al centro seleccionado como ${role}?`))return;
+ const boton=document.getElementById("adminswBotonCrearUsuario");
+ try{
+  if(boton){boton.disabled=true;boton.textContent="Creando..."}
+  const {data,error}=await flkSupabase.functions.invoke("flk-create-user",{body:{email,password,business_id:business,role}});
+  if(error){
+   let detalle=error.message||"Error al invocar la función segura";
+   try{if(error.context){const j=await error.context.json();detalle=j?.error||j?.message||detalle}}catch(_e){}
+   throw new Error(detalle);
+  }
+  if(!data?.ok)throw new Error(data?.error||"No se pudo crear el usuario.");
+  document.getElementById("adminswNuevoEmail").value="";
+  document.getElementById("adminswNuevoPassword").value="";
+  await cargarAdminSoftware();
+  await cargarMiembrosCentroAdminSoftware(business);
+  alert("Usuario creado y asignado correctamente. Ya puede iniciar sesión con su correo y contraseña.");
+ }catch(err){
+  console.error("Crear usuario software:",err);
+  alert("No se pudo crear el usuario.\n\nDetalle: "+(err?.message||"Error desconocido"));
+ }finally{
+  if(boton){boton.disabled=false;boton.textContent="Crear y asignar"}
+ }
+}
+
+async function asignarUsuarioAdminSoftware(){
+ if(!flkEsPropietarioSoftware)return;
+ const email=(document.getElementById("adminswUsuarioEmail").value||"").trim().toLowerCase();
+ const business=document.getElementById("adminswUsuarioCentro").value;
+ const role=document.getElementById("adminswUsuarioRol").value;
+ if(!email||!business)return alert("Selecciona el usuario y el centro.");
+ if(!confirm(`¿Asignar ${email} al centro seleccionado como ${role}?`))return;
+ try{const {error}=await flkSupabase.rpc("flk_software_admin_assign_user",{p_email:email,p_business_id:business,p_role:role});if(error)throw error;document.getElementById("adminswUsuarioEmail").value="";await cargarAdminSoftware();await flkCargarUsuariosExistentesAdminSoftware();await cargarMiembrosCentroAdminSoftware(business);alert("Usuario asignado correctamente.")}catch(err){alert("No se pudo asignar el usuario: "+(err?.message||"Error desconocido"))}
+}
+
+
+async function flkCambiarRolMiembro(businessId,userId,email,nuevoRol,rolActual){
+ if(!flkEsPropietarioSoftware)return;
+ const rol=String(nuevoRol||"").trim().toLowerCase();
+ const actual=String(rolActual||"").trim().toLowerCase();
+ if(!["admin","employee"].includes(rol))return alert("Solo puedes seleccionar Administrador o Empleado.");
+ if(rol===actual)return;
+ if(!confirm("¿Cambiar el rol de "+email+" de "+actual+" a "+rol+"?")){
+  await flkRefrescarMiembrosCentro(businessId);
+  return;
+ }
+ try{
+  const {error}=await flkSupabase.rpc("flk_software_admin_set_member_role",{
+   p_business_id:businessId,p_user_id:userId,p_role:rol
+  });
+  if(error)throw error;
+  alert("Rol actualizado correctamente.");
+  await flkRefrescarMiembrosCentro(businessId);
+ }catch(err){
+  console.error("Cambiar rol:",err);
+  alert("No se pudo cambiar el rol.\n\n"+(err?.message||"Error desconocido"));
+  await flkRefrescarMiembrosCentro(businessId);
+ }
+}
+async function flkCambiarEstadoMiembro(businessId,userId,email,estadoActual){
+ if(!flkEsPropietarioSoftware)return;
+ const actual=String(estadoActual||"active").toLowerCase();
+ const nuevo=actual==="active"?"inactive":"active";
+ const verbo=nuevo==="active"?"activar":"desactivar";
+ if(!confirm("¿Seguro que deseas "+verbo+" a "+email+" en este centro?"))return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_software_admin_set_member_status",{
+   p_business_id:businessId,p_user_id:userId,p_status:nuevo
+  });
+  if(error)throw error;
+  alert("Estado actualizado correctamente.");
+  await flkRefrescarMiembrosCentro(businessId);
+ }catch(err){
+  console.error("Cambiar estado:",err);
+  alert("No se pudo cambiar el estado.\n\n"+(err?.message||"Error desconocido"));
+ }
+}
+
+async function flkQuitarMiembroCentro(businessId,userId,email){
+ if(!flkEsPropietarioSoftware)return;
+ if(!confirm("¿Quitar a "+email+" de esta sucursal?\n\nLa cuenta de Authentication no será eliminada."))return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_software_admin_remove_user",{
+   p_business_id:businessId,p_user_id:userId
+  });
+  if(error)throw error;
+  alert("Usuario retirado del centro.");
+  await flkRefrescarMiembrosCentro(businessId);
+ }catch(err){
+  console.error("Quitar usuario:",err);
+  alert("No se pudo quitar el usuario.\n\n"+(err?.message||"Error desconocido"));
+ }
+}
+
+async function flkRefrescarMiembrosCentro(businessId){
+ const box=document.querySelector(`[data-members-business-id="${CSS.escape(String(businessId))}"]`);
+ if(!box)return cargarAdminSoftware();
+ box.innerHTML='<div class="sin-productos">Actualizando usuarios...</div>';
+ try{
+  const {data,error}=await flkSupabase.rpc("flk_software_admin_list_members",{p_business_id:businessId});
+  if(error)throw error;
+  const miembros=Array.isArray(data)?data:[];
+  box.innerHTML=flkHtmlMiembrosCentro(businessId,miembros);
+  const total=flkAdminSoftwareCentros.reduce((n,c)=>n+Number(c.member_count||c.members_count||0),0);
+  // contador principal se actualiza completamente al recargar el panel cuando cambia membresía
+ }catch(err){
+  console.error("Actualizar usuarios:",err);
+  box.innerHTML='<div class="sin-productos">No se pudieron cargar los usuarios.</div>';
+ }
+}
+
+function flkHtmlMiembrosCentro(businessId,miembros){
+ if(!miembros.length)return '<div class="sin-productos">No hay usuarios asignados a este centro.</div>';
+ return miembros.map(m=>{
+  const email=String(m.email||"Sin correo");
+  const role=String(m.role||"employee").toLowerCase();
+  const status=String(m.status||"active").toLowerCase();
+  const activo=status==="active";
+  const uid=String(m.user_id||"");
+  const escEmail=flkAdminSwEsc(email);
+  const selected=r=>role===r?" selected":"";
+  return `<div style="padding:12px 0;border-top:1px solid #eef1f5">
+   <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap">
+    <div><strong>${escEmail}</strong><div style="margin-top:3px;color:#667085;font-size:12px">${activo?"🟢 Activo":"⚪ Inactivo"}</div></div>
+   </div>
+   <div class="adminsw-user-actions">
+    ${role==="owner"
+ ? '<div class="adminsw-role-owner">🔒 Propietario del software</div>'
+ : `<select class="adminsw-role-select" aria-label="Rol de ${escEmail}"
+      onchange='flkCambiarRolMiembro(${JSON.stringify(String(businessId))},${JSON.stringify(uid)},${JSON.stringify(email)},this.value,${JSON.stringify(role)})'>
+     <option value="admin"${selected("admin")}>Administrador</option>
+     <option value="employee"${selected("employee")}>Empleado</option>
+    </select>`}
+    <button type="button" class="adminsw-user-status" onclick='flkCambiarEstadoMiembro(${JSON.stringify(String(businessId))},${JSON.stringify(uid)},${JSON.stringify(email)},${JSON.stringify(status)})'>${activo?"⏸ Desactivar":"▶ Activar"}</button>
+    <button type="button" class="adminsw-user-remove" onclick='flkQuitarMiembroCentro(${JSON.stringify(String(businessId))},${JSON.stringify(uid)},${JSON.stringify(email)})'>🗑 Quitar</button>
+   </div>
+  </div>`;
+ }).join("");
+}
+async function cargarMiembrosCentroAdminSoftware(businessId){
+ if(!flkEsPropietarioSoftware)return;
+
+ const card=document.querySelector(`[data-business-id="${CSS.escape(String(businessId))}"]`);
+ if(!card)return alert("No se encontró la tarjeta del centro.");
+
+ // Elimina cualquier lista antigua que haya quedado renderizada.
+ card.querySelectorAll(".adminsw-miembros-legacy,[data-members-business-id]").forEach(el=>el.remove());
+
+ const box=document.createElement("div");
+ box.setAttribute("data-members-business-id",String(businessId));
+ box.style.cssText="margin-top:10px;border-top:1px solid #e5e7eb;padding-top:2px";
+
+ const lic=card.querySelector(".adminsw-licencia-centro");
+ if(lic)card.insertBefore(box,lic);
+ else card.appendChild(box);
+
+ box.innerHTML='<div class="sin-productos">Cargando usuarios...</div>';
+
+ try{
+  const {data,error}=await flkSupabase.rpc("flk_software_admin_list_members",{
+   p_business_id:businessId
+  });
+  if(error)throw error;
+  const miembros=Array.isArray(data)?data:[];
+  box.innerHTML=flkHtmlMiembrosCentro(businessId,miembros);
+ }catch(err){
+  console.error("Usuarios del centro:",err);
+  box.innerHTML='<div class="sin-productos">No se pudieron cargar los usuarios.</div>';
+ }
+}
+async function quitarUsuarioCentroAdminSoftware(businessId,userId,email){
+ if(!confirm(`¿Quitar ${email||"este usuario"} de este centro?`))return;
+ try{const {error}=await flkSupabase.rpc("flk_software_admin_remove_user",{p_business_id:businessId,p_user_id:userId});if(error)throw error;await cargarAdminSoftware();await cargarMiembrosCentroAdminSoftware(businessId)}catch(err){alert("No se pudo quitar el usuario: "+(err?.message||"Error desconocido"))}
+}
+
+async function cambiarEstadoCentroAdminSoftware(businessId,status){
+ if(!confirm(`¿${status==="active"?"Activar":"Desactivar"} este centro?`))return;
+ try{const {error}=await flkSupabase.rpc("flk_software_admin_set_center_status",{p_business_id:businessId,p_status:status});if(error)throw error;await cargarAdminSoftware()}catch(err){alert("No se pudo cambiar el estado del centro: "+(err?.message||"Error desconocido"))}
+}
+
+function mostrarLicencias(){flkOcultarTodasLasVistas();
  if(!flkEsPropietarioSoftware){
   alert("Este panel es exclusivo del propietario de Flackunloker.");
   return
@@ -3887,8 +4398,35 @@ async function liberarDispositivoLicenciaLista(key){
  }
 }
 
+async function cargarCentrosSelectorLicencias(){
+ if(!flkEsPropietarioSoftware)return;
+ const sel=document.getElementById("licNuevoCentro");
+ if(!sel)return;
+ if(!navigator.onLine){
+  sel.innerHTML='<option value="">Conéctate a Internet</option>';
+  return;
+ }
+ sel.innerHTML='<option value="">Cargando centros...</option>';
+ try{
+  const {data,error}=await flkSupabase.rpc("flk_software_admin_list_centers");
+  if(error)throw error;
+  flkAdminSoftwareCentros=Array.isArray(data)?data:[];
+  const activos=flkAdminSoftwareCentros
+   .filter(c=>String(c.status)==="active")
+   .sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"es",{sensitivity:"base"}));
+  sel.innerHTML=activos.length
+   ? '<option value="">Selecciona un centro...</option>'+activos.map(c=>`<option value="${flkEscAttr(c.business_id)}">${flkAdminSwEsc(c.name)}${c.code?" · "+flkAdminSwEsc(c.code):""}</option>`).join("")
+   : '<option value="">No hay centros activos</option>';
+ }catch(err){
+  console.error("Centros para licencias:",err);
+  sel.innerHTML='<option value="">No se pudieron cargar los centros</option>';
+ }
+}
+
 async function cargarPanelLicencias(){
  if(!flkEsPropietarioSoftware)return;
+
+ await cargarCentrosSelectorLicencias();
 
  try{
   // La licencia principal ya fue validada al iniciar la aplicación.
@@ -3944,19 +4482,21 @@ async function crearLicenciaTercero(){
  const boton=document.getElementById("botonCrearLicenciaTercero");
  if(boton?.disabled)return;
 
- const cliente=(document.getElementById("licNuevoCliente")?.value||"").trim();
+ const centroSel=document.getElementById("licNuevoCentro");
+ const businessId=(centroSel?.value||"").trim();
+ const centroNombre=centroSel?.selectedOptions?.[0]?.textContent?.trim()||"";
  const fechaTxt=document.getElementById("licNuevoVencimiento")?.value||"";
  const gracia=Number(document.getElementById("licNuevaGracia")?.value??3);
  const notas=(document.getElementById("licNuevasNotas")?.value||"").trim();
 
- if(cliente.length<2)return alert("Escribe el nombre del cliente o negocio.");
+ if(!businessId)return alert("Selecciona el centro que recibirá la licencia.");
  const fecha=new Date(fechaTxt);
  if(!fechaTxt||Number.isNaN(fecha.getTime())||fecha<=new Date())
   return alert("Selecciona una fecha de vencimiento futura.");
  if(!Number.isInteger(gracia)||gracia<0||gracia>30)
   return alert("La gracia offline debe estar entre 0 y 30 días.");
 
- if(!confirm("¿Crear una nueva licencia para "+cliente+"?"))return;
+ if(!confirm("¿Crear una nueva licencia para "+centroNombre+"?"))return;
 
  try{
   if(boton){boton.disabled=true;boton.textContent="Creando licencia…";}
@@ -3964,10 +4504,11 @@ async function crearLicenciaTercero(){
   if(resultado){resultado.style.display="none";resultado.textContent="";}
 
   const {data,error}=await flkSupabase.rpc("flk_create_license",{
-   p_customer_name:cliente,
+   p_customer_name:centroNombre,
    p_expires_at:fecha.toISOString(),
    p_offline_grace_days:gracia,
-   p_notes:notas||null
+   p_notes:notas||null,
+   p_business_id:businessId
   });
   if(error)throw error;
 
@@ -3979,18 +4520,19 @@ async function crearLicenciaTercero(){
    box.style.display="block";
    box.innerHTML=
     "<strong>✅ Licencia creada</strong><br>"+
-    "Cliente: "+escapeHtml(lic.customer_name||cliente)+"<br>"+
+    "Centro: "+escapeHtml(lic.customer_name||centroNombre)+"<br>"+
     "Clave: <strong style='overflow-wrap:anywhere'>"+escapeHtml(lic.license_key)+"</strong><br>"+
     "Vence: "+escapeHtml(flkFechaLicenciaBonita(lic.expires_at))+"<br>"+
     "Gracia offline: "+Number(lic.offline_grace_days||0)+" día(s)";
   }
 
-  document.getElementById("licNuevoCliente").value="";
+  if(centroSel)centroSel.value="";
   document.getElementById("licNuevasNotas").value="";
-  alert("Licencia creada correctamente. Guarda o copia la clave mostrada en el panel.")
+  alert("Licencia creada y vinculada al centro correctamente. Guarda o copia la clave mostrada en el panel.");
+  await cargarListaLicencias();
  }catch(err){
   console.error("Crear licencia:",err);
-  alert("No se pudo crear la licencia.\n\nDetalle: "+(err?.message||err?.details||"Error desconocido"))
+  alert("No se pudo crear la licencia.\n\nDetalle: "+(err?.message||err?.details||"Error desconocido"));
  }finally{
   if(boton){boton.disabled=false;boton.textContent="➕ Crear licencia";}
  }
@@ -5279,11 +5821,11 @@ function eliminarVenta(id){
  ventas=ventas.filter(x=>x.id!==id);historial=historial.filter(m=>m.ventaId!==id);recalcularSaldos();guardarDatos();guardarHistorial();guardarVentas();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarEstadisticas()
 }
 document.getElementById("busquedaVentas").addEventListener("input",mostrarListaVentas);
-async function mostrarVentas(){if(navigator.onLine)setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="block";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("ventas");actualizarVentas();scrollTop()}
+async function mostrarVentas(){flkOcultarTodasLasVistas();if(navigator.onLine)setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="block";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("ventas");actualizarVentas();scrollTop()}
 
 function claveCliente(v){const tel=String(v.telefono||"").trim().toLowerCase();const nom=String(v.cliente||"Cliente general").trim().toLowerCase();return tel?"tel:"+tel:"nom:"+nom}
 function obtenerClientes(){const mapa={};ventas.forEach(v=>{normalizarCuentaVenta(v);const nombre=String(v.cliente||"Cliente general").trim()||"Cliente general",telefono=String(v.telefono||"").trim(),k=claveCliente(v);if(!mapa[k])mapa[k]={clave:k,nombre,telefono,compras:0,total:0,unidades:0,saldoPendiente:0,creditosPendientes:0,saldoVencido:0,creditosVencidos:0,ultima:null,ventas:[]};const c=mapa[k];c.compras++;c.total+=Number(v.ingreso||0);c.unidades+=unidadesNetasVenta(v);c.saldoPendiente+=Number(v.saldo||0);if(Number(v.saldo||0)>0){c.creditosPendientes++;const ev=estadoVencimientoVenta(v);if(ev.clave==="vencido"){c.creditosVencidos++;c.saldoVencido+=Number(v.saldo||0)}}c.ventas.push(v);if(!c.ultima||new Date(v.fecha)>new Date(c.ultima))c.ultima=v.fecha});return Object.values(mapa).sort((a,b)=>new Date(b.ultima)-new Date(a.ultima))}
-async function mostrarClientes(){if(navigator.onLine)setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="block";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("clientes");actualizarClientes();scrollTop()}
+async function mostrarClientes(){flkOcultarTodasLasVistas();if(navigator.onLine)setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="block";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("clientes");actualizarClientes();scrollTop()}
 function actualizarClientes(){const clientes=obtenerClientes(),q=document.getElementById("busquedaClientes").value.toLowerCase().trim(),arr=clientes.filter(c=>c.nombre.toLowerCase().includes(q)||c.telefono.toLowerCase().includes(q));document.getElementById("totalClientes").textContent=clientes.length;document.getElementById("comprasClientes").textContent=clientes.reduce((t,c)=>t+c.compras,0);document.getElementById("totalCompradoClientes").textContent="$"+clientes.reduce((t,c)=>t+c.total,0).toFixed(2);document.getElementById("creditosPendientesClientes").textContent=ventas.filter(v=>{normalizarCuentaVenta(v);return v.saldo>0}).length;document.getElementById("creditosVencidosClientes").textContent=ventas.filter(v=>estadoVencimientoVenta(v).clave==="vencido").length;document.getElementById("saldoPorCobrarClientes").textContent="$"+ventas.reduce((t,v)=>{normalizarCuentaVenta(v);return t+Number(v.saldo||0)},0).toFixed(2);document.getElementById("saldoVencidoClientes").textContent="$"+ventas.reduce((t,v)=>estadoVencimientoVenta(v).clave==="vencido"?t+Number(v.saldo||0):t,0).toFixed(2);const lista=document.getElementById("listaClientes");if(!arr.length){lista.innerHTML=`<div class="sin-productos">${clientes.length?"No encontramos clientes con esa búsqueda.":"Los clientes aparecerán aquí automáticamente cuando hagas recibos de venta."}</div>`;return}lista.innerHTML=arr.map(c=>{const f=c.ultima?new Date(c.ultima):null;return `<div class="cliente-card"><div class="cliente-superior"><div><h3>${escapeHtml(c.nombre)}</h3><p>${c.telefono?escapeHtml(c.telefono):"Sin teléfono"}</p></div><div class="cliente-total">$${c.total.toFixed(2)}</div></div><div class="cliente-detalle">Compras: <strong>${c.compras}</strong> · Unidades: <strong>${c.unidades}</strong>${c.saldoPendiente>0?`<br>Por cobrar: <strong>$${c.saldoPendiente.toFixed(2)}</strong> · Créditos: <strong>${c.creditosPendientes}</strong>`:""}${c.saldoVencido>0?`<br><span style="color:#d93025">Vencido: <strong>$${c.saldoVencido.toFixed(2)}</strong> · ${c.creditosVencidos} cuenta(s)</span>`:""}<br>Última compra: <strong>${f?f.toLocaleDateString("es-PR"):"—"}</strong>${c.saldoPendiente>0?`<br>💳 Saldo pendiente: <strong style="color:#c45b19">$${c.saldoPendiente.toFixed(2)}</strong> · ${c.creditosPendientes} cuenta(s)`:"<br>✅ Sin deuda pendiente"}</div><div class="acciones-cliente"><button class="boton-cliente" onclick="verCliente('${encodeURIComponent(c.clave)}')">🧾 Ver compras</button><button class="boton-cliente boton-cliente-venta" onclick="nuevoReciboCliente('${encodeURIComponent(c.clave)}')">＋ Nuevo recibo</button></div></div>`}).join("")}
 function clientePorClave(enc){const k=decodeURIComponent(enc);return obtenerClientes().find(c=>c.clave===k)}
 function verCliente(enc){const c=clientePorClave(enc);if(!c)return;document.getElementById("tituloCliente").textContent=c.nombre;document.getElementById("textoCliente").textContent=(c.telefono?c.telefono+" · ":"")+c.compras+" compra(s) · Total $"+c.total.toFixed(2)+(c.saldoPendiente>0?" · Debe $"+c.saldoPendiente.toFixed(2):" · Sin deuda");document.getElementById("recibosCliente").innerHTML=c.ventas.sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).map(v=>{normalizarCuentaVenta(v);return `<div class="venta-card"><div class="venta-superior"><div><h3>Recibo #${escapeHtml(v.numero||String(v.id).slice(-8))}</h3><p>${new Date(v.fecha).toLocaleDateString("es-PR")}</p>${v.saldo>0?`<span class="estado-pago credito">💳 Debe $${Number(v.saldo).toFixed(2)}</span>`:`<span class="estado-pago pagado">✅ Pagado</span>`}</div><div class="venta-total">$${Number(v.ingreso||0).toFixed(2)}</div></div><div class="acciones-cliente"><button class="boton-recibo-venta" onclick="generarReciboVenta(${v.id})">🧾 Ver recibo</button>${v.saldo>0?`<button class="boton-abono-venta" onclick="cerrarCliente();abrirAbono(${v.id})">💵 Registrar abono</button>`:""}${pagosDeVenta(v).length?`<button class="boton-historial-abonos" onclick="cerrarCliente();verHistorialAbonos(${v.id})">📋 Historial abonos</button>`:""}</div></div>`}).join("");document.getElementById("botonNuevaVentaCliente").onclick=()=>{cerrarCliente();nuevoReciboCliente(enc)};document.getElementById("modalCliente").classList.add("visible")}
@@ -5291,7 +5833,7 @@ function cerrarCliente(){document.getElementById("modalCliente").classList.remov
 function nuevoReciboCliente(enc){const c=clientePorClave(enc);if(!c)return;abrirVenta();document.getElementById("clienteVenta").value=c.nombre==="Cliente general"?"":c.nombre;document.getElementById("telefonoVenta").value=c.telefono||""}
 document.getElementById("busquedaClientes").addEventListener("input",actualizarClientes);
 
-async function mostrarHistorial(){
+async function mostrarHistorial(){flkOcultarTodasLasVistas();
  if(navigator.onLine){
   setTimeout(()=>cargarInventarioSupabase().catch(()=>{}),0);
   setTimeout(()=>cargarHistorialSupabase().catch(()=>{}),0);
@@ -5470,7 +6012,7 @@ function mostrarListaGastos(){
  arr.forEach(g=>{const el=document.createElement("div");el.className="gasto-card";const f=fechaGastoObj(g);el.innerHTML=`<div class="gasto-superior"><div><h3>${escapeHtml(g.concepto)}</h3><p>${escapeHtml(g.categoria||"Otro")}</p></div><div class="gasto-total">-$${Number(g.cantidad||0).toFixed(2)}</div></div><div class="gasto-detalle">Método: <strong>${escapeHtml(g.metodo||"—")}</strong>${g.nota?`<br>Nota: ${escapeHtml(g.nota)}`:""}<br>Fecha: <strong>${f.toLocaleDateString("es-PR")}</strong></div><div class="acciones-gasto"><button class="boton-editar-gasto" onclick="abrirGasto(${g.id})">✏️ Editar</button><button class="boton-eliminar-gasto" onclick="eliminarGasto(${g.id})">🗑️ Eliminar</button></div>`;lista.appendChild(el)})
 }
 document.getElementById("busquedaGastos").addEventListener("input",mostrarListaGastos);
-async function mostrarGastos(){
+async function mostrarGastos(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;if(navigator.onLine)setTimeout(()=>cargarGastosSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="block";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("gastos");actualizarGastos();scrollTop()}
 
 function metodoCajaClave(metodo){const m=String(metodo||"").trim().toLowerCase();if(m.includes("efectivo"))return "efectivo";if(m.includes("ath"))return "ath";if(m.includes("tarjeta"))return "tarjeta";return "otros"}
@@ -5535,7 +6077,7 @@ async function eliminarCierre(id){
  guardarCierres();actualizarCierre();
  if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
 }
-async function mostrarCierre(){
+async function mostrarCierre(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;if(navigator.onLine){setTimeout(()=>cargarInventarioSupabase().catch(()=>{}),0);setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);setTimeout(()=>cargarGastosSupabase().catch(()=>{}),0);setTimeout(()=>cargarComprasSupabase().catch(()=>{}),0);setTimeout(()=>cargarMovimientosCajaSupabase().catch(()=>{}),0);setTimeout(()=>cargarCierresSupabase().catch(()=>{}),0);}["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaReportes","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaCierre").style.display="block";actualizarMenu("cierre");actualizarCierre();scrollTop()}
 
 function fechaLocalDeValor(fecha){if(!fecha)return "";if(/^\d{4}-\d{2}-\d{2}$/.test(String(fecha)))return String(fecha);const d=new Date(fecha);return Number.isNaN(d.getTime())?"":fechaLocalISO(d)}
@@ -5628,7 +6170,7 @@ function imprimirInformeArrendamiento(){
  w.document.write(html);w.document.close()
 }
 
-async function mostrarReportes(){
+async function mostrarReportes(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;if(navigator.onLine){setTimeout(()=>cargarInventarioSupabase().catch(()=>{}),0);setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);setTimeout(()=>cargarGastosSupabase().catch(()=>{}),0);setTimeout(()=>cargarComprasSupabase().catch(()=>{}),0);setTimeout(()=>cargarMovimientosCajaSupabase().catch(()=>{}),0);setTimeout(()=>cargarConfiguracionesArrendamiento().catch(()=>{}),0);}setTimeout(actualizarInformeArrendamiento,0);["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaReportes").style.display="block";actualizarMenu("reportes");actualizarReporte();scrollTop()}
 
 
@@ -5681,9 +6223,9 @@ function eliminarProveedor(id){const p=proveedores.find(x=>x.id===id);if(!p)retu
 function nuevaOrdenProveedor(id){const p=proveedores.find(x=>x.id===id);if(!p)return;abrirOrdenCompra(null,p.nombre)}
 function mostrarListaProveedores(){const q=document.getElementById("busquedaProveedores").value.toLowerCase().trim(),lista=document.getElementById("listaProveedoresVista");const arr=[...proveedores].filter(p=>[p.nombre,p.contacto,p.telefono,p.email,p.direccion,p.nota].some(v=>String(v||"").toLowerCase().includes(q))).sort((a,b)=>String(a.nombre||"").localeCompare(String(b.nombre||""),"es",{sensitivity:"base"}));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay proveedores con esa búsqueda.</div>';return}lista.innerHTML=arr.map(p=>{const prods=productos.filter(x=>nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(p.nombre)),ords=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)),pend=ords.filter(o=>o.estado!=="recibida").length,rec=ords.filter(o=>o.estado==="recibida"),total=rec.reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),vencidas=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").length;return `<div class="proveedor-card"><div class="proveedor-superior"><div><h3>${escapeHtml(p.nombre)}</h3><p>${p.contacto?`Contacto: ${escapeHtml(p.contacto)}`:"Proveedor registrado"}</p></div><div class="proveedor-total">$${saldo.toFixed(2)} por pagar</div></div><div class="proveedor-detalle">Productos asociados: <strong>${prods.length}</strong><br>Órdenes totales: <strong>${ords.length}</strong> · Pendientes/ordenadas: <strong>${pend}</strong><br>Compras recibidas: <strong>${rec.length}</strong> · Total: <strong>$${total.toFixed(2)}</strong><br>Pagado: <strong>$${pagado.toFixed(2)}</strong> · Saldo: <strong>$${saldo.toFixed(2)}</strong>${vencidas?`<br>🔴 Deudas vencidas: <strong>${vencidas}</strong>`:""}${p.telefono?`<br>Teléfono: <strong>${escapeHtml(p.telefono)}</strong>`:""}${p.email?`<br>Email: <strong>${escapeHtml(p.email)}</strong>`:""}${p.direccion?`<br>Dirección: ${escapeHtml(p.direccion)}`:""}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><div class="acciones-proveedor"><button class="boton-proveedor boton-proveedor-orden" onclick="abrirOrdenCompra(null,'${escapeHtml(p.nombre).replace(/'/g,"&#039;")}')">📦 Nueva orden</button>${saldo>0.009?`<button class="boton-proveedor boton-proveedor-orden" onclick="mostrarCuentasPagar();document.getElementById('filtroProveedorCuentas').value='${escapeHtml(p.nombre).replace(/'/g,"&#039;")}';mostrarListaCuentasPagar()">💳 Ver deuda</button>`:""}<button class="boton-proveedor boton-proveedor-editar" onclick="abrirProveedor(${p.id})">✏️ Editar</button><button class="boton-proveedor boton-proveedor-eliminar" onclick="eliminarProveedor(${p.id})">🗑️ Eliminar</button></div></div>`}).join("")}
 function actualizarProveedores(){const rec=ordenesCompra.filter(o=>o.estado==="recibida"),total=rec.reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),vencido=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").reduce((t,o)=>t+Number(o.saldoProveedor||0),0);document.getElementById("totalProveedores").textContent=proveedores.length;document.getElementById("proveedoresPendientes").textContent=proveedores.filter(p=>ordenesCompra.some(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)&&o.estado!=="recibida")).length;document.getElementById("totalCompradoProveedores").textContent="$"+total.toFixed(2);document.getElementById("totalPagadoProveedores").textContent="$"+pagado.toFixed(2);document.getElementById("saldoPorPagarProveedores").textContent="$"+saldo.toFixed(2);document.getElementById("deudaVencidaProveedores").textContent="$"+vencido.toFixed(2);mostrarListaProveedores()}
-function mostrarProveedores(){
+function mostrarProveedores(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaProveedores").style.display="block";actualizarMenu("proveedores");scrollTop();
  requestAnimationFrame(()=>actualizarProveedores());
  if(navigator.onLine)setTimeout(()=>cargarComprasSupabase().then(()=>actualizarProveedores()).catch(()=>{}),0);
@@ -5825,9 +6367,9 @@ async function eliminarOrdenCompra(id){
 function actualizarFiltrosOrdenes(){const proveedores=[...new Set(ordenesCompra.map(o=>String(o.proveedor||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"})),sel=document.getElementById("filtroProveedorOrden"),prev=sel.value;sel.innerHTML='<option value="">Todos los proveedores</option>'+proveedores.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(proveedores.includes(prev))sel.value=prev}
 function mostrarListaOrdenes(){actualizarFiltrosOrdenes();const q=document.getElementById("busquedaOrdenes").value.toLowerCase().trim(),estado=document.getElementById("filtroEstadoOrden").value,proveedor=document.getElementById("filtroProveedorOrden").value,lista=document.getElementById("listaOrdenes");const arr=ordenesCompra.filter(o=>(!estado||o.estado===estado)&&(!proveedor||o.proveedor===proveedor)&&[o.nombre,o.sku,o.proveedor,numeroOrdenCompra(o)].some(v=>String(v||"").toLowerCase().includes(q)));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay órdenes de compra con esos filtros.</div>';return}lista.innerHTML=arr.map(o=>{const total=Number(o.cantidad||0)*Number(o.costoUnitario||0),estadoTexto=o.estado==="recibida"?"✅ Recibida":o.estado==="ordenada"?"🚚 Ordenada":"⏳ Pendiente",acciones=o.estado==="recibida"?'<div class="acciones-orden"><button class="boton-orden boton-orden-primario" onclick="mostrarHistorial()">📜 Ver historial</button></div>':`<div class="acciones-orden"><button class="boton-orden boton-orden-primario" onclick="editarOrdenCompra(${o.id})">✏️ Editar</button>${o.estado==="pendiente"?`<button class="boton-orden boton-orden-primario" onclick="marcarOrdenada(${o.id})">🚚 Ordenada</button>`:""}<button class="boton-orden boton-orden-recibir" onclick="recibirOrden(${o.id})">✅ Recibir</button><button class="boton-orden boton-orden-eliminar" onclick="eliminarOrdenCompra(${o.id})">🗑️ Eliminar</button></div>`;return `<div class="orden-card"><div class="orden-superior"><div><h3>${escapeHtml(o.nombre)}</h3><p>${numeroOrdenCompra(o)} · SKU: ${escapeHtml(o.sku||"")}</p></div><div class="orden-total">$${total.toFixed(2)}</div></div><span class="estado-orden ${o.estado}">${estadoTexto}</span><div class="orden-detalle">Proveedor: <strong>${escapeHtml(o.proveedor||"—")}</strong><br>Cantidad: <strong>${Number(o.cantidad||0)}</strong> · Costo/u.: <strong>$${Number(o.costoUnitario||0).toFixed(2)}</strong><br>Fecha orden: <strong>${o.fechaOrden?new Date(o.fechaOrden+"T00:00:00").toLocaleDateString("es-PR"):"—"}</strong>${o.fechaRecibida?`<br>Recibida: <strong>${new Date(o.fechaRecibida).toLocaleDateString("es-PR")}</strong>`:""}${o.nota?`<br>Nota: ${escapeHtml(o.nota)}`:""}</div>${acciones}</div>`}).join("")}
 function actualizarOrdenesCompra(){document.getElementById("ordenesPendientes").textContent=ordenesCompra.filter(o=>o.estado==="pendiente").length;document.getElementById("ordenesOrdenadas").textContent=ordenesCompra.filter(o=>o.estado==="ordenada").length;document.getElementById("ordenesRecibidas").textContent=ordenesCompra.filter(o=>o.estado==="recibida").length;document.getElementById("valorOrdenesRecibidas").textContent="$"+ordenesCompra.filter(o=>o.estado==="recibida").reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0).toFixed(2);mostrarListaOrdenes()}
-function mostrarOrdenes(){
+function mostrarOrdenes(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaOrdenes").style.display="block";actualizarMenu("ordenes");scrollTop();
  requestAnimationFrame(()=>actualizarOrdenesCompra());
  if(navigator.onLine)setTimeout(()=>cargarComprasSupabase().then(()=>actualizarOrdenesCompra()).catch(()=>{}),0);
@@ -5872,9 +6414,9 @@ function cerrarHistorialPagosProveedor(){document.getElementById("modalHistorial
 function actualizarFiltroProveedorCuentas(){const sel=document.getElementById("filtroProveedorCuentas");if(!sel)return;const prev=sel.value,nombres=[...new Set(ordenesCompra.filter(o=>o.estado==="recibida").map(o=>String(o.proveedor||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"}));sel.innerHTML='<option value="">Todos los proveedores</option>'+nombres.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");if(nombres.includes(prev))sel.value=prev}
 function mostrarListaCuentasPagar(){actualizarFiltroProveedorCuentas();const lista=document.getElementById("listaCuentasPagar");if(!lista)return;const q=document.getElementById("busquedaCuentasPagar").value.toLowerCase().trim(),filtro=document.getElementById("filtroCuentasPagar").value,prov=document.getElementById("filtroProveedorCuentas").value;let arr=ordenesCompra.filter(o=>o.estado==="recibida"&&(!prov||o.proveedor===prov)&&[o.proveedor,o.nombre,o.sku,numeroOrdenCompra(o)].some(v=>String(v||"").toLowerCase().includes(q)));arr=arr.filter(o=>{const e=estadoCuentaProveedor(o);return filtro==="todas"||(filtro==="pendientes"&&e.clave!=="pagada")||(filtro==="vencidas"&&e.clave==="vencida")||(filtro==="pagadas"&&e.clave==="pagada")});arr.sort((a,b)=>Number(b.saldoProveedor||0)-Number(a.saldoProveedor||0));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay cuentas con esos filtros.</div>';return}lista.innerHTML=arr.map(o=>{const e=estadoCuentaProveedor(o),total=Number(o.costoTotal||0),pagado=Number(o.totalPagadoProveedor||0),saldo=Number(o.saldoProveedor||0);return `<div class="cuenta-proveedor-card ${e.clave}"><div class="cuenta-proveedor-superior"><div><h3>${escapeHtml(o.proveedor||"Proveedor")}</h3><p>${numeroOrdenCompra(o)} · ${escapeHtml(o.nombre)}</p></div><div class="cuenta-proveedor-saldo">$${saldo.toFixed(2)}</div></div><span class="estado-cuenta ${e.clave}">${e.texto}</span><div class="cuenta-proveedor-detalle">Compra total: <strong>$${total.toFixed(2)}</strong><br>Total pagado: <strong>$${pagado.toFixed(2)}</strong><br>Saldo pendiente: <strong>$${saldo.toFixed(2)}</strong>${o.fechaVencimientoProveedor?`<br>Vencimiento: <strong>${new Date(o.fechaVencimientoProveedor+"T00:00:00").toLocaleDateString("es-PR")}</strong>`:""}</div><div class="acciones-cuenta-proveedor">${saldo>0.009?`<button class="boton-cuenta-proveedor boton-pagar-proveedor" onclick="abrirPagoProveedor(${o.id})">💵 Registrar pago</button>`:""}<button class="boton-cuenta-proveedor boton-historial-proveedor" onclick="verHistorialPagosProveedor(${o.id})">📋 Historial</button></div></div>`}).join("")}
 function actualizarCuentasPagar(){const rec=ordenesCompra.filter(o=>o.estado==="recibida"),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),vencido=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").reduce((t,o)=>t+Number(o.saldoProveedor||0),0);if(document.getElementById("cuentasSaldoTotal")){document.getElementById("cuentasSaldoTotal").textContent="$"+saldo.toFixed(2);document.getElementById("cuentasSaldoVencido").textContent="$"+vencido.toFixed(2);document.getElementById("cuentasPendientes").textContent=rec.filter(o=>Number(o.saldoProveedor||0)>0.009).length;document.getElementById("cuentasTotalPagado").textContent="$"+pagado.toFixed(2);mostrarListaCuentasPagar()}}
-function mostrarCuentasPagar(){
+function mostrarCuentasPagar(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaCuentasPagar").style.display="block";actualizarMenu("cuentasPagar");scrollTop();
  requestAnimationFrame(()=>actualizarCuentasPagar());
  if(navigator.onLine)setTimeout(()=>cargarComprasSupabase().then(()=>actualizarCuentasPagar()).catch(()=>{}),0);
@@ -6093,9 +6635,9 @@ function actualizarFlujoCaja(){
  const lista=document.getElementById("listaFlujoCaja"),arr=[...d.mov].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
  lista.innerHTML=arr.length?arr.map(m=>`<div class="fila-estadistica"><span>${m.tipo==="entrada"?"⬇️":"⬆️"} ${escapeHtml(m.concepto)}<br><small>${new Date(m.fecha).toLocaleString("es-PR")} · ${escapeHtml(m.metodo)}</small></span><strong style="color:${m.tipo==="entrada"?"#168044":"#d93025"}">${m.tipo==="entrada"?"+":"-"}$${m.cantidad.toFixed(2)}</strong></div>`).join(""):'<div class="fila-estadistica"><span>No hay movimientos de dinero en este período.</span><strong>—</strong></div>'
 }
-function mostrarFlujoCaja(){
+function mostrarFlujoCaja(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaFlujoCaja").style.display="block";actualizarMenu("flujoCaja");scrollTop();
  actualizarSaldoCajaFisica();
  requestAnimationFrame(()=>actualizarFlujoCaja());
@@ -6307,9 +6849,9 @@ function actualizarFinanzas(){
  document.getElementById("finRelacion").textContent=d.porPagar>0?(d.porCobrar/d.porPagar).toFixed(2)+"x":(d.porCobrar>0?"Sin deuda":"—");
  actualizarEstadoContribucionArrendamiento()
 }
-function mostrarFinanzas(){
+function mostrarFinanzas(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaFinanzas").style.display="block";actualizarMenu("finanzas");scrollTop();
  requestAnimationFrame(()=>actualizarFinanzas());
  if(navigator.onLine)setTimeout(async()=>{
@@ -6532,8 +7074,8 @@ function actualizarCentroAlertas(){
  ok.innerHTML=d.total?'':'<div class="alertas-vacio"><strong>✅ Todo está al día</strong>No hay productos con stock bajo ni créditos que requieran atención.</div>';
  actualizarIndicadorAlertas()
 }
-function mostrarAlertas(){
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+function mostrarAlertas(){flkOcultarTodasLasVistas();
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaAlertas").style.display="block";actualizarMenu("alertas");scrollTop();
  requestAnimationFrame(()=>actualizarCentroAlertas());
  if(navigator.onLine)setTimeout(async()=>{
@@ -6541,9 +7083,9 @@ function mostrarAlertas(){
   actualizarCentroAlertas();
  },0);
 }
-function mostrarEstadisticas(){
+function mostrarEstadisticas(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;
- ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
+ ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaUsuarios","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaEstadisticas").style.display="block";actualizarMenu("estadisticas");scrollTop();
  requestAnimationFrame(()=>actualizarEstadisticas());
  if(navigator.onLine)setTimeout(async()=>{
@@ -6573,7 +7115,7 @@ function actualizarEstadisticas(){
  const bajos=productos.filter(p=>Number(p.cantidad)<=Number(p.stockMinimo??5));document.getElementById("rankingStockBajo").innerHTML=bajos.length?bajos.map(p=>`<div class="fila-estadistica"><span>${escapeHtml(p.nombre)}</span><strong>${p.cantidad} / ${Number(p.stockMinimo??5)}</strong></div>`).join(""):`<div class="fila-estadistica"><span>Todo el inventario está por encima del mínimo.</span><strong>✓ OK</strong></div>`
 }
 function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonEstadisticas","botonUsuarios","botonLicencias"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";if(sec!=="cuentasPagar")document.getElementById("vistaCuentasPagar").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",cuentasPagar:"botonCuentasPagar",flujoCaja:"botonFlujoCaja",finanzas:"botonFinanzas",estadisticas:"botonEstadisticas",usuarios:"botonUsuarios"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo")}
-function mostrarInventario(){document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";document.getElementById("vistaFlujoCaja").style.display="none";document.getElementById("vistaFinanzas").style.display="none";const vl=document.getElementById("vistaLicencias");if(vl)vl.style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
+function mostrarInventario(){flkOcultarTodasLasVistas();document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";document.getElementById("vistaFlujoCaja").style.display="none";document.getElementById("vistaFinanzas").style.display="none";const vl=document.getElementById("vistaLicencias");if(vl)vl.style.display="none";const va=document.getElementById("vistaAdminSoftware");if(va)va.style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
 function scrollTop(){window.scrollTo({top:0,behavior:"auto"})}
 document.addEventListener("visibilitychange",()=>{
  if(document.visibilityState==="visible"){
@@ -6707,7 +7249,8 @@ if("serviceWorker" in navigator){
   botonFinanzas:()=>mostrarFinanzas(),
   botonEstadisticas:()=>mostrarEstadisticas(),
   botonUsuarios:()=>mostrarUsuarios(),
-   botonLicencias:()=>mostrarLicencias()
+  botonAdminSoftware:()=>mostrarAdminSoftware(),
+  botonLicencias:()=>mostrarLicencias()
  };
 
  document.addEventListener("click",function(e){
