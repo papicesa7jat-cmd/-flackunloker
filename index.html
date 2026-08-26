@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.7-selector-usuarios-existentes">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.8-controles-licencia-por-centro">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -617,6 +617,18 @@ button:active{transform:none!important}
 #adminswUsuarioEmail:focus{
  border-color:#0a84ff;box-shadow:0 0 0 4px rgba(10,132,255,.08)
 }
+
+
+.adminsw-license-actions{
+ display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px
+}
+.adminsw-license-actions button{
+ border:0;border-radius:10px;padding:9px 7px;font-weight:750;cursor:pointer
+}
+.adminsw-license-renew{background:#e8f2ff;color:#0562c8}
+.adminsw-license-status{background:#fff3d6;color:#8a5a00}
+.adminsw-license-device{background:#eef0ff;color:#5146a6}
+@media(max-width:520px){.adminsw-license-actions{grid-template-columns:1fr}}
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -3866,13 +3878,15 @@ async function flkEnriquecerCentrosConLicencias(){
    }
 
    if(lic){
-    const exp = new Date(lic.expires_at||0);
-    const vencida = Number.isFinite(exp.getTime()) && exp.getTime() < Date.now();
-    const estadoRaw = vencida ? "expired" : String(lic.status||"");
+    const exp=new Date(lic.expires_at||0);
+    const vencida=Number.isFinite(exp.getTime()) && exp.getTime()<Date.now();
+    const estadoRaw=vencida?"expired":String(lic.status||"");
     const estado=flkEstadoLicenciaTexto(estadoRaw);
     const vence=flkFechaCortaLic(lic.expires_at);
     const dispositivo=lic.device_id?"📱 Dispositivo: Vinculado":"📱 Dispositivo: Libre";
     const nombre=lic.business_name||lic.customer_name||centro.name||"Centro";
+    const key=String(lic.license_key||"");
+    const suspendida=String(lic.status||"").toLowerCase()==="suspended";
 
     box.innerHTML=
      `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">`+
@@ -3880,7 +3894,12 @@ async function flkEnriquecerCentrosConLicencias(){
       `<span style="color:#667085">Vence: ${flkAdminSwEsc(vence)}</span>`+
      `</div>`+
      `<div style="margin-top:3px;color:#475467">${dispositivo}</div>`+
-     `<div style="margin-top:3px;color:#667085">Centro: ${flkAdminSwEsc(nombre)}</div>`;
+     `<div style="margin-top:3px;color:#667085">Centro: ${flkAdminSwEsc(nombre)}</div>`+
+     `<div class="adminsw-license-actions">`+
+      `<button type="button" class="adminsw-license-renew" onclick='flkRenovarLicenciaCentro(${JSON.stringify(key)},${JSON.stringify(nombre)},${JSON.stringify(lic.expires_at||"")})'>📅 Renovar</button>`+
+      `<button type="button" class="adminsw-license-status" onclick='flkCambiarEstadoLicenciaCentro(${JSON.stringify(key)},${JSON.stringify(nombre)},${JSON.stringify(suspendida?"active":"suspended")})'>${suspendida?"▶ Activar":"⏸ Suspender"}</button>`+
+      `<button type="button" class="adminsw-license-device" onclick='flkLiberarDispositivoCentro(${JSON.stringify(key)},${JSON.stringify(nombre)},${JSON.stringify(!!lic.device_id)})'>📱 Liberar</button>`+
+     `</div>`;
    }else{
     box.innerHTML=
      `<strong>🔐 Licencia: ⚪ Sin licencia</strong>`+
@@ -3892,37 +3911,70 @@ async function flkEnriquecerCentrosConLicencias(){
  }
 }
 
-async function flkCargarUsuariosExistentesAdminSoftware(){
+async function flkRenovarLicenciaCentro(licenseKey,nombreCentro,fechaActual){
  if(!flkEsPropietarioSoftware)return;
- const sel=document.getElementById("adminswUsuarioEmail");
- if(!sel)return;
- if(!navigator.onLine){
-  sel.innerHTML='<option value="">Conéctate a Internet</option>';
-  return;
- }
- sel.innerHTML='<option value="">Cargando usuarios...</option>';
+ const actual=new Date(fechaActual||Date.now());
+ const base=Number.isNaN(actual.getTime())?new Date():actual;
+ const sugerida=new Date(base);
+ sugerida.setFullYear(sugerida.getFullYear()+1);
+ const yyyy=sugerida.getFullYear();
+ const mm=String(sugerida.getMonth()+1).padStart(2,"0");
+ const dd=String(sugerida.getDate()).padStart(2,"0");
+ const valor=prompt(
+  "Nueva fecha de vencimiento para "+nombreCentro+"\n\nFormato: AAAA-MM-DD",
+  `${yyyy}-${mm}-${dd}`
+ );
+ if(valor===null)return;
+ const nueva=new Date(String(valor).trim()+"T23:59:59");
+ if(Number.isNaN(nueva.getTime())||nueva<=new Date())return alert("La fecha debe ser válida y futura.");
+ if(!confirm("¿Renovar la licencia de "+nombreCentro+" hasta "+nueva.toLocaleDateString("es-PR")+"?"))return;
  try{
-  const {data,error}=await flkSupabase.rpc("flk_software_admin_list_users");
-  if(error)throw error;
-  const filas=Array.isArray(data)?data:[];
-  const mapa=new Map();
-  filas.forEach(u=>{
-   const id=String(u.user_id||"").trim();
-   if(!id)return;
-   const previo=mapa.get(id);
-   if(!previo || (!previo.business_id && u.business_id))mapa.set(id,u);
+  const {error}=await flkSupabase.rpc("flk_renew_license",{
+   p_license_key:licenseKey,
+   p_new_expires_at:nueva.toISOString()
   });
-  const usuarios=[...mapa.values()].sort((a,b)=>String(a.email||"").localeCompare(String(b.email||""),"es",{sensitivity:"base"}));
-  sel.innerHTML='<option value="">Selecciona un usuario...</option>'+usuarios.map(u=>{
-   const email=String(u.email||"");
-   const contexto=u.business_name
-    ? ` · ${flkAdminSwEsc(u.business_name)} · ${flkAdminSwEsc(u.member_role||"")}`
-    : ' · Sin centro';
-   return `<option value="${flkEscAttr(email)}">${flkAdminSwEsc(email)}${contexto}</option>`;
-  }).join("");
+  if(error)throw error;
+  alert("Licencia renovada correctamente.");
+  await cargarAdminSoftware();
  }catch(err){
-  console.error("Usuarios existentes:",err);
-  sel.innerHTML='<option value="">No se pudieron cargar los usuarios</option>';
+  console.error("Renovar licencia centro:",err);
+  alert("No se pudo renovar la licencia.\n\n"+(err?.message||"Error desconocido"));
+ }
+}
+
+async function flkCambiarEstadoLicenciaCentro(licenseKey,nombreCentro,nuevoEstado){
+ if(!flkEsPropietarioSoftware)return;
+ const activar=String(nuevoEstado)==="active";
+ const accion=activar?"activar":"suspender";
+ if(!confirm("¿Seguro que deseas "+accion+" la licencia de "+nombreCentro+"?"))return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_set_license_status",{
+   p_license_key:licenseKey,
+   p_status:nuevoEstado
+  });
+  if(error)throw error;
+  alert(activar?"Licencia activada correctamente.":"Licencia suspendida correctamente.");
+  await cargarAdminSoftware();
+ }catch(err){
+  console.error("Estado licencia centro:",err);
+  alert("No se pudo cambiar el estado de la licencia.\n\n"+(err?.message||"Error desconocido"));
+ }
+}
+
+async function flkLiberarDispositivoCentro(licenseKey,nombreCentro,tieneDispositivo){
+ if(!flkEsPropietarioSoftware)return;
+ if(!tieneDispositivo)return alert("Esta licencia no tiene ningún dispositivo vinculado.");
+ if(!confirm("¿Liberar el dispositivo de la licencia de "+nombreCentro+"?\n\nEl próximo dispositivo que la active quedará vinculado."))return;
+ try{
+  const {error}=await flkSupabase.rpc("flk_release_license_device",{
+   p_license_key:licenseKey
+  });
+  if(error)throw error;
+  alert("Dispositivo liberado correctamente.");
+  await cargarAdminSoftware();
+ }catch(err){
+  console.error("Liberar dispositivo centro:",err);
+  alert("No se pudo liberar el dispositivo.\n\n"+(err?.message||"Error desconocido"));
  }
 }
 
