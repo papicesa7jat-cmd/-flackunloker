@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.32-textos-legibles">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.34-menus-gris-claro">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1409,6 +1409,112 @@ button.guardar{
 }
 #panelRestablecimientoTotal p{
   color:#405261 !important;
+}
+</style>
+
+<style id="flk-v6133-menu-principal-oscuro">
+/* ===== v61.33 · MENÚ PRINCIPAL OSCURO / TEXTO CLARO ===== */
+#menuPrincipalFondo{
+  background:#18324A !important;
+  border-color:#294A66 !important;
+}
+#menuPrincipalFondo .menu-cuadricula{
+  background:transparent !important;
+}
+#menuPrincipalFondo .menu-cuadricula button{
+  background:#27465F !important;
+  border:1px solid #3B5D76 !important;
+  color:#F8FAFC !important;
+  box-shadow:0 4px 12px rgba(0,0,0,.12) !important;
+}
+#menuPrincipalFondo .menu-cuadricula button:hover,
+#menuPrincipalFondo .menu-cuadricula button:focus{
+  background:#315873 !important;
+}
+#menuPrincipalFondo .menu-cuadricula button.activo{
+  background:#0A84FF !important;
+  border-color:#5EB0FF !important;
+}
+#menuPrincipalFondo .menu-cuadricula button,
+#menuPrincipalFondo .menu-cuadricula button span,
+#menuPrincipalFondo .menu-cuadricula button strong,
+#menuPrincipalFondo .menu-cuadricula button div{
+  color:#FFFFFF !important;
+  opacity:1 !important;
+  text-shadow:0 1px 2px rgba(0,0,0,.35) !important;
+  font-weight:800 !important;
+}
+</style>
+
+<style id="flk-v6134-menus-gris-claro">
+/* ===== v61.34 · TODOS LOS MENÚS: GRIS CLARO + TEXTO BLANCO GRANDE ===== */
+
+/* Fondos de las zonas de menú */
+#menuPrincipalFondo,
+.menu,
+.menu-principal,
+.menu-cuadricula,
+nav{
+  background:#A8B0B8 !important;
+  border-color:#BCC3C9 !important;
+}
+
+/* Botones de todos los menús */
+#menuPrincipalFondo .menu-cuadricula button,
+.menu button,
+.menu-principal button,
+nav button{
+  background:#8E99A3 !important;
+  border:1px solid #BFC6CC !important;
+  color:#FFFFFF !important;
+  font-size:16px !important;
+  font-weight:900 !important;
+  line-height:1.25 !important;
+  text-shadow:0 1px 2px rgba(0,0,0,.42) !important;
+}
+
+/* Todo texto dentro de botones de menú */
+#menuPrincipalFondo .menu-cuadricula button *,
+.menu button *,
+.menu-principal button *,
+nav button *{
+  color:#FFFFFF !important;
+  font-size:inherit !important;
+  font-weight:900 !important;
+  opacity:1 !important;
+}
+
+/* Hover / foco */
+#menuPrincipalFondo .menu-cuadricula button:hover,
+#menuPrincipalFondo .menu-cuadricula button:focus,
+.menu button:hover,
+.menu button:focus,
+nav button:hover,
+nav button:focus{
+  background:#7D8994 !important;
+}
+
+/* Sección activa: gris algo más oscuro para identificarla */
+#menuPrincipalFondo .menu-cuadricula button.activo,
+.menu button.activo,
+nav button.activo{
+  background:#697783 !important;
+  border-color:#D7DCE0 !important;
+  color:#FFFFFF !important;
+}
+
+/* Menús/selectores internos */
+select{
+  background:#A8B0B8 !important;
+  color:#FFFFFF !important;
+  font-size:16px !important;
+  font-weight:800 !important;
+  border-color:#BCC3C9 !important;
+}
+select option{
+  background:#8E99A3 !important;
+  color:#FFFFFF !important;
+  font-weight:800 !important;
 }
 </style>
 </head>
