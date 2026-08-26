@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.21-gris-software-ancho">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.22-gris-software-alineado">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1211,6 +1211,97 @@ body:not(.es-propietario) #botonLicencias{display:none!important}
 .adminsw-form{display:grid;grid-template-columns:1.4fr 1fr auto;gap:10px;align-items:end}.adminsw-form .campo{margin:0}.adminsw-form button{min-height:46px}
 .adminsw-centro{margin-bottom:10px}.adminsw-centro-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.adminsw-centro h3{margin:0 0 5px;font-size:17px}.adminsw-centro p{margin:0;color:#667085;font-size:12px;line-height:1.6}.adminsw-badge{display:inline-flex;padding:7px 10px;border-radius:999px;font-size:11px;font-weight:850}.adminsw-badge.active{background:#e9f8ef;color:#168044}.adminsw-badge.inactive{background:#ffecec;color:#b42318}.adminsw-miembros{margin-top:13px;padding-top:12px;border-top:1px solid #e8edf5}.adminsw-miembro{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 0;border-top:1px solid #eef2f6}.adminsw-miembro:first-child{border-top:0}.adminsw-miembro-info{min-width:0}.adminsw-miembro-info strong,.adminsw-miembro-info small{display:block;overflow-wrap:anywhere}.adminsw-miembro-info small{color:#667085;margin-top:3px}.adminsw-acciones{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.adminsw-btn{border:0;border-radius:11px;padding:9px 11px;font-weight:750;cursor:pointer}.adminsw-btn.azul{background:#eaf4ff;color:#0a84ff}.adminsw-btn.rojo{background:#ffecec;color:#b42318}.adminsw-btn.verde{background:#e9f8ef;color:#168044}
 @media(max-width:700px){.adminsw-grid,.adminsw-form{grid-template-columns:1fr}.adminsw-centro-top,.adminsw-miembro{align-items:flex-start;flex-direction:column}.adminsw-miembro .adminsw-btn{width:100%}}
+</style>
+
+
+<style>
+/* ===== v61.22 · CORRECCIÓN REAL · gris + Software alineado ===== */
+
+/* Casillas de información: gris medio con contraste sobre azul */
+.tarjeta,
+.estadistica-card,
+.tarjeta-historial,
+.finanzas-card,
+.producto,
+.movimiento,
+.lista-estadisticas,
+.respaldo-box,
+.venta-card,
+.cliente-card,
+.gasto-card,
+.cierre-card,
+.alerta-card,
+.centro-alerta,
+.orden-card,
+.proveedor-card,
+.cuenta-proveedor-card,
+.reporte-controles,
+.adminsw-card,
+.adminsw-panel,
+.adminsw-centro{
+  background:#D5DAE1 !important;
+  border-color:#BFC7D1 !important;
+  box-shadow:0 6px 17px rgba(9,33,54,.13) !important;
+}
+
+/* Buscador, filtros y campos coordinados con el gris */
+.busqueda,
+.busqueda-historial,
+.filtro-inventario,
+.campo input,
+.campo select,
+input,
+select,
+textarea,
+#adminswUsuarioEmail{
+  background:#CBD2DA !important;
+  border-color:#B3BDC9 !important;
+  color:#172333 !important;
+}
+.busqueda::placeholder,
+.busqueda-historial::placeholder,
+input::placeholder,
+textarea::placeholder{
+  color:#5E6B79 !important;
+}
+
+/*
+  Software está fuera de .contenedor en el HTML.
+  Por eso se fija manualmente al mismo ancho útil que el resto:
+  contenedor 830px - 22px - 22px = 786px.
+*/
+#vistaAdminSoftware{
+  display:none;
+  width:min(calc(100% - 44px),786px) !important;
+  max-width:786px !important;
+  margin:0 auto !important;
+  padding:0 !important;
+  box-sizing:border-box !important;
+}
+
+#vistaAdminSoftware > .seccion-titulo,
+#vistaAdminSoftware > .reporte-controles,
+#vistaAdminSoftware > .adminsw-grid,
+#vistaAdminSoftware > .adminsw-panel,
+#vistaAdminSoftware > #adminswListaCentros{
+  width:100% !important;
+  max-width:100% !important;
+  margin-left:0 !important;
+  margin-right:0 !important;
+  box-sizing:border-box !important;
+}
+
+#vistaAdminSoftware .adminsw-form{
+  width:100% !important;
+  max-width:100% !important;
+}
+
+@media(max-width:600px){
+  #vistaAdminSoftware{
+    width:calc(100% - 28px) !important;
+    max-width:none !important;
+  }
+}
 </style>
 
 </head>
@@ -7311,51 +7402,6 @@ function imprimirFinanzas(){
   margin-left:0 !important;
   margin-right:0 !important;
 }
-
-/* ===== v61.21 · Contraste gris + Software ancho uniforme ===== */
-/* Casillas de datos: gris más marcado, manteniendo lectura limpia */
-.tarjeta,.estadistica-card,.tarjeta-historial,.finanzas-card,.adminsw-card,
-.producto,.movimiento,.lista-estadisticas,.respaldo-box,.venta-card,.cliente-card,
-.gasto-card,.cierre-card,.alerta-card,.centro-alerta,.orden-card,.proveedor-card,
-.cuenta-proveedor-card,.reporte-controles,.adminsw-panel,.adminsw-centro{
-  background:#E7EBF0 !important;
-  border-color:#C9D1DB !important;
-}
-
-/* Buscadores, filtros y campos: mismo lenguaje gris */
-.busqueda,.busqueda-historial,.filtro-inventario,
-input,select,textarea,.campo input,.campo select,#adminswUsuarioEmail{
-  background:#E1E6EC !important;
-  border-color:#C3CCD7 !important;
-  color:#172333 !important;
-}
-.busqueda::placeholder,.busqueda-historial::placeholder,input::placeholder,textarea::placeholder{
-  color:#687586 !important;
-}
-
-/* Administración del Software: mismo ancho útil que las demás vistas */
-#vistaAdminSoftware{
-  width:100% !important;
-  max-width:none !important;
-  margin:0 !important;
-  padding:0 !important;
-}
-#vistaAdminSoftware > .seccion-titulo,
-#vistaAdminSoftware > .reporte-controles,
-#vistaAdminSoftware > .adminsw-grid,
-#vistaAdminSoftware > .adminsw-panel,
-#vistaAdminSoftware > #adminswListaCentros{
-  width:100% !important;
-  max-width:none !important;
-  margin-left:0 !important;
-  margin-right:0 !important;
-}
-#vistaAdminSoftware .adminsw-form{width:100% !important;}
-
-@media(max-width:700px){
-  #vistaAdminSoftware{width:100% !important;}
-}
-
 </style>
 
 </head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
