@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.40-tarjetas-producto-estetica">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.41-submenus-blancos-negativos-marron">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2081,6 +2081,96 @@ select option{
  .producto p strong,.producto-card p strong,.tarjeta-producto p strong{
    font-size:15px !important;
  }
+}
+</style>
+
+<style id="flk-v6141-submenus-y-negativos">
+/* ===== v61.41 · SUBMENÚS: TEXTO BLANCO MÁS GRANDE ===== */
+/* Aplica tanto al seleccionado como a los demás botones de submenú */
+.submenu button,
+.sub-menu button,
+.tabs button,
+.filtros button,
+.filtro button,
+.botones-filtro button,
+.reporte-controles button,
+.botones-respaldo button,
+[class*="submenu"] button,
+[class*="filtro"] button{
+  color:#FFFFFF !important;
+  font-size:17px !important;
+  font-weight:900 !important;
+  font-style:normal !important;
+  line-height:1.25 !important;
+  opacity:1 !important;
+  text-shadow:0 1px 2px rgba(0,0,0,.34) !important;
+}
+.submenu button *,
+.sub-menu button *,
+.tabs button *,
+.filtros button *,
+.filtro button *,
+.botones-filtro button *,
+.reporte-controles button *,
+.botones-respaldo button *,
+[class*="submenu"] button *,
+[class*="filtro"] button *{
+  color:#FFFFFF !important;
+  font-size:inherit !important;
+  font-weight:900 !important;
+  font-style:normal !important;
+  opacity:1 !important;
+}
+
+/* ===== NÚMEROS / IMPORTES NEGATIVOS: MARRÓN OSCURO ===== */
+.negativo,
+.valor-negativo,
+.numero-negativo,
+.saldo-negativo,
+.monto-negativo,
+.texto-negativo,
+[class*="negativ"]{
+  color:#5A2D0C !important;
+  font-weight:900 !important;
+}
+
+/* Clases comunes de resultados financieros negativos */
+.perdida,
+.perdidas,
+.resultado-negativo{
+  color:#5A2D0C !important;
+  font-weight:900 !important;
+}
+</style>
+
+<script id="flk-v6141-detectar-negativos">
+/* Colorea automáticamente valores numéricos visibles menores que cero,
+   sin alterar inputs ni textos editables. */
+function flkPintarNumerosNegativos(){
+ const zonas=document.querySelectorAll(
+  '#vistaInventario,#vistaHistorial,#vistaVentas,#vistaClientes,#vistaGastos,#vistaCierre,'+
+  '#vistaReportes,#vistaAlertas,#vistaOrdenes,#vistaProveedores,#vistaCuentasPagar,'+
+  '#vistaFlujoCaja,#vistaFinanzas,#vistaEstadisticas,#vistaAdminSoftware'
+ );
+ zonas.forEach(zona=>{
+  zona.querySelectorAll('strong,b,span,td,.valor,.monto,.saldo').forEach(el=>{
+   if(el.closest('button,input,select,textarea'))return;
+   const t=(el.textContent||'').trim();
+   const pareceNegativo=/(?:^|[\s$€£])-\s*(?:[$€£]\s*)?\d|^\(\s*[$€£]?\s*\d[\d.,]*\s*\)$/.test(t);
+   el.classList.toggle('flk-numero-negativo',pareceNegativo);
+  });
+ });
+}
+document.addEventListener('DOMContentLoaded',()=>{
+ flkPintarNumerosNegativos();
+ const obs=new MutationObserver(()=>requestAnimationFrame(flkPintarNumerosNegativos));
+ obs.observe(document.body,{subtree:true,childList:true,characterData:true});
+});
+</script>
+<style>
+.flk-numero-negativo{
+ color:#5A2D0C !important;
+ font-weight:900 !important;
 }
 </style>
 </head>
