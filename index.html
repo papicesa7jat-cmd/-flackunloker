@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.24-look-referencia">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.25-gris-definitivo">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -7935,6 +7935,70 @@ select option{
   }
 }
 </style>
+
+
+<style id="flk-v6125-visual-fix">
+/* v61.25 - corrección visual definitiva */
+
+/* KPI principales */
+body.flk-v6125 .contenedor .resumen > .tarjeta,
+body.flk-v6125 .contenedor .resumen > div.tarjeta{
+  background:#596774 !important;
+  background-image:none !important;
+  border:1px solid #748391 !important;
+  box-shadow:0 5px 13px rgba(0,0,0,.18) !important;
+  color:#F8FAFC !important;
+}
+body.flk-v6125 .contenedor .resumen > .tarjeta span{
+  color:#E5EAF0 !important;
+}
+
+/* Buscador y filtros */
+body.flk-v6125 .contenedor #busqueda,
+body.flk-v6125 .contenedor .busqueda,
+body.flk-v6125 .contenedor .filtro-inventario,
+body.flk-v6125 .contenedor select{
+  background:#596774 !important;
+  background-image:none !important;
+  border-color:#748391 !important;
+  color:#FFFFFF !important;
+}
+body.flk-v6125 .contenedor #busqueda::placeholder,
+body.flk-v6125 .contenedor .busqueda::placeholder{
+  color:#E1E7EC !important;
+}
+
+/* Administración del Software: mismo ancho exacto que .contenedor */
+body.flk-v6125 #vistaAdminSoftware{
+  width:min(96vw,830px) !important;
+  max-width:830px !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+  padding-left:18px !important;
+  padding-right:18px !important;
+  box-sizing:border-box !important;
+}
+body.flk-v6125 #vistaAdminSoftware > *{
+  width:100% !important;
+  max-width:100% !important;
+  box-sizing:border-box !important;
+}
+
+@media(max-width:600px){
+  body.flk-v6125 #vistaAdminSoftware{
+    width:calc(100% - 10px) !important;
+    padding-left:9px !important;
+    padding-right:9px !important;
+  }
+}
+</style>
+
+<script>
+/* v61.25 visual marker: makes selectors independent of earlier CSS order */
+document.addEventListener("DOMContentLoaded",function(){
+  document.body.classList.add("flk-v6125");
+});
+</script>
 
 </body>
 </html>
