@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.4-usuarios-controles-unicos">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.5-selector-roles">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -595,6 +595,13 @@ button:active{transform:none!important}
 .adminsw-user-status{background:#fff3d6;color:#8a5a00}
 .adminsw-user-remove{background:#ffe7e7;color:#c62828}
 @media(max-width:520px){.adminsw-user-actions{grid-template-columns:1fr}}
+
+
+.adminsw-role-select{
+ width:100%;border:1px solid #cfd8e6;border-radius:10px;padding:9px 10px;
+ background:#e8f2ff;color:#0562c8;font-weight:700;outline:none;cursor:pointer
+}
+.adminsw-role-select:focus{border-color:#0a84ff;box-shadow:0 0 0 3px rgba(10,132,255,.12)}
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -3947,17 +3954,16 @@ async function asignarUsuarioAdminSoftware(){
 }
 
 
-async function flkCambiarRolMiembro(businessId,userId,email,rolActual){
+async function flkCambiarRolMiembro(businessId,userId,email,nuevoRol,rolActual){
  if(!flkEsPropietarioSoftware)return;
- const nuevo=prompt(
-  "Cambiar rol de "+email+"\n\nEscribe uno de estos valores:\nowner\nadmin\nemployee",
-  String(rolActual||"employee")
- );
- if(nuevo===null)return;
- const rol=String(nuevo).trim().toLowerCase();
- if(!["owner","admin","employee"].includes(rol))return alert("Rol inválido. Usa owner, admin o employee.");
- if(rol===String(rolActual||"").toLowerCase())return;
- if(!confirm("¿Cambiar el rol de "+email+" a "+rol+"?"))return;
+ const rol=String(nuevoRol||"").trim().toLowerCase();
+ const actual=String(rolActual||"").trim().toLowerCase();
+ if(!["owner","admin","employee"].includes(rol))return alert("Rol inválido.");
+ if(rol===actual)return;
+ if(!confirm("¿Cambiar el rol de "+email+" de "+actual+" a "+rol+"?")){
+  await flkRefrescarMiembrosCentro(businessId);
+  return;
+ }
  try{
   const {error}=await flkSupabase.rpc("flk_software_admin_set_member_role",{
    p_business_id:businessId,p_user_id:userId,p_role:rol
@@ -3968,9 +3974,9 @@ async function flkCambiarRolMiembro(businessId,userId,email,rolActual){
  }catch(err){
   console.error("Cambiar rol:",err);
   alert("No se pudo cambiar el rol.\n\n"+(err?.message||"Error desconocido"));
+  await flkRefrescarMiembrosCentro(businessId);
  }
 }
-
 async function flkCambiarEstadoMiembro(businessId,userId,email,estadoActual){
  if(!flkEsPropietarioSoftware)return;
  const actual=String(estadoActual||"active").toLowerCase();
@@ -4027,22 +4033,29 @@ function flkHtmlMiembrosCentro(businessId,miembros){
  if(!miembros.length)return '<div class="sin-productos">No hay usuarios asignados a este centro.</div>';
  return miembros.map(m=>{
   const email=String(m.email||"Sin correo");
-  const role=String(m.role||"employee");
-  const status=String(m.status||"active");
+  const role=String(m.role||"employee").toLowerCase();
+  const status=String(m.status||"active").toLowerCase();
   const activo=status==="active";
+  const uid=String(m.user_id||"");
+  const escEmail=flkAdminSwEsc(email);
+  const selected=r=>role===r?" selected":"";
   return `<div style="padding:12px 0;border-top:1px solid #eef1f5">
    <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap">
-    <div><strong>${flkAdminSwEsc(email)}</strong><div style="margin-top:3px;color:#667085;font-size:12px">${flkAdminSwEsc(role)} · ${activo?"🟢 active":"⚪ inactive"}</div></div>
+    <div><strong>${escEmail}</strong><div style="margin-top:3px;color:#667085;font-size:12px">${activo?"🟢 Activo":"⚪ Inactivo"}</div></div>
    </div>
    <div class="adminsw-user-actions">
-    <button type="button" class="adminsw-user-role" onclick='flkCambiarRolMiembro(${JSON.stringify(String(businessId))},${JSON.stringify(String(m.user_id))},${JSON.stringify(email)},${JSON.stringify(role)})'>🪪 Rol</button>
-    <button type="button" class="adminsw-user-status" onclick='flkCambiarEstadoMiembro(${JSON.stringify(String(businessId))},${JSON.stringify(String(m.user_id))},${JSON.stringify(email)},${JSON.stringify(status)})'>${activo?"⏸ Desactivar":"▶ Activar"}</button>
-    <button type="button" class="adminsw-user-remove" onclick='flkQuitarMiembroCentro(${JSON.stringify(String(businessId))},${JSON.stringify(String(m.user_id))},${JSON.stringify(email)})'>🗑 Quitar</button>
+    <select class="adminsw-role-select" aria-label="Rol de ${escEmail}"
+      onchange='flkCambiarRolMiembro(${JSON.stringify(String(businessId))},${JSON.stringify(uid)},${JSON.stringify(email)},this.value,${JSON.stringify(role)})'>
+     <option value="owner"${selected("owner")}>Propietario</option>
+     <option value="admin"${selected("admin")}>Administrador</option>
+     <option value="employee"${selected("employee")}>Empleado</option>
+    </select>
+    <button type="button" class="adminsw-user-status" onclick='flkCambiarEstadoMiembro(${JSON.stringify(String(businessId))},${JSON.stringify(uid)},${JSON.stringify(email)},${JSON.stringify(status)})'>${activo?"⏸ Desactivar":"▶ Activar"}</button>
+    <button type="button" class="adminsw-user-remove" onclick='flkQuitarMiembroCentro(${JSON.stringify(String(businessId))},${JSON.stringify(uid)},${JSON.stringify(email)})'>🗑 Quitar</button>
    </div>
   </div>`;
  }).join("");
 }
-
 async function cargarMiembrosCentroAdminSoftware(businessId){
  if(!flkEsPropietarioSoftware)return;
 
