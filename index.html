@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.44-grises-mas-claros">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.45-gris-claro-global">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2300,6 +2300,112 @@ nav button.activo,
 
 /* No alterar Restablecimiento total */
 #panelRestablecimientoTotal button{
+  background:#D93025 !important;
+  border-color:#B3261E !important;
+}
+</style>
+
+<style id="flk-v6145-gris-claro-global">
+/* ===== v61.45 · GRIS CLARO GENERALIZADO EN TODO EL SOFTWARE =====
+   Unifica cualquier superficie gris visible a una familia de grises claros. */
+
+/* Superficies generales */
+body{
+  background:#EEF2F5 !important;
+}
+.contenedor,
+.vista,
+[id^="vista"]{
+  background-color:transparent !important;
+}
+
+/* Paneles, tarjetas, resúmenes y contenedores que usan gris */
+.card,
+.tarjeta,
+.producto,
+.producto-card,
+.tarjeta-producto,
+.resumen-card,
+.resumen-item,
+.estadistica,
+.estadistica-card,
+.lista-estadisticas,
+.tarjeta-resumen,
+.adminsw-panel,
+.adminsw-card,
+.adminsw-centro,
+.lic-panel,
+.reporte-controles,
+.filtros,
+.filtro,
+.botones-filtro,
+.submenu,
+.sub-menu,
+.tabs,
+.botones-respaldo,
+[class*="panel"],
+[class*="card"],
+[class*="tarjeta"],
+[class*="resumen"],
+[class*="estadistica"]{
+  background-color:#DCE2E7 !important;
+  border-color:#E8ECEF !important;
+}
+
+/* Zonas de navegación/menús: gris todavía más claro */
+#menuPrincipalFondo,
+.menu,
+.menu-principal,
+.menu-cuadricula,
+nav{
+  background-color:#EEF1F4 !important;
+  border-color:#DCE2E7 !important;
+}
+
+/* Campos y áreas que antes podían quedar gris oscuro */
+input,
+textarea{
+  background-color:#F5F7F9 !important;
+  border-color:#D6DDE3 !important;
+}
+
+/* Los botones de navegación continúan azules para mantener contraste */
+#menuPrincipalFondo .menu-cuadricula button,
+.menu button,
+.menu-principal button,
+nav button,
+.submenu button,
+.sub-menu button,
+.tabs button,
+.filtros button,
+.filtro button,
+.botones-filtro button,
+.reporte-controles button,
+.botones-respaldo button,
+[class*="submenu"] button,
+[class*="filtro"] button{
+  background:#4A9FE8 !important;
+  border-color:#78B9EF !important;
+}
+
+/* Activo en azul más fuerte */
+#menuPrincipalFondo .menu-cuadricula button.activo,
+.menu button.activo,
+.menu-principal button.activo,
+nav button.activo,
+.submenu button.activo,
+.sub-menu button.activo,
+.tabs button.activo,
+.filtros button.activo,
+.filtro button.activo,
+[class*="filtro"] button.activo{
+  background:#1677C8 !important;
+}
+
+/* Excepciones semánticas: no aclarar acciones peligrosas */
+#panelRestablecimientoTotal button,
+button[style*="background:#d93025"],
+button[style*="background: #d93025"]{
   background:#D93025 !important;
   border-color:#B3261E !important;
 }
