@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.23-gris-software-cache">
+<meta name="flackunloker-offline-version" content="2026-08-26-v61.24-look-referencia">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -7689,7 +7689,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.23",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.24",{updateViaCache:"none"});
    if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
@@ -7741,6 +7741,200 @@ if("serviceWorker" in navigator){
 })();
 </script>
 
+
+
+<style id="flk-v6124-look">
+/* ===== v61.24 · DISEÑO EXACTO SEGÚN REFERENCIA ===== */
+
+html,body{
+  background:#8FC4F2 !important;
+}
+
+/* Bloque principal azul oscuro, centrado y con bordes redondeados */
+.contenedor{
+  width:min(96vw,830px) !important;
+  max-width:830px !important;
+  margin:0 auto !important;
+  padding:16px 18px 120px !important;
+  background:linear-gradient(180deg,#0D4E84 0%,#043A68 100%) !important;
+  border-radius:28px !important;
+  box-shadow:0 18px 38px rgba(4,37,65,.28) !important;
+}
+
+/* Cabecera/logo con gris azulado, no blanca */
+.encabezado,
+.encabezado-logo-tienda{
+  background:linear-gradient(135deg,#5E7F9D,#436987) !important;
+  border:1px solid rgba(255,255,255,.24) !important;
+  border-radius:18px !important;
+  box-shadow:0 7px 18px rgba(0,0,0,.14) !important;
+  margin:0 0 12px !important;
+  padding:10px !important;
+}
+.logo-tienda-principal{
+  width:min(100%,390px) !important;
+  max-height:255px !important;
+}
+
+/* KPI / casillas: gris oscuro visible */
+.tarjeta,
+.estadistica-card,
+.tarjeta-historial,
+.finanzas-card,
+.producto,
+.movimiento,
+.lista-estadisticas,
+.respaldo-box,
+.venta-card,
+.cliente-card,
+.gasto-card,
+.cierre-card,
+.alerta-card,
+.centro-alerta,
+.orden-card,
+.proveedor-card,
+.cuenta-proveedor-card,
+.reporte-controles{
+  background:linear-gradient(135deg,#626E7A,#515E6B) !important;
+  border:1px solid #7D8995 !important;
+  color:#F7FAFC !important;
+  box-shadow:0 5px 12px rgba(0,0,0,.16) !important;
+}
+.tarjeta span,
+.estadistica-card span,
+.tarjeta-historial span,
+.finanzas-card span,
+.producto p,
+.movimiento p,
+.reporte-periodo{
+  color:#E0E6EC !important;
+}
+.tarjeta strong,
+.estadistica-card strong,
+.tarjeta-historial strong,
+.finanzas-card strong{
+  text-shadow:0 1px 2px rgba(0,0,0,.15);
+}
+
+/* Inventario en 3 columnas como la referencia */
+.resumen{
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:8px !important;
+}
+.tarjeta.valor,
+.tarjeta.ganancia{
+  grid-column:auto !important;
+}
+
+/* Buscador y filtros en el mismo gris */
+.busqueda,
+.busqueda-historial,
+.filtro-inventario,
+input,
+select,
+textarea{
+  background:#56636F !important;
+  border:1px solid #76838F !important;
+  color:#FFFFFF !important;
+  box-shadow:none !important;
+}
+.busqueda::placeholder,
+.busqueda-historial::placeholder,
+input::placeholder,
+textarea::placeholder{
+  color:#D4DBE1 !important;
+}
+select option{
+  color:#111 !important;
+  background:#fff !important;
+}
+
+/* Menú flotante azul limpio */
+.boton-menu-flotante{
+  background:linear-gradient(135deg,#0A84FF,#0067D9) !important;
+  border-radius:14px !important;
+  box-shadow:0 7px 18px rgba(0,67,145,.28) !important;
+}
+
+/* Usuario inferior en panel oscuro */
+.auth-user{
+  background:rgba(31,53,73,.94) !important;
+  border:1px solid rgba(255,255,255,.18) !important;
+  color:#E8EEF4 !important;
+  box-shadow:0 7px 18px rgba(0,0,0,.22) !important;
+}
+.auth-user strong{color:#FFFFFF !important}
+
+/* SOFTWARE: mismo ancho exacto que el bloque principal */
+#vistaAdminSoftware{
+  width:min(96vw,830px) !important;
+  max-width:830px !important;
+  margin:14px auto 0 !important;
+  padding:18px !important;
+  box-sizing:border-box !important;
+  background:linear-gradient(180deg,#0D4E84 0%,#043A68 100%) !important;
+  border-radius:28px !important;
+  box-shadow:0 18px 38px rgba(4,37,65,.22) !important;
+}
+#vistaAdminSoftware > *{
+  width:100% !important;
+  max-width:none !important;
+  box-sizing:border-box !important;
+}
+#vistaAdminSoftware .adminsw-card,
+#vistaAdminSoftware .adminsw-panel,
+#vistaAdminSoftware .adminsw-centro,
+#vistaAdminSoftware .reporte-controles{
+  background:linear-gradient(135deg,#626E7A,#515E6B) !important;
+  border:1px solid #7D8995 !important;
+  color:#F7FAFC !important;
+}
+#vistaAdminSoftware .adminsw-card span,
+#vistaAdminSoftware .adminsw-centro p,
+#vistaAdminSoftware .reporte-periodo{
+  color:#E0E6EC !important;
+}
+#vistaAdminSoftware .adminsw-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:8px !important;
+}
+
+/* Móvil */
+@media(max-width:600px){
+  html,body{background:#8FC4F2 !important}
+  .contenedor{
+    width:calc(100% - 10px) !important;
+    border-radius:26px !important;
+    padding:10px 9px 110px !important;
+  }
+  .resumen{
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:5px !important;
+  }
+  .tarjeta{
+    padding:10px 8px !important;
+    border-radius:10px !important;
+  }
+  .tarjeta span{font-size:9px !important}
+  .tarjeta strong{font-size:15px !important}
+  .logo-tienda-principal{
+    width:min(100%,280px) !important;
+    max-height:190px !important;
+  }
+  .busqueda{padding:11px 12px !important;font-size:12px !important}
+  .filtros-inventario{gap:5px !important}
+  .filtro-inventario{font-size:10px !important;padding:10px 8px !important}
+  #vistaAdminSoftware{
+    width:calc(100% - 10px) !important;
+    padding:10px !important;
+    border-radius:26px !important;
+  }
+  #vistaAdminSoftware .adminsw-grid,
+  #vistaAdminSoftware .adminsw-form{
+    grid-template-columns:1fr !important;
+  }
+}
+</style>
 
 </body>
 </html>
