@@ -1819,6 +1819,14 @@ textarea::placeholder{
 <div class="fila-estadistica"><span>Pagos a proveedores</span><strong id="flujoPagosProveedores">$0.00</strong></div>
 </div>
 
+<div class="lista-estadisticas">
+<h3>👤 Movimientos del propietario</h3>
+<div class="fila-estadistica"><span>➕ Aportes al fondo de caja</span><strong id="flujoAportesPropietario">$0.00</strong></div>
+<div class="fila-estadistica"><span>🏦 Retiros de caja</span><strong id="flujoRetirosPropietario">$0.00</strong></div>
+<div class="fila-estadistica"><span>Variación neta de caja por propietario</span><strong id="flujoNetoPropietario">$0.00</strong></div>
+<p style="margin:8px 0 0;color:#dfe7ee;font-size:12px;line-height:1.45">Estos movimientos cambian el efectivo disponible, pero no modifican la ganancia del negocio.</p>
+</div>
+
 <div class="lista-estadisticas"><h3>💳 Flujo neto por método</h3>
 <div class="fila-estadistica"><span>💵 Efectivo</span><strong id="flujoEfectivo">$0.00</strong></div>
 <div class="fila-estadistica"><span>📱 ATH Móvil</span><strong id="flujoAth">$0.00</strong></div>
@@ -1907,10 +1915,19 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 </div>
 </div>
 
-<div class="lista-estadisticas"><h3>💵 Liquidez / Flujo del período</h3>
-<div class="fila-estadistica"><span>Entradas de dinero</span><strong id="finEntradas">$0.00</strong></div>
-<div class="fila-estadistica"><span>Salidas de dinero</span><strong id="finSalidas">$0.00</strong></div>
-<div class="fila-estadistica"><span>💰 Flujo neto</span><strong id="finFlujoNeto">$0.00</strong></div>
+<div class="lista-estadisticas"><h3>💵 Liquidez / Flujo operativo del período</h3>
+<div class="fila-estadistica"><span>Entradas operativas</span><strong id="finEntradas">$0.00</strong></div>
+<div class="fila-estadistica"><span>Salidas operativas</span><strong id="finSalidas">$0.00</strong></div>
+<div class="fila-estadistica"><span>💰 Flujo operativo neto</span><strong id="finFlujoNeto">$0.00</strong></div>
+</div>
+
+<div class="lista-estadisticas">
+<h3>👤 Aportes y retiros del propietario</h3>
+<div class="fila-estadistica"><span>➕ Aportes al fondo de caja</span><strong id="finAportesPropietario">$0.00</strong></div>
+<div class="fila-estadistica"><span>🏦 Retiros de caja</span><strong id="finRetirosPropietario">$0.00</strong></div>
+<div class="fila-estadistica"><span>Efecto neto sobre caja</span><strong id="finNetoPropietario">$0.00</strong></div>
+<div class="fila-estadistica"><span>Flujo total de caja incluyendo propietario</span><strong id="finFlujoCajaTotal">$0.00</strong></div>
+<p style="margin:8px 0 0;color:#dfe7ee;font-size:12px;line-height:1.45">Los aportes y retiros se muestran por control de efectivo. No forman parte de Ventas, Gastos, Ganancia bruta ni Ganancia neta.</p>
 </div>
 
 <div class="lista-estadisticas"><h3>📌 Indicadores</h3>
@@ -7403,8 +7420,17 @@ function datosFlujoCaja(){
  const mov=movimientosFlujoCaja().filter(m=>{const f=fechaMovimientoFlujo(m.fecha);return f&&f>=lim.desde&&f<lim.hasta});
  const suma=(tipo,grupo)=>mov.filter(m=>(!tipo||m.tipo===tipo)&&(!grupo||m.grupo===grupo)).reduce((t,m)=>t+m.cantidad,0);
  const entradas=suma("entrada"),salidas=suma("salida"),metodos={};
+ const aportesPropietario=mov.filter(m=>m.grupo==="propietario"&&m.tipo==="entrada").reduce((t,m)=>t+Number(m.cantidad||0),0);
+ const retirosPropietario=mov.filter(m=>m.grupo==="propietario"&&m.tipo==="salida").reduce((t,m)=>t+Number(m.cantidad||0),0);
  ["Efectivo","ATH Móvil","Tarjeta","Transferencia","Otro"].forEach(k=>metodos[k]=mov.filter(m=>m.metodo===k).reduce((t,m)=>t+(m.tipo==="entrada"?m.cantidad:-m.cantidad),0));
- return {lim,mov,entradas,salidas,neto:entradas-salidas,ventas:suma("entrada","venta"),abonos:suma("entrada","abono"),gastos:suma("salida","gasto"),proveedores:suma("salida","proveedor"),metodos}
+ return {
+  lim,mov,entradas,salidas,neto:entradas-salidas,
+  ventas:suma("entrada","venta"),abonos:suma("entrada","abono"),
+  gastos:suma("salida","gasto"),proveedores:suma("salida","proveedor"),
+  aportesPropietario,retirosPropietario,
+  netoPropietario:aportesPropietario-retirosPropietario,
+  metodos
+ }
 }
 function cambiarPeriodoFlujo(){
  const personalizado=document.getElementById("periodoFlujo").value==="personalizado";
@@ -7458,6 +7484,13 @@ function actualizarFlujoCaja(){
  document.getElementById("flujoAbonosClientes").textContent="$"+d.abonos.toFixed(2);
  document.getElementById("flujoGastos").textContent="$"+d.gastos.toFixed(2);
  document.getElementById("flujoPagosProveedores").textContent="$"+d.proveedores.toFixed(2);
+ document.getElementById("flujoAportesPropietario").textContent="$"+d.aportesPropietario.toFixed(2);
+ document.getElementById("flujoRetirosPropietario").textContent="$"+d.retirosPropietario.toFixed(2);
+ const netoProp=document.getElementById("flujoNetoPropietario");
+ if(netoProp){
+  netoProp.textContent=(d.netoPropietario<0?"−":"+")+"$"+Math.abs(d.netoPropietario).toFixed(2);
+  netoProp.style.color=d.netoPropietario<0?"#d93025":"#111";
+ }
  document.getElementById("flujoEfectivo").textContent="$"+d.metodos["Efectivo"].toFixed(2);
  document.getElementById("flujoAth").textContent="$"+d.metodos["ATH Móvil"].toFixed(2);
  document.getElementById("flujoTarjeta").textContent="$"+d.metodos["Tarjeta"].toFixed(2);
@@ -7630,16 +7663,24 @@ function datosFinanzas(){
  const patrimonio=activos-porPagar;
 
  // Flujo operativo real del período. Retiros/aportes del dueño no son resultado del negocio.
- const mov=typeof movimientosFlujoCaja==="function"
-  ? movimientosFlujoCaja().filter(m=>enRango(m.fecha)&&m.grupo!=="propietario")
+ const todosMov=typeof movimientosFlujoCaja==="function"
+  ? movimientosFlujoCaja().filter(m=>enRango(m.fecha))
   : [];
+ const mov=todosMov.filter(m=>m.grupo!=="propietario");
+ const movPropietario=todosMov.filter(m=>m.grupo==="propietario");
  const entradas=mov.filter(m=>m.tipo==="entrada").reduce((t,m)=>t+Number(m.cantidad||0),0);
  const salidas=mov.filter(m=>m.tipo==="salida").reduce((t,m)=>t+Number(m.cantidad||0),0);
+ const aportesPropietario=movPropietario.filter(m=>m.tipo==="entrada").reduce((t,m)=>t+Number(m.cantidad||0),0);
+ const retirosPropietario=movPropietario.filter(m=>m.tipo==="salida").reduce((t,m)=>t+Number(m.cantidad||0),0);
+ const netoPropietario=aportesPropietario-retirosPropietario;
+ const flujoOperativo=entradas-salidas;
+ const flujoCajaTotal=flujoOperativo+netoPropietario;
 
  return {
   lim,ventasTotal,costo,bruta,gastosTotal,neta,
   caja,inventario,porCobrar,porPagar,activos,patrimonio,
-  entradas,salidas,flujo:entradas-salidas
+  entradas,salidas,flujo:flujoOperativo,
+  aportesPropietario,retirosPropietario,netoPropietario,flujoCajaTotal
  }
 }
 function cambiarPeriodoFinanzas(){
@@ -7672,6 +7713,14 @@ function actualizarFinanzas(){
  if(formula)formula.textContent=`$${d.caja.toFixed(2)} + $${d.inventario.toFixed(2)} + $${d.porCobrar.toFixed(2)} − $${d.porPagar.toFixed(2)} = $${d.patrimonio.toFixed(2)}`;
  money("finVentas",d.ventasTotal);money("finCosto",d.costo);money("finBruta",d.bruta);money("finGastos",d.gastosTotal);money("finNeta",d.neta);
  money("finEntradas",d.entradas);money("finSalidas",d.salidas);money("finFlujoNeto",d.flujo);
+ money("finAportesPropietario",d.aportesPropietario);
+ money("finRetirosPropietario",d.retirosPropietario);
+ money("finNetoPropietario",d.netoPropietario);
+ money("finFlujoCajaTotal",d.flujoCajaTotal);
+ const finNetoProp=document.getElementById("finNetoPropietario");
+ if(finNetoProp)finNetoProp.style.color=d.netoPropietario<0?"#d93025":"#111";
+ const finFlujoTotal=document.getElementById("finFlujoCajaTotal");
+ if(finFlujoTotal)finFlujoTotal.style.color=d.flujoCajaTotal<0?"#d93025":"#111";
  document.getElementById("finPatrimonio").style.color=d.patrimonio<0?"#d93025":"#0a84ff";
  document.getElementById("finNeta").style.color=d.neta<0?"#d93025":"#168044";
  document.getElementById("finFlujoNeto").style.color=d.flujo<0?"#d93025":"#168044";
