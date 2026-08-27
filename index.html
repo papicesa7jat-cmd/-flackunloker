@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.40-owner-reset-password">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.41-password-revoca-offline">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -3582,6 +3582,41 @@ function flkLeerVerificadoresOffline(){
   return x&&typeof x==="object"&&!Array.isArray(x)?x:{};
  }catch(e){return {}}
 }
+function flkEliminarVerificadorOffline(email){
+ try{
+  const key=String(email||"").trim().toLowerCase();
+  const todos=flkLeerVerificadoresOffline();
+  if(todos[key]){
+   delete todos[key];
+   localStorage.setItem(FLK_OFFLINE_LOGIN_VERIFIER_KEY,JSON.stringify(todos));
+  }
+ }catch(e){}
+}
+async function flkAuthVersionServidor(userId){
+ if(!userId)throw new Error("Usuario inválido para comprobar seguridad.");
+ const {data,error}=await flkSupabase.rpc("flk_auth_version_for_user",{p_user_id:userId});
+ if(error)throw error;
+ const n=Number(data);
+ return Number.isFinite(n)&&n>0?n:1;
+}
+async function flkRevisarRevocacionOfflineUsuario(userId,email){
+ try{
+  if(!userId||!email)return false;
+  const key=String(email).trim().toLowerCase();
+  const reg=flkLeerVerificadoresOffline()[key];
+  if(!reg)return false;
+  const remoto=await flkAuthVersionServidor(userId);
+  if(Number(reg.auth_version||0)!==Number(remoto)){
+   flkEliminarVerificadorOffline(key);
+   console.warn("Acceso offline invalidado por cambio de credenciales.");
+   return true;
+  }
+  return false;
+ }catch(e){
+  console.warn("No se pudo comprobar versión de seguridad:",e?.message||e);
+  return false;
+ }
+}
 async function flkGuardarVerificadorOffline(user,password){
  try{
   if(!user?.id||!user?.email||!password)return false;
@@ -3590,6 +3625,7 @@ async function flkGuardarVerificadorOffline(user,password){
 
   const salt=crypto.getRandomValues(new Uint8Array(16));
   const hash=await flkDerivarClaveOffline(password,salt);
+  const authVersion=await flkAuthVersionServidor(user.id);
   const todos=flkLeerVerificadoresOffline();
   todos[String(user.email).trim().toLowerCase()]={
    user_id:user.id,
@@ -3598,6 +3634,7 @@ async function flkGuardarVerificadorOffline(user,password){
    hash,
    role:ctx.role||"employee",
    business_id:ctx.business_id,
+   auth_version:authVersion,
    validated_at:new Date().toISOString()
   };
   localStorage.setItem(FLK_OFFLINE_LOGIN_VERIFIER_KEY,JSON.stringify(todos));
@@ -3616,6 +3653,7 @@ async function flkValidarAccesoOffline(email,password){
  const key=String(email||"").trim().toLowerCase();
  const reg=flkLeerVerificadoresOffline()[key];
  if(!reg)return {ok:false,reason:"not-prepared"};
+ if(!Number.isFinite(Number(reg.auth_version))||Number(reg.auth_version)<=0)return {ok:false,reason:"security-refresh"};
  if(flkDiasDesdeIso(reg.validated_at)>FLK_OFFLINE_LOGIN_MAX_DAYS)return {ok:false,reason:"expired"};
 
  try{
@@ -3642,6 +3680,7 @@ async function flkEntrarOffline(email,password){
   const mensajes={
    "not-prepared":"Este navegador debe iniciar sesión online al menos una vez antes de poder entrar sin Internet.",
    "expired":"La autorización offline de este navegador venció. Conéctate una vez para renovarla.",
+   "security-refresh":"Por seguridad, este navegador debe iniciar sesión online una vez para renovar el acceso offline.",
    "bad-password":"Usuario o contraseña incorrectos.",
    "unsupported":"Este navegador no permite verificar la contraseña offline de forma segura.",
    "context-mismatch":"No se pudo confirmar el centro autorizado de este usuario."
@@ -4118,8 +4157,33 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
  if(!navigator.onLine){
   flkAuthProcesando=true;
   flkBloquearBotonAuth();
-  mostrarMensajeAuth("Verificando acceso offline…","ok");
+  mostrarMensajeAuth("Comprobando acceso…","ok");
   try{
+   try{
+    const respOnline=await flkPromesaConTiempo(
+     flkSupabase.auth.signInWithPassword({email,password}),
+     4500,
+     "login-network-timeout"
+    );
+    const {data:onlineData,error:onlineError}=respOnline||{};
+    if(onlineError)throw onlineError;
+    if(onlineData?.session){
+     flkRecordarUsuarioLogin(email);
+     document.getElementById("authOverlay")?.classList.add("oculto");
+     await flkPromesaConTiempo(mostrarAppConSesion(onlineData.session),9000,"app-timeout").catch(()=>{});
+     await flkGuardarVerificadorOffline(onlineData.session.user,password);
+     flkLimpiarPasswordLogin();
+     mostrarMensajeAuth("","");
+     return;
+    }
+   }catch(errOnlineBreve){
+    const m=String(errOnlineBreve?.message||errOnlineBreve||"").toLowerCase();
+    if(m.includes("invalid login credentials")||m.includes("invalid credentials")){
+     flkEliminarVerificadorOffline(email);
+     throw new Error("Usuario o contraseña incorrectos.");
+    }
+   }
+
    await flkEntrarOffline(email,password);
    flkRecordarUsuarioLogin(email);
    flkLimpiarPasswordLogin();
@@ -4205,6 +4269,7 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
     "error"
    );
   }else if(msg.includes("invalid login credentials")||msg.includes("invalid credentials")){
+   flkEliminarVerificadorOffline(email);
    mostrarMensajeAuth("❌ Usuario o contraseña incorrectos. Revisa la contraseña.","error");
   }else if(msg.includes("email not confirmed")){
    mostrarMensajeAuth("❌ La cuenta todavía no está confirmada.","error");
@@ -4215,6 +4280,14 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
   flkAuthProcesando=false;
   flkRestaurarBotonAuth();
  }
+});
+window.addEventListener("online",async()=>{
+ try{
+  const ses=flkSesionLocal();
+  if(ses?.user?.id&&ses?.user?.email){
+   await flkRevisarRevocacionOfflineUsuario(ses.user.id,ses.user.email);
+  }
+ }catch(e){}
 });
 
 function flkEstadoRecuperacion(id,texto,tipo=""){
@@ -5309,6 +5382,12 @@ async function flkCambiarPasswordUsuario(email){
   });
   if(error)throw error;
   if(!data?.ok)throw new Error(data?.error||"No se confirmó el cambio.");
+
+  const {error:versionError}=await flkSupabase.rpc("flk_bump_user_auth_version",{
+   p_user_id:data.user_id
+  });
+  if(versionError)throw versionError;
+  flkEliminarVerificadorOffline(correo);
 
   alert(
    "✅ Contraseña cambiada correctamente.\\n\\n"+
