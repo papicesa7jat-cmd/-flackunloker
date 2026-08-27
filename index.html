@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.45-conflictos-y-f5-estable">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.46-clientes-unificados">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -7568,8 +7568,67 @@ function eliminarVenta(id){
 document.getElementById("busquedaVentas").addEventListener("input",mostrarListaVentas);
 async function mostrarVentas(){flkOcultarTodasLasVistas();if(navigator.onLine)setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="block";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("ventas");actualizarVentas();scrollTop()}
 
-function claveCliente(v){const tel=String(v.telefono||"").trim().toLowerCase();const nom=String(v.cliente||"Cliente general").trim().toLowerCase();return tel?"tel:"+tel:"nom:"+nom}
-function obtenerClientes(){const mapa={};ventas.forEach(v=>{normalizarCuentaVenta(v);const nombre=String(v.cliente||"Cliente general").trim()||"Cliente general",telefono=String(v.telefono||"").trim(),k=claveCliente(v);if(!mapa[k])mapa[k]={clave:k,nombre,telefono,compras:0,total:0,unidades:0,saldoPendiente:0,creditosPendientes:0,saldoVencido:0,creditosVencidos:0,ultima:null,ventas:[]};const c=mapa[k];c.compras++;c.total+=Number(v.ingreso||0);c.unidades+=unidadesNetasVenta(v);c.saldoPendiente+=Number(v.saldo||0);if(Number(v.saldo||0)>0){c.creditosPendientes++;const ev=estadoVencimientoVenta(v);if(ev.clave==="vencido"){c.creditosVencidos++;c.saldoVencido+=Number(v.saldo||0)}}c.ventas.push(v);if(!c.ultima||new Date(v.fecha)>new Date(c.ultima))c.ultima=v.fecha});return Object.values(mapa).sort((a,b)=>new Date(b.ultima)-new Date(a.ultima))}
+function flkNormalizarNombreCliente(valor){
+ return String(valor||"Cliente general").trim().toLowerCase()
+  .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+  .replace(/\s+/g," ");
+}
+function flkNormalizarTelefonoCliente(valor){
+ return String(valor||"").replace(/\D/g,"");
+}
+function claveCliente(v){
+ const nom=flkNormalizarNombreCliente(v.cliente);
+ return "nom:"+nom;
+}
+function obtenerClientes(){
+ const mapa={};
+ ventas.forEach(v=>{
+  normalizarCuentaVenta(v);
+  const nombre=String(v.cliente||"Cliente general").trim()||"Cliente general";
+  const telefono=String(v.telefono||"").trim();
+  const k=claveCliente(v);
+
+  if(!mapa[k])mapa[k]={
+   clave:k,nombre,telefono,compras:0,total:0,unidades:0,
+   saldoPendiente:0,creditosPendientes:0,saldoVencido:0,
+   creditosVencidos:0,ultima:null,ventas:[]
+  };
+
+  const c=mapa[k];
+
+  // Si alguna compra del mismo nombre tiene teléfono y otra no,
+  // conservar el teléfono conocido en una sola ficha.
+  if(!c.telefono && telefono)c.telefono=telefono;
+
+  // Si existen teléfonos distintos para el mismo nombre, no borrar información:
+  // conservar el teléfono de la compra más reciente como dato visible.
+  if(telefono && c.telefono && flkNormalizarTelefonoCliente(telefono)!==flkNormalizarTelefonoCliente(c.telefono)){
+   if(!c.ultima || new Date(v.fecha)>=new Date(c.ultima))c.telefono=telefono;
+  }
+
+  c.compras++;
+  c.total+=Number(v.ingreso||0);
+  c.unidades+=unidadesNetasVenta(v);
+  c.saldoPendiente+=Number(v.saldo||0);
+
+  if(Number(v.saldo||0)>0){
+   c.creditosPendientes++;
+   const ev=estadoVencimientoVenta(v);
+   if(ev.clave==="vencido"){
+    c.creditosVencidos++;
+    c.saldoVencido+=Number(v.saldo||0);
+   }
+  }
+
+  c.ventas.push(v);
+  if(!c.ultima||new Date(v.fecha)>new Date(c.ultima)){
+   c.ultima=v.fecha;
+   c.nombre=nombre;
+   if(telefono)c.telefono=telefono;
+  }
+ });
+ return Object.values(mapa).sort((a,b)=>new Date(b.ultima)-new Date(a.ultima));
+}
 async function mostrarClientes(){flkOcultarTodasLasVistas();if(navigator.onLine)setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="block";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("clientes");actualizarClientes();scrollTop()}
 function actualizarClientes(){const clientes=obtenerClientes(),q=document.getElementById("busquedaClientes").value.toLowerCase().trim(),arr=clientes.filter(c=>c.nombre.toLowerCase().includes(q)||c.telefono.toLowerCase().includes(q));document.getElementById("totalClientes").textContent=clientes.length;document.getElementById("comprasClientes").textContent=clientes.reduce((t,c)=>t+c.compras,0);document.getElementById("totalCompradoClientes").textContent="$"+clientes.reduce((t,c)=>t+c.total,0).toFixed(2);document.getElementById("creditosPendientesClientes").textContent=ventas.filter(v=>{normalizarCuentaVenta(v);return v.saldo>0}).length;document.getElementById("creditosVencidosClientes").textContent=ventas.filter(v=>estadoVencimientoVenta(v).clave==="vencido").length;document.getElementById("saldoPorCobrarClientes").textContent="$"+ventas.reduce((t,v)=>{normalizarCuentaVenta(v);return t+Number(v.saldo||0)},0).toFixed(2);document.getElementById("saldoVencidoClientes").textContent="$"+ventas.reduce((t,v)=>estadoVencimientoVenta(v).clave==="vencido"?t+Number(v.saldo||0):t,0).toFixed(2);const lista=document.getElementById("listaClientes");if(!arr.length){lista.innerHTML=`<div class="sin-productos">${clientes.length?"No encontramos clientes con esa búsqueda.":"Los clientes aparecerán aquí automáticamente cuando hagas recibos de venta."}</div>`;return}lista.innerHTML=arr.map(c=>{const f=c.ultima?new Date(c.ultima):null;return `<div class="cliente-card"><div class="cliente-superior"><div><h3>${escapeHtml(c.nombre)}</h3><p>${c.telefono?escapeHtml(c.telefono):"Sin teléfono"}</p></div><div class="cliente-total">$${c.total.toFixed(2)}</div></div><div class="cliente-detalle">Compras: <strong>${c.compras}</strong> · Unidades: <strong>${c.unidades}</strong>${c.saldoPendiente>0?`<br>Por cobrar: <strong>$${c.saldoPendiente.toFixed(2)}</strong> · Créditos: <strong>${c.creditosPendientes}</strong>`:""}${c.saldoVencido>0?`<br><span style="color:#d93025">Vencido: <strong>$${c.saldoVencido.toFixed(2)}</strong> · ${c.creditosVencidos} cuenta(s)</span>`:""}<br>Última compra: <strong>${f?f.toLocaleDateString("es-PR"):"—"}</strong>${c.saldoPendiente>0?`<br>💳 Saldo pendiente: <strong style="color:#c45b19">$${c.saldoPendiente.toFixed(2)}</strong> · ${c.creditosPendientes} cuenta(s)`:"<br>✅ Sin deuda pendiente"}</div><div class="acciones-cliente"><button class="boton-cliente" onclick="verCliente('${encodeURIComponent(c.clave)}')">🧾 Ver compras</button><button class="boton-cliente boton-cliente-venta" onclick="nuevoReciboCliente('${encodeURIComponent(c.clave)}')">＋ Nuevo recibo</button></div></div>`}).join("")}
 function clientePorClave(enc){const k=decodeURIComponent(enc);return obtenerClientes().find(c=>c.clave===k)}
