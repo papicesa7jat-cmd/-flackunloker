@@ -1438,6 +1438,16 @@ textarea::placeholder{
  letter-spacing:.15mm;
 }
 </style>
+
+<style id="flk-qr-confirmacion-style">
+.flk-qr-confirmacion{margin-top:10px;padding:12px;border:1px solid #b9cad9;border-radius:13px;background:#f7fbff;color:#17324a}
+.flk-qr-confirmacion strong{display:block;font-size:14px;margin-bottom:5px}
+.flk-qr-confirmacion #flkQrConfirmacionDetalle{font-size:12px;line-height:1.45}
+.flk-qr-confirmacion-botones{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.flk-qr-confirmacion-botones button{border:0;border-radius:10px;padding:10px 7px;font-weight:850;cursor:pointer}
+.flk-qr-confirmacion-botones button:first-child{background:#0a67d1;color:#fff}
+.flk-qr-confirmacion-botones button:last-child{background:#e9eef3;color:#29445c}
+</style>
 </head>
 <body>
 
@@ -1967,6 +1977,14 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
    <input id="flkQrCodigoManual" type="text" autocomplete="off" placeholder="SKU o número de recibo">
   </div>
   <button type="button" class="boton-agregar" style="width:100%" onclick="procesarCodigoQR(document.getElementById('flkQrCodigoManual').value)">🔎 Buscar</button>
+  <div id="flkQrConfirmacionLectura" class="flk-qr-confirmacion" style="display:none">
+   <strong id="flkQrConfirmacionTitulo">QR detectado</strong>
+   <div id="flkQrConfirmacionDetalle"></div>
+   <div class="flk-qr-confirmacion-botones">
+    <button type="button" onclick="confirmarLecturaQRPendiente()">✅ Continuar</button>
+    <button type="button" onclick="cancelarLecturaQRPendiente()">↩️ Volver a escanear</button>
+   </div>
+  </div>
   <div id="flkQrResultado" class="flk-qr-resultado" style="display:none"></div>
   <div id="flkQrVentaContinua" class="flk-qr-venta-continua" style="display:none">
    <div class="flk-qr-carrito-cab"><strong>🛒 Venta por escaneo</strong><span id="flkQrVentaConteo">0 unidades</span></div>
@@ -9150,6 +9168,149 @@ const flkDetenerEscanerOriginal=detenerEscanerQR;
 detenerEscanerQR=function(cambiar=true){
  flkDetenerLoopJsQR();
  return flkDetenerEscanerOriginal(cambiar);
+};
+</script>
+
+<script id="flk-qr-lectura-estable-confirmada">
+let flkQrCodigoPendienteConfirmacion="";
+let flkQrProcesandoLectura=false;
+let flkQrUltimaLecturaAceptada="";
+let flkQrUltimaLecturaAceptadaTs=0;
+
+function flkPausarLecturaSinCerrarCamara(){
+ flkQrActivo=false;
+ if(typeof flkDetenerLoopJsQR==="function")flkDetenerLoopJsQR();
+}
+function flkReanudarLecturaActual(){
+ if(!flkQrStream)return;
+ flkQrUltimo="";
+ flkQrUltimoTs=0;
+ flkQrProcesandoLectura=false;
+ flkQrActivo=true;
+ if(flkQrDetector && "BarcodeDetector" in window){
+  flkQrLeer();
+ }else if(typeof jsQR==="function"){
+  flkQrLeerConJsQR();
+ }
+}
+function flkPresentarLecturaParaConfirmar(codigo){
+ if(flkQrProcesandoLectura)return;
+ codigo=String(codigo||"").trim();
+ if(!codigo)return;
+
+ const ahora=Date.now();
+ if(codigo===flkQrUltimaLecturaAceptada && ahora-flkQrUltimaLecturaAceptadaTs<1800)return;
+
+ flkQrProcesandoLectura=true;
+ flkQrCodigoPendienteConfirmacion=codigo;
+ flkPausarLecturaSinCerrarCamara();
+
+ const x=flkQrValor(codigo);
+ const box=document.getElementById("flkQrConfirmacionLectura");
+ const titulo=document.getElementById("flkQrConfirmacionTitulo");
+ const detalle=document.getElementById("flkQrConfirmacionDetalle");
+ if(!box||!titulo||!detalle)return;
+
+ let texto=codigo;
+ if(flkQrModo==="devolucion"){
+  const v=flkQrBuscarVenta(x);
+  titulo.textContent=v?"🧾 Recibo detectado":"⚠️ Código detectado";
+  texto=v?("Recibo #"+String(v.numero||v.id)+". Confirma para abrir la devolución."):"No se encontró un recibo con este código.";
+ }else{
+  const p=flkQrBuscarProducto(x);
+  titulo.textContent=p?"📦 "+p.nombre:"⚠️ Código detectado";
+  texto=p?("SKU: "+p.sku+" · Existencia: "+Number(p.cantidad||0)+". Confirma para continuar con "+({entrada:"Compra / Entrada",salida:"Salida",venta:"Venta"}[flkQrModo]||flkQrModo)+"."):"No se encontró un producto con este código.";
+ }
+ detalle.textContent=texto;
+ box.style.display="block";
+
+ const estado=document.getElementById("flkQrEstado");
+ if(estado)estado.textContent="QR detectado. Revisa y pulsa Continuar.";
+ if(navigator.vibrate)try{navigator.vibrate(70)}catch(_){}
+}
+function confirmarLecturaQRPendiente(){
+ const codigo=flkQrCodigoPendienteConfirmacion;
+ if(!codigo)return;
+ const box=document.getElementById("flkQrConfirmacionLectura");
+ if(box)box.style.display="none";
+ flkQrUltimaLecturaAceptada=codigo;
+ flkQrUltimaLecturaAceptadaTs=Date.now();
+ flkQrCodigoPendienteConfirmacion="";
+ flkQrProcesandoLectura=false;
+
+ // Call the original business-processing function, not the detection wrapper.
+ flkProcesarCodigoQRNegocio(codigo,true);
+
+ // In continuous sale mode, keep the same camera open and resume after a short,
+ // deliberate pause so the same QR is not counted repeatedly.
+ if(flkQrModo==="venta" && document.getElementById("modalEscanerQR")?.classList.contains("visible")){
+  const estado=document.getElementById("flkQrEstado");
+  if(estado)estado.textContent="Producto agregado. Preparando siguiente lectura…";
+  setTimeout(function(){
+   if(document.getElementById("modalEscanerQR")?.classList.contains("visible")){
+    flkReanudarLecturaActual();
+    if(estado)estado.textContent="Listo para escanear el siguiente producto.";
+   }
+  },900);
+ }
+}
+function cancelarLecturaQRPendiente(){
+ flkQrCodigoPendienteConfirmacion="";
+ flkQrProcesandoLectura=false;
+ const box=document.getElementById("flkQrConfirmacionLectura");
+ if(box)box.style.display="none";
+ const estado=document.getElementById("flkQrEstado");
+ if(estado)estado.textContent="Lectura cancelada. Vuelve a apuntar al QR.";
+ setTimeout(flkReanudarLecturaActual,350);
+}
+
+// Preserve original business logic and replace scanner-facing entry point.
+const flkProcesarCodigoQRNegocio=procesarCodigoQR;
+procesarCodigoQR=function(codigo,desdeCamara=false){
+ if(desdeCamara){
+  flkPresentarLecturaParaConfirmar(codigo);
+  return;
+ }
+ // Manual code and physical reader remain immediate, because they are deliberate inputs.
+ return flkProcesarCodigoQRNegocio(codigo,false);
+};
+
+// Override jsQR loop with throttled frame analysis. This reduces CPU use on iPhone
+// and prevents repeated reads of the same QR before UI state updates.
+flkQrLeerConJsQR=function(){
+ if(!flkQrActivo)return;
+ const video=document.getElementById("flkQrVideo");
+ const canvas=document.getElementById("flkQrCanvas");
+ if(!video||!canvas)return;
+
+ if(video.readyState>=2 && video.videoWidth>0 && video.videoHeight>0 && !flkQrProcesandoLectura){
+  const maxW=560;
+  const scale=Math.min(1,maxW/video.videoWidth);
+  canvas.width=Math.max(1,Math.round(video.videoWidth*scale));
+  canvas.height=Math.max(1,Math.round(video.videoHeight*scale));
+  const ctx=canvas.getContext("2d",{willReadFrequently:true});
+  try{
+   ctx.drawImage(video,0,0,canvas.width,canvas.height);
+   const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+   const qr=jsQR(img.data,img.width,img.height,{inversionAttempts:"attemptBoth"});
+   if(qr&&qr.data){
+    const codigo=String(qr.data||"").trim();
+    const ahora=Date.now();
+    if(codigo&&(codigo!==flkQrUltimo||ahora-flkQrUltimoTs>2200)){
+     flkQrUltimo=codigo;
+     flkQrUltimoTs=ahora;
+     const manual=document.getElementById("flkQrCodigoManual");
+     if(manual)manual.value=codigo;
+     flkPresentarLecturaParaConfirmar(codigo);
+    }
+   }
+  }catch(_){}
+ }
+ if(flkQrActivo){
+  setTimeout(function(){
+   if(flkQrActivo)flkQrJsLoopId=requestAnimationFrame(flkQrLeerConJsQR);
+  },140);
+ }
 };
 </script>
 </body>
