@@ -2360,18 +2360,13 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
  </div>
  <div class="adminsw-panel">
   <h3 style="margin:0 0 8px">💾 Respaldo y restauración</h3>
-  <p style="margin:0 0 14px;color:#667085;font-size:13px;line-height:1.55">Guarda una copia de los datos de Flackunloker o restaura un respaldo anterior. En iPhone, al crearla selecciona “Guardar en Archivos”.</p>
+  <p style="margin:0 0 14px;color:#667085;font-size:13px;line-height:1.55">Guarda una copia de los datos de Flackunloker o restaura un respaldo anterior.</p>
   <div class="botones-respaldo">
    <button class="boton-respaldo boton-crear-respaldo" type="button" onclick="crearRespaldo()">💾 Crear respaldo</button>
    <button class="boton-respaldo boton-restaurar-respaldo" type="button" onclick="seleccionarRespaldo()">📥 Restaurar respaldo</button>
   </div>
   <input id="archivoRespaldo" type="file" accept=".json,application/json" style="display:none" onchange="restaurarRespaldo(event)">
   <div id="estadoRespaldo" class="estado-respaldo"></div>
-  <div id="flkProteccionRestauracionBox" class="estado-respaldo" style="display:none">
-   <strong>🛡️ Restauración protegida</strong><br>
-   <span id="flkProteccionRestauracionTexto">Supabase no reemplazará estos datos automáticamente.</span>
-   <button type="button" class="boton-agregar" style="width:100%;margin-top:10px" onclick="flkLiberarProteccionRestauracion()">☁️ Reanudar sincronización con Supabase</button>
-  </div>
  </div>
  <div class="adminsw-panel adminsw-seguridad-compacta">
   <h3 style="margin:0 0 8px">🔐 Seguridad</h3>
@@ -8266,56 +8261,6 @@ document.addEventListener("visibilitychange",()=>{
 });
 
 
-
-const FLK_RESTORE_PROTECTION_PREFIX="flackunloker_restore_protection::";
-function flkRestoreProtectionKey(){
- const id=flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:flkBusinessGuardado();
- return FLK_RESTORE_PROTECTION_PREFIX+(id||"sin-centro");
-}
-function flkProteccionRestauracionActiva(){
- try{
-  const raw=localStorage.getItem(flkRestoreProtectionKey());
-  if(!raw)return false;
-  const obj=JSON.parse(raw);
-  return !!(obj&&obj.active===true);
- }catch(_){return false}
-}
-function flkActivarProteccionRestauracion(meta={}){
- try{
-  localStorage.setItem(flkRestoreProtectionKey(),JSON.stringify({
-   active:true,
-   restored_at:new Date().toISOString(),
-   centro_id:meta.centro_id||FLK_BUSINESS_ID||flkBusinessGuardado()||null,
-   centro_nombre:meta.centro_nombre||"",
-   backup_fecha:meta.backup_fecha||null
-  }));
- }catch(_){}
- flkPintarProteccionRestauracion();
-}
-function flkPintarProteccionRestauracion(){
- const box=document.getElementById("flkProteccionRestauracionBox");
- const txt=document.getElementById("flkProteccionRestauracionTexto");
- if(!box)return;
- const activa=flkProteccionRestauracionActiva();
- box.style.display=activa?"block":"none";
- if(txt&&activa){
-  txt.textContent="La copia restaurada queda como fuente local protegida. Supabase no podrá sustituirla automáticamente.";
- }
-}
-async function flkLiberarProteccionRestauracion(){
- if(!flkProteccionRestauracionActiva())return;
- const ok=confirm(
-  "¿Reanudar la sincronización con Supabase?\n\n"+
-  "IMPORTANTE: si la nube todavía contiene datos diferentes a la copia restaurada, al actualizar desde Supabase podrían volver a reemplazarse datos locales.\n\n"+
-  "Continúa solo cuando estés seguro de que deseas volver a usar la nube."
- );
- if(!ok)return;
- try{localStorage.removeItem(flkRestoreProtectionKey())}catch(_){}
- flkPintarProteccionRestauracion();
- mostrarEstadoRespaldo("☁️ Sincronización con Supabase habilitada nuevamente.");
-}
-document.addEventListener("DOMContentLoaded",()=>setTimeout(flkPintarProteccionRestauracion,100));
-
 const FLK_BACKUP_CENTER_NAME_PREFIX="flackunloker_backup_center_name::";
 function flkNombreCentroBackupLocal(){
  const id=flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:flkBusinessGuardado();
@@ -8380,88 +8325,28 @@ function nombreRespaldoFlackunloker(centroNombre="Centro",centroId=""){
  return `Flackunloker_${centro}_${idCorto}_Respaldo_${dos(d.getDate())}-${dos(d.getMonth()+1)}-${d.getFullYear()}_${dos(h)}-${dos(d.getMinutes())}-${dos(d.getSeconds())}_${ampm}.json`;
 }
 
-function crearRespaldo(){
+async function crearRespaldo(){
  try{
-  const centroId=flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:flkBusinessGuardado();
-  if(!centroId){
-   alert("No se pudo identificar el centro activo. Inicia sesión nuevamente y vuelve a intentar.");
-   return;
-  }
-
-  const centroNombre=flkNombreCentroBackupLocal();
-  const nombreArchivo=nombreRespaldoFlackunloker(centroNombre,centroId);
-
+  const centro=await flkResolverCentroBackup();
   const datos={
    aplicacion:"Flackunloker",
-   version:"2.3-multicentro",
+   version:"2.1-multicentro",
    fecha:new Date().toISOString(),
    centro:{
-    business_id:centroId,
-    nombre:centroNombre
+    business_id:centro.id,
+    nombre:centro.nombre
    },
-   productos,
-   historial,
-   ventas,
-   gastos,
-   cierres,
-   ordenesCompra,
-   proveedores
+   productos,historial,ventas,gastos,cierres,ordenesCompra,proveedores
   };
-
-  const texto=JSON.stringify(datos,null,2);
-  const file=new File([texto],nombreArchivo,{type:"application/json"});
-  const esMovilApple=/iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
-
-  // iPhone/iPad: usar la hoja nativa. Esta es la vía más confiable para
-  // seleccionar "Guardar en Archivos" y elegir la carpeta.
-  if(esMovilApple && navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
-   mostrarEstadoRespaldo("💾 Respaldo preparado. Selecciona “Guardar en Archivos” en la ventana que aparecerá.");
-   navigator.share({
-    title:"Respaldo Flackunloker · "+centroNombre,
-    text:"Respaldo de "+centroNombre,
-    files:[file]
-   }).then(()=>{
-    mostrarEstadoRespaldo("✅ Respaldo entregado al sistema de archivos/compartir del iPhone.");
-   }).catch(err=>{
-    if(err && err.name==="AbortError"){
-     mostrarEstadoRespaldo("ℹ️ Guardado cancelado. Pulsa Crear respaldo para intentarlo nuevamente.");
-     return;
-    }
-    console.error("Compartir respaldo:",err);
-    flkDescargarRespaldoTradicional(file,nombreArchivo);
-   });
-   return;
-  }
-
-  flkDescargarRespaldoTradicional(file,nombreArchivo);
-
- }catch(err){
-  console.error("Crear respaldo:",err);
-  alert("No se pudo crear el respaldo: "+(err?.message||err));
- }
-}
-
-function flkDescargarRespaldoTradicional(file,nombreArchivo){
- try{
-  const url=URL.createObjectURL(file);
-  const a=document.createElement("a");
+  const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob),a=document.createElement("a");
   a.href=url;
-  a.download=nombreArchivo;
-  a.rel="noopener";
-  a.style.display="none";
-  document.body.appendChild(a);
-  a.click();
-
-  setTimeout(()=>{
-   try{a.remove()}catch(_){}
-   try{URL.revokeObjectURL(url)}catch(_){}
-  },3000);
-
-  mostrarEstadoRespaldo("✅ Respaldo creado. Revisa Descargas o Archivos.");
+  a.download=nombreRespaldoFlackunloker(centro.nombre,centro.id);
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  mostrarEstadoRespaldo(`✅ Respaldo creado para ${centro.nombre}.`);
  }catch(err){
-  console.error("Descarga respaldo:",err);
-  alert("El navegador no permitió guardar la salva. Intenta desde Safari o Chrome actualizado.");
+  console.error("Respaldo por centro:",err);
+  alert("No se pudo crear el respaldo porque no se pudo identificar el centro activo.");
  }
 }
 function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
@@ -8508,14 +8393,6 @@ async function restaurarRespaldo(event){
    );
    if(!ok)return;
 
-   // Proteger primero la restauración antes de aplicar los datos.
-   // Así ninguna lectura automática de Supabase puede reemplazarla durante el proceso.
-   flkActivarProteccionRestauracion({
-    centro_id:centroActual.id,
-    centro_nombre:centroActual.nombre,
-    backup_fecha:datos.fecha||null
-   });
-
    productos=datos.productos;
    historial=datos.historial;
    ventas=Array.isArray(datos.ventas)?datos.ventas:[];
@@ -8555,11 +8432,7 @@ async function restaurarRespaldo(event){
    actualizarEstadisticas();
 
    mostrarEstadoRespaldo(`✅ Respaldo restaurado en ${centroActual.nombre}.`);
-   alert(
-    "Respaldo restaurado correctamente en "+centroActual.nombre+".\n\n"+
-    "🛡️ MODO PROTEGIDO ACTIVADO\n"+
-    "Supabase no reemplazará automáticamente esta restauración. Cuando decidas volver a sincronizar con la nube, usa el botón del panel de Respaldos."
-   );
+   alert("Respaldo restaurado correctamente en "+centroActual.nombre+".");
   }catch(err){
    console.error(err);
    alert("No se pudo restaurar el respaldo: "+(err?.message||"archivo no válido."));
@@ -10082,214 +9955,141 @@ abrirEscanerQR=function(){
 };
 </script>
 
-<script id="flk-restore-protection-supabase-guard">
-(function(){
- function bloqueado(){
-  return typeof flkProteccionRestauracionActiva==="function" && flkProteccionRestauracionActiva();
- }
- function aviso(){
-  if(typeof flkPintarProteccionRestauracion==="function")flkPintarProteccionRestauracion();
-  if(typeof flkActualizarEstadoConexion==="function")flkActualizarEstadoConexion();
- }
-
- // These are the destructive/read-back paths that reconstruct local state from cloud.
- const nombres=[
-  "flkRecuperacionEmergenciaNube",
-  "flkSincronizarSeguro",
-  "flkReconciliarInventarioNube",
-  "cargarInventarioSupabase",
-  "cargarHistorialSupabase",
-  "cargarVentasSupabase",
-  "cargarGastosSupabase",
-  "cargarComprasSupabase",
-  "cargarCierresSupabase",
-  "cargarMovimientosCajaSupabase"
- ];
-
- nombres.forEach(nombre=>{
-  const original=window[nombre];
-  if(typeof original!=="function")return;
-  window[nombre]=async function(){
-   if(bloqueado()){
-    aviso();
-    console.info("Restauración protegida: se omitió "+nombre);
-    return true;
-   }
-   return original.apply(this,arguments);
-  };
- });
-
- // Do not push queued operations and then immediately rebuild from cloud while
- // a restored snapshot is protected. Local work remains stored in its current center.
- if(typeof window.flkProcesarColaOffline==="function"){
-  const originalCola=window.flkProcesarColaOffline;
-  window.flkProcesarColaOffline=async function(){
-   if(bloqueado()){
-    aviso();
-    console.info("Restauración protegida: cola offline conservada sin enviar.");
-    return false;
-   }
-   return originalCola.apply(this,arguments);
-  };
- }
-
- // Make protection visible whenever Backup view/status is touched.
- document.addEventListener("DOMContentLoaded",()=>setTimeout(aviso,250));
-})();
-</script>
-
-<style id="flk-rescate-local-style">
-#flkRescateLocalPanel{position:fixed;inset:0;z-index:999999;background:rgba(5,20,35,.72);display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:22px 12px}
-#flkRescateLocalCard{width:min(620px,100%);background:#fff;border-radius:18px;padding:18px;box-shadow:0 18px 50px rgba(0,0,0,.28);color:#17324a}
-#flkRescateLocalCard h2{margin:0 0 8px;color:#075aa8}
-#flkRescateLocalResumen{margin:12px 0;padding:12px;border-radius:12px;background:#f3f8fc;font-size:13px;line-height:1.55;white-space:pre-wrap}
-.flk-rescate-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.flk-rescate-btns button{border:0;border-radius:11px;padding:11px;font-weight:850;cursor:pointer}
-.flk-rescate-primary{background:#0a84ff;color:#fff}.flk-rescate-secondary{background:#eaf2f8;color:#17324a}
+<style id="flk-detector-profundo-style">
+#flkDetectorProfundo{position:fixed;inset:0;z-index:1000002;background:rgba(4,18,31,.76);display:none;overflow:auto;padding:18px 10px}
+#flkDetectorProfundoCard{max-width:680px;margin:auto;background:white;border-radius:18px;padding:17px;color:#17324a;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+#flkDetectorProfundoCard h2{margin:0 0 7px;color:#075aa8}
+#flkDetectorProfundoResultado{white-space:pre-wrap;background:#f3f8fc;border:1px solid #d5e5f1;border-radius:12px;padding:11px;margin:12px 0;max-height:52vh;overflow:auto;font-size:12px;line-height:1.5}
+.flk-detector-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.flk-detector-grid button{border:0;border-radius:10px;padding:11px;font-weight:850;cursor:pointer;background:#eaf3fb;color:#17324a}
+.flk-detector-grid .principal{background:#0a84ff;color:white}
 </style>
-
-<div id="flkRescateLocalPanel">
- <div id="flkRescateLocalCard">
-  <h2>🔎 Diagnóstico / Rescate local</h2>
-  <p style="font-size:13px;line-height:1.5;margin:0">Esta herramienta <b>no modifica Supabase</b>. Primero inspecciona y copia lo que todavía exista en este navegador/dispositivo.</p>
-  <div id="flkRescateLocalResumen">Pulsa “Analizar este dispositivo”.</div>
-  <div class="flk-rescate-btns">
-   <button class="flk-rescate-primary" onclick="flkAnalizarRescateLocal()">🔎 Analizar este dispositivo</button>
-   <button class="flk-rescate-primary" onclick="flkDescargarRescateLocal()">💾 Salva de emergencia</button>
-   <button class="flk-rescate-secondary" onclick="flkCopiarResumenRescate()">📋 Copiar diagnóstico</button>
-   <button class="flk-rescate-secondary" onclick="flkCerrarRescateLocal()">Cerrar</button>
+<div id="flkDetectorProfundo">
+ <div id="flkDetectorProfundoCard">
+  <h2>🧬 Detector profundo de recuperación</h2>
+  <p style="margin:0;font-size:13px;line-height:1.45">Lee este dispositivo solamente. <b>No escribe ni sincroniza con Supabase.</b> Busca productos directos y operaciones offline con payload recuperable.</p>
+  <div id="flkDetectorProfundoResultado">Pulsa Analizar.</div>
+  <div class="flk-detector-grid">
+   <button class="principal" onclick="flkDetectorAnalizar()">🔎 Analizar</button>
+   <button class="principal" onclick="flkDetectorExportar()">💾 Exportar hallazgos</button>
+   <button onclick="flkDetectorCopiar()">📋 Copiar resumen</button>
+   <button onclick="flkDetectorCerrar()">Cerrar</button>
   </div>
  </div>
 </div>
+<script id="flk-detector-profundo-engine">
+let FLK_DETECTOR_ULTIMO=null;
+function flkDetectorAbrir(){document.getElementById("flkDetectorProfundo").style.display="block";flkDetectorAnalizar()}
+function flkDetectorCerrar(){document.getElementById("flkDetectorProfundo").style.display="none"}
+function flkDetectorParse(v){try{return JSON.parse(v)}catch(_){return v}}
+function flkDetectorWalk(v,path,out,depth=0){
+ if(depth>9||v===null||v===undefined)return;
+ if(Array.isArray(v)){v.forEach((x,i)=>flkDetectorWalk(x,path+"["+i+"]",out,depth+1));return}
+ if(typeof v!=="object")return;
 
-<script id="flk-rescate-local-engine">
-let flkUltimoRescateLocal=null;
+ const tipo=String(v.type||v.operation_type||v.tipo||v.kind||"").toLowerCase();
+ const payload=v.payload||v.data||v.body||v.operation||v.datos||null;
+ const p=(payload&&typeof payload==="object")?payload:v;
+ const pareceProducto=
+   tipo.includes("product_save") ||
+   (("sku" in p)&&(("name" in p)||("nombre" in p))&&
+    (("cost" in p)||("costo" in p)||("price" in p)||("precio" in p)||("initial_stock" in p)||("cantidad" in p)));
 
-function flkAbrirRescateLocal(){
- document.getElementById("flkRescateLocalPanel").style.display="flex";
- flkAnalizarRescateLocal();
+ if(pareceProducto){
+  out.push({
+   path,
+   operation_type:tipo||null,
+   operation_id:v.id||v.operation_id||p.operation_id||null,
+   product_id:p.product_id||p.supabase_id||null,
+   legacy_id:p.legacy_id||p.local_product_id||p.id||null,
+   sku:p.sku||null,
+   nombre:p.name||p.nombre||null,
+   costo:p.cost??p.costo??null,
+   precio:p.price??p.precio??null,
+   stock_inicial:p.initial_stock??p.cantidad??null,
+   stock_local:p.local_stock??null,
+   categoria:p.category||p.categoria||null,
+   proveedor:p.supplier_name||p.proveedor||null,
+   ubicacion:p.location||p.ubicacion||null,
+   raw:v
+  });
+ }
+ Object.entries(v).forEach(([k,x])=>flkDetectorWalk(x,path+"."+k,out,depth+1));
 }
-function flkCerrarRescateLocal(){
- document.getElementById("flkRescateLocalPanel").style.display="none";
-}
-function flkParseLocalSeguro(v){
- if(v===null||v===undefined)return null;
- try{return JSON.parse(v)}catch(_){return v}
-}
-function flkCantidadDato(v){
- if(Array.isArray(v))return v.length;
- if(v&&typeof v==="object")return Object.keys(v).length;
- if(v===null||v===""||v===undefined)return 0;
- return 1;
-}
-function flkAnalizarRescateLocal(){
- const centro=(typeof flkBusinessGuardado==="function"?flkBusinessGuardado():null) ||
-              (typeof FLK_BUSINESS_ID!=="undefined"?FLK_BUSINESS_ID:null) || null;
- const todo={};
- const resumen=[];
- let totalElementos=0;
-
+function flkDetectorAnalizar(){
+ const keys=[], hallazgos=[], directos=[];
  for(let i=0;i<localStorage.length;i++){
-  const key=localStorage.key(i);
-  let raw=null;
-  try{raw=localStorage.getItem(key)}catch(_){}
-  const valor=flkParseLocalSeguro(raw);
-  const cantidad=flkCantidadDato(valor);
-  todo[key]={cantidad,valor};
-  totalElementos+=cantidad;
+  const key=localStorage.key(i), raw=localStorage.getItem(key);
+  const parsed=flkDetectorParse(raw);
+  keys.push({key,bytes:(raw||"").length});
+  try{flkDetectorWalk(parsed,key,hallazgos)}catch(_){}
+  if(/producto/i.test(key)&&Array.isArray(parsed)){
+   parsed.forEach(p=>{
+    if(p&&typeof p==="object"&&(p.sku||p.nombre||p.name))directos.push({key,...p})
+   })
+  }
  }
 
- const candidatos=[
-  ["Productos",["flackunloker_productos","productos"]],
-  ["Historial / movimientos",["flackunloker_historial","historial"]],
-  ["Ventas",["flackunloker_ventas","ventas"]],
-  ["Gastos",["flackunloker_gastos","gastos"]],
-  ["Cierres",["flackunloker_cierres","cierres"]],
-  ["Órdenes de compra",["flackunloker_ordenes_compra","ordenesCompra"]],
-  ["Proveedores",["flackunloker_proveedores","proveedores"]]
- ];
-
- resumen.push("Centro detectado: "+(centro||"NO IDENTIFICADO"));
- resumen.push("Claves localStorage encontradas: "+localStorage.length);
- resumen.push("");
-
- candidatos.forEach(([titulo,claves])=>{
-  const halladas=[];
-  claves.forEach(k=>{
-   if(Object.prototype.hasOwnProperty.call(todo,k))halladas.push(k+": "+todo[k].cantidad);
-  });
-  resumen.push(titulo+": "+(halladas.length?halladas.join(" | "):"no encontrado con clave estándar"));
+ // Deduplicate product_save candidates by operation id, then legacy/SKU+name.
+ const vistos=new Set(), unicos=[];
+ hallazgos.forEach(h=>{
+  const k=String(h.operation_id||"")+"|"+String(h.legacy_id||"")+"|"+String(h.sku||"")+"|"+String(h.nombre||"");
+  if(vistos.has(k))return;vistos.add(k);unicos.push(h)
  });
 
- // Also expose current in-memory arrays because they may be present even if keys changed.
- const memoria={};
- [["productos","productos"],["historial","historial"],["ventas","ventas"],["gastos","gastos"],
-  ["cierres","cierres"],["ordenesCompra","ordenesCompra"],["proveedores","proveedores"]].forEach(([etiqueta,nombre])=>{
-   try{
-    const v=(0,eval)(nombre);
-    if(Array.isArray(v))memoria[etiqueta]=JSON.parse(JSON.stringify(v));
-   }catch(_){}
- });
- resumen.push("");
- resumen.push("Datos actualmente cargados en memoria:");
- Object.keys(memoria).forEach(k=>resumen.push("• "+k+": "+memoria[k].length));
-
- flkUltimoRescateLocal={
+ FLK_DETECTOR_ULTIMO={
   aplicacion:"Flackunloker",
-  tipo:"rescate_local_emergencia",
-  version:1,
-  generado:new Date().toISOString(),
-  centro_id:centro,
-  user_agent:navigator.userAgent,
-  local_storage:todo,
-  memoria
+  tipo:"diagnostico_profundo_offline",
+  fecha:new Date().toISOString(),
+  centro_id:(typeof flkBusinessGuardado==="function"?flkBusinessGuardado():null),
+  claves:keys,
+  productos_directos:directos,
+  operaciones_producto:unicos
  };
 
- document.getElementById("flkRescateLocalResumen").textContent=resumen.join("\n");
- return flkUltimoRescateLocal;
-}
-function flkNombreRescate(){
- const d=new Date(),p=n=>String(n).padStart(2,"0");
- const centro=String(flkUltimoRescateLocal?.centro_id||"sin-centro").slice(0,8);
- return `Flackunloker_RESCATE_${centro}_${p(d.getDate())}-${p(d.getMonth()+1)}-${d.getFullYear()}_${p(d.getHours())}-${p(d.getMinutes())}.json`;
-}
-async function flkDescargarRescateLocal(){
- const datos=flkAnalizarRescateLocal();
- const texto=JSON.stringify(datos,null,2);
- const nombre=flkNombreRescate();
- const file=new File([texto],nombre,{type:"application/json"});
- try{
-  if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
-   await navigator.share({title:"Rescate local Flackunloker",files:[file]});
-   return;
-  }
- }catch(e){
-  if(e&&e.name==="AbortError")return;
+ const lineas=[
+  "Centro: "+(FLK_DETECTOR_ULTIMO.centro_id||"no identificado"),
+  "Claves de almacenamiento revisadas: "+keys.length,
+  "Productos directos encontrados: "+directos.length,
+  "Operaciones/productos reconstruibles: "+unicos.length,
+  ""
+ ];
+ if(unicos.length){
+  lineas.push("HALLAZGOS:");
+  unicos.forEach((h,i)=>lineas.push(
+   `${i+1}. ${h.nombre||"(sin nombre)"} | SKU ${h.sku||"—"} | costo ${h.costo??"—"} | precio ${h.precio??"—"} | inicial ${h.stock_inicial??"—"} | local ${h.stock_local??"—"}`
+  ));
+ }else{
+  lineas.push("No apareció ningún payload product_save recuperable en este navegador.");
+  lineas.push("Prueba exactamente este mismo archivo en el otro dispositivo.");
  }
- const url=URL.createObjectURL(file);
- const a=document.createElement("a");
- a.href=url;a.download=nombre;a.style.display="none";
- document.body.appendChild(a);a.click();
- setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},2500);
+ document.getElementById("flkDetectorProfundoResultado").textContent=lineas.join("\n");
+ return FLK_DETECTOR_ULTIMO;
 }
-async function flkCopiarResumenRescate(){
- const txt=document.getElementById("flkRescateLocalResumen").textContent;
- try{await navigator.clipboard.writeText(txt);alert("Diagnóstico copiado.")}catch(_){alert(txt)}
+async function flkDetectorExportar(){
+ const d=flkDetectorAnalizar(), txt=JSON.stringify(d,null,2);
+ const id=String(d.centro_id||"sin-centro").slice(0,8);
+ const file=new File([txt],`Flackunloker_DIAGNOSTICO_${id}_${Date.now()}.json`,{type:"application/json"});
+ try{
+  if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){
+   await navigator.share({title:"Diagnóstico Flackunloker",files:[file]});return
+  }
+ }catch(e){if(e?.name==="AbortError")return}
+ const u=URL.createObjectURL(file),a=document.createElement("a");
+ a.href=u;a.download=file.name;document.body.appendChild(a);a.click();
+ setTimeout(()=>{a.remove();URL.revokeObjectURL(u)},2500)
 }
-
-// Expose the rescue tool in the existing backup/software area without depending
-// on a particular old menu layout.
+async function flkDetectorCopiar(){
+ flkDetectorAnalizar();
+ const t=document.getElementById("flkDetectorProfundoResultado").textContent;
+ try{await navigator.clipboard.writeText(t);alert("Resumen copiado.")}catch(_){alert(t)}
+}
 document.addEventListener("DOMContentLoaded",()=>{
- const btn=document.createElement("button");
- btn.type="button";
- btn.id="flkAbrirRescateBtn";
- btn.textContent="🔎 Diagnóstico / Recuperar datos locales";
- btn.onclick=flkAbrirRescateLocal;
- btn.style.cssText="width:100%;margin-top:10px;border:0;border-radius:11px;padding:11px;background:#eaf4ff;color:#075aa8;font-weight:900;cursor:pointer";
- const target=document.getElementById("estadoRespaldo")?.parentElement ||
-              document.getElementById("vistaSoftware") ||
-              document.querySelector(".contenedor");
- if(target)target.appendChild(btn);
+ const b=document.createElement("button");
+ b.type="button";b.textContent="🧬 Detector profundo de recuperación";b.onclick=flkDetectorAbrir;
+ b.style.cssText="width:100%;margin-top:9px;border:0;border-radius:11px;padding:11px;background:#e9f4ff;color:#075aa8;font-weight:900;cursor:pointer";
+ const t=document.getElementById("estadoRespaldo")?.parentElement||document.getElementById("vistaSoftware")||document.querySelector(".contenedor");
+ if(t)t.appendChild(b)
 });
 </script>
 </body>
