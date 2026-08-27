@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.28-restauracion-compras-completa">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.29-restauracion-compras-multicentro">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -5925,7 +5925,8 @@ async function migrarComprasLocalesSupabase(){
   if(p.supabaseId && !restaurando)continue;
   const {error}=await flkSupabase.from("suppliers").upsert({
    legacy_id:String(p.id),name:p.nombre,contact_name:p.contacto||null,phone:p.telefono||null,
-   email:p.email||null,address:p.direccion||null,notes:p.nota||null
+   email:p.email||null,address:p.direccion||null,notes:p.nota||null,
+   business_id:FLK_BUSINESS_ID
   },{onConflict:"legacy_id"});
   if(error)throw error;
  }
@@ -5963,7 +5964,8 @@ async function migrarComprasLocalesSupabase(){
    due_date:o.fechaVencimientoProveedor||null,
    total_amount:Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),
    paid_amount:Number(o.totalPagadoProveedor||0),
-   balance_due:Number(o.saldoProveedor||0)
+   balance_due:Number(o.saldoProveedor||0),
+   business_id:FLK_BUSINESS_ID
   },{onConflict:"legacy_id"});
   if(error)throw error;
  }
