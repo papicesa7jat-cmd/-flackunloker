@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.27a-estable-admin-fix">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.41-password-revoca-offline">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -597,10 +597,11 @@ button:active{transform:none!important}
   #vistaUsuarios .seccion-titulo .boton-agregar{width:100%;max-width:280px}
 }
 
-.adminsw-user-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:9px}
+.adminsw-user-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:9px}
 .adminsw-user-actions button{border:0;border-radius:10px;padding:9px 7px;font-weight:700;cursor:pointer}
 .adminsw-user-role{background:#e8f2ff;color:#0562c8}
 .adminsw-user-status{background:#fff3d6;color:#8a5a00}
+.adminsw-user-password{background:#eef0ff;color:#5146a6}
 .adminsw-user-remove{background:#ffe7e7;color:#c62828}
 @media(max-width:520px){.adminsw-user-actions{grid-template-columns:1fr}}
 
@@ -1569,7 +1570,7 @@ textarea::placeholder{
   <p id="flkLicenciaBloqueoMensaje">Esta instalación necesita una licencia activa para continuar.</p>
   <p id="flkLicenciaBloqueoFecha" class="lic-bloqueo-fecha"></p>
   <button type="button" onclick="flkReintentarLicencia()">🔄 Comprobar licencia</button>
-  <button type="button" class="lic-secundario" onclick="flkCerrarSesionDesdeLicencia()">Cerrar sesión</button>
+  <button id="flkBotonCerrarSesionLicencia" type="button" class="lic-secundario" onclick="flkCerrarSesionDispositivoVinculado()">Cerrar sesión</button>
  </div>
 </div>
 
@@ -2133,7 +2134,8 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <form class="formulario" id="formularioMovimiento">
 <h2 id="tituloMovimiento">Movimiento</h2><p class="mensaje-movimiento" id="textoMovimiento">Movimiento de inventario</p>
 <div class="campo"><label for="cantidadMovimiento">Cantidad</label><input id="cantidadMovimiento" type="number" min="1" step="1" required></div>
-<div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarMovimiento()">Cancelar</button><button type="submit" class="boton-guardar">Confirmar</button></div>
+<div id="estadoMovimientoOffline" style="display:none;margin:8px 0 0;font-size:12px;font-weight:700;color:#a15c00">Guardando movimiento local...</div>
+<div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarMovimiento()">Cancelar</button><button id="botonConfirmarMovimiento" type="submit" class="boton-guardar">Confirmar</button></div>
 </form>
 </div>
 
@@ -2631,7 +2633,10 @@ function flkEncolarOperacion(tipo,payload){
  const datos=(payload&&typeof payload==="object")?{...payload}:{};
  if(FLK_OPERACIONES_LOCAL_FIRST.has(tipo))datos.local_applied=true;
  const op={id:flkUUID(),tipo,payload:datos,device_id:flkDeviceId(),created_at:new Date().toISOString(),estado:"pendiente",intentos:0};
- q.push(op);flkGuardarColaOffline(q);return op
+ q.push(op);
+ flkGuardarColaOffline(q);
+ if(!navigator.onLine)setTimeout(()=>{try{flkAvisoOperacionOffline(tipo)}catch(e){}},0);
+ return op
 }
 function flkPendientesOffline(){
  return flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado)).length
@@ -3440,6 +3445,8 @@ function flkActualizarModoRendimiento(){
 }
 window.addEventListener("online",flkActualizarModoRendimiento);
 window.addEventListener("offline",flkActualizarModoRendimiento);
+window.addEventListener("online",()=>setTimeout(()=>flkComprobarPropietarioSoftware(),0));
+window.addEventListener("offline",()=>setTimeout(()=>flkComprobarPropietarioSoftware(),0));
 document.addEventListener("DOMContentLoaded",flkActualizarModoRendimiento);
 
 document.addEventListener("DOMContentLoaded",()=>{flkDeviceId();flkActualizarEstadoConexion()});
@@ -3546,6 +3553,206 @@ document.addEventListener("DOMContentLoaded",()=>{flkCargarUsuarioLogin();flkLim
 
 const FLK_SESSION_CACHE_KEY="flackunloker_session_cache_v1";
 const FLK_ROLE_CACHE_KEY="flackunloker_role_cache_v1";
+const FLK_AUTH_CONTEXT_CACHE_KEY="flackunloker_auth_context_cache_v1";
+const FLK_OFFLINE_LOGIN_VERIFIER_KEY="flackunloker_offline_login_verifier_v1";
+const FLK_OFFLINE_LOGIN_MAX_DAYS=30;
+
+function flkBytesToB64(bytes){
+ let bin="";
+ bytes.forEach(b=>bin+=String.fromCharCode(b));
+ return btoa(bin);
+}
+function flkB64ToBytes(b64){
+ const bin=atob(String(b64||""));
+ return Uint8Array.from(bin,c=>c.charCodeAt(0));
+}
+async function flkDerivarClaveOffline(password,saltBytes){
+ if(!window.crypto?.subtle)throw new Error("Este navegador no soporta verificación offline segura.");
+ const enc=new TextEncoder();
+ const material=await crypto.subtle.importKey("raw",enc.encode(String(password||"")),"PBKDF2",false,["deriveBits"]);
+ const bits=await crypto.subtle.deriveBits(
+  {name:"PBKDF2",salt:saltBytes,iterations:180000,hash:"SHA-256"},
+  material,256
+ );
+ return flkBytesToB64(new Uint8Array(bits));
+}
+function flkLeerVerificadoresOffline(){
+ try{
+  const x=JSON.parse(localStorage.getItem(FLK_OFFLINE_LOGIN_VERIFIER_KEY)||"{}");
+  return x&&typeof x==="object"&&!Array.isArray(x)?x:{};
+ }catch(e){return {}}
+}
+function flkEliminarVerificadorOffline(email){
+ try{
+  const key=String(email||"").trim().toLowerCase();
+  const todos=flkLeerVerificadoresOffline();
+  if(todos[key]){
+   delete todos[key];
+   localStorage.setItem(FLK_OFFLINE_LOGIN_VERIFIER_KEY,JSON.stringify(todos));
+  }
+ }catch(e){}
+}
+async function flkAuthVersionServidor(userId){
+ if(!userId)throw new Error("Usuario inválido para comprobar seguridad.");
+ const {data,error}=await flkSupabase.rpc("flk_auth_version_for_user",{p_user_id:userId});
+ if(error)throw error;
+ const n=Number(data);
+ return Number.isFinite(n)&&n>0?n:1;
+}
+async function flkRevisarRevocacionOfflineUsuario(userId,email){
+ try{
+  if(!userId||!email)return false;
+  const key=String(email).trim().toLowerCase();
+  const reg=flkLeerVerificadoresOffline()[key];
+  if(!reg)return false;
+  const remoto=await flkAuthVersionServidor(userId);
+  if(Number(reg.auth_version||0)!==Number(remoto)){
+   flkEliminarVerificadorOffline(key);
+   console.warn("Acceso offline invalidado por cambio de credenciales.");
+   return true;
+  }
+  return false;
+ }catch(e){
+  console.warn("No se pudo comprobar versión de seguridad:",e?.message||e);
+  return false;
+ }
+}
+async function flkGuardarVerificadorOffline(user,password){
+ try{
+  if(!user?.id||!user?.email||!password)return false;
+  const ctx=flkContextoAutorizado(user.id);
+  if(!ctx?.business_id)return false;
+
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const hash=await flkDerivarClaveOffline(password,salt);
+  const authVersion=await flkAuthVersionServidor(user.id);
+  const todos=flkLeerVerificadoresOffline();
+  todos[String(user.email).trim().toLowerCase()]={
+   user_id:user.id,
+   email:String(user.email).trim().toLowerCase(),
+   salt:flkBytesToB64(salt),
+   hash,
+   role:ctx.role||"employee",
+   business_id:ctx.business_id,
+   auth_version:authVersion,
+   validated_at:new Date().toISOString()
+  };
+  localStorage.setItem(FLK_OFFLINE_LOGIN_VERIFIER_KEY,JSON.stringify(todos));
+  return true;
+ }catch(e){
+  console.warn("No se pudo preparar acceso offline:",e);
+  return false;
+ }
+}
+function flkDiasDesdeIso(iso){
+ const t=new Date(iso||0).getTime();
+ if(!Number.isFinite(t))return Infinity;
+ return Math.max(0,(Date.now()-t)/86400000);
+}
+async function flkValidarAccesoOffline(email,password){
+ const key=String(email||"").trim().toLowerCase();
+ const reg=flkLeerVerificadoresOffline()[key];
+ if(!reg)return {ok:false,reason:"not-prepared"};
+ if(!Number.isFinite(Number(reg.auth_version))||Number(reg.auth_version)<=0)return {ok:false,reason:"security-refresh"};
+ if(flkDiasDesdeIso(reg.validated_at)>FLK_OFFLINE_LOGIN_MAX_DAYS)return {ok:false,reason:"expired"};
+
+ try{
+  const actual=await flkDerivarClaveOffline(password,flkB64ToBytes(reg.salt));
+  if(actual!==reg.hash)return {ok:false,reason:"bad-password"};
+ }catch(e){
+  return {ok:false,reason:"unsupported"};
+ }
+
+ const ctx=flkContextoAutorizado(reg.user_id);
+ if(!ctx||ctx.business_id!==reg.business_id)return {ok:false,reason:"context-mismatch"};
+
+ return {
+  ok:true,
+  user:{id:reg.user_id,email:reg.email},
+  role:reg.role||ctx.role||"employee",
+  business_id:reg.business_id,
+  validated_at:reg.validated_at
+ };
+}
+async function flkEntrarOffline(email,password){
+ const r=await flkValidarAccesoOffline(email,password);
+ if(!r.ok){
+  const mensajes={
+   "not-prepared":"Este navegador debe iniciar sesión online al menos una vez antes de poder entrar sin Internet.",
+   "expired":"La autorización offline de este navegador venció. Conéctate una vez para renovarla.",
+   "security-refresh":"Por seguridad, este navegador debe iniciar sesión online una vez para renovar el acceso offline.",
+   "bad-password":"Usuario o contraseña incorrectos.",
+   "unsupported":"Este navegador no permite verificar la contraseña offline de forma segura.",
+   "context-mismatch":"No se pudo confirmar el centro autorizado de este usuario."
+  };
+  throw new Error(mensajes[r.reason]||"No se pudo validar el acceso offline.");
+ }
+
+ const sesionLocal={
+  user:{id:r.user.id,email:r.user.email},
+  saved_at:new Date().toISOString(),
+  offline_login:true
+ };
+ localStorage.setItem(FLK_SESSION_CACHE_KEY,JSON.stringify(sesionLocal));
+ flkSesionActiva=true;
+ rolSesion=r.role;
+ FLK_BUSINESS_ID=r.business_id;
+ localStorage.setItem(FLK_BUSINESS_STORAGE_KEY,r.business_id);
+ flkCambiarContextoLocalCentro(r.business_id);
+
+ document.getElementById("authOverlay")?.classList.add("oculto");
+ flkPintarSesionLocal(r.user);
+ flkAplicarPendientesSobreDatos();
+ mostrarProductos();
+ actualizarResumenHistorial();
+ mostrarListaHistorial();
+ actualizarVentas();
+ actualizarClientes();
+ actualizarGastos();
+ actualizarCierre();
+ actualizarOpcionesOrganizacion();
+ actualizarProveedores();
+ actualizarOrdenesCompra();
+ actualizarCuentasPagar();
+ actualizarFlujoCaja();
+ actualizarFinanzas();
+ actualizarEstadisticas();
+ actualizarCentroAlertas();
+ flkActualizarEstadoConexion();
+ return true;
+}
+
+function flkAuthContextos(){
+ try{
+  const x=JSON.parse(localStorage.getItem(FLK_AUTH_CONTEXT_CACHE_KEY)||"{}");
+  return x&&typeof x==="object"&&!Array.isArray(x)?x:{};
+ }catch(e){return {}}
+}
+function flkGuardarContextoAutorizado(userId,datos={}){
+ try{
+  if(!userId)return;
+  const todos=flkAuthContextos();
+  const anterior=todos[userId]||{};
+  todos[userId]={
+   ...anterior,user_id:userId,
+   email:datos.email??anterior.email??"",
+   role:["admin","employee"].includes(datos.role)?datos.role:(anterior.role||"employee"),
+   business_id:flkUuidValido(datos.business_id)?datos.business_id:(flkUuidValido(anterior.business_id)?anterior.business_id:null),
+   saved_at:new Date().toISOString()
+  };
+  localStorage.setItem(FLK_AUTH_CONTEXT_CACHE_KEY,JSON.stringify(todos));
+ }catch(e){}
+}
+function flkContextoAutorizado(userId){
+ try{
+  const c=flkAuthContextos()[userId];
+  return c&&c.user_id===userId&&["admin","employee"].includes(c.role)?c:null;
+ }catch(e){return null}
+}
+function flkCentroAutorizadoLocal(userId){
+ const c=flkContextoAutorizado(userId);
+ return c&&flkUuidValido(c.business_id)?c.business_id:null;
+}
 
 function flkGuardarSesionLocal(session){
  try{
@@ -3554,6 +3761,7 @@ function flkGuardarSesionLocal(session){
    user:{id:session.user.id||"",email:session.user.email||""},
    saved_at:new Date().toISOString()
   }));
+  flkGuardarContextoAutorizado(session.user.id,{email:session.user.email||""});
  }catch(e){}
 }
 function flkSesionLocal(){
@@ -3564,11 +3772,16 @@ function flkSesionLocal(){
 }
 function flkGuardarRolLocal(userId,role){
  try{
-  if(userId&&role)localStorage.setItem(FLK_ROLE_CACHE_KEY,JSON.stringify({user_id:userId,role,saved_at:new Date().toISOString()}))
+  if(userId&&role){
+   localStorage.setItem(FLK_ROLE_CACHE_KEY,JSON.stringify({user_id:userId,role,saved_at:new Date().toISOString()}));
+   flkGuardarContextoAutorizado(userId,{role});
+  }
  }catch(e){}
 }
 function flkRolLocal(userId){
  try{
+  const c=flkContextoAutorizado(userId);
+  if(c&&["admin","employee"].includes(c.role))return c.role;
   const x=JSON.parse(localStorage.getItem(FLK_ROLE_CACHE_KEY)||"null");
   return x&&x.user_id===userId&&["admin","employee"].includes(x.role)?x.role:null
  }catch(e){return null}
@@ -3593,7 +3806,7 @@ function flkPintarSesionLocal(user){
  document.getElementById("authUsuario").classList.add("visible");
  document.getElementById("authOverlay").classList.add("oculto");
  aplicarPermisosVisuales();
-  if(navigator.onLine)setTimeout(()=>flkComprobarPropietarioSoftware(),0);
+  setTimeout(()=>flkComprobarPropietarioSoftware(),0);
  if(typeof flkAplicarPendientesSobreDatos==="function")flkAplicarPendientesSobreDatos();
  if(typeof mostrarProductos==="function")mostrarProductos();
  if(typeof actualizarResumenHistorial==="function")actualizarResumenHistorial();
@@ -3868,49 +4081,213 @@ async function mostrarAppConSesion(session){
   document.getElementById("authUsuario").classList.remove("visible");
  }
 }
-async function cerrarSesionFlackunloker(){
- try{
-  const email=document.getElementById("authUsuarioEmail")?.textContent||document.getElementById("authEmail")?.value||"";
-  if(email&&email.includes("@"))flkRecordarUsuarioLogin(email);
-  flkLimpiarPasswordLogin();
-  await flkSupabase.auth.signOut();
- }catch(err){console.error(err)}
+let flkCierreSesionEnCurso=false;
+async function flkCerrarSesionResistente(){
+ if(flkCierreSesionEnCurso)return;
+ flkCierreSesionEnCurso=true;
+
+ const email=document.getElementById("authUsuarioEmail")?.textContent||document.getElementById("authEmail")?.value||"";
+ if(email&&email.includes("@"))flkRecordarUsuarioLogin(email);
+ flkLimpiarPasswordLogin();
+
+ // Cierre local inmediato: la interfaz nunca queda esperando una red inestable.
  try{flkLimpiarSesionLocal()}catch(_){}
- location.reload();
+ flkSesionActiva=false;
+ flkEsPropietarioSoftware=false;
+ try{document.body.classList.remove("es-propietario")}catch(_){}
+
+ // Intentar cerrar también la sesión Supabase, pero con tiempo máximo.
+ // Si Internet está inestable, el usuario igualmente sale localmente.
+ try{
+  await Promise.race([
+   flkSupabase.auth.signOut({scope:"local"}),
+   new Promise((_,reject)=>setTimeout(()=>reject(new Error("timeout-signout")),2500))
+  ]);
+ }catch(err){
+  console.warn("Cierre remoto diferido por conexión inestable:",err?.message||err);
+  try{
+   // Supabase-js conserva la sesión en almacenamiento local; eliminarla
+   // mediante signOut local cuando el cliente vuelva a responder no debe
+   // bloquear la salida visual.
+   flkSupabase.auth.signOut({scope:"local"}).catch(()=>{});
+  }catch(_){}
+ }
+
+ // replace evita volver accidentalmente a una pantalla autenticada con Atrás.
+ try{location.replace(location.pathname+location.search)}catch(_){location.reload()}
 }
+async function cerrarSesionFlackunloker(){
+ return flkCerrarSesionResistente();
+}
+let flkAuthProcesando=false;
+let flkAuthIntentoCanceladoHasta=0;
+
+function flkPromesaConTiempo(promise,ms,codigo="timeout"){
+ return Promise.race([
+  promise,
+  new Promise((_,reject)=>setTimeout(()=>reject(Object.assign(new Error(codigo),{code:codigo})),ms))
+ ]);
+}
+function flkRestaurarBotonAuth(){
+ const b=document.getElementById("authSubmit");
+ if(!b)return;
+ b.disabled=false;
+ b.textContent=modoAuth==="registro"?"Crear cuenta":"Entrar";
+}
+function flkBloquearBotonAuth(){
+ const b=document.getElementById("authSubmit");
+ if(!b)return;
+ b.disabled=true;
+ b.textContent="Procesando…";
+}
+async function flkCancelarSesionTardia(){
+ flkAuthIntentoCanceladoHasta=Date.now()+15000;
+ try{await flkSupabase.auth.signOut({scope:"local"})}catch(_){}
+}
+
 document.getElementById("formAuth").addEventListener("submit",async e=>{
  e.preventDefault();
+ if(flkAuthProcesando)return;
+
  const email=document.getElementById("authEmail").value.trim();
  const password=document.getElementById("authPassword").value;
  if(!email)return mostrarMensajeAuth("Escribe el usuario/correo.","error");
  if(!password)return mostrarMensajeAuth("Escribe la contraseña.","error");
- mostrarMensajeAuth("Procesando...","ok");
- if(modoAuth==="registro"){
-  const nombre=document.getElementById("authNombre").value.trim();
-  const {data,error}=await flkSupabase.auth.signUp({email,password,options:{data:{full_name:nombre}}});
-  if(error){mostrarMensajeAuth(error.message,"error");return}
-  flkRecordarUsuarioLogin(email);flkLimpiarPasswordLogin();
-  if(data.session){window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});mostrarMensajeAuth("","");}
-  else mostrarMensajeAuth("Cuenta creada. Revisa tu correo para confirmar el registro y luego inicia sesión.","ok");
- }else{
-  const {data,error}=await flkSupabase.auth.signInWithPassword({email,password});
-  if(error){
-   const msg=String(error.message||"").toLowerCase();
-   if(msg.includes("invalid login credentials")||msg.includes("invalid credentials")){
-    mostrarMensajeAuth("❌ Usuario o contraseña incorrectos. Revisa la contraseña.","error");
-   }else if(msg.includes("email not confirmed")){
-    mostrarMensajeAuth("❌ La cuenta todavía no está confirmada.","error");
-   }else{
-    mostrarMensajeAuth("❌ No se pudo iniciar sesión: "+error.message,"error");
+
+ if(!navigator.onLine){
+  flkAuthProcesando=true;
+  flkBloquearBotonAuth();
+  mostrarMensajeAuth("Comprobando acceso…","ok");
+  try{
+   try{
+    const respOnline=await flkPromesaConTiempo(
+     flkSupabase.auth.signInWithPassword({email,password}),
+     4500,
+     "login-network-timeout"
+    );
+    const {data:onlineData,error:onlineError}=respOnline||{};
+    if(onlineError)throw onlineError;
+    if(onlineData?.session){
+     flkRecordarUsuarioLogin(email);
+     document.getElementById("authOverlay")?.classList.add("oculto");
+     await flkPromesaConTiempo(mostrarAppConSesion(onlineData.session),9000,"app-timeout").catch(()=>{});
+     await flkGuardarVerificadorOffline(onlineData.session.user,password);
+     flkLimpiarPasswordLogin();
+     mostrarMensajeAuth("","");
+     return;
+    }
+   }catch(errOnlineBreve){
+    const m=String(errOnlineBreve?.message||errOnlineBreve||"").toLowerCase();
+    if(m.includes("invalid login credentials")||m.includes("invalid credentials")){
+     flkEliminarVerificadorOffline(email);
+     throw new Error("Usuario o contraseña incorrectos.");
+    }
    }
-   return
+
+   await flkEntrarOffline(email,password);
+   flkRecordarUsuarioLogin(email);
+   flkLimpiarPasswordLogin();
+   mostrarMensajeAuth("","");
+  }catch(errOffline){
+   mostrarMensajeAuth("❌ "+(errOffline?.message||"No se pudo iniciar offline."),"error");
+  }finally{
+   flkAuthProcesando=false;
+   flkRestaurarBotonAuth();
   }
-  if(!data?.session){mostrarMensajeAuth("❌ No se recibió una sesión válida.","error");return}
-  flkRecordarUsuarioLogin(email);
-  mostrarMensajeAuth("","");
-  await mostrarAppConSesion(data.session);
-  flkLimpiarPasswordLogin();
+  return;
  }
+
+ flkAuthProcesando=true;
+ flkBloquearBotonAuth();
+ mostrarMensajeAuth("Procesando…","ok");
+
+ try{
+  if(modoAuth==="registro"){
+   const nombre=document.getElementById("authNombre").value.trim();
+   const resp=await flkPromesaConTiempo(
+    flkSupabase.auth.signUp({email,password,options:{data:{full_name:nombre}}}),
+    12000,
+    "registro-timeout"
+   );
+   const {data,error}=resp||{};
+   if(error)throw error;
+
+   flkRecordarUsuarioLogin(email);
+   flkLimpiarPasswordLogin();
+
+   if(data?.session){
+    mostrarMensajeAuth("","");
+    await flkPromesaConTiempo(mostrarAppConSesion(data.session),10000,"app-timeout");
+   }else{
+    mostrarMensajeAuth("Cuenta creada. Revisa tu correo para confirmar el registro y luego inicia sesión.","ok");
+   }
+   return;
+  }
+
+  const resp=await flkPromesaConTiempo(
+   flkSupabase.auth.signInWithPassword({email,password}),
+   12000,
+   "login-timeout"
+  );
+  const {data,error}=resp||{};
+
+  if(error)throw error;
+  if(!data?.session)throw new Error("No se recibió una sesión válida.");
+
+  flkRecordarUsuarioLogin(email);
+
+  // Preparar este navegador para futuros accesos sin Internet.
+  // La contraseña NO se guarda: solo un verificador PBKDF2 con salt.
+  try{
+   await flkPromesaConTiempo(mostrarAppConSesion(data.session),10000,"app-timeout");
+   await flkGuardarVerificadorOffline(data.session.user,password);
+  }catch(errPreparacion){
+   console.warn("Preparación inicial de sesión/offline:",errPreparacion?.message||errPreparacion);
+  }
+
+  // La pantalla de login deja de marear en cuanto Supabase confirma la sesión.
+  document.getElementById("authOverlay")?.classList.add("oculto");
+  mostrarMensajeAuth("","");
+
+  // Si alguna carga secundaria demoró, la sesión online ya quedó confirmada;
+  // mantener la interfaz usable con los datos/cachés disponibles.
+  flkGuardarSesionLocal(data.session);
+  flkPintarSesionLocal(data.session.user);
+  document.getElementById("authOverlay")?.classList.add("oculto");
+
+  flkLimpiarPasswordLogin();
+
+ }catch(err){
+  const msg=String(err?.message||err||"").toLowerCase();
+  const timeout=String(err?.code||"").includes("timeout")||msg.includes("timeout");
+
+  if(timeout){
+   await flkCancelarSesionTardia();
+   document.getElementById("authOverlay")?.classList.remove("oculto");
+   mostrarMensajeAuth(
+    "⚠️ La conexión está inestable y el inicio tardó demasiado. No quedó bloqueado: espera a que mejore Internet y pulsa Entrar una sola vez.",
+    "error"
+   );
+  }else if(msg.includes("invalid login credentials")||msg.includes("invalid credentials")){
+   flkEliminarVerificadorOffline(email);
+   mostrarMensajeAuth("❌ Usuario o contraseña incorrectos. Revisa la contraseña.","error");
+  }else if(msg.includes("email not confirmed")){
+   mostrarMensajeAuth("❌ La cuenta todavía no está confirmada.","error");
+  }else{
+   mostrarMensajeAuth("❌ No se pudo iniciar sesión: "+(err?.message||"Error de conexión"),"error");
+  }
+ }finally{
+  flkAuthProcesando=false;
+  flkRestaurarBotonAuth();
+ }
+});
+window.addEventListener("online",async()=>{
+ try{
+  const ses=flkSesionLocal();
+  if(ses?.user?.id&&ses?.user?.email){
+   await flkRevisarRevocacionOfflineUsuario(ses.user.id,ses.user.email);
+  }
+ }catch(e){}
 });
 
 function flkEstadoRecuperacion(id,texto,tipo=""){
@@ -4231,6 +4608,11 @@ function flkMostrarBloqueoLicencia(info,motivo=""){
  }else if(motivo==="device-mismatch"){
   titulo.textContent="Licencia vinculada a otro dispositivo";
   mensaje.textContent="Esta licencia ya está activada en otro equipo. El propietario de Flackunloker debe liberar el dispositivo anterior antes de usarla aquí.";
+  const bCerrar=document.getElementById("flkBotonCerrarSesionLicencia");
+  if(bCerrar){
+   bCerrar.textContent="Cerrar sesión";
+   bCerrar.onclick=flkCerrarSesionDispositivoVinculado;
+  }
  }else if(motivo==="offline-grace-expired"){
   titulo.textContent="Se requiere conexión a Internet";
   mensaje.textContent="Se agotó el período autorizado de trabajo offline. Conéctate a Internet para validar la licencia y continuar.";
@@ -4246,8 +4628,18 @@ async function flkReintentarLicencia(){
  return info
 }
 async function flkCerrarSesionDesdeLicencia(){
- try{await flkSupabase.auth.signOut()}catch(_){}
- location.reload()
+ // Si el acceso quedó bloqueado por licencia/dispositivo, cerrar primero
+ // el estado visual y cualquier referencia local de licencia de cliente.
+ try{flkOcultarBloqueoLicencia()}catch(_){}
+ try{flkOcultarActivacionCliente()}catch(_){}
+ try{localStorage.removeItem(FLK_CLIENT_LICENSE_KEY_STORAGE)}catch(_){}
+ try{localStorage.removeItem(FLK_LICENSE_TEST_MODE_KEY)}catch(_){}
+ return flkCerrarSesionResistente();
+}
+async function flkCerrarSesionDispositivoVinculado(){
+ // Ruta explícita para "Licencia vinculada a otro dispositivo".
+ // No espera a Internet para sacar al usuario de la aplicación.
+ return flkCerrarSesionDesdeLicencia();
 }
 
 function flkPintarLicencia(info,modo="online"){
@@ -4452,9 +4844,24 @@ async function flkValidarLicencia(){
  const cache=flkLeerCacheLicencia();
  if(cache){
   const info=cache.info;
+  flkLicenciaUltimaValidacion=cache.validated_at;
+
+  // v61.35: la licencia se decide por CENTRO, no por la cuenta individual.
+  // El Centro Propietario (incluye Propietario, Administradores y Empleados)
+  // usa la licencia interna principal también offline y NO entra en gracia offline.
+  const esLicenciaInternaCentroPropietario=
+   info?.software_owner===true || info?.internal_main_center===true;
+
+  if(esLicenciaInternaCentroPropietario){
+   // Respetar un estado real inválido/suspendido/vencido si alguna vez se guardara así,
+   // pero una licencia interna activa se muestra simplemente como ACTIVA.
+   flkPintarLicencia(info,"online");
+   return info
+  }
+
+  // Solo los centros de clientes/terceros usan el período de gracia offline.
   const gracia=Math.max(0,Number(info.offline_grace_days||0));
   const dias=flkDiasDesde(cache.validated_at);
-  flkLicenciaUltimaValidacion=cache.validated_at;
   if(info.valid&&String(info.license_status)==="active"&&dias<=gracia){
    flkPintarLicencia(info,"offline-grace");
    return info
@@ -4468,6 +4875,12 @@ async function flkValidarLicencia(){
 }
 
 flkSupabase.auth.onAuthStateChange((event,session)=>{
+ if(event==="SIGNED_IN" && Date.now()<flkAuthIntentoCanceladoHasta){
+  // Una petición de login que ya dimos por cancelada respondió tarde.
+  // No reabrir la sesión por sorpresa.
+  try{flkSupabase.auth.signOut({scope:"local"}).catch(()=>{})}catch(_){}
+  return;
+ }
  if(event==="SIGNED_IN" && session?.user){
   // v61.11: no reutilizar la clave de otro centro guardada previamente en este navegador.
   localStorage.removeItem(FLK_CLIENT_LICENSE_KEY_STORAGE);
@@ -4524,20 +4937,54 @@ function flkOcultarTodasLasVistas(){
 
 
 let flkEsPropietarioSoftware=false;
+const FLK_OWNER_STATUS_CACHE_KEY="flackunloker_owner_status_cache_v1";
+
+function flkGuardarPropietarioSoftwareCache(esOwner){
+ try{
+  const ses=flkSesionLocal();
+  const uid=ses?.user?.id||null;
+  if(!uid)return;
+  localStorage.setItem(FLK_OWNER_STATUS_CACHE_KEY,JSON.stringify({
+   user_id:uid,owner:!!esOwner,saved_at:new Date().toISOString()
+  }));
+ }catch(e){}
+}
+function flkLeerPropietarioSoftwareCache(){
+ try{
+  const ses=flkSesionLocal();
+  const uid=ses?.user?.id||null;
+  const x=JSON.parse(localStorage.getItem(FLK_OWNER_STATUS_CACHE_KEY)||"null");
+  return x&&uid&&x.user_id===uid?!!x.owner:false;
+ }catch(e){return false}
+}
+function flkPintarPropietarioSoftware(esOwner){
+ flkEsPropietarioSoftware=!!esOwner;
+ document.body.classList.toggle("es-propietario",flkEsPropietarioSoftware);
+ const botonLic=document.getElementById("botonLicencias");
+ const botonAdmin=document.getElementById("botonAdminSoftware");
+ if(botonLic)botonLic.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
+ if(botonAdmin)botonAdmin.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
+}
 
 async function flkComprobarPropietarioSoftware(){
- flkEsPropietarioSoftware=false;
- document.body.classList.remove("es-propietario");
- const botonLicInicial=document.getElementById("botonLicencias");
- const botonAdminInicial=document.getElementById("botonAdminSoftware");
- if(botonAdminInicial)botonAdminInicial.style.setProperty("display","none","important");
- if(botonLicInicial)botonLicInicial.style.setProperty("display","none","important");
- if(!flkSesionActiva||!navigator.onLine)return false;
+ if(!flkSesionActiva){
+  flkPintarPropietarioSoftware(false);
+  return false;
+ }
+
+ // Offline: conservar el permiso del propietario validado previamente en este navegador.
+ if(!navigator.onLine){
+  const cached=flkLeerPropietarioSoftwareCache();
+  flkPintarPropietarioSoftware(cached);
+  return cached;
+ }
+
  try{
   const {data,error}=await flkSupabase.rpc("flk_is_software_owner");
   if(error)throw error;
   flkEsPropietarioSoftware=!!data;
-  document.body.classList.toggle("es-propietario",flkEsPropietarioSoftware);
+  flkGuardarPropietarioSoftwareCache(flkEsPropietarioSoftware);
+  flkPintarPropietarioSoftware(flkEsPropietarioSoftware);
   if(flkEsPropietarioSoftware){
     // La cuenta propietaria siempre prevalece sobre cualquier prueba de cliente.
     localStorage.removeItem(FLK_CLIENT_LICENSE_KEY_STORAGE);
@@ -4545,17 +4992,12 @@ async function flkComprobarPropietarioSoftware(){
     FLK_LICENSE_KEY=FLK_OWNER_LICENSE_KEY;
     flkOcultarActivacionCliente();
    }
-  const botonLic=document.getElementById("botonLicencias");
-  if(botonLic)botonLic.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
-   const botonAdmin=document.getElementById("botonAdminSoftware");
-   if(botonAdmin)botonAdmin.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
   return flkEsPropietarioSoftware
  }catch(err){
   console.error("Comprobación propietario software:",err);
-  document.body.classList.remove("es-propietario");
-  const botonLicError=document.getElementById("botonLicencias");
-  if(botonLicError)botonLicError.style.setProperty("display","none","important");
-  return false
+  const cached=flkLeerPropietarioSoftwareCache();
+  flkPintarPropietarioSoftware(cached);
+  return cached
  }
 }
 
@@ -4897,6 +5339,68 @@ async function flkCambiarEstadoMiembro(businessId,userId,email,estadoActual){
  }
 }
 
+function flkPasswordTemporalSugerida(){
+ const may="ABCDEFGHJKLMNPQRSTUVWXYZ";
+ const min="abcdefghijkmnopqrstuvwxyz";
+ const num="23456789";
+ const esp="!@#$%";
+ const todos=may+min+num+esp;
+ const pick=x=>x[Math.floor(Math.random()*x.length)];
+ let out=pick(may)+pick(min)+pick(num)+pick(esp);
+ for(let i=0;i<8;i++)out+=pick(todos);
+ return out.split("").sort(()=>Math.random()-.5).join("");
+}
+
+async function flkCambiarPasswordUsuario(email){
+ if(!flkEsPropietarioSoftware)return alert("Solo el propietario del software puede cambiar contraseñas.");
+ if(!navigator.onLine)return alert("Debes estar conectado a Internet para cambiar la contraseña de otro usuario.");
+
+ const correo=String(email||"").trim().toLowerCase();
+ if(!correo.includes("@"))return alert("Correo de usuario inválido.");
+
+ const sugerida=flkPasswordTemporalSugerida();
+ const nueva=prompt(
+  "Nueva contraseña para:\\n"+correo+
+  "\\n\\nPuedes usar la sugerida o escribir otra.\\nMínimo 8 caracteres.",
+  sugerida
+ );
+ if(nueva===null)return;
+ if(String(nueva).length<8)return alert("La contraseña debe tener al menos 8 caracteres.");
+
+ const repetir=prompt("Confirma la nueva contraseña para "+correo+":",String(nueva));
+ if(repetir===null)return;
+ if(String(repetir)!==String(nueva))return alert("Las contraseñas no coinciden.");
+
+ if(!confirm(
+  "¿Cambiar la contraseña de "+correo+"?\\n\\n"+
+  "El usuario podrá iniciar sesión con la nueva contraseña inmediatamente."
+ ))return;
+
+ try{
+  const {data,error}=await flkSupabase.functions.invoke("flk-reset-user-password",{
+   body:{email:correo,password:String(nueva)}
+  });
+  if(error)throw error;
+  if(!data?.ok)throw new Error(data?.error||"No se confirmó el cambio.");
+
+  const {error:versionError}=await flkSupabase.rpc("flk_bump_user_auth_version",{
+   p_user_id:data.user_id
+  });
+  if(versionError)throw versionError;
+  flkEliminarVerificadorOffline(correo);
+
+  alert(
+   "✅ Contraseña cambiada correctamente.\\n\\n"+
+   "Usuario: "+correo+"\\n"+
+   "Nueva contraseña: "+String(nueva)+"\\n\\n"+
+   "Entrégasela directamente al usuario."
+  );
+ }catch(err){
+  console.error("Cambiar contraseña usuario:",err);
+  alert("No se pudo cambiar la contraseña.\\n\\n"+(err?.message||"Error desconocido"));
+ }
+}
+
 async function flkQuitarMiembroCentro(businessId,userId,email){
  if(!flkEsPropietarioSoftware)return;
  if(!confirm("¿Quitar a "+email+" de esta sucursal?\n\nLa cuenta de Authentication no será eliminada."))return;
@@ -4953,6 +5457,7 @@ function flkHtmlMiembrosCentro(businessId,miembros){
      <option value="employee"${selected("employee")}>Empleado</option>
     </select>`}
     <button type="button" class="adminsw-user-status" onclick='flkCambiarEstadoMiembro(${JSON.stringify(String(businessId))},${JSON.stringify(uid)},${JSON.stringify(email)},${JSON.stringify(status)})'>${activo?"⏸ Desactivar":"▶ Activar"}</button>
+    ${role==="owner"?"":`<button type="button" class="adminsw-user-password" onclick='flkCambiarPasswordUsuario(${JSON.stringify(email)})'>🔑 Contraseña</button>`}
     <button type="button" class="adminsw-user-remove" onclick='flkQuitarMiembroCentro(${JSON.stringify(String(businessId))},${JSON.stringify(uid)},${JSON.stringify(email)})'>🗑 Quitar</button>
    </div>
   </div>`;
@@ -5487,7 +5992,9 @@ let FLK_BUSINESS_ID=flkBusinessGuardado();
 
 async function flkCargarCentroActual(){
  if(!flkSupabase || !flkSesionActiva || !navigator.onLine){
-  FLK_BUSINESS_ID=flkBusinessGuardado();
+  const ses=flkSesionLocal();
+  FLK_BUSINESS_ID=flkCentroAutorizadoLocal(ses?.user?.id)||flkBusinessGuardado();
+  if(flkUuidValido(FLK_BUSINESS_ID))flkCambiarContextoLocalCentro(FLK_BUSINESS_ID);
   return FLK_BUSINESS_ID;
  }
 
@@ -5504,6 +6011,8 @@ async function flkCargarCentroActual(){
 
  FLK_BUSINESS_ID=id;
  localStorage.setItem(FLK_BUSINESS_STORAGE_KEY,id);
+ const ses=flkSesionLocal();
+ if(ses?.user?.id)flkGuardarContextoAutorizado(ses.user.id,{email:ses.user.email||"",role:rolSesion,business_id:id});
  flkCambiarContextoLocalCentro(id);
  return id;
 }
@@ -5511,14 +6020,24 @@ async function flkCargarCentroActual(){
 async function flkExigirCentroActual(){
  if(flkUuidValido(FLK_BUSINESS_ID))return FLK_BUSINESS_ID;
 
+ const ses=flkSesionLocal();
+ const autorizado=flkCentroAutorizadoLocal(ses?.user?.id);
+ if(autorizado){
+  FLK_BUSINESS_ID=autorizado;
+  localStorage.setItem(FLK_BUSINESS_STORAGE_KEY,autorizado);
+  flkCambiarContextoLocalCentro(autorizado);
+  return autorizado;
+ }
+
  const guardado=flkBusinessGuardado();
- if(guardado){
+ if(guardado&&ses?.user?.id){
   FLK_BUSINESS_ID=guardado;
+  flkGuardarContextoAutorizado(ses.user.id,{email:ses.user.email||"",role:rolSesion,business_id:guardado});
   return guardado;
  }
 
  if(!navigator.onLine){
-  throw new Error("Conéctate a Internet para identificar el centro de trabajo.");
+  throw new Error("Este navegador debe conectarse al menos una vez para validar el usuario y su centro antes de trabajar offline.");
  }
 
  return await flkCargarCentroActual();
@@ -6013,27 +6532,129 @@ function abrirMovimiento(id,tipo){
  document.getElementById("textoMovimiento").textContent=(tipo==="entrada"?"Agregar unidades a: ":"Retirar unidades de: ")+p.nombre;
  document.getElementById("cantidadMovimiento").value="";document.getElementById("modalMovimiento").classList.add("visible");document.getElementById("cantidadMovimiento").focus()
 }
-function cerrarMovimiento(){document.getElementById("modalMovimiento").classList.remove("visible");document.getElementById("formularioMovimiento").reset();productoMovimiento=null;tipoMovimiento=null}
+function cerrarMovimiento(){
+ const modal=document.getElementById("modalMovimiento");
+ if(modal)modal.classList.remove("visible");
+ const form=document.getElementById("formularioMovimiento");
+ if(form)form.reset();
+ const btn=document.getElementById("botonConfirmarMovimiento");
+ if(btn){btn.disabled=false;btn.textContent="Confirmar"}
+ const est=document.getElementById("estadoMovimientoOffline");
+ if(est)est.style.display="none";
+ productoMovimiento=null;tipoMovimiento=null
+}
+
+
+function flkDescripcionOperacionOffline(tipo){
+ const nombres={
+  product_save:"Producto guardado",product_delete:"Eliminación guardada",
+  stock_adjustment:"Movimiento de inventario guardado",sale:"Venta guardada",
+  sale_payment:"Abono guardado",sale_return:"Devolución guardada",
+  expense_save:"Gasto guardado",expense_delete:"Eliminación de gasto guardada",
+  supplier_save:"Proveedor guardado",purchase_order_save:"Orden de compra guardada",
+  purchase_order_ordered:"Cambio de orden guardado",purchase_order_receive:"Recepción de orden guardada",
+  supplier_payment:"Pago a proveedor guardado",owner_cash_movement:"Movimiento de caja guardado",
+  cash_closure_save:"Cierre guardado",cash_closure_delete:"Eliminación de cierre guardada"
+ };
+ return nombres[tipo]||"Operación guardada";
+}
+function flkAvisoOperacionOffline(tipo){
+ if(navigator.onLine)return;
+ flkAvisoMovimientoOffline(`✅ ${flkDescripcionOperacionOffline(tipo)} localmente · pendiente de sincronizar`);
+}
+
+function flkAvisoMovimientoOffline(texto){
+ let el=document.getElementById("flkToastMovimientoOffline");
+ if(!el){
+  el=document.createElement("div");
+  el.id="flkToastMovimientoOffline";
+  el.className="flk-toast-offline";
+  document.body.appendChild(el);
+ }
+ el.textContent=texto;
+ el.classList.remove("visible");
+ void el.offsetWidth;
+ el.classList.add("visible");
+ clearTimeout(flkAvisoMovimientoOffline._timer);
+ flkAvisoMovimientoOffline._timer=setTimeout(()=>el.classList.remove("visible"),3200);
+}
 
 document.getElementById("formularioMovimiento").addEventListener("submit",async e=>{
  e.preventDefault();e.stopPropagation();
  if(!requiereAdmin())return;
- if(procesandoGuardado)return;procesandoGuardado=true;
+ if(procesandoGuardado)return;
+ procesandoGuardado=true;
+
+ const btn=document.getElementById("botonConfirmarMovimiento");
+ const est=document.getElementById("estadoMovimientoOffline");
+ if(btn){btn.disabled=true;btn.textContent=navigator.onLine?"Guardando...":"Guardando local..."}
+ if(est)est.style.display=navigator.onLine?"none":"block";
+
  try{
   const cantidad=Number(document.getElementById("cantidadMovimiento").value);
-  if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
-  const p=productos.find(x=>x.id===productoMovimiento);if(!p){cerrarMovimiento();return}
-  const delta=tipoMovimiento==="entrada"?cantidad:-cantidad;
-  p.cantidad=await ajustarStockSupabase(p,delta,tipoMovimiento,"Movimiento manual desde Flackunloker");
-  if(navigator.onLine)await cargarHistorialSupabase();
-  else{
-   historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:tipoMovimiento,cantidad,saldo:p.cantidad,fecha:new Date().toISOString(),detalle:"🟠 Pendiente de sincronización"});
-   guardarHistorial();actualizarResumenHistorial();mostrarListaHistorial()
+  if(!Number.isInteger(cantidad)||cantidad<=0){
+   if(btn){btn.disabled=false;btn.textContent="Confirmar"}
+   if(est)est.style.display="none";
+   return alert("Introduce una cantidad válida.");
   }
-  guardarDatos();mostrarProductos();actualizarEstadisticas();cerrarMovimiento();
-  // En modo offline el movimiento ya quedó guardado localmente; no mostrar alerta.
- }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el movimiento: "+(err.message||err))}
- finally{procesandoGuardado=false}
+
+  const p=productos.find(x=>x.id===productoMovimiento);
+  if(!p){cerrarMovimiento();return}
+
+  const delta=tipoMovimiento==="entrada"?cantidad:-cantidad;
+  const tipoGuardado=tipoMovimiento;
+
+  p.cantidad=await ajustarStockSupabase(p,delta,tipoGuardado,"Movimiento manual desde Flackunloker");
+
+  if(navigator.onLine){
+   await cargarHistorialSupabase();
+   guardarDatos();
+   mostrarProductos();
+   actualizarEstadisticas();
+   cerrarMovimiento();
+  }else{
+   // Safari/iPhone: persistir primero y liberar inmediatamente el modal.
+   // La operación ya está en la cola offline; NO se cambia la lógica de sincronización.
+   historial.unshift({
+    id:Date.now()+Math.floor(Math.random()*100000),
+    productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:tipoGuardado,
+    cantidad,saldo:p.cantidad,fecha:new Date().toISOString(),
+    detalle:"🟠 Pendiente de sincronización"
+   });
+   guardarDatos();
+   guardarHistorial();
+   cerrarMovimiento();
+
+   // La confirmación offline general ya fue emitida desde la cola central.
+   // Safari puede conservar el scroll del modal al cerrarlo. Volvemos suavemente al inventario.
+   requestAnimationFrame(()=>{
+    const inv=document.getElementById("vistaInventario");
+    if(inv&&inv.style.display!=="none"){
+     try{window.scrollTo({top:0,behavior:"smooth"})}catch(e){window.scrollTo(0,0)}
+    }
+   });
+
+   // Repintado diferido: evita que Safari parezca congelado tras tocar Confirmar.
+   setTimeout(()=>{
+    try{
+     mostrarProductos();
+     actualizarResumenHistorial();
+     mostrarListaHistorial();
+     actualizarEstadisticas();
+     flkActualizarEstadoConexion();
+    }catch(err){console.error("Repintado offline:",err)}
+   },0);
+  }
+ }catch(err){
+  console.error(err);
+  if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el movimiento: "+(err.message||err))
+ }finally{
+  procesandoGuardado=false;
+  if(document.getElementById("modalMovimiento")?.classList.contains("visible")){
+   if(btn){btn.disabled=false;btn.textContent="Confirmar"}
+   if(est)est.style.display="none";
+  }
+ }
 });
 async function eliminarProducto(id){
  if(!requiereAdmin())return;
@@ -10309,6 +10930,17 @@ document.addEventListener("DOMContentLoaded",()=>{
 #flkDeepStorageCard{max-width:760px;margin:auto;background:#fff;border-radius:18px;padding:17px;color:#17324a}
 #flkDeepStorageOut{white-space:pre-wrap;background:#f3f8fc;border:1px solid #d5e5f1;border-radius:12px;padding:11px;margin:12px 0;max-height:58vh;overflow:auto;font-size:12px;line-height:1.5}
 .flk-ds-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.flk-ds-grid button{border:0;border-radius:10px;padding:11px;font-weight:850;background:#eaf3fb;color:#17324a}.flk-ds-grid .p{background:#0a84ff;color:#fff}
+
+/* v61.33 · aviso claro para movimientos offline */
+.flk-toast-offline{
+ position:fixed;left:50%;bottom:92px;transform:translateX(-50%) translateY(18px);
+ width:min(92vw,430px);padding:13px 16px;border-radius:14px;
+ background:#fff7e8;color:#7a4a00;border:1px solid #f1d49b;
+ box-shadow:0 8px 28px rgba(0,0,0,.16);font-size:13px;font-weight:800;
+ text-align:center;z-index:999999;opacity:0;pointer-events:none;
+ transition:opacity .18s ease,transform .18s ease;
+}
+.flk-toast-offline.visible{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 <div id="flkDeepStorage">
  <div id="flkDeepStorageCard">
