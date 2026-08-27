@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.41-password-revoca-offline">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.42-visor-conflictos">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -887,6 +887,29 @@ button.menu-toggle{
     height:auto !important;
   }
 }
+
+/* ===== v61.42 · VISOR SEGURO DE CONFLICTOS OFFLINE ===== */
+#modalConflictosFlk .formulario{max-width:620px}
+.flk-conflicto-card{
+  border:1px solid #f2c7c3;background:#fff7f6;border-radius:16px;
+  padding:14px;margin-bottom:12px;overflow-wrap:anywhere
+}
+.flk-conflicto-card h3{margin:0 0 8px;font-size:15px;color:#b42318}
+.flk-conflicto-meta{font-size:12px;line-height:1.65;color:#475467}
+.flk-conflicto-error{
+  margin-top:10px;padding:10px;border-radius:11px;background:#ffecec;
+  color:#8f1d16;font-size:12px;line-height:1.55;white-space:pre-wrap
+}
+.flk-conflicto-acciones{display:grid;grid-template-columns:1fr;gap:8px;margin-top:11px}
+.flk-conflicto-acciones button{
+  border:0;border-radius:11px;padding:11px;font-weight:800;cursor:pointer;
+  background:#eaf4ff;color:#0562c8
+}
+.flk-conflicto-ayuda{
+  background:#eef7ff;border:1px solid #cfe6ff;border-radius:13px;
+  padding:11px;margin-bottom:13px;color:#344054;font-size:12px;line-height:1.55
+}
+
 </style>
 
 
@@ -1582,6 +1605,21 @@ textarea::placeholder{
 </div>
 
 <div id="estadoConexionFlk"><span class="punto"></span><span id="textoConexionFlk">Comprobando conexión…</span><small id="pendientesConexionFlk"></small></div>
+
+<div id="modalConflictosFlk" class="modal" aria-hidden="true">
+  <div class="formulario">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px">
+      <h2 style="margin:0">⚠️ Conflictos de sincronización</h2>
+      <button type="button" class="boton-cancelar" style="flex:0 0 auto;padding:9px 12px" onclick="flkCerrarVisorConflictos()">Cerrar</button>
+    </div>
+    <div class="flk-conflicto-ayuda">
+      Este visor muestra el error real guardado en este navegador. No elimina datos ni descarta operaciones.
+      Usa <strong>Reintentar</strong> solamente después de revisar el motivo.
+    </div>
+    <div id="listaConflictosFlk"></div>
+  </div>
+</div>
+
 
 
 <div id="authOverlay" class="auth-overlay">
@@ -2694,6 +2732,67 @@ function flkAvisarErrorSupabase(err,mensaje){
  return true;
 }
 
+
+function flkEscapeDiag(v){
+ return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+}
+function flkNombreOperacionDiag(tipo){
+ const nombres={
+  supplier_save:"Proveedor",purchase_order_save:"Orden de compra",
+  supplier_payment:"Pago a proveedor",stock_adjustment:"Movimiento de inventario",
+  sale:"Venta",expense_save:"Gasto",expense_delete:"Eliminar gasto",
+  sale_payment:"Abono de venta",sale_return:"Devolución"
+ };
+ return nombres[tipo]||tipo||"Operación";
+}
+function flkAbrirVisorConflictos(){
+ const modal=document.getElementById("modalConflictosFlk");
+ const lista=document.getElementById("listaConflictosFlk");
+ if(!modal||!lista)return;
+ const conflictos=flkColaOffline().filter(x=>x.estado==="conflicto");
+ if(!conflictos.length){
+  lista.innerHTML='<div class="sin-productos">No hay conflictos guardados en este navegador.</div>';
+ }else{
+  lista.innerHTML=conflictos.map(op=>{
+   const p=op.payload||{};
+   const elemento=p.name||p.supplier_name||p.product_name||p.numero||p.legacy_id||"—";
+   const fecha=op.created_at?new Date(op.created_at).toLocaleString():"—";
+   const centro=(typeof flkBusinessIdActual==="function"?flkBusinessIdActual():"")||p.business_id||"Centro de la sesión actual";
+   return `<div class="flk-conflicto-card">
+    <h3>${flkEscapeDiag(flkNombreOperacionDiag(op.tipo))}</h3>
+    <div class="flk-conflicto-meta">
+      <strong>Elemento:</strong> ${flkEscapeDiag(elemento)}<br>
+      <strong>Fecha:</strong> ${flkEscapeDiag(fecha)}<br>
+      <strong>Centro:</strong> ${flkEscapeDiag(centro)}<br>
+      <strong>Intentos:</strong> ${Number(op.intentos||0)}<br>
+      <strong>ID operación:</strong> ${flkEscapeDiag(op.id||"—")}
+    </div>
+    <div class="flk-conflicto-error"><strong>Error:</strong>\n${flkEscapeDiag(op.ultimo_error||"Sin detalle de error guardado.")}</div>
+    <div class="flk-conflicto-acciones">
+      <button type="button" onclick="flkReintentarConflicto('${flkEscapeDiag(op.id)}')">🔄 Reintentar esta operación</button>
+    </div>
+   </div>`;
+  }).join("");
+ }
+ modal.classList.add("visible");
+ modal.setAttribute("aria-hidden","false");
+}
+function flkCerrarVisorConflictos(){
+ const modal=document.getElementById("modalConflictosFlk");
+ if(modal){modal.classList.remove("visible");modal.setAttribute("aria-hidden","true")}
+}
+async function flkReintentarConflicto(id){
+ let q=flkColaOffline();
+ const op=q.find(x=>x.id===id&&x.estado==="conflicto");
+ if(!op)return alert("Ese conflicto ya no está en la cola.");
+ if(!navigator.onLine)return alert("Conecta Internet antes de reintentar.");
+ op.estado="pendiente";
+ flkGuardarColaOffline(q);
+ flkCerrarVisorConflictos();
+ await flkProcesarColaOffline();
+ if(flkConflictosOffline()>0)flkAbrirVisorConflictos();
+}
+
 function flkActualizarEstadoConexion(estadoEspecial){
  const box=document.getElementById("estadoConexionFlk"),txt=document.getElementById("textoConexionFlk"),pen=document.getElementById("pendientesConexionFlk");
  if(!box||!txt||!pen)return;
@@ -3456,6 +3555,10 @@ document.addEventListener("DOMContentLoaded",()=>{
   box.style.cursor="pointer";
   box.title="Estado de conexión";
   box.addEventListener("click",()=>{
+   if(flkConflictosOffline()>0){
+    flkAbrirVisorConflictos();
+    return;
+   }
    flkMostrarAvisoConexionTemporal();
    if(navigator.onLine)setTimeout(()=>flkSincronizarSeguro(),0);
   });
