@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.29-restauracion-compras-multicentro">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.30-restauracion-proveedores-sin-duplicar">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -5923,6 +5923,35 @@ async function migrarComprasLocalesSupabase(){
  // que ya no existen. Por eso se reconstruye por legacy_id en vez de saltarlos.
  for(const p of lp){
   if(p.supabaseId && !restaurando)continue;
+
+  // Restauración multicentro: antes de insertar, reutilizar el proveedor que ya exista
+  // en este centro con el mismo nombre normalizado. Así respetamos
+  // suppliers_business_normalized_name_uidx y evitamos proveedores duplicados.
+  if(restaurando){
+   const {data:existentes,error:buscarErr}=await flkSupabase
+    .from("suppliers")
+    .select("id,legacy_id,name")
+    .eq("business_id",FLK_BUSINESS_ID);
+   if(buscarErr)throw buscarErr;
+
+   const existente=(existentes||[]).find(x=>
+    nombreProveedorNorm(x.name)===nombreProveedorNorm(p.nombre)
+   );
+
+   if(existente){
+    // Conservamos la fila existente del centro. Solo completamos legacy_id si está vacío,
+    // para poder vincular futuras restauraciones sin crear un duplicado.
+    if(!existente.legacy_id){
+     const {error:updErr}=await flkSupabase.from("suppliers")
+      .update({legacy_id:String(p.id)})
+      .eq("id",existente.id)
+      .eq("business_id",FLK_BUSINESS_ID);
+     if(updErr)throw updErr;
+    }
+    continue;
+   }
+  }
+
   const {error}=await flkSupabase.from("suppliers").upsert({
    legacy_id:String(p.id),name:p.nombre,contact_name:p.contacto||null,phone:p.telefono||null,
    email:p.email||null,address:p.direccion||null,notes:p.nota||null,
