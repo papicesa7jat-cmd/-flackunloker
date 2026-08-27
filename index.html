@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.27-restauracion-ventas-completa">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.28-restauracion-compras-completa">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -5917,17 +5917,54 @@ async function cargarComprasSupabase(){
 async function migrarComprasLocalesSupabase(){
  if(rolSesion!=="admin")return cargarComprasSupabase();
  const lp=[...proveedores],lo=[...ordenesCompra];
+ const restaurando=window.flkRestauracionRespaldoActiva===true;
+
+ // En una restauración, los supabaseId guardados en la salva pueden apuntar a filas
+ // que ya no existen. Por eso se reconstruye por legacy_id en vez de saltarlos.
  for(const p of lp){
-  if(p.supabaseId)continue;
-  const {error}=await flkSupabase.from("suppliers").upsert({legacy_id:String(p.id),name:p.nombre,contact_name:p.contacto||null,phone:p.telefono||null,email:p.email||null,address:p.direccion||null,notes:p.nota||null},{onConflict:"legacy_id"});
+  if(p.supabaseId && !restaurando)continue;
+  const {error}=await flkSupabase.from("suppliers").upsert({
+   legacy_id:String(p.id),name:p.nombre,contact_name:p.contacto||null,phone:p.telefono||null,
+   email:p.email||null,address:p.direccion||null,notes:p.nota||null
+  },{onConflict:"legacy_id"});
   if(error)throw error;
  }
- await cargarComprasSupabase();
+
+ // Recargar solo proveedores para obtener los UUID actuales sin destruir las órdenes locales restauradas.
+ const rs=await flkSupabase.from("suppliers").select("*").order("name");
+ if(rs.error)throw rs.error;
+ proveedores=(rs.data||[]).map(x=>({
+  id:idLocalDesdeLegacy(x.legacy_id,x.id),supabaseId:x.id,nombre:x.name||"",
+  contacto:x.contact_name||"",telefono:x.phone||"",email:x.email||"",
+  direccion:x.address||"",nota:x.notes||"",creado:x.created_at
+ }));
+ guardarProveedores();
+
  for(const o of lo){
-  if(o.supabaseId)continue;
-  const prov=proveedores.find(p=>nombreProveedorNorm(p.nombre)===nombreProveedorNorm(o.proveedor)),prod=productos.find(p=>p.id===o.productoId);
-  if(!prov?.supabaseId||!prod?.supabaseId)continue;
-  const {error}=await flkSupabase.from("purchase_orders").upsert({legacy_id:String(o.id),supplier_id:prov.supabaseId,product_id:prod.supabaseId,quantity:Number(o.cantidad),unit_cost:Number(o.costoUnitario),order_date:o.fechaOrden,status:o.estado==="recibida"?"received":o.estado==="ordenada"?"ordered":"pending",note:o.nota||null,ordered_at:o.fechaOrdenada||null,received_at:o.fechaRecibida||null,payment_condition:o.condicionPagoProveedor||null,payment_method:o.metodoPagoProveedor||null,due_date:o.fechaVencimientoProveedor||null,total_amount:Number(o.costoTotal||Number(o.cantidad)*Number(o.costoUnitario)),paid_amount:Number(o.totalPagadoProveedor||0),balance_due:Number(o.saldoProveedor||0)},{onConflict:"legacy_id"});
+  if(o.supabaseId && !restaurando)continue;
+  const prov=proveedores.find(p=>nombreProveedorNorm(p.nombre)===nombreProveedorNorm(o.proveedor));
+  const prod=productos.find(p=>String(p.id)===String(o.productoId));
+  if(!prov?.supabaseId||!prod?.supabaseId){
+   throw new Error("No se pudo vincular la orden "+String(o.numero||o.id)+" con su proveedor o producto.");
+  }
+  const {error}=await flkSupabase.from("purchase_orders").upsert({
+   legacy_id:String(o.id),
+   supplier_id:prov.supabaseId,
+   product_id:prod.supabaseId,
+   quantity:Number(o.cantidad||0),
+   unit_cost:Number(o.costoUnitario||0),
+   order_date:o.fechaOrden||null,
+   status:o.estado==="recibida"?"received":o.estado==="ordenada"?"ordered":"pending",
+   note:o.nota||null,
+   ordered_at:o.fechaOrdenada||null,
+   received_at:o.fechaRecibida||null,
+   payment_condition:o.condicionPagoProveedor||null,
+   payment_method:o.metodoPagoProveedor||null,
+   due_date:o.fechaVencimientoProveedor||null,
+   total_amount:Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),
+   paid_amount:Number(o.totalPagadoProveedor||0),
+   balance_due:Number(o.saldoProveedor||0)
+  },{onConflict:"legacy_id"});
   if(error)throw error;
  }
  return cargarComprasSupabase()
@@ -8390,7 +8427,8 @@ async function flkSincronizarRespaldoRestaurado(){
   const inv=await cargarInventarioSupabase();
   if(inv===false)throw new Error("No se pudo confirmar el inventario en Supabase.");
 
-  if(typeof cargarComprasSupabase==="function")await cargarComprasSupabase();
+  if(typeof migrarComprasLocalesSupabase==="function")await migrarComprasLocalesSupabase();
+  else if(typeof cargarComprasSupabase==="function")await cargarComprasSupabase();
   if(typeof cargarVentasSupabase==="function")await cargarVentasSupabase();
   if(typeof cargarGastosSupabase==="function")await cargarGastosSupabase();
   if(typeof cargarCierresSupabase==="function")await cargarCierresSupabase();
