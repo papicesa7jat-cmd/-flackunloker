@@ -1425,6 +1425,18 @@ textarea::placeholder{
  }
 }
 </style>
+
+<style id="flk-codigo-manual-qr-style">
+.flk-etiqueta-qr .flk-codigo-manual{
+ margin-top:1.2mm!important;
+ padding-top:1.2mm!important;
+ border-top:.25mm dashed #7b8794;
+ font-size:2.8mm!important;
+ font-weight:800;
+ color:#111;
+ letter-spacing:.15mm;
+}
+</style>
 </head>
 <body>
 
@@ -8697,7 +8709,7 @@ function mostrarEtiquetaQRProducto(id){
  const p=productos.find(x=>String(x.id)===String(id));if(!p)return alert("Producto no encontrado.");
  flkProductoEtiquetaActual=p;
  const box=document.getElementById("flkEtiquetaQRVista");
- box.innerHTML='<strong style="font-size:2.4mm">FLACKUNLOKER</strong><div class="qrbox" id="flkQrEtiquetaCodigo"></div><h3>'+flkQrEsc(p.nombre)+'</h3><p>SKU: <strong>'+flkQrEsc(p.sku)+'</strong></p>';
+ box.innerHTML='<strong style="font-size:2.4mm">FLACKUNLOKER</strong><div class="qrbox" id="flkQrEtiquetaCodigo"></div><h3>'+flkQrEsc(p.nombre)+'</h3><p>SKU: <strong>'+flkQrEsc(p.sku)+'</strong></p><p class="flk-codigo-manual">Código manual: <strong>'+flkQrEsc(p.sku)+'</strong></p>';
  document.getElementById("modalEtiquetaQR").classList.add("visible");
  setTimeout(function(){
   const q=document.getElementById("flkQrEtiquetaCodigo");
@@ -8712,7 +8724,7 @@ function imprimirEtiquetaQRProducto(){
  const vista=document.getElementById("flkEtiquetaQRVista"),img=vista.querySelector("img"),canvas=vista.querySelector("canvas");
  const qr=canvas?canvas.toDataURL("image/png"):(img?img.src:"");
  const p=flkProductoEtiquetaActual,w=window.open("","_blank");if(!w)return alert("El navegador bloqueó la impresión.");
- const html='<!doctype html><html><head><meta charset="utf-8"><title>Etiqueta QR</title><style>@page{size:58mm auto;margin:2mm}body{margin:0;width:54mm;font-family:Arial,sans-serif}.et{width:52mm;padding:2mm;text-align:center}.et img{width:30mm;height:30mm}.et h3{font-size:4mm;margin:1mm 0}.et p{font-size:2.7mm;margin:.5mm 0}</style></head><body><div class="et"><strong>FLACKUNLOKER</strong><br><img src="'+qr+'"><h3>'+flkQrEsc(p.nombre)+'</h3><p>SKU: <strong>'+flkQrEsc(p.sku)+'</strong></p></div></body></html>';
+ const html='<!doctype html><html><head><meta charset="utf-8"><title>Etiqueta QR</title><style>@page{size:58mm auto;margin:2mm}body{margin:0;width:54mm;font-family:Arial,sans-serif}.et{width:52mm;padding:2mm;text-align:center}.et img{width:30mm;height:30mm}.et h3{font-size:4mm;margin:1mm 0}.et p{font-size:2.7mm;margin:.5mm 0}.manual{margin-top:1mm;padding-top:1mm;border-top:.25mm dashed #777;font-size:2.8mm;font-weight:700}</style></head><body><div class="et"><strong>FLACKUNLOKER</strong><br><img src="'+qr+'"><h3>'+flkQrEsc(p.nombre)+'</h3><p>SKU: <strong>'+flkQrEsc(p.sku)+'</strong></p><p class="manual">Código manual: <strong>'+flkQrEsc(p.sku)+'</strong></p></div></body></html>';
  w.document.open();w.document.write(html);w.document.close();setTimeout(function(){w.print()},250);
 }
 
