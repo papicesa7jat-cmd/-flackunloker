@@ -1448,6 +1448,14 @@ textarea::placeholder{
 .flk-qr-confirmacion-botones button:first-child{background:#0a67d1;color:#fff}
 .flk-qr-confirmacion-botones button:last-child{background:#e9eef3;color:#29445c}
 </style>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<style id="flk-html5qr-iphone-style">
+#flkHtml5QrReader{overflow:hidden;border-radius:14px;background:#050505}
+#flkHtml5QrReader video{width:100%!important;height:auto!important;object-fit:cover!important;border-radius:14px}
+#flkHtml5QrReader canvas{max-width:100%!important}
+#flkQrLinternaBtn{border:0;border-radius:10px;padding:10px;font-weight:850;background:#f0f4f8;color:#17324a;cursor:pointer}
+</style>
 </head>
 <body>
 
@@ -1959,6 +1967,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   </div>
   <div id="flkQrModoTexto" class="flk-qr-modo-texto">Modo: selecciona una operación</div>
   <div class="flk-qr-video-wrap">
+   <div id="flkHtml5QrReader" style="width:100%;display:none"></div>
    <video id="flkQrVideo" playsinline muted></video>
    <canvas id="flkQrCanvas" style="display:none"></canvas>
    <div class="flk-qr-marco"></div>
@@ -1966,6 +1975,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   </div>
   <div class="flk-qr-controles">
    <button type="button" class="boton-guardar" onclick="iniciarEscanerQR()">📷 Activar cámara</button>
+   <button type="button" id="flkQrLinternaBtn" style="display:none" onclick="flkAlternarLinternaQR()">🔦 Linterna</button>
    <button type="button" class="boton-cancelar" onclick="detenerEscanerQR()">⏹ Detener cámara</button>
   </div>
   <div class="flk-lector-fisico">
@@ -9311,6 +9321,170 @@ flkQrLeerConJsQR=function(){
    if(flkQrActivo)flkQrJsLoopId=requestAnimationFrame(flkQrLeerConJsQR);
   },140);
  }
+};
+</script>
+
+<script id="flk-html5qr-iphone-engine">
+let flkHtml5QrInstancia=null;
+let flkHtml5QrActivo=false;
+let flkHtml5QrTorch=false;
+let flkHtml5QrBloqueado=false;
+
+async function flkDetenerHtml5QR(){
+ flkHtml5QrBloqueado=false;
+ flkHtml5QrTorch=false;
+ const b=document.getElementById("flkQrLinternaBtn");
+ if(b)b.style.display="none";
+ if(flkHtml5QrInstancia){
+  try{if(flkHtml5QrActivo)await flkHtml5QrInstancia.stop()}catch(_){}
+  try{await flkHtml5QrInstancia.clear()}catch(_){}
+ }
+ flkHtml5QrActivo=false;
+ flkHtml5QrInstancia=null;
+ const r=document.getElementById("flkHtml5QrReader");
+ if(r){r.innerHTML="";r.style.display="none"}
+}
+async function flkAlternarLinternaQR(){
+ if(!flkHtml5QrInstancia||!flkHtml5QrActivo)return;
+ try{
+  flkHtml5QrTorch=!flkHtml5QrTorch;
+  await flkHtml5QrInstancia.applyVideoConstraints({advanced:[{torch:flkHtml5QrTorch}]});
+  const b=document.getElementById("flkQrLinternaBtn");
+  if(b)b.textContent=flkHtml5QrTorch?"🔦 Apagar":"🔦 Linterna";
+ }catch(_){
+  flkHtml5QrTorch=false;
+ }
+}
+async function flkConfigurarLinternaSiExiste(){
+ const b=document.getElementById("flkQrLinternaBtn");
+ if(!b||!flkHtml5QrInstancia)return;
+ try{
+  const caps=flkHtml5QrInstancia.getRunningTrackCapabilities();
+  b.style.display=caps&&caps.torch?"inline-block":"none";
+ }catch(_){b.style.display="none"}
+}
+const iniciarEscanerQRCamaraTraseraFallback=window.iniciarEscanerQRCamaraTrasera;
+window.iniciarEscanerQRCamaraTrasera=async function(){
+ const estado=document.getElementById("flkQrEstado");
+ if(!flkQrModo){
+  alert("Primero selecciona Compra / Entrada, Venta o Devolución.");
+  return;
+ }
+ if(typeof Html5Qrcode!=="function"){
+  if(estado)estado.textContent="No cargó el motor QR compatible. Usando lector alternativo…";
+  if(typeof flkAbrirCamaraTraseraPreferida==="function"){
+   // fallback to the existing jsQR implementation if CDN is unavailable
+   return iniciarEscanerQRCamaraTraseraFallback();
+  }
+  return;
+ }
+ try{
+  // Shut down old native/jsQR stream first.
+  try{detenerEscanerQR(false)}catch(_){}
+  if(typeof flkDetenerLoopJsQR==="function")flkDetenerLoopJsQR();
+  await flkDetenerHtml5QR();
+
+  const oldVideo=document.getElementById("flkQrVideo");
+  if(oldVideo)oldVideo.style.display="none";
+  const reader=document.getElementById("flkHtml5QrReader");
+  reader.style.display="block";
+
+  flkHtml5QrInstancia=new Html5Qrcode("flkHtml5QrReader",{
+   formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE],
+   verbose:false
+  });
+
+  const ancho=Math.max(220,Math.min(320,Math.floor((window.innerWidth||360)*0.72)));
+  const config={
+   fps:10,
+   qrbox:{width:ancho,height:ancho},
+   aspectRatio:1.333333,
+   disableFlip:false,
+   experimentalFeatures:{useBarCodeDetectorIfSupported:false}
+  };
+
+  const onSuccess=function(decodedText){
+   if(flkHtml5QrBloqueado)return;
+   const codigo=String(decodedText||"").trim();
+   if(!codigo)return;
+   const ahora=Date.now();
+   if(codigo===flkQrUltimo && ahora-flkQrUltimoTs<2200)return;
+   flkQrUltimo=codigo;
+   flkQrUltimoTs=ahora;
+   flkHtml5QrBloqueado=true;
+
+   try{flkHtml5QrInstancia.pause(true)}catch(_){}
+   const manual=document.getElementById("flkQrCodigoManual");
+   if(manual)manual.value=codigo;
+
+   // Reuse the confirmation layer added previously.
+   if(typeof flkPresentarLecturaParaConfirmar==="function"){
+    flkPresentarLecturaParaConfirmar(codigo);
+   }else{
+    procesarCodigoQR(codigo,true);
+   }
+  };
+
+  await flkHtml5QrInstancia.start(
+   {facingMode:"environment"},
+   config,
+   onSuccess,
+   function(){}
+  );
+  flkHtml5QrActivo=true;
+  if(estado)estado.textContent="Cámara trasera activa. Acerca el QR al cuadro hasta que quede nítido.";
+  await flkConfigurarLinternaSiExiste();
+ }catch(err){
+  console.error("html5-qrcode iPhone:",err);
+  if(estado)estado.textContent="No se pudo iniciar el lector QR principal. Probando modo alternativo…";
+  await flkDetenerHtml5QR();
+  return iniciarEscanerQRCamaraTraseraFallback();
+ }
+};
+
+// Preserve current jsQR camera implementation as offline/failure fallback.
+
+// Rebind the operation-first flow to the new engine after definitions finish.
+abrirModoQRDesdePrincipalConCamara=async function(modo){
+ cerrarSelectorQRPrincipal();
+ abrirEscanerQR();
+ seleccionarModoQR(modo);
+ const estado=document.getElementById("flkQrEstado");
+ const nombres={entrada:"Compra / Entrada",venta:"Venta",devolucion:"Devolución"};
+ if(estado)estado.textContent="Modo "+(nombres[modo]||modo)+" seleccionado. Abriendo cámara trasera…";
+ await window.iniciarEscanerQRCamaraTrasera();
+};
+
+// Resume Html5Qrcode after cancel/after a confirmed sale.
+const flkCancelarAnterior=cancelarLecturaQRPendiente;
+cancelarLecturaQRPendiente=function(){
+ flkCancelarAnterior();
+ if(flkHtml5QrInstancia&&flkHtml5QrActivo){
+  setTimeout(function(){
+   flkHtml5QrBloqueado=false;
+   try{flkHtml5QrInstancia.resume()}catch(_){}
+  },450);
+ }
+};
+
+const flkConfirmarAnterior=confirmarLecturaQRPendiente;
+confirmarLecturaQRPendiente=function(){
+ const modoAntes=flkQrModo;
+ flkConfirmarAnterior();
+ if(modoAntes==="venta"&&flkHtml5QrInstancia&&flkHtml5QrActivo){
+  setTimeout(function(){
+   flkHtml5QrBloqueado=false;
+   try{flkHtml5QrInstancia.resume()}catch(_){}
+  },1000);
+ }
+};
+
+const flkCerrarScannerAnterior=cerrarEscanerQR;
+cerrarEscanerQR=function(){
+ flkDetenerHtml5QR();
+ const oldVideo=document.getElementById("flkQrVideo");
+ if(oldVideo)oldVideo.style.display="";
+ return flkCerrarScannerAnterior();
 };
 </script>
 </body>
