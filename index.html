@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.35-licencia-por-centro-propietario">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.38-acceso-resistente-3-fallos">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1569,7 +1569,7 @@ textarea::placeholder{
   <p id="flkLicenciaBloqueoMensaje">Esta instalación necesita una licencia activa para continuar.</p>
   <p id="flkLicenciaBloqueoFecha" class="lic-bloqueo-fecha"></p>
   <button type="button" onclick="flkReintentarLicencia()">🔄 Comprobar licencia</button>
-  <button type="button" class="lic-secundario" onclick="flkCerrarSesionDesdeLicencia()">Cerrar sesión</button>
+  <button id="flkBotonCerrarSesionLicencia" type="button" class="lic-secundario" onclick="flkCerrarSesionDispositivoVinculado()">Cerrar sesión</button>
  </div>
 </div>
 
@@ -3913,48 +3913,161 @@ async function mostrarAppConSesion(session){
   document.getElementById("authUsuario").classList.remove("visible");
  }
 }
-async function cerrarSesionFlackunloker(){
- try{
-  const email=document.getElementById("authUsuarioEmail")?.textContent||document.getElementById("authEmail")?.value||"";
-  if(email&&email.includes("@"))flkRecordarUsuarioLogin(email);
-  flkLimpiarPasswordLogin();
-  await flkSupabase.auth.signOut();
- }catch(err){console.error(err)}
+let flkCierreSesionEnCurso=false;
+async function flkCerrarSesionResistente(){
+ if(flkCierreSesionEnCurso)return;
+ flkCierreSesionEnCurso=true;
+
+ const email=document.getElementById("authUsuarioEmail")?.textContent||document.getElementById("authEmail")?.value||"";
+ if(email&&email.includes("@"))flkRecordarUsuarioLogin(email);
+ flkLimpiarPasswordLogin();
+
+ // Cierre local inmediato: la interfaz nunca queda esperando una red inestable.
  try{flkLimpiarSesionLocal()}catch(_){}
- location.reload();
+ flkSesionActiva=false;
+ flkEsPropietarioSoftware=false;
+ try{document.body.classList.remove("es-propietario")}catch(_){}
+
+ // Intentar cerrar también la sesión Supabase, pero con tiempo máximo.
+ // Si Internet está inestable, el usuario igualmente sale localmente.
+ try{
+  await Promise.race([
+   flkSupabase.auth.signOut({scope:"local"}),
+   new Promise((_,reject)=>setTimeout(()=>reject(new Error("timeout-signout")),2500))
+  ]);
+ }catch(err){
+  console.warn("Cierre remoto diferido por conexión inestable:",err?.message||err);
+  try{
+   // Supabase-js conserva la sesión en almacenamiento local; eliminarla
+   // mediante signOut local cuando el cliente vuelva a responder no debe
+   // bloquear la salida visual.
+   flkSupabase.auth.signOut({scope:"local"}).catch(()=>{});
+  }catch(_){}
+ }
+
+ // replace evita volver accidentalmente a una pantalla autenticada con Atrás.
+ try{location.replace(location.pathname+location.search)}catch(_){location.reload()}
 }
+async function cerrarSesionFlackunloker(){
+ return flkCerrarSesionResistente();
+}
+let flkAuthProcesando=false;
+let flkAuthIntentoCanceladoHasta=0;
+
+function flkPromesaConTiempo(promise,ms,codigo="timeout"){
+ return Promise.race([
+  promise,
+  new Promise((_,reject)=>setTimeout(()=>reject(Object.assign(new Error(codigo),{code:codigo})),ms))
+ ]);
+}
+function flkRestaurarBotonAuth(){
+ const b=document.getElementById("authSubmit");
+ if(!b)return;
+ b.disabled=false;
+ b.textContent=modoAuth==="registro"?"Crear cuenta":"Entrar";
+}
+function flkBloquearBotonAuth(){
+ const b=document.getElementById("authSubmit");
+ if(!b)return;
+ b.disabled=true;
+ b.textContent="Procesando…";
+}
+async function flkCancelarSesionTardia(){
+ flkAuthIntentoCanceladoHasta=Date.now()+15000;
+ try{await flkSupabase.auth.signOut({scope:"local"})}catch(_){}
+}
+
 document.getElementById("formAuth").addEventListener("submit",async e=>{
  e.preventDefault();
+ if(flkAuthProcesando)return;
+
  const email=document.getElementById("authEmail").value.trim();
  const password=document.getElementById("authPassword").value;
  if(!email)return mostrarMensajeAuth("Escribe el usuario/correo.","error");
  if(!password)return mostrarMensajeAuth("Escribe la contraseña.","error");
- mostrarMensajeAuth("Procesando...","ok");
- if(modoAuth==="registro"){
-  const nombre=document.getElementById("authNombre").value.trim();
-  const {data,error}=await flkSupabase.auth.signUp({email,password,options:{data:{full_name:nombre}}});
-  if(error){mostrarMensajeAuth(error.message,"error");return}
-  flkRecordarUsuarioLogin(email);flkLimpiarPasswordLogin();
-  if(data.session){window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});mostrarMensajeAuth("","");}
-  else mostrarMensajeAuth("Cuenta creada. Revisa tu correo para confirmar el registro y luego inicia sesión.","ok");
- }else{
-  const {data,error}=await flkSupabase.auth.signInWithPassword({email,password});
-  if(error){
-   const msg=String(error.message||"").toLowerCase();
-   if(msg.includes("invalid login credentials")||msg.includes("invalid credentials")){
-    mostrarMensajeAuth("❌ Usuario o contraseña incorrectos. Revisa la contraseña.","error");
-   }else if(msg.includes("email not confirmed")){
-    mostrarMensajeAuth("❌ La cuenta todavía no está confirmada.","error");
+
+ if(!navigator.onLine){
+  mostrarMensajeAuth("❌ No hay conexión. Para iniciar una sesión nueva debes conectarte a Internet.","error");
+  return;
+ }
+
+ flkAuthProcesando=true;
+ flkBloquearBotonAuth();
+ mostrarMensajeAuth("Procesando…","ok");
+
+ try{
+  if(modoAuth==="registro"){
+   const nombre=document.getElementById("authNombre").value.trim();
+   const resp=await flkPromesaConTiempo(
+    flkSupabase.auth.signUp({email,password,options:{data:{full_name:nombre}}}),
+    12000,
+    "registro-timeout"
+   );
+   const {data,error}=resp||{};
+   if(error)throw error;
+
+   flkRecordarUsuarioLogin(email);
+   flkLimpiarPasswordLogin();
+
+   if(data?.session){
+    mostrarMensajeAuth("","");
+    await flkPromesaConTiempo(mostrarAppConSesion(data.session),10000,"app-timeout");
    }else{
-    mostrarMensajeAuth("❌ No se pudo iniciar sesión: "+error.message,"error");
+    mostrarMensajeAuth("Cuenta creada. Revisa tu correo para confirmar el registro y luego inicia sesión.","ok");
    }
-   return
+   return;
   }
-  if(!data?.session){mostrarMensajeAuth("❌ No se recibió una sesión válida.","error");return}
+
+  const resp=await flkPromesaConTiempo(
+   flkSupabase.auth.signInWithPassword({email,password}),
+   12000,
+   "login-timeout"
+  );
+  const {data,error}=resp||{};
+
+  if(error)throw error;
+  if(!data?.session)throw new Error("No se recibió una sesión válida.");
+
   flkRecordarUsuarioLogin(email);
+
+  // La pantalla de login deja de marear en cuanto Supabase confirma la sesión.
+  document.getElementById("authOverlay")?.classList.add("oculto");
   mostrarMensajeAuth("","");
-  await mostrarAppConSesion(data.session);
+
+  try{
+   await flkPromesaConTiempo(mostrarAppConSesion(data.session),10000,"app-timeout");
+  }catch(errApp){
+   // Si una carga secundaria (rol, centro, licencia) demora por Internet,
+   // conservar la sesión ya confirmada y permitir que la app use sus cachés.
+   console.warn("Inicio confirmado; carga secundaria demorada:",errApp?.message||errApp);
+   flkGuardarSesionLocal(data.session);
+   flkPintarSesionLocal(data.session.user);
+   document.getElementById("authOverlay")?.classList.add("oculto");
+  }
+
   flkLimpiarPasswordLogin();
+
+ }catch(err){
+  const msg=String(err?.message||err||"").toLowerCase();
+  const timeout=String(err?.code||"").includes("timeout")||msg.includes("timeout");
+
+  if(timeout){
+   await flkCancelarSesionTardia();
+   document.getElementById("authOverlay")?.classList.remove("oculto");
+   mostrarMensajeAuth(
+    "⚠️ La conexión está inestable y el inicio tardó demasiado. No quedó bloqueado: espera a que mejore Internet y pulsa Entrar una sola vez.",
+    "error"
+   );
+  }else if(msg.includes("invalid login credentials")||msg.includes("invalid credentials")){
+   mostrarMensajeAuth("❌ Usuario o contraseña incorrectos. Revisa la contraseña.","error");
+  }else if(msg.includes("email not confirmed")){
+   mostrarMensajeAuth("❌ La cuenta todavía no está confirmada.","error");
+  }else{
+   mostrarMensajeAuth("❌ No se pudo iniciar sesión: "+(err?.message||"Error de conexión"),"error");
+  }
+ }finally{
+  flkAuthProcesando=false;
+  flkRestaurarBotonAuth();
  }
 });
 
@@ -4276,6 +4389,11 @@ function flkMostrarBloqueoLicencia(info,motivo=""){
  }else if(motivo==="device-mismatch"){
   titulo.textContent="Licencia vinculada a otro dispositivo";
   mensaje.textContent="Esta licencia ya está activada en otro equipo. El propietario de Flackunloker debe liberar el dispositivo anterior antes de usarla aquí.";
+  const bCerrar=document.getElementById("flkBotonCerrarSesionLicencia");
+  if(bCerrar){
+   bCerrar.textContent="Cerrar sesión";
+   bCerrar.onclick=flkCerrarSesionDispositivoVinculado;
+  }
  }else if(motivo==="offline-grace-expired"){
   titulo.textContent="Se requiere conexión a Internet";
   mensaje.textContent="Se agotó el período autorizado de trabajo offline. Conéctate a Internet para validar la licencia y continuar.";
@@ -4291,8 +4409,18 @@ async function flkReintentarLicencia(){
  return info
 }
 async function flkCerrarSesionDesdeLicencia(){
- try{await flkSupabase.auth.signOut()}catch(_){}
- location.reload()
+ // Si el acceso quedó bloqueado por licencia/dispositivo, cerrar primero
+ // el estado visual y cualquier referencia local de licencia de cliente.
+ try{flkOcultarBloqueoLicencia()}catch(_){}
+ try{flkOcultarActivacionCliente()}catch(_){}
+ try{localStorage.removeItem(FLK_CLIENT_LICENSE_KEY_STORAGE)}catch(_){}
+ try{localStorage.removeItem(FLK_LICENSE_TEST_MODE_KEY)}catch(_){}
+ return flkCerrarSesionResistente();
+}
+async function flkCerrarSesionDispositivoVinculado(){
+ // Ruta explícita para "Licencia vinculada a otro dispositivo".
+ // No espera a Internet para sacar al usuario de la aplicación.
+ return flkCerrarSesionDesdeLicencia();
 }
 
 function flkPintarLicencia(info,modo="online"){
@@ -4528,6 +4656,12 @@ async function flkValidarLicencia(){
 }
 
 flkSupabase.auth.onAuthStateChange((event,session)=>{
+ if(event==="SIGNED_IN" && Date.now()<flkAuthIntentoCanceladoHasta){
+  // Una petición de login que ya dimos por cancelada respondió tarde.
+  // No reabrir la sesión por sorpresa.
+  try{flkSupabase.auth.signOut({scope:"local"}).catch(()=>{})}catch(_){}
+  return;
+ }
  if(event==="SIGNED_IN" && session?.user){
   // v61.11: no reutilizar la clave de otro centro guardada previamente en este navegador.
   localStorage.removeItem(FLK_CLIENT_LICENSE_KEY_STORAGE);
