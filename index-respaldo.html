@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.25-gris-definitivo">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.27a-estable-admin-fix">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2365,13 +2365,9 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
    <button class="boton-respaldo boton-crear-respaldo" type="button" onclick="crearRespaldo()">💾 Crear respaldo</button>
    <button class="boton-respaldo boton-restaurar-respaldo" type="button" onclick="seleccionarRespaldo()">📥 Restaurar respaldo</button>
   </div>
+  <button type="button" onclick="flkDeepStorageOpen()" style="width:100%;margin-top:10px;border:0;border-radius:12px;padding:13px 10px;background:#e9f4ff;color:#075aa8;font-size:14px;font-weight:900;cursor:pointer">🧪 Revisar IndexedDB / caché offline</button>
   <input id="archivoRespaldo" type="file" accept=".json,application/json" style="display:none" onchange="restaurarRespaldo(event)">
   <div id="estadoRespaldo" class="estado-respaldo"></div>
-  <div id="flkProteccionRestauracionBox" class="estado-respaldo" style="display:none">
-   <strong>🛡️ Restauración protegida</strong><br>
-   <span id="flkProteccionRestauracionTexto">Supabase no reemplazará estos datos automáticamente.</span>
-   <button type="button" class="boton-agregar" style="width:100%;margin-top:10px" onclick="flkLiberarProteccionRestauracion()">☁️ Reanudar sincronización con Supabase</button>
-  </div>
  </div>
  <div class="adminsw-panel adminsw-seguridad-compacta">
   <h3 style="margin:0 0 8px">🔐 Seguridad</h3>
@@ -4565,7 +4561,11 @@ async function flkComprobarPropietarioSoftware(){
 
 let flkAdminSoftwareCentros=[];
 
-function flkAdminSwEsc(v){return escapeHtml(String(v??""))}
+function flkAdminSwEsc(v){
+ return String(v??"").replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+ }[c]));
+}
 
 function mostrarAdminSoftware(){flkOcultarTodasLasVistas();
  if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
@@ -6199,10 +6199,35 @@ async function cargarVentasSupabase(){
    const reciboLocal=normalizarRecibo(v.numero||String(v.id).slice(-8));
 
    // Una venta se considera ya migrada si coincide por ID legado O por número de recibo.
-   // Esto evita volver a insertar un recibo que Supabase ya tiene.
-   if(existentesLegacy.has(legacy)||existentesRecibo.has(reciboLocal))continue;
+   // EXCEPCIÓN DE RESTAURACIÓN: si el recibo existe en Supabase pero quedó sin sale_items
+   // y el respaldo local sí conserva artículos, se reemplaza únicamente ese recibo incompleto
+   // para que flk_import_legacy_sale reconstruya venta + artículos + costos + pagos.
+   const ventaCloudExistente=(cloud||[]).find(cv=>
+    String(cv.legacy_id||"")===legacy || normalizarRecibo(cv.receipt_number)===reciboLocal
+   );
+   const itemsLocalesCrudos=Array.isArray(v.items)?v.items:[];
+   const ventaCloudSinItems=!!ventaCloudExistente &&
+    (!Array.isArray(ventaCloudExistente.sale_items) || ventaCloudExistente.sale_items.length===0);
 
-   const items=(Array.isArray(v.items)?v.items:[]).map(i=>({
+   if(ventaCloudExistente && !(window.flkRestauracionRespaldoActiva===true && ventaCloudSinItems && itemsLocalesCrudos.length)){
+    continue;
+   }
+
+   if(ventaCloudExistente && window.flkRestauracionRespaldoActiva===true && ventaCloudSinItems && itemsLocalesCrudos.length){
+    console.warn("Restauración: reparando recibo existente sin artículos:",reciboLocal);
+    const {error:delVentaErr}=await flkSupabase.from("sales").delete().eq("id",ventaCloudExistente.id);
+    if(delVentaErr){
+     console.error("No se pudo retirar el recibo incompleto:",reciboLocal,delVentaErr);
+     alert("No se pudo reparar el recibo #"+reciboLocal+" porque Supabase no permitió reemplazar la venta incompleta: "+String(delVentaErr.message||delVentaErr));
+     return false;
+    }
+    const pos=(cloud||[]).findIndex(cv=>cv.id===ventaCloudExistente.id);
+    if(pos>=0)cloud.splice(pos,1);
+    existentesLegacy.delete(String(ventaCloudExistente.legacy_id||""));
+    existentesRecibo.delete(normalizarRecibo(ventaCloudExistente.receipt_number));
+   }
+
+   const items=itemsLocalesCrudos.map(i=>({
     legacy_product_id:String(i.productoId),
     quantity:Number(i.cantidad||0),
     unit_price:Number(i.precioUnitario??0),
@@ -8266,56 +8291,6 @@ document.addEventListener("visibilitychange",()=>{
 });
 
 
-
-const FLK_RESTORE_PROTECTION_PREFIX="flackunloker_restore_protection::";
-function flkRestoreProtectionKey(){
- const id=flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:flkBusinessGuardado();
- return FLK_RESTORE_PROTECTION_PREFIX+(id||"sin-centro");
-}
-function flkProteccionRestauracionActiva(){
- try{
-  const raw=localStorage.getItem(flkRestoreProtectionKey());
-  if(!raw)return false;
-  const obj=JSON.parse(raw);
-  return !!(obj&&obj.active===true);
- }catch(_){return false}
-}
-function flkActivarProteccionRestauracion(meta={}){
- try{
-  localStorage.setItem(flkRestoreProtectionKey(),JSON.stringify({
-   active:true,
-   restored_at:new Date().toISOString(),
-   centro_id:meta.centro_id||FLK_BUSINESS_ID||flkBusinessGuardado()||null,
-   centro_nombre:meta.centro_nombre||"",
-   backup_fecha:meta.backup_fecha||null
-  }));
- }catch(_){}
- flkPintarProteccionRestauracion();
-}
-function flkPintarProteccionRestauracion(){
- const box=document.getElementById("flkProteccionRestauracionBox");
- const txt=document.getElementById("flkProteccionRestauracionTexto");
- if(!box)return;
- const activa=flkProteccionRestauracionActiva();
- box.style.display=activa?"block":"none";
- if(txt&&activa){
-  txt.textContent="La copia restaurada queda como fuente local protegida. Supabase no podrá sustituirla automáticamente.";
- }
-}
-async function flkLiberarProteccionRestauracion(){
- if(!flkProteccionRestauracionActiva())return;
- const ok=confirm(
-  "¿Reanudar la sincronización con Supabase?\n\n"+
-  "IMPORTANTE: si la nube todavía contiene datos diferentes a la copia restaurada, al actualizar desde Supabase podrían volver a reemplazarse datos locales.\n\n"+
-  "Continúa solo cuando estés seguro de que deseas volver a usar la nube."
- );
- if(!ok)return;
- try{localStorage.removeItem(flkRestoreProtectionKey())}catch(_){}
- flkPintarProteccionRestauracion();
- mostrarEstadoRespaldo("☁️ Sincronización con Supabase habilitada nuevamente.");
-}
-document.addEventListener("DOMContentLoaded",()=>setTimeout(flkPintarProteccionRestauracion,100));
-
 const FLK_BACKUP_CENTER_NAME_PREFIX="flackunloker_backup_center_name::";
 function flkNombreCentroBackupLocal(){
  const id=flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:flkBusinessGuardado();
@@ -8405,6 +8380,35 @@ async function crearRespaldo(){
  }
 }
 function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
+
+/* ===== RESTAURACIÓN SEGURA v61.26 =====
+   Primero conserva la salva local. Si hay Internet y el usuario es Administrador,
+   migra los datos restaurados a Supabase ANTES de aceptar la nube como fuente de verdad. */
+async function flkSincronizarRespaldoRestaurado(){
+ if(!navigator.onLine)return {ok:false,pendiente:true,mensaje:"Restaurado localmente. La subida a Supabase queda pendiente hasta tener Internet."};
+ if(!flkSesionActiva)return {ok:false,pendiente:true,mensaje:"Restaurado localmente. Inicia sesión para subir la salva a Supabase."};
+ if(rolSesion!=="admin")return {ok:false,pendiente:true,mensaje:"Restaurado localmente. Un Administrador debe abrir el sistema para subir la salva a Supabase."};
+
+ try{
+  // Orden importante: productos primero; ventas/compras dependen de ellos.
+  const inv=await cargarInventarioSupabase();
+  if(inv===false)throw new Error("No se pudo confirmar el inventario en Supabase.");
+
+  if(typeof cargarComprasSupabase==="function")await cargarComprasSupabase();
+  if(typeof cargarVentasSupabase==="function")await cargarVentasSupabase();
+  if(typeof cargarGastosSupabase==="function")await cargarGastosSupabase();
+  if(typeof cargarCierresSupabase==="function")await cargarCierresSupabase();
+
+  // Después de migrar, leer los movimientos confirmados por la nube.
+  if(typeof cargarHistorialSupabase==="function")await cargarHistorialSupabase();
+
+  return {ok:true,pendiente:false,mensaje:"Respaldo restaurado y confirmado en Supabase."};
+ }catch(err){
+  console.error("Restauración segura / sincronización:",err);
+  return {ok:false,pendiente:true,mensaje:"La salva quedó restaurada localmente, pero no se completó la subida a Supabase: "+(err?.message||err)};
+ }
+}
+
 async function restaurarRespaldo(event){
  const archivo=event.target.files[0];
  if(!archivo)return;
@@ -8448,14 +8452,6 @@ async function restaurarRespaldo(event){
    );
    if(!ok)return;
 
-   // Proteger primero la restauración antes de aplicar los datos.
-   // Así ninguna lectura automática de Supabase puede reemplazarla durante el proceso.
-   flkActivarProteccionRestauracion({
-    centro_id:centroActual.id,
-    centro_nombre:centroActual.nombre,
-    backup_fecha:datos.fecha||null
-   });
-
    productos=datos.productos;
    historial=datos.historial;
    ventas=Array.isArray(datos.ventas)?datos.ventas:[];
@@ -8494,12 +8490,31 @@ async function restaurarRespaldo(event){
    actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();
    actualizarEstadisticas();
 
-   mostrarEstadoRespaldo(`✅ Respaldo restaurado en ${centroActual.nombre}.`);
-   alert(
-    "Respaldo restaurado correctamente en "+centroActual.nombre+".\n\n"+
-    "🛡️ MODO PROTEGIDO ACTIVADO\n"+
-    "Supabase no reemplazará automáticamente esta restauración. Cuando decidas volver a sincronizar con la nube, usa el botón del panel de Respaldos."
-   );
+   // IMPORTANTE: no permitir que una nube vacía vuelva a borrar la salva recién restaurada.
+   // Los cargadores existentes migran primero los datos locales del Administrador y luego recargan Supabase.
+   mostrarEstadoRespaldo(`⏳ Respaldo restaurado localmente en ${centroActual.nombre}. Verificando Supabase...`);
+   window.flkRestauracionRespaldoActiva=true;
+   let syncRestore;
+   try{
+    syncRestore=await flkSincronizarRespaldoRestaurado();
+   }finally{
+    window.flkRestauracionRespaldoActiva=false;
+   }
+
+   // Repintar después de la verificación/migración.
+   mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();
+   actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();
+   actualizarReporte();actualizarFlujoCaja();actualizarFinanzas();actualizarCentroAlertas();
+   actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();
+   actualizarEstadisticas();
+
+   if(syncRestore.ok){
+    mostrarEstadoRespaldo(`✅ Respaldo restaurado y sincronizado con Supabase en ${centroActual.nombre}.`);
+    alert("✅ Respaldo restaurado correctamente.\n\nLos datos fueron confirmados en Supabase antes de volver a usar la nube.");
+   }else{
+    mostrarEstadoRespaldo(`⚠️ ${syncRestore.mensaje}`);
+    alert("⚠️ RESTAURACIÓN LOCAL PROTEGIDA\n\n"+syncRestore.mensaje+"\n\nNo cierres ni restablezcas el sistema. Conserva también el archivo de respaldo.");
+   }
   }catch(err){
    console.error(err);
    alert("No se pudo restaurar el respaldo: "+(err?.message||"archivo no válido."));
@@ -10022,60 +10037,433 @@ abrirEscanerQR=function(){
 };
 </script>
 
-<script id="flk-restore-protection-supabase-guard">
-(function(){
- function bloqueado(){
-  return typeof flkProteccionRestauracionActiva==="function" && flkProteccionRestauracionActiva();
+<style id="flk-detector-profundo-style">
+#flkDetectorProfundo{position:fixed;inset:0;z-index:1000002;background:rgba(4,18,31,.76);display:none;overflow:auto;padding:18px 10px}
+#flkDetectorProfundoCard{max-width:680px;margin:auto;background:white;border-radius:18px;padding:17px;color:#17324a;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+#flkDetectorProfundoCard h2{margin:0 0 7px;color:#075aa8}
+#flkDetectorProfundoResultado{white-space:pre-wrap;background:#f3f8fc;border:1px solid #d5e5f1;border-radius:12px;padding:11px;margin:12px 0;max-height:52vh;overflow:auto;font-size:12px;line-height:1.5}
+.flk-detector-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.flk-detector-grid button{border:0;border-radius:10px;padding:11px;font-weight:850;cursor:pointer;background:#eaf3fb;color:#17324a}
+.flk-detector-grid .principal{background:#0a84ff;color:white}
+</style>
+<div id="flkDetectorProfundo">
+ <div id="flkDetectorProfundoCard">
+  <h2>🧬 Detector profundo de recuperación</h2>
+  <p style="margin:0;font-size:13px;line-height:1.45">Lee este dispositivo solamente. <b>No escribe ni sincroniza con Supabase.</b> Busca productos directos y operaciones offline con payload recuperable.</p>
+  <div id="flkDetectorProfundoResultado">Pulsa Analizar.</div>
+  <div class="flk-detector-grid">
+   <button class="principal" onclick="flkDetectorAnalizar()">🔎 Analizar</button>
+   <button class="principal" onclick="flkDetectorExportar()">💾 Exportar hallazgos</button>
+   <button onclick="flkDetectorCopiar()">📋 Copiar resumen</button>
+   <button onclick="flkDetectorCerrar()">Cerrar</button>
+  </div>
+ </div>
+</div>
+<script id="flk-detector-profundo-engine">
+let FLK_DETECTOR_ULTIMO=null;
+function flkDetectorAbrir(){document.getElementById("flkDetectorProfundo").style.display="block";flkDetectorAnalizar()}
+function flkDetectorCerrar(){document.getElementById("flkDetectorProfundo").style.display="none"}
+function flkDetectorParse(v){try{return JSON.parse(v)}catch(_){return v}}
+function flkDetectorWalk(v,path,out,depth=0){
+ if(depth>9||v===null||v===undefined)return;
+ if(Array.isArray(v)){v.forEach((x,i)=>flkDetectorWalk(x,path+"["+i+"]",out,depth+1));return}
+ if(typeof v!=="object")return;
+
+ const tipo=String(v.type||v.operation_type||v.tipo||v.kind||"").toLowerCase();
+ const payload=v.payload||v.data||v.body||v.operation||v.datos||null;
+ const p=(payload&&typeof payload==="object")?payload:v;
+ const pareceProducto=
+   tipo.includes("product_save") ||
+   (("sku" in p)&&(("name" in p)||("nombre" in p))&&
+    (("cost" in p)||("costo" in p)||("price" in p)||("precio" in p)||("initial_stock" in p)||("cantidad" in p)));
+
+ if(pareceProducto){
+  out.push({
+   path,
+   operation_type:tipo||null,
+   operation_id:v.id||v.operation_id||p.operation_id||null,
+   product_id:p.product_id||p.supabase_id||null,
+   legacy_id:p.legacy_id||p.local_product_id||p.id||null,
+   sku:p.sku||null,
+   nombre:p.name||p.nombre||null,
+   costo:p.cost??p.costo??null,
+   precio:p.price??p.precio??null,
+   stock_inicial:p.initial_stock??p.cantidad??null,
+   stock_local:p.local_stock??null,
+   categoria:p.category||p.categoria||null,
+   proveedor:p.supplier_name||p.proveedor||null,
+   ubicacion:p.location||p.ubicacion||null,
+   raw:v
+  });
  }
- function aviso(){
-  if(typeof flkPintarProteccionRestauracion==="function")flkPintarProteccionRestauracion();
-  if(typeof flkActualizarEstadoConexion==="function")flkActualizarEstadoConexion();
+ Object.entries(v).forEach(([k,x])=>flkDetectorWalk(x,path+"."+k,out,depth+1));
+}
+function flkDetectorAnalizar(){
+ const keys=[], hallazgos=[], directos=[];
+ for(let i=0;i<localStorage.length;i++){
+  const key=localStorage.key(i), raw=localStorage.getItem(key);
+  const parsed=flkDetectorParse(raw);
+  keys.push({key,bytes:(raw||"").length});
+  try{flkDetectorWalk(parsed,key,hallazgos)}catch(_){}
+  if(/producto/i.test(key)&&Array.isArray(parsed)){
+   parsed.forEach(p=>{
+    if(p&&typeof p==="object"&&(p.sku||p.nombre||p.name))directos.push({key,...p})
+   })
+  }
  }
 
- // These are the destructive/read-back paths that reconstruct local state from cloud.
- const nombres=[
-  "flkRecuperacionEmergenciaNube",
-  "flkSincronizarSeguro",
-  "flkReconciliarInventarioNube",
-  "cargarInventarioSupabase",
-  "cargarHistorialSupabase",
-  "cargarVentasSupabase",
-  "cargarGastosSupabase",
-  "cargarComprasSupabase",
-  "cargarCierresSupabase",
-  "cargarMovimientosCajaSupabase"
- ];
-
- nombres.forEach(nombre=>{
-  const original=window[nombre];
-  if(typeof original!=="function")return;
-  window[nombre]=async function(){
-   if(bloqueado()){
-    aviso();
-    console.info("Restauración protegida: se omitió "+nombre);
-    return true;
-   }
-   return original.apply(this,arguments);
-  };
+ // Deduplicate product_save candidates by operation id, then legacy/SKU+name.
+ const vistos=new Set(), unicos=[];
+ hallazgos.forEach(h=>{
+  const k=String(h.operation_id||"")+"|"+String(h.legacy_id||"")+"|"+String(h.sku||"")+"|"+String(h.nombre||"");
+  if(vistos.has(k))return;vistos.add(k);unicos.push(h)
  });
 
- // Do not push queued operations and then immediately rebuild from cloud while
- // a restored snapshot is protected. Local work remains stored in its current center.
- if(typeof window.flkProcesarColaOffline==="function"){
-  const originalCola=window.flkProcesarColaOffline;
-  window.flkProcesarColaOffline=async function(){
-   if(bloqueado()){
-    aviso();
-    console.info("Restauración protegida: cola offline conservada sin enviar.");
-    return false;
-   }
-   return originalCola.apply(this,arguments);
-  };
- }
+ FLK_DETECTOR_ULTIMO={
+  aplicacion:"Flackunloker",
+  tipo:"diagnostico_profundo_offline",
+  fecha:new Date().toISOString(),
+  centro_id:(typeof flkBusinessGuardado==="function"?flkBusinessGuardado():null),
+  claves:keys,
+  productos_directos:directos,
+  operaciones_producto:unicos
+ };
 
- // Make protection visible whenever Backup view/status is touched.
- document.addEventListener("DOMContentLoaded",()=>setTimeout(aviso,250));
-})();
+ const lineas=[
+  "Centro: "+(FLK_DETECTOR_ULTIMO.centro_id||"no identificado"),
+  "Claves de almacenamiento revisadas: "+keys.length,
+  "Productos directos encontrados: "+directos.length,
+  "Operaciones/productos reconstruibles: "+unicos.length,
+  ""
+ ];
+ if(unicos.length){
+  lineas.push("HALLAZGOS:");
+  unicos.forEach((h,i)=>lineas.push(
+   `${i+1}. ${h.nombre||"(sin nombre)"} | SKU ${h.sku||"—"} | costo ${h.costo??"—"} | precio ${h.precio??"—"} | inicial ${h.stock_inicial??"—"} | local ${h.stock_local??"—"}`
+  ));
+ }else{
+  lineas.push("No apareció ningún payload product_save recuperable en este navegador.");
+  lineas.push("Prueba exactamente este mismo archivo en el otro dispositivo.");
+ }
+ document.getElementById("flkDetectorProfundoResultado").textContent=lineas.join("\n");
+ return FLK_DETECTOR_ULTIMO;
+}
+async function flkDetectorExportar(){
+ const d=flkDetectorAnalizar(), txt=JSON.stringify(d,null,2);
+ const id=String(d.centro_id||"sin-centro").slice(0,8);
+ const file=new File([txt],`Flackunloker_DIAGNOSTICO_${id}_${Date.now()}.json`,{type:"application/json"});
+ try{
+  if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){
+   await navigator.share({title:"Diagnóstico Flackunloker",files:[file]});return
+  }
+ }catch(e){if(e?.name==="AbortError")return}
+ const u=URL.createObjectURL(file),a=document.createElement("a");
+ a.href=u;a.download=file.name;document.body.appendChild(a);a.click();
+ setTimeout(()=>{a.remove();URL.revokeObjectURL(u)},2500)
+}
+async function flkDetectorCopiar(){
+ flkDetectorAnalizar();
+ const t=document.getElementById("flkDetectorProfundoResultado").textContent;
+ try{await navigator.clipboard.writeText(t);alert("Resumen copiado.")}catch(_){alert(t)}
+}
+document.addEventListener("DOMContentLoaded",()=>{
+ const b=document.createElement("button");
+ b.type="button";b.textContent="🧬 Detector profundo de recuperación";b.onclick=flkDetectorAbrir;
+ b.style.cssText="width:100%;margin-top:9px;border:0;border-radius:11px;padding:11px;background:#e9f4ff;color:#075aa8;font-weight:900;cursor:pointer";
+ const t=document.getElementById("estadoRespaldo")?.parentElement||document.getElementById("vistaSoftware")||document.querySelector(".contenedor");
+ if(t)t.appendChild(b)
+});
+</script>
+
+<style id="flk-detector-ventas-style">
+#flkDetectorVentas{position:fixed;inset:0;z-index:1000004;background:rgba(4,18,31,.78);display:none;overflow:auto;padding:18px 10px}
+#flkDetectorVentasCard{max-width:720px;margin:auto;background:#fff;border-radius:18px;padding:17px;color:#17324a}
+#flkDetectorVentasResultado{white-space:pre-wrap;background:#f3f8fc;border:1px solid #d5e5f1;border-radius:12px;padding:11px;margin:12px 0;max-height:55vh;overflow:auto;font-size:12px;line-height:1.5}
+.flk-dv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.flk-dv-grid button{border:0;border-radius:10px;padding:11px;font-weight:850;background:#eaf3fb;color:#17324a}.flk-dv-grid .p{background:#0a84ff;color:white}
+</style>
+<div id="flkDetectorVentas">
+ <div id="flkDetectorVentasCard">
+  <h2 style="margin:0 0 7px;color:#075aa8">🧾 Recuperación profunda desde ventas</h2>
+  <p style="font-size:13px;line-height:1.45;margin:0">Solo lee las ventas locales de este navegador. No modifica inventario ni Supabase.</p>
+  <div id="flkDetectorVentasResultado">Pulsa Analizar ventas locales.</div>
+  <div class="flk-dv-grid">
+   <button class="p" onclick="flkAnalizarVentasRescate()">🔎 Analizar ventas locales</button>
+   <button class="p" onclick="flkExportarVentasRescate()">💾 Exportar recuperación</button>
+   <button onclick="flkCopiarVentasRescate()">📋 Copiar resumen</button>
+   <button onclick="document.getElementById('flkDetectorVentas').style.display='none'">Cerrar</button>
+  </div>
+ </div>
+</div>
+<script id="flk-detector-ventas-engine">
+let FLK_RESCATE_VENTAS=null;
+function flkAbrirDetectorVentas(){document.getElementById("flkDetectorVentas").style.display="block";flkAnalizarVentasRescate()}
+function flkVentaItems(v){
+ const candidatos=[v.items,v.productos,v.detalles,v.lineas,v.articulos,v.sale_items,v.productItems];
+ for(const x of candidatos)if(Array.isArray(x))return x;
+ return [];
+}
+function flkItemCampo(i,nombres){
+ for(const n of nombres)if(i&&i[n]!==undefined&&i[n]!==null&&i[n]!=="")return i[n];
+ return null;
+}
+function flkAnalizarVentasRescate(){
+ const centro=(typeof flkBusinessGuardado==="function"?flkBusinessGuardado():null)||
+              (typeof FLK_BUSINESS_ID!=="undefined"?FLK_BUSINESS_ID:null);
+ const keys=[];
+ for(let i=0;i<localStorage.length;i++){
+  const k=localStorage.key(i);
+  if(/^flackunloker_ventas(?:::|$)/.test(k))keys.push(k);
+ }
+ const ventasTodas=[];
+ keys.forEach(k=>{
+  try{
+   const a=JSON.parse(localStorage.getItem(k)||"[]");
+   if(Array.isArray(a))a.forEach(v=>ventasTodas.push({storage_key:k,venta:v}));
+  }catch(_){}
+ });
+
+ const productosMap=new Map(), detalleVentas=[];
+ ventasTodas.forEach(({storage_key,venta:v},vi)=>{
+  const items=flkVentaItems(v);
+  detalleVentas.push({
+   storage_key,
+   id:v.id??null,
+   numero:v.numero??v.receipt_number??null,
+   fecha:v.fecha??v.created_at??null,
+   total:v.total??null,
+   items_count:items.length,
+   raw:v
+  });
+  items.forEach((i,ii)=>{
+   const nombre=flkItemCampo(i,["nombre","name","producto","product_name"]);
+   const sku=flkItemCampo(i,["sku","codigo","code","product_sku"]);
+   const pid=flkItemCampo(i,["productoId","product_id","idProducto","supabaseId"]);
+   const precio=flkItemCampo(i,["precio","price","precioUnitario","unit_price"]);
+   const costo=flkItemCampo(i,["costo","cost","costoUnitario","unit_cost"]);
+   const cantidad=flkItemCampo(i,["cantidad","quantity","qty"]);
+   const key=String(sku||pid||nombre||("sin-id-"+vi+"-"+ii)).toLowerCase();
+   if(!productosMap.has(key))productosMap.set(key,{
+    clave:key,nombre:nombre||null,sku:sku||null,product_id:pid||null,
+    precios:new Set(),costos:new Set(),cantidad_vendida_total:0,apariciones:0
+   });
+   const p=productosMap.get(key);
+   if(precio!==null)p.precios.add(Number(precio));
+   if(costo!==null)p.costos.add(Number(costo));
+   p.cantidad_vendida_total+=Number(cantidad||0);
+   p.apariciones++;
+  });
+ });
+ const productos=[...productosMap.values()].map(p=>({
+  ...p,precios:[...p.precios].filter(Number.isFinite),costos:[...p.costos].filter(Number.isFinite)
+ }));
+
+ FLK_RESCATE_VENTAS={
+  aplicacion:"Flackunloker",tipo:"rescate_desde_ventas",fecha:new Date().toISOString(),
+  centro_id:centro,storage_keys:keys,ventas:detalleVentas,productos_recuperables:productos
+ };
+
+ const out=[
+  "Centro: "+(centro||"no identificado"),
+  "Claves de ventas encontradas: "+keys.length,
+  "Ventas locales encontradas: "+ventasTodas.length,
+  "Productos distintos identificables dentro de ventas: "+productos.length,""
+ ];
+ if(productos.length){
+  out.push("PRODUCTOS RECUPERABLES DESDE RECIBOS:");
+  productos.forEach((p,i)=>out.push(
+   `${i+1}. ${p.nombre||"(sin nombre)"} | SKU ${p.sku||"—"} | ID ${p.product_id||"—"} | vendido ${p.cantidad_vendida_total} | precio ${p.precios.length?p.precios.join(", "):"—"} | costo ${p.costos.length?p.costos.join(", "):"—"}`
+  ));
+ }else{
+  out.push("Las ventas existen, pero no contienen líneas de productos reconocibles con la estructura actual.");
+ }
+ document.getElementById("flkDetectorVentasResultado").textContent=out.join("\n");
+ return FLK_RESCATE_VENTAS;
+}
+async function flkExportarVentasRescate(){
+ const d=flkAnalizarVentasRescate(),txt=JSON.stringify(d,null,2);
+ const id=String(d.centro_id||"sin-centro").slice(0,8);
+ const f=new File([txt],`Flackunloker_RESCATE_VENTAS_${id}_${Date.now()}.json`,{type:"application/json"});
+ try{
+  if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[f]}))){
+   await navigator.share({title:"Rescate de ventas Flackunloker",files:[f]});return;
+  }
+ }catch(e){if(e?.name==="AbortError")return}
+ const u=URL.createObjectURL(f),a=document.createElement("a");a.href=u;a.download=f.name;
+ document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(u)},2500)
+}
+async function flkCopiarVentasRescate(){
+ flkAnalizarVentasRescate();
+ const t=document.getElementById("flkDetectorVentasResultado").textContent;
+ try{await navigator.clipboard.writeText(t);alert("Resumen copiado.")}catch(_){alert(t)}
+}
+document.addEventListener("DOMContentLoaded",()=>{
+ const b=document.createElement("button");b.type="button";b.textContent="🧾 Analizar productos dentro de ventas";
+ b.onclick=flkAbrirDetectorVentas;b.style.cssText="width:100%;margin-top:9px;border:0;border-radius:11px;padding:11px;background:#e9f4ff;color:#075aa8;font-weight:900";
+ const t=document.getElementById("estadoRespaldo")?.parentElement||document.getElementById("vistaSoftware")||document.querySelector(".contenedor");
+ if(t)t.appendChild(b);
+});
+</script>
+
+<style id="flk-deep-storage-style">
+#flkDeepStorage{position:fixed;inset:0;z-index:1000006;background:rgba(4,18,31,.8);display:none;overflow:auto;padding:18px 10px}
+#flkDeepStorageCard{max-width:760px;margin:auto;background:#fff;border-radius:18px;padding:17px;color:#17324a}
+#flkDeepStorageOut{white-space:pre-wrap;background:#f3f8fc;border:1px solid #d5e5f1;border-radius:12px;padding:11px;margin:12px 0;max-height:58vh;overflow:auto;font-size:12px;line-height:1.5}
+.flk-ds-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.flk-ds-grid button{border:0;border-radius:10px;padding:11px;font-weight:850;background:#eaf3fb;color:#17324a}.flk-ds-grid .p{background:#0a84ff;color:#fff}
+</style>
+<div id="flkDeepStorage">
+ <div id="flkDeepStorageCard">
+  <h2 style="margin:0 0 7px;color:#075aa8">🧪 Detector de almacenamiento profundo</h2>
+  <p style="margin:0;font-size:13px;line-height:1.45">Modo lectura. Revisa IndexedDB, Cache Storage y registros del Service Worker. No restaura, no borra y no escribe en Supabase.</p>
+  <div id="flkDeepStorageOut">Pulsa Analizar almacenamiento.</div>
+  <div class="flk-ds-grid">
+   <button class="p" onclick="flkDeepStorageScan()">🔎 Analizar almacenamiento</button>
+   <button class="p" onclick="flkDeepStorageExport()">💾 Exportar hallazgos</button>
+   <button onclick="flkDeepStorageCopy()">📋 Copiar resumen</button>
+   <button onclick="document.getElementById('flkDeepStorage').style.display='none'">Cerrar</button>
+  </div>
+ </div>
+</div>
+<script id="flk-deep-storage-engine">
+let FLK_DEEP_STORAGE_RESULT=null;
+function flkDeepStorageOpen(){document.getElementById("flkDeepStorage").style.display="block";flkDeepStorageScan()}
+function flkSafeClone(x){try{return JSON.parse(JSON.stringify(x))}catch(_){return String(x)}}
+function flkLooksUseful(x){
+ const t=JSON.stringify(x||"").toLowerCase();
+ return /product|producto|sku|stock|movement|movimiento|purchase|compra|offline|queue|cola|sale_item|venta/.test(t);
+}
+async function flkScanIndexedDB(){
+ const out=[];
+ if(!window.indexedDB)return {supported:false,databases:[]};
+ let dbs=[];
+ try{
+  if(indexedDB.databases)dbs=await indexedDB.databases();
+ }catch(e){return {supported:true,error:String(e),databases:[]}}
+ for(const info of dbs){
+  if(!info.name)continue;
+  const one={name:info.name,version:info.version||null,stores:[]};
+  try{
+   const db=await new Promise((res,rej)=>{
+    const r=indexedDB.open(info.name);
+    r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);
+   });
+   for(const storeName of Array.from(db.objectStoreNames)){
+    const st={name:storeName,count:null,samples:[],useful_samples:[]};
+    try{
+     const tx=db.transaction(storeName,"readonly"),store=tx.objectStore(storeName);
+     st.count=await new Promise((res,rej)=>{const r=store.count();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+     await new Promise((resolve)=>{
+      const r=store.openCursor();let n=0;
+      r.onsuccess=e=>{
+       const c=e.target.result;
+       if(!c||n>=100){resolve();return}
+       const rec={key:flkSafeClone(c.key),value:flkSafeClone(c.value)};
+       if(n<8)st.samples.push(rec);
+       if(flkLooksUseful(rec)&&st.useful_samples.length<30)st.useful_samples.push(rec);
+       n++;c.continue();
+      };
+      r.onerror=()=>resolve();
+     });
+    }catch(e){st.error=String(e)}
+    one.stores.push(st);
+   }
+   db.close();
+  }catch(e){one.error=String(e)}
+  out.push(one);
+ }
+ return {supported:true,databases:out};
+}
+async function flkScanCaches(){
+ const out=[];
+ if(!("caches" in window))return {supported:false,caches:[]};
+ try{
+  const names=await caches.keys();
+  for(const name of names){
+   const c=await caches.open(name), reqs=await c.keys();
+   const one={name,entries:reqs.length,useful:[]};
+   for(const req of reqs.slice(0,120)){
+    const url=req.url||"";
+    if(/flack|supabase|product|stock|offline|queue|api|json/i.test(url)){
+     let sample=null;
+     try{
+      const resp=await c.match(req);
+      const ct=resp?.headers?.get("content-type")||"";
+      if(resp && (/json|text|javascript/.test(ct))){
+       const txt=await resp.clone().text();
+       sample=txt.slice(0,12000);
+      }
+     }catch(_){}
+     one.useful.push({url,sample});
+    }
+   }
+   out.push(one);
+  }
+  return {supported:true,caches:out};
+ }catch(e){return {supported:true,error:String(e),caches:out}}
+}
+async function flkScanSW(){
+ if(!("serviceWorker" in navigator))return {supported:false,registrations:[]};
+ try{
+  const regs=await navigator.serviceWorker.getRegistrations();
+  return {supported:true,registrations:regs.map(r=>({
+   scope:r.scope,
+   active:r.active?{scriptURL:r.active.scriptURL,state:r.active.state}:null,
+   waiting:r.waiting?{scriptURL:r.waiting.scriptURL,state:r.waiting.state}:null
+  }))};
+ }catch(e){return {supported:true,error:String(e),registrations:[]}}
+}
+async function flkDeepStorageScan(){
+ const box=document.getElementById("flkDeepStorageOut");
+ box.textContent="Analizando… No cierres esta ventana.";
+ const [idb,cache,sw]=await Promise.all([flkScanIndexedDB(),flkScanCaches(),flkScanSW()]);
+ const centro=(typeof flkBusinessGuardado==="function"?flkBusinessGuardado():null)||
+              (typeof FLK_BUSINESS_ID!=="undefined"?FLK_BUSINESS_ID:null);
+ FLK_DEEP_STORAGE_RESULT={
+  aplicacion:"Flackunloker",tipo:"diagnostico_almacenamiento_profundo",
+  fecha:new Date().toISOString(),centro_id:centro,indexeddb:idb,cache_storage:cache,service_workers:sw
+ };
+ let dbCount=idb.databases?.length||0,stores=0,records=0,useful=0;
+ (idb.databases||[]).forEach(d=>(d.stores||[]).forEach(st=>{stores++;records+=Number(st.count||0);useful+=(st.useful_samples||[]).length}));
+ let cacheEntries=0,cacheUseful=0;
+ (cache.caches||[]).forEach(c=>{cacheEntries+=Number(c.entries||0);cacheUseful+=(c.useful||[]).length});
+ const lines=[
+  "Centro: "+(centro||"no identificado"),
+  "IndexedDB disponible: "+(idb.supported?"Sí":"No"),
+  "Bases IndexedDB: "+dbCount,
+  "Object stores: "+stores,
+  "Registros IndexedDB contados: "+records,
+  "Muestras relacionadas con productos/offline: "+useful,
+  "",
+  "Cache Storage disponible: "+(cache.supported?"Sí":"No"),
+  "Caches encontradas: "+((cache.caches||[]).length),
+  "Entradas cacheadas: "+cacheEntries,
+  "Entradas potencialmente útiles: "+cacheUseful,
+  "",
+  "Service Worker disponible: "+(sw.supported?"Sí":"No"),
+  "Service Workers registrados: "+((sw.registrations||[]).length)
+ ];
+ if(useful||cacheUseful)lines.push("","⚠️ HAY DATOS POTENCIALMENTE RECUPERABLES. Pulsa Exportar hallazgos y pásame el JSON.");
+ else lines.push("","No aparecieron muestras recuperables en estas áreas con este navegador.");
+ box.textContent=lines.join("\n");
+ return FLK_DEEP_STORAGE_RESULT;
+}
+async function flkDeepStorageExport(){
+ const d=await flkDeepStorageScan(),txt=JSON.stringify(d,null,2);
+ const id=String(d.centro_id||"sin-centro").slice(0,8);
+ const f=new File([txt],`Flackunloker_DEEP_STORAGE_${id}_${Date.now()}.json`,{type:"application/json"});
+ try{
+  if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[f]}))){
+   await navigator.share({title:"Diagnóstico profundo Flackunloker",files:[f]});return
+  }
+ }catch(e){if(e?.name==="AbortError")return}
+ const u=URL.createObjectURL(f),a=document.createElement("a");a.href=u;a.download=f.name;
+ document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(u)},2500)
+}
+async function flkDeepStorageCopy(){
+ await flkDeepStorageScan();
+ const t=document.getElementById("flkDeepStorageOut").textContent;
+ try{await navigator.clipboard.writeText(t);alert("Resumen copiado.")}catch(_){alert(t)}
+}
+
 </script>
 </body>
 </html>
