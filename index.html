@@ -4024,6 +4024,39 @@ async function flkValidarLicencia(){
     if(licCentroError)throw licCentroError;
 
     const centroInfo=Array.isArray(licCentro)?licCentro[0]:licCentro;
+
+    // Centro Principal: los administradores y empleados de la instalación
+    // propietaria usan la licencia interna y no consumen una licencia de cliente.
+    const nombreCentroActual=String(
+      centroInfo?.business_name||
+      centroInfo?.customer_name||
+      centroInfo?.name||
+      ""
+    ).trim().toLowerCase();
+    const esCentroPrincipal=
+      nombreCentroActual==="centro principal"||
+      nombreCentroActual==="flackunloker - centro principal"||
+      nombreCentroActual==="flackunloker centro principal";
+
+    if(esCentroPrincipal){
+     localStorage.removeItem(FLK_CLIENT_LICENSE_KEY_STORAGE);
+     localStorage.removeItem(FLK_LICENSE_TEST_MODE_KEY);
+     FLK_LICENSE_KEY=FLK_OWNER_LICENSE_KEY;
+     flkOcultarActivacionCliente();
+     flkOcultarBloqueoLicencia();
+     ({data,error}=await flkSupabase.rpc("flk_check_license",{
+      p_license_key:FLK_OWNER_LICENSE_KEY
+     }));
+     if(error)throw error;
+     const infoPrincipal=Array.isArray(data)?data[0]:data;
+     if(!infoPrincipal)throw new Error("No se pudo validar la licencia interna del Centro Principal.");
+     infoPrincipal.software_owner=false;
+     infoPrincipal.internal_main_center=true;
+     flkGuardarCacheLicencia(infoPrincipal);
+     flkPintarLicencia(infoPrincipal,"online");
+     return infoPrincipal;
+    }
+
     if(!centroInfo?.license_key){
      localStorage.removeItem(FLK_CLIENT_LICENSE_KEY_STORAGE);
      throw new Error("Este usuario no tiene una licencia vinculada a su centro.");
