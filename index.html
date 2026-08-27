@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.39-login-offline-seguro">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.40-owner-reset-password">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -597,10 +597,11 @@ button:active{transform:none!important}
   #vistaUsuarios .seccion-titulo .boton-agregar{width:100%;max-width:280px}
 }
 
-.adminsw-user-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:9px}
+.adminsw-user-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:9px}
 .adminsw-user-actions button{border:0;border-radius:10px;padding:9px 7px;font-weight:700;cursor:pointer}
 .adminsw-user-role{background:#e8f2ff;color:#0562c8}
 .adminsw-user-status{background:#fff3d6;color:#8a5a00}
+.adminsw-user-password{background:#eef0ff;color:#5146a6}
 .adminsw-user-remove{background:#ffe7e7;color:#c62828}
 @media(max-width:520px){.adminsw-user-actions{grid-template-columns:1fr}}
 
@@ -5265,6 +5266,62 @@ async function flkCambiarEstadoMiembro(businessId,userId,email,estadoActual){
  }
 }
 
+function flkPasswordTemporalSugerida(){
+ const may="ABCDEFGHJKLMNPQRSTUVWXYZ";
+ const min="abcdefghijkmnopqrstuvwxyz";
+ const num="23456789";
+ const esp="!@#$%";
+ const todos=may+min+num+esp;
+ const pick=x=>x[Math.floor(Math.random()*x.length)];
+ let out=pick(may)+pick(min)+pick(num)+pick(esp);
+ for(let i=0;i<8;i++)out+=pick(todos);
+ return out.split("").sort(()=>Math.random()-.5).join("");
+}
+
+async function flkCambiarPasswordUsuario(email){
+ if(!flkEsPropietarioSoftware)return alert("Solo el propietario del software puede cambiar contraseñas.");
+ if(!navigator.onLine)return alert("Debes estar conectado a Internet para cambiar la contraseña de otro usuario.");
+
+ const correo=String(email||"").trim().toLowerCase();
+ if(!correo.includes("@"))return alert("Correo de usuario inválido.");
+
+ const sugerida=flkPasswordTemporalSugerida();
+ const nueva=prompt(
+  "Nueva contraseña para:\\n"+correo+
+  "\\n\\nPuedes usar la sugerida o escribir otra.\\nMínimo 8 caracteres.",
+  sugerida
+ );
+ if(nueva===null)return;
+ if(String(nueva).length<8)return alert("La contraseña debe tener al menos 8 caracteres.");
+
+ const repetir=prompt("Confirma la nueva contraseña para "+correo+":",String(nueva));
+ if(repetir===null)return;
+ if(String(repetir)!==String(nueva))return alert("Las contraseñas no coinciden.");
+
+ if(!confirm(
+  "¿Cambiar la contraseña de "+correo+"?\\n\\n"+
+  "El usuario podrá iniciar sesión con la nueva contraseña inmediatamente."
+ ))return;
+
+ try{
+  const {data,error}=await flkSupabase.functions.invoke("flk-reset-user-password",{
+   body:{email:correo,password:String(nueva)}
+  });
+  if(error)throw error;
+  if(!data?.ok)throw new Error(data?.error||"No se confirmó el cambio.");
+
+  alert(
+   "✅ Contraseña cambiada correctamente.\\n\\n"+
+   "Usuario: "+correo+"\\n"+
+   "Nueva contraseña: "+String(nueva)+"\\n\\n"+
+   "Entrégasela directamente al usuario."
+  );
+ }catch(err){
+  console.error("Cambiar contraseña usuario:",err);
+  alert("No se pudo cambiar la contraseña.\\n\\n"+(err?.message||"Error desconocido"));
+ }
+}
+
 async function flkQuitarMiembroCentro(businessId,userId,email){
  if(!flkEsPropietarioSoftware)return;
  if(!confirm("¿Quitar a "+email+" de esta sucursal?\n\nLa cuenta de Authentication no será eliminada."))return;
@@ -5321,6 +5378,7 @@ function flkHtmlMiembrosCentro(businessId,miembros){
      <option value="employee"${selected("employee")}>Empleado</option>
     </select>`}
     <button type="button" class="adminsw-user-status" onclick='flkCambiarEstadoMiembro(${JSON.stringify(String(businessId))},${JSON.stringify(uid)},${JSON.stringify(email)},${JSON.stringify(status)})'>${activo?"⏸ Desactivar":"▶ Activar"}</button>
+    ${role==="owner"?"":`<button type="button" class="adminsw-user-password" onclick='flkCambiarPasswordUsuario(${JSON.stringify(email)})'>🔑 Contraseña</button>`}
     <button type="button" class="adminsw-user-remove" onclick='flkQuitarMiembroCentro(${JSON.stringify(String(businessId))},${JSON.stringify(uid)},${JSON.stringify(email)})'>🗑 Quitar</button>
    </div>
   </div>`;
