@@ -10,7 +10,8 @@
 *{box-sizing:border-box}
 body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}
 .contenedor{max-width:600px;margin:auto;padding:24px 18px 120px}
-.encabezado{text-align:center;margin:20px 0 30px}
+.encabezado{
+      position:relative;text-align:center;margin:20px 0 30px}
 .logo{width:72px;height:72px;margin:auto;border-radius:20px;background:linear-gradient(135deg,#0a84ff,#0055cc);box-shadow:0 10px 25px rgba(10,132,255,.25)}
 .titulo{margin:15px 0 5px;font-size:28px;font-weight:700}.subtitulo{margin:0;color:#777;font-size:15px}
 .resumen{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:22px}
@@ -1354,18 +1355,20 @@ textarea::placeholder{
 
 <style id="flk-qr-principal-style">
 .flk-qr-principal{
- position:fixed;
- right:18px;
- top:18px;
+ position:absolute;
+ left:12px;
+ bottom:12px;
+ top:auto;
+ right:auto;
  z-index:970;
- border:0;
- border-radius:16px;
- padding:12px 16px;
- background:linear-gradient(135deg,#0a84ff,#0055cc);
+ border:1px solid #39a9ff;
+ border-radius:14px;
+ padding:9px 13px;
+ background:linear-gradient(180deg,#168cff 0%,#0068df 100%);
  color:#fff;
- font-size:15px;
+ font-size:14px;
  font-weight:900;
- box-shadow:0 10px 26px rgba(10,132,255,.28);
+ box-shadow:0 6px 14px rgba(0,74,170,.28), inset 0 1px 0 rgba(255,255,255,.24);
  cursor:pointer;
 }
 .flk-qr-selector-principal{max-width:470px}
@@ -1388,7 +1391,7 @@ textarea::placeholder{
 .flk-qr-selector-venta{background:#eaf4ff;color:#0a67d1}
 .flk-qr-selector-devolucion{background:#fff1e8;color:#c45b19}
 @media(max-width:430px){
- .flk-qr-principal{right:10px;top:10px;padding:10px 13px;font-size:14px;border-radius:14px}
+ .flk-qr-principal{left:10px;bottom:10px;right:auto;top:auto;padding:9px 12px;font-size:13px;border-radius:13px}
  .flk-qr-selector-grid button{min-height:54px;font-size:15px}
 }
 </style>
