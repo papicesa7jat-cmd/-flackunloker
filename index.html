@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.33-safari-offline-confirm">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.34-offline-autorizados-multinavegador">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2632,7 +2632,10 @@ function flkEncolarOperacion(tipo,payload){
  const datos=(payload&&typeof payload==="object")?{...payload}:{};
  if(FLK_OPERACIONES_LOCAL_FIRST.has(tipo))datos.local_applied=true;
  const op={id:flkUUID(),tipo,payload:datos,device_id:flkDeviceId(),created_at:new Date().toISOString(),estado:"pendiente",intentos:0};
- q.push(op);flkGuardarColaOffline(q);return op
+ q.push(op);
+ flkGuardarColaOffline(q);
+ if(!navigator.onLine)setTimeout(()=>{try{flkAvisoOperacionOffline(tipo)}catch(e){}},0);
+ return op
 }
 function flkPendientesOffline(){
  return flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado)).length
@@ -3549,6 +3552,39 @@ document.addEventListener("DOMContentLoaded",()=>{flkCargarUsuarioLogin();flkLim
 
 const FLK_SESSION_CACHE_KEY="flackunloker_session_cache_v1";
 const FLK_ROLE_CACHE_KEY="flackunloker_role_cache_v1";
+const FLK_AUTH_CONTEXT_CACHE_KEY="flackunloker_auth_context_cache_v1";
+
+function flkAuthContextos(){
+ try{
+  const x=JSON.parse(localStorage.getItem(FLK_AUTH_CONTEXT_CACHE_KEY)||"{}");
+  return x&&typeof x==="object"&&!Array.isArray(x)?x:{};
+ }catch(e){return {}}
+}
+function flkGuardarContextoAutorizado(userId,datos={}){
+ try{
+  if(!userId)return;
+  const todos=flkAuthContextos();
+  const anterior=todos[userId]||{};
+  todos[userId]={
+   ...anterior,user_id:userId,
+   email:datos.email??anterior.email??"",
+   role:["admin","employee"].includes(datos.role)?datos.role:(anterior.role||"employee"),
+   business_id:flkUuidValido(datos.business_id)?datos.business_id:(flkUuidValido(anterior.business_id)?anterior.business_id:null),
+   saved_at:new Date().toISOString()
+  };
+  localStorage.setItem(FLK_AUTH_CONTEXT_CACHE_KEY,JSON.stringify(todos));
+ }catch(e){}
+}
+function flkContextoAutorizado(userId){
+ try{
+  const c=flkAuthContextos()[userId];
+  return c&&c.user_id===userId&&["admin","employee"].includes(c.role)?c:null;
+ }catch(e){return null}
+}
+function flkCentroAutorizadoLocal(userId){
+ const c=flkContextoAutorizado(userId);
+ return c&&flkUuidValido(c.business_id)?c.business_id:null;
+}
 
 function flkGuardarSesionLocal(session){
  try{
@@ -3557,6 +3593,7 @@ function flkGuardarSesionLocal(session){
    user:{id:session.user.id||"",email:session.user.email||""},
    saved_at:new Date().toISOString()
   }));
+  flkGuardarContextoAutorizado(session.user.id,{email:session.user.email||""});
  }catch(e){}
 }
 function flkSesionLocal(){
@@ -3567,11 +3604,16 @@ function flkSesionLocal(){
 }
 function flkGuardarRolLocal(userId,role){
  try{
-  if(userId&&role)localStorage.setItem(FLK_ROLE_CACHE_KEY,JSON.stringify({user_id:userId,role,saved_at:new Date().toISOString()}))
+  if(userId&&role){
+   localStorage.setItem(FLK_ROLE_CACHE_KEY,JSON.stringify({user_id:userId,role,saved_at:new Date().toISOString()}));
+   flkGuardarContextoAutorizado(userId,{role});
+  }
  }catch(e){}
 }
 function flkRolLocal(userId){
  try{
+  const c=flkContextoAutorizado(userId);
+  if(c&&["admin","employee"].includes(c.role))return c.role;
   const x=JSON.parse(localStorage.getItem(FLK_ROLE_CACHE_KEY)||"null");
   return x&&x.user_id===userId&&["admin","employee"].includes(x.role)?x.role:null
  }catch(e){return null}
@@ -5519,7 +5561,9 @@ let FLK_BUSINESS_ID=flkBusinessGuardado();
 
 async function flkCargarCentroActual(){
  if(!flkSupabase || !flkSesionActiva || !navigator.onLine){
-  FLK_BUSINESS_ID=flkBusinessGuardado();
+  const ses=flkSesionLocal();
+  FLK_BUSINESS_ID=flkCentroAutorizadoLocal(ses?.user?.id)||flkBusinessGuardado();
+  if(flkUuidValido(FLK_BUSINESS_ID))flkCambiarContextoLocalCentro(FLK_BUSINESS_ID);
   return FLK_BUSINESS_ID;
  }
 
@@ -5536,6 +5580,8 @@ async function flkCargarCentroActual(){
 
  FLK_BUSINESS_ID=id;
  localStorage.setItem(FLK_BUSINESS_STORAGE_KEY,id);
+ const ses=flkSesionLocal();
+ if(ses?.user?.id)flkGuardarContextoAutorizado(ses.user.id,{email:ses.user.email||"",role:rolSesion,business_id:id});
  flkCambiarContextoLocalCentro(id);
  return id;
 }
@@ -5543,14 +5589,24 @@ async function flkCargarCentroActual(){
 async function flkExigirCentroActual(){
  if(flkUuidValido(FLK_BUSINESS_ID))return FLK_BUSINESS_ID;
 
+ const ses=flkSesionLocal();
+ const autorizado=flkCentroAutorizadoLocal(ses?.user?.id);
+ if(autorizado){
+  FLK_BUSINESS_ID=autorizado;
+  localStorage.setItem(FLK_BUSINESS_STORAGE_KEY,autorizado);
+  flkCambiarContextoLocalCentro(autorizado);
+  return autorizado;
+ }
+
  const guardado=flkBusinessGuardado();
- if(guardado){
+ if(guardado&&ses?.user?.id){
   FLK_BUSINESS_ID=guardado;
+  flkGuardarContextoAutorizado(ses.user.id,{email:ses.user.email||"",role:rolSesion,business_id:guardado});
   return guardado;
  }
 
  if(!navigator.onLine){
-  throw new Error("Conéctate a Internet para identificar el centro de trabajo.");
+  throw new Error("Este navegador debe conectarse al menos una vez para validar el usuario y su centro antes de trabajar offline.");
  }
 
  return await flkCargarCentroActual();
@@ -6058,6 +6114,24 @@ function cerrarMovimiento(){
 }
 
 
+function flkDescripcionOperacionOffline(tipo){
+ const nombres={
+  product_save:"Producto guardado",product_delete:"Eliminación guardada",
+  stock_adjustment:"Movimiento de inventario guardado",sale:"Venta guardada",
+  sale_payment:"Abono guardado",sale_return:"Devolución guardada",
+  expense_save:"Gasto guardado",expense_delete:"Eliminación de gasto guardada",
+  supplier_save:"Proveedor guardado",purchase_order_save:"Orden de compra guardada",
+  purchase_order_ordered:"Cambio de orden guardado",purchase_order_receive:"Recepción de orden guardada",
+  supplier_payment:"Pago a proveedor guardado",owner_cash_movement:"Movimiento de caja guardado",
+  cash_closure_save:"Cierre guardado",cash_closure_delete:"Eliminación de cierre guardada"
+ };
+ return nombres[tipo]||"Operación guardada";
+}
+function flkAvisoOperacionOffline(tipo){
+ if(navigator.onLine)return;
+ flkAvisoMovimientoOffline(`✅ ${flkDescripcionOperacionOffline(tipo)} localmente · pendiente de sincronizar`);
+}
+
 function flkAvisoMovimientoOffline(texto){
  let el=document.getElementById("flkToastMovimientoOffline");
  if(!el){
@@ -6120,10 +6194,7 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
    guardarHistorial();
    cerrarMovimiento();
 
-   // Confirmación visible: evita que el usuario vuelva a tocar por duda.
-   const signo=tipoGuardado==="entrada"?"+":"−";
-   flkAvisoMovimientoOffline(`✅ ${tipoGuardado==="entrada"?"Entrada":"Salida"} ${signo}${cantidad} guardada localmente · pendiente de sincronizar`);
-
+   // La confirmación offline general ya fue emitida desde la cola central.
    // Safari puede conservar el scroll del modal al cerrarlo. Volvemos suavemente al inventario.
    requestAnimationFrame(()=>{
     const inv=document.getElementById("vistaInventario");
