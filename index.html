@@ -1310,6 +1310,32 @@ textarea::placeholder{
 }
 </style>
 
+<style id="flk-seguridad-software-compacta">
+#vistaAdminSoftware .adminsw-seguridad-compacta{
+ padding:12px 14px !important;
+ margin-bottom:12px !important;
+}
+#vistaAdminSoftware .adminsw-seguridad-botones{
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:8px;
+}
+#vistaAdminSoftware .adminsw-seguridad-btn{
+ min-height:38px;
+ border:0;
+ border-radius:10px;
+ padding:8px 10px;
+ font-size:12px;
+ font-weight:800;
+ cursor:pointer;
+}
+#vistaAdminSoftware .adminsw-pin-btn{background:#e8f2ff;color:#0562c8}
+#vistaAdminSoftware .adminsw-reset-btn{background:#ffe7e7;color:#b42318}
+@media(max-width:520px){
+ #vistaAdminSoftware .adminsw-seguridad-botones{grid-template-columns:1fr}
+ #vistaAdminSoftware .adminsw-seguridad-btn{min-height:36px;font-size:11.5px;padding:7px 9px}
+}
+</style>
 </head>
 <body>
 
@@ -1368,13 +1394,6 @@ textarea::placeholder{
  </div>
 </div>
 
-<div class="lista-estadisticas" id="panelRestablecimientoTotal" tabindex="0" aria-label="Restablecimiento total" style="display:none;border:1px solid #ffd5d2">
- <h3>⚠️ Restablecer Flackunloker</h3>
- <p style="margin:0 0 14px">
-  <strong>Solo Administrador.</strong> Deja el sistema como nuevo sin borrar las cuentas de acceso.
- </p>
- <button class="boton-agregar" type="button" onclick="abrirRestablecimientoTotal()" style="background:#d93025;width:100%">🔐 Abrir restablecimiento total</button>
-</div>
 <div id="authUsuario" class="auth-user">
  <strong id="authUsuarioEmail">—</strong>
  <span id="authUsuarioRol">Usuario</span>
@@ -2034,6 +2053,14 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   <input id="archivoRespaldo" type="file" accept=".json,application/json" style="display:none" onchange="restaurarRespaldo(event)">
   <div id="estadoRespaldo" class="estado-respaldo"></div>
  </div>
+ <div class="adminsw-panel adminsw-seguridad-compacta">
+  <h3 style="margin:0 0 8px">🔐 Seguridad</h3>
+  <p style="margin:0 0 10px;color:#667085;font-size:12px;line-height:1.45">Controles administrativos del sistema.</p>
+  <div class="adminsw-seguridad-botones">
+   <button type="button" class="adminsw-seguridad-btn adminsw-pin-btn" onclick="abrirCambioPinDevolucion()">🔑 Cambiar PIN devolución</button>
+   <button type="button" class="adminsw-seguridad-btn adminsw-reset-btn" onclick="abrirRestablecimientoTotal()">⚠️ Reseteo de fábrica</button>
+  </div>
+ </div>
  <div id="adminswListaCentros"><div class="sin-productos">Pulsa Actualizar para cargar los centros.</div></div>
 </div>
 
@@ -2135,6 +2162,21 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 </div>
 
 <button class="boton-menu-flotante" onclick="abrirMenuPrincipal()">☰ Menú</button>
+
+<div class="modal" id="modalCambioPinDevolucion">
+ <form class="formulario" id="formularioCambioPinDevolucion">
+  <h2>🔑 Cambiar PIN de devolución</h2>
+  <p class="mensaje-movimiento">Solo el Administrador o Propietario puede cambiar este PIN. Funciona también sin Internet en este dispositivo.</p>
+  <div class="campo"><label>PIN actual</label><input id="pinDevolucionActual" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="off" required></div>
+  <div class="campo"><label>Nuevo PIN de 6 dígitos</label><input id="pinDevolucionNuevo" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="off" required></div>
+  <div class="campo"><label>Confirmar nuevo PIN</label><input id="pinDevolucionConfirmar" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="off" required></div>
+  <div class="botones-formulario">
+   <button type="button" class="boton-cancelar" onclick="cerrarCambioPinDevolucion()">Cancelar</button>
+   <button type="submit" class="boton-guardar">Guardar PIN</button>
+  </div>
+ </form>
+</div>
+
 <div id="menuPrincipalFondo" class="menu-panel-fondo" onclick="cerrarMenuPrincipal(event)">
  <div class="menu-panel" onclick="event.stopPropagation()">
   <div class="menu-panel-cabecera"><h2>☰ Menú principal</h2><button class="cerrar-menu" onclick="cerrarMenuPrincipal()">✕</button></div>
@@ -6057,15 +6099,44 @@ function generarReciboVenta(id){
  const w=window.open("","_blank");if(!w)return alert("El navegador bloqueó el recibo. Permite ventanas emergentes para Flackunloker.");w.document.open();w.document.write(contenido);w.document.close()
 }
 let ventaPendienteAutorizacionDevolucion=null;
-const FLK_DEVOLUCION_PIN_LOCAL_HASH="080bf176a72d105681656ff5e16783e6a60c1fe531a4f3b2e1e7010781534424";
+const FLK_DEVOLUCION_PIN_LOCAL_HASH_PREDETERMINADO="080bf176a72d105681656ff5e16783e6a60c1fe531a4f3b2e1e7010781534424";
+const FLK_DEVOLUCION_PIN_LOCAL_KEY="flackunloker_devolucion_pin_hash";
+function flkPinDevolucionHashActual(){
+ return localStorage.getItem(FLK_DEVOLUCION_PIN_LOCAL_KEY)||FLK_DEVOLUCION_PIN_LOCAL_HASH_PREDETERMINADO;
+}
 async function flkHashPinLocal(pin){
  const data=new TextEncoder().encode(String(pin||""));
  const hash=await crypto.subtle.digest("SHA-256",data);
  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,"0")).join("");
 }
 async function flkValidarPinDevolucionLocal(pin){
- try{return (await flkHashPinLocal(pin))===FLK_DEVOLUCION_PIN_LOCAL_HASH}catch(e){return false}
+ try{return (await flkHashPinLocal(pin))===flkPinDevolucionHashActual()}catch(e){return false}
 }
+function abrirCambioPinDevolucion(){
+ if(!(rolSesion==="admin"||flkEsPropietarioSoftware))return alert("Solo el Administrador o Propietario puede cambiar el PIN de devolución.");
+ ["pinDevolucionActual","pinDevolucionNuevo","pinDevolucionConfirmar"].forEach(id=>{const e=document.getElementById(id);if(e)e.value=""});
+ document.getElementById("modalCambioPinDevolucion")?.classList.add("visible");
+ setTimeout(()=>document.getElementById("pinDevolucionActual")?.focus(),50);
+}
+function cerrarCambioPinDevolucion(){
+ document.getElementById("modalCambioPinDevolucion")?.classList.remove("visible");
+ ["pinDevolucionActual","pinDevolucionNuevo","pinDevolucionConfirmar"].forEach(id=>{const e=document.getElementById(id);if(e)e.value=""});
+}
+document.getElementById("formularioCambioPinDevolucion")?.addEventListener("submit",async e=>{
+ e.preventDefault();
+ if(!(rolSesion==="admin"||flkEsPropietarioSoftware))return cerrarCambioPinDevolucion();
+ const actual=document.getElementById("pinDevolucionActual").value.trim();
+ const nuevo=document.getElementById("pinDevolucionNuevo").value.trim();
+ const confirmar=document.getElementById("pinDevolucionConfirmar").value.trim();
+ if(!/^\d{6}$/.test(actual)||!/^\d{6}$/.test(nuevo)||!/^\d{6}$/.test(confirmar))return alert("Todos los PIN deben tener exactamente 6 dígitos.");
+ if(!(await flkValidarPinDevolucionLocal(actual)))return alert("El PIN actual es incorrecto.");
+ if(nuevo!==confirmar)return alert("El nuevo PIN y la confirmación no coinciden.");
+ if(nuevo===actual)return alert("El nuevo PIN debe ser diferente al PIN actual.");
+ localStorage.setItem(FLK_DEVOLUCION_PIN_LOCAL_KEY,await flkHashPinLocal(nuevo));
+ cerrarCambioPinDevolucion();
+ alert("✅ PIN de devolución cambiado correctamente en este dispositivo.");
+});
+
 function abrirDevolucion(id){
  if(rolSesion==="admin")return abrirDevolucionAutorizada(id);
  ventaPendienteAutorizacionDevolucion=id;
