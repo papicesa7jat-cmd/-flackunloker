@@ -1826,7 +1826,14 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="modal" id="modalEscanerQR">
  <div class="formulario flk-qr-form">
   <h2>📷 Escáner QR</h2>
-  <p class="mensaje-movimiento">Escanea el QR de un producto para Entrada o Venta, o el QR de un recibo para localizarlo y hacer una Devolución.</p>
+  <p class="mensaje-movimiento">Selecciona una operación una sola vez y luego escanea. El sistema preparará el movimiento automáticamente y pedirá confirmación antes de modificar inventario o caja.</p>
+  <div class="flk-qr-modos" id="flkQrModos">
+   <button type="button" data-modo="entrada" onclick="seleccionarModoQR('entrada')">📥 Entrada</button>
+   <button type="button" data-modo="salida" onclick="seleccionarModoQR('salida')">📤 Salida</button>
+   <button type="button" data-modo="venta" onclick="seleccionarModoQR('venta')">🧾 Venta</button>
+   <button type="button" data-modo="devolucion" onclick="seleccionarModoQR('devolucion')">↩️ Devolución</button>
+  </div>
+  <div id="flkQrModoTexto" class="flk-qr-modo-texto">Modo: selecciona una operación</div>
   <div class="flk-qr-video-wrap">
    <video id="flkQrVideo" playsinline muted></video>
    <div class="flk-qr-marco"></div>
@@ -1842,6 +1849,12 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   </div>
   <button type="button" class="boton-agregar" style="width:100%" onclick="procesarCodigoQR(document.getElementById('flkQrCodigoManual').value)">🔎 Buscar</button>
   <div id="flkQrResultado" class="flk-qr-resultado" style="display:none"></div>
+  <div id="flkQrVentaContinua" class="flk-qr-venta-continua" style="display:none">
+   <div class="flk-qr-carrito-cab"><strong>🛒 Venta por escaneo</strong><span id="flkQrVentaConteo">0 unidades</span></div>
+   <div id="flkQrVentaLista"></div>
+   <div class="flk-qr-carrito-total"><span>Total preliminar</span><strong id="flkQrVentaTotal">$0.00</strong></div>
+   <button type="button" class="boton-guardar" style="width:100%;margin-top:8px" onclick="continuarVentaQR()">Continuar a cobrar</button>
+  </div>
   <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarEscanerQR()">Cerrar</button></div>
  </div>
 </div>
@@ -8569,8 +8582,11 @@ body.flk-v6125 #listaCierres .cierre-detalle strong {color:#000000 !important;}
 
 <script id="flk-qr-safe-js">
 let flkQrStream=null,flkQrDetector=null,flkQrActivo=false,flkProductoEtiquetaActual=null;
+let flkQrModo="",flkQrVentaItems=[],flkQrUltimo="",flkQrUltimoTs=0;
+
 function flkQrEsc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 function flkQrProductoTexto(p){return "FLK|SKU|"+String(p.sku||"").trim()}
+
 function mostrarEtiquetaQRProducto(id){
  const p=productos.find(x=>String(x.id)===String(id));if(!p)return alert("Producto no encontrado.");
  flkProductoEtiquetaActual=p;
@@ -8593,10 +8609,25 @@ function imprimirEtiquetaQRProducto(){
  const html='<!doctype html><html><head><meta charset="utf-8"><title>Etiqueta QR</title><style>@page{size:58mm auto;margin:2mm}body{margin:0;width:54mm;font-family:Arial,sans-serif}.et{width:52mm;padding:2mm;text-align:center}.et img{width:30mm;height:30mm}.et h3{font-size:4mm;margin:1mm 0}.et p{font-size:2.7mm;margin:.5mm 0}</style></head><body><div class="et"><strong>FLACKUNLOKER</strong><br><img src="'+qr+'"><h3>'+flkQrEsc(p.nombre)+'</h3><p>SKU: <strong>'+flkQrEsc(p.sku)+'</strong></p></div></body></html>';
  w.document.open();w.document.write(html);w.document.close();setTimeout(function(){w.print()},250);
 }
+
+function seleccionarModoQR(modo){
+ flkQrModo=modo;
+ document.querySelectorAll("#flkQrModos button").forEach(b=>b.classList.toggle("activo",b.dataset.modo===modo));
+ const nombres={entrada:"📥 Entrada de mercancía",salida:"📤 Salida de mercancía",venta:"🧾 Venta por escaneo continuo",devolucion:"↩️ Devolución por recibo"};
+ const t=document.getElementById("flkQrModoTexto");if(t)t.textContent="Modo: "+(nombres[modo]||"");
+ const vc=document.getElementById("flkQrVentaContinua");if(vc)vc.style.display=modo==="venta"?"block":"none";
+ const r=document.getElementById("flkQrResultado");if(r){r.style.display="none";r.innerHTML=""}
+ if(modo!=="venta"){flkQrVentaItems=[];renderVentaQR()}
+}
 function abrirEscanerQR(){
  try{cerrarMenuPrincipal()}catch(_){}
- const r=document.getElementById("flkQrResultado");if(r)r.style.display="none";
+ flkQrModo="";flkQrVentaItems=[];flkQrUltimo="";flkQrUltimoTs=0;
+ document.querySelectorAll("#flkQrModos button").forEach(b=>b.classList.remove("activo"));
+ const t=document.getElementById("flkQrModoTexto");if(t)t.textContent="Modo: selecciona una operación";
+ const r=document.getElementById("flkQrResultado");if(r){r.style.display="none";r.innerHTML=""}
  const i=document.getElementById("flkQrCodigoManual");if(i)i.value="";
+ const vc=document.getElementById("flkQrVentaContinua");if(vc)vc.style.display="none";
+ renderVentaQR();
  document.getElementById("modalEscanerQR")?.classList.add("visible");
 }
 function cerrarEscanerQR(){detenerEscanerQR(false);document.getElementById("modalEscanerQR")?.classList.remove("visible")}
@@ -8607,6 +8638,7 @@ function detenerEscanerQR(cambiar=true){
  if(cambiar){const e=document.getElementById("flkQrEstado");if(e)e.textContent="Cámara detenida."}
 }
 async function iniciarEscanerQR(){
+ if(!flkQrModo)return alert("Primero selecciona Entrada, Salida, Venta o Devolución.");
  const e=document.getElementById("flkQrEstado");
  if(!navigator.mediaDevices?.getUserMedia)return alert("Este navegador no permite usar la cámara.");
  if(!("BarcodeDetector" in window))return alert("Este navegador no tiene lector QR nativo. Usa Código manual.");
@@ -8614,7 +8646,7 @@ async function iniciarEscanerQR(){
   detenerEscanerQR(false);
   flkQrDetector=new BarcodeDetector({formats:["qr_code"]});
   flkQrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
-  const v=document.getElementById("flkQrVideo");v.srcObject=flkQrStream;await v.play();flkQrActivo=true;e.textContent="Apunta la cámara al QR.";flkQrLeer();
+  const v=document.getElementById("flkQrVideo");v.srcObject=flkQrStream;await v.play();flkQrActivo=true;e.textContent="Escaneo continuo activo.";flkQrLeer();
  }catch(err){console.error(err);e.textContent="No se pudo abrir la cámara.";alert("Revisa el permiso de cámara del navegador.")}
 }
 async function flkQrLeer(){
@@ -8624,8 +8656,12 @@ async function flkQrLeer(){
   if(v.readyState>=2){
    const r=await flkQrDetector.detect(v);
    if(r?.length){
-    const c=String(r[0].rawValue||"").trim();
-    if(c){document.getElementById("flkQrCodigoManual").value=c;procesarCodigoQR(c);detenerEscanerQR(false);return}
+    const c=String(r[0].rawValue||"").trim(),ahora=Date.now();
+    if(c&&(c!==flkQrUltimo||ahora-flkQrUltimoTs>1300)){
+     flkQrUltimo=c;flkQrUltimoTs=ahora;
+     document.getElementById("flkQrCodigoManual").value=c;
+     procesarCodigoQR(c,true);
+    }
    }
   }
  }catch(_){}
@@ -8636,28 +8672,70 @@ function flkQrValor(c){
  if(p.length>=3&&String(p[0]).toUpperCase()==="FLK")return{tipo:String(p[1]).toUpperCase(),valor:p.slice(2).join("|")};
  return{tipo:"AUTO",valor:raw};
 }
-function procesarCodigoQR(codigo){
- const x=flkQrValor(codigo),valor=String(x.valor||"").trim().toLowerCase(),box=document.getElementById("flkQrResultado");
- if(!valor)return alert("Escribe o escanea un código.");
- let p=null,v=null;
- if(x.tipo==="SKU"||x.tipo==="AUTO")p=productos.find(z=>String(z.sku||"").trim().toLowerCase()===valor||String(z.id)===x.valor);
- if(!p&&(x.tipo==="SALE"||x.tipo==="AUTO"))v=ventas.find(z=>String(z.numero||"").trim().toLowerCase()===valor||String(z.id)===x.valor);
- box.style.display="block";
- if(p){
-  box.innerHTML=`<strong>📦 ${flkQrEsc(p.nombre)}</strong><br>SKU: ${flkQrEsc(p.sku)} · Existencia: ${Number(p.cantidad||0)}
-   <div class="flk-qr-acciones">
-    <button style="background:#e9f8ef;color:#168044" onclick="cerrarEscanerQR();abrirMovimiento(${JSON.stringify(p.id)},'entrada')">📥 Entrada</button>
-    <button style="background:#eaf4ff;color:#0a67d1" onclick="cerrarEscanerQR();abrirVenta(${JSON.stringify(p.id)})">🧾 Venta</button>
-   </div>`;
- }else if(v){
-  box.innerHTML=`<strong>🧾 Recibo #${flkQrEsc(v.numero||v.id)}</strong><br>Cliente: ${flkQrEsc(v.cliente||"Cliente general")} · Total: $${Number(v.ingreso||0).toFixed(2)}
-   <div class="flk-qr-acciones">
-    <button style="background:#eaf4ff;color:#0a67d1" onclick="cerrarEscanerQR();generarReciboVenta(${JSON.stringify(v.id)})">👁️ Ver recibo</button>
-    <button style="background:#fff1e8;color:#c45b19" onclick="cerrarEscanerQR();abrirDevolucion(${JSON.stringify(v.id)})">↩️ Devolución</button>
-   </div>`;
- }else{
-  box.innerHTML='<strong>⚠️ Código no encontrado</strong><br>'+flkQrEsc(codigo);
+function flkQrBuscarProducto(x){
+ const valor=String(x.valor||"").trim().toLowerCase();
+ return productos.find(z=>String(z.sku||"").trim().toLowerCase()===valor||String(z.id)===String(x.valor))||null;
+}
+function flkQrBuscarVenta(x){
+ const valor=String(x.valor||"").trim().toLowerCase();
+ return ventas.find(z=>String(z.numero||"").trim().toLowerCase()===valor||String(z.id)===String(x.valor))||null;
+}
+function flkQrAviso(html){
+ const box=document.getElementById("flkQrResultado");if(!box)return;
+ box.style.display="block";box.innerHTML=html;
+}
+function procesarCodigoQR(codigo,desdeCamara=false){
+ if(!flkQrModo)return alert("Primero selecciona el tipo de operación.");
+ const x=flkQrValor(codigo);
+ if(!String(x.valor||"").trim())return alert("Escribe o escanea un código.");
+ if(flkQrModo==="devolucion"){
+  const v=flkQrBuscarVenta(x);
+  if(!v)return flkQrAviso('<strong>⚠️ Recibo no encontrado</strong><br>'+flkQrEsc(codigo));
+  flkQrAviso('<strong>🧾 Recibo #'+flkQrEsc(v.numero||v.id)+'</strong><br>Listo para devolución. Se mantendrá la autorización por PIN cuando corresponda.');
+  detenerEscanerQR(false);cerrarEscanerQR();abrirDevolucion(v.id);return;
  }
+ const p=flkQrBuscarProducto(x);
+ if(!p)return flkQrAviso('<strong>⚠️ Producto no encontrado</strong><br>'+flkQrEsc(codigo));
+ if(flkQrModo==="entrada"||flkQrModo==="salida"){
+  flkQrAviso('<strong>📦 '+flkQrEsc(p.nombre)+'</strong><br>SKU: '+flkQrEsc(p.sku)+' · Existencia: '+Number(p.cantidad||0)+'<br>Abriendo cantidad para confirmar '+(flkQrModo==="entrada"?"entrada":"salida")+'.');
+  detenerEscanerQR(false);cerrarEscanerQR();abrirMovimiento(p.id,flkQrModo);return;
+ }
+ if(flkQrModo==="venta"){
+  agregarProductoVentaQR(p);
+  if(!desdeCamara)flkQrAviso('<strong>✅ '+flkQrEsc(p.nombre)+'</strong> agregado a la venta. Puedes escanear otro producto.');
+ }
+}
+function agregarProductoVentaQR(p){
+ const existente=flkQrVentaItems.find(i=>String(i.productoId)===String(p.id));
+ const ya=existente?Number(existente.cantidad):0;
+ if(ya+1>Number(p.cantidad||0)){flkQrAviso('<strong>⚠️ Sin disponibilidad</strong><br>No puedes agregar más unidades de '+flkQrEsc(p.nombre)+'.');return}
+ if(existente)existente.cantidad+=1;
+ else flkQrVentaItems.push({productoId:p.id,nombre:p.nombre,sku:p.sku,cantidad:1,precioUnitario:Number(p.precio||0),costoUnitario:Number(p.costo||0)});
+ renderVentaQR();
+ const e=document.getElementById("flkQrEstado");if(e)e.textContent="✅ "+p.nombre+" agregado. Continúa escaneando.";
+}
+function quitarUnidadVentaQR(id){
+ const i=flkQrVentaItems.find(x=>String(x.productoId)===String(id));if(!i)return;
+ i.cantidad-=1;if(i.cantidad<=0)flkQrVentaItems=flkQrVentaItems.filter(x=>String(x.productoId)!==String(id));
+ renderVentaQR();
+}
+function renderVentaQR(){
+ const lista=document.getElementById("flkQrVentaLista"),conteo=document.getElementById("flkQrVentaConteo"),total=document.getElementById("flkQrVentaTotal");
+ if(!lista||!conteo||!total)return;
+ const unidades=flkQrVentaItems.reduce((t,i)=>t+Number(i.cantidad),0),importe=flkQrVentaItems.reduce((t,i)=>t+Number(i.cantidad)*Number(i.precioUnitario),0);
+ conteo.textContent=unidades+" unidad"+(unidades===1?"":"es");total.textContent="$"+importe.toFixed(2);
+ if(!flkQrVentaItems.length){lista.innerHTML='<div style="padding:10px 0;color:#667788;font-size:12px">Escanea productos para agregarlos.</div>';return}
+ lista.innerHTML=flkQrVentaItems.map(i=>'<div class="flk-qr-item"><div><strong>'+flkQrEsc(i.nombre)+'</strong><small>'+Number(i.cantidad)+' × $'+Number(i.precioUnitario).toFixed(2)+'</small></div><button type="button" onclick="quitarUnidadVentaQR('+JSON.stringify(i.productoId)+')">−1</button></div>').join("");
+}
+function continuarVentaQR(){
+ if(!flkQrVentaItems.length)return alert("Escanea al menos un producto.");
+ detenerEscanerQR(false);
+ const copia=flkQrVentaItems.map(i=>({...i}));
+ cerrarEscanerQR();
+ abrirVenta();
+ carritoVenta=copia;
+ renderCarritoVenta();
+ document.getElementById("textoVenta").textContent="Productos agregados por QR. Revisa el recibo, completa cliente y forma de pago, y confirma la venta.";
 }
 window.addEventListener("pagehide",function(){detenerEscanerQR(false)});
 </script>
