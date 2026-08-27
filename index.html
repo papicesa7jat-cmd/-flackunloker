@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.44-conflictos-y-vista-persistente">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.45-conflictos-y-f5-estable">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2813,8 +2813,6 @@ function flkDescartarConflicto(id){
  q=q.filter(x=>x.id!==id);
  flkGuardarColaOffline(q);
 
- // Si era una alta de proveedor que ya existe en Supabase, quitar únicamente
- // la marca de operación offline en la copia local para evitar futuros reintentos.
  if(op.tipo==="supplier_save"){
   const localId=String(p.local_supplier_id||"");
   const prov=proveedores.find(x=>
@@ -3874,7 +3872,7 @@ async function flkEntrarOffline(email,password){
  actualizarEstadisticas();
  actualizarCentroAlertas();
  flkActualizarEstadoConexion();
- setTimeout(()=>flkRestaurarVistaActual(),80);
+ setTimeout(()=>flkRestaurarVistaActual(),120);
  return true;
 }
 
@@ -4224,15 +4222,18 @@ async function mostrarAppConSesion(session){
    }
    await flkValidarLicencia();
    setTimeout(()=>flkSincronizarSeguro(),220);
-   setTimeout(()=>flkRestaurarVistaActual(),80);
+   setTimeout(()=>flkRestaurarVistaActual(),120);
   }else{
-
+   // Sesión válida pero sin conexión: conservar la vista local actual.
+   setTimeout(()=>flkRestaurarVistaActual(),120);
+  }
+ }else{
   flkSesionActiva=false;
   const cache=flkSesionLocal();
   if(!navigator.onLine&&cache?.user){
    flkPintarSesionLocal(cache.user);
    flkActualizarEstadoConexion();
-   setTimeout(()=>flkRestaurarVistaActual(),80);
+   setTimeout(()=>flkRestaurarVistaActual(),120);
    return
   }
   document.getElementById("authOverlay").classList.remove("oculto");
@@ -9075,15 +9076,13 @@ function flkClaveVistaActual(){
             (typeof flkBusinessGuardado==="function"?flkBusinessGuardado():null)||
             "sin-centro";
   return `${FLK_VISTA_ACTUAL_KEY}:${uid}:${bid}`;
- }catch(e){
-  return FLK_VISTA_ACTUAL_KEY;
- }
+ }catch(e){return FLK_VISTA_ACTUAL_KEY}
 }
 function flkGuardarVistaActual(sec){
  try{
   if(!sec)return;
   localStorage.setItem(flkClaveVistaActual(),String(sec));
-  localStorage.setItem(FLK_VISTA_ACTUAL_KEY,String(sec)); // respaldo durante resolución de centro
+  localStorage.setItem(FLK_VISTA_ACTUAL_KEY,String(sec));
  }catch(e){}
 }
 function flkVistaActualGuardada(){
@@ -9097,40 +9096,33 @@ function flkRestaurarVistaActual(){
  if(!flkSesionActiva)return false;
  const sec=flkVistaActualGuardada();
  const admin=rolSesion==="admin";
+ const propietario=!!flkEsPropietarioSoftware;
+
+ const restringidasAdmin=["gastos","cierre","reportes","ordenes","proveedores","cuentasPagar","flujoCaja","finanzas","estadisticas"];
+ if(restringidasAdmin.includes(sec)&&!admin){mostrarInventario();return false}
+ if((sec==="licencias"||sec==="software")&&!propietario){mostrarInventario();return false}
+
  const mapa={
-  inventario:()=>mostrarInventario(),
-  historial:()=>mostrarHistorial(),
-  ventas:()=>mostrarVentas(),
-  clientes:()=>mostrarClientes(),
-  gastos:()=>admin&&mostrarGastos(),
-  cierre:()=>admin&&mostrarCierre(),
-  reportes:()=>admin&&mostrarReportes(),
-  alertas:()=>mostrarAlertas(),
-  ordenes:()=>admin&&mostrarOrdenes(),
-  proveedores:()=>admin&&mostrarProveedores(),
-  cuentasPagar:()=>admin&&mostrarCuentasPagar(),
-  flujoCaja:()=>admin&&mostrarFlujoCaja(),
-  finanzas:()=>admin&&mostrarFinanzas(),
-  estadisticas:()=>admin&&mostrarEstadisticas(),
-  licencias:()=>flkEsPropietarioSoftware&&mostrarLicencias(),
-  software:()=>flkEsPropietarioSoftware&&mostrarAdminSoftware()
+  inventario:mostrarInventario,
+  historial:mostrarHistorial,
+  ventas:mostrarVentas,
+  clientes:mostrarClientes,
+  gastos:mostrarGastos,
+  cierre:mostrarCierre,
+  reportes:mostrarReportes,
+  alertas:mostrarAlertas,
+  ordenes:mostrarOrdenes,
+  proveedores:mostrarProveedores,
+  cuentasPagar:mostrarCuentasPagar,
+  flujoCaja:mostrarFlujoCaja,
+  finanzas:mostrarFinanzas,
+  estadisticas:mostrarEstadisticas,
+  licencias:mostrarLicencias,
+  software:mostrarAdminSoftware
  };
  const fn=mapa[sec];
- if(!fn)return false;
- try{
-  const r=fn();
-  // Si el rol ya no permite esa vista, volver al inventario.
-  if((["gastos","cierre","reportes","ordenes","proveedores","cuentasPagar","flujoCaja","finanzas","estadisticas"].includes(sec)&&!admin) ||
-     (sec==="licencias"&&!flkEsPropietarioSoftware) ||
-     (sec==="software"&&!flkEsPropietarioSoftware)){
-    mostrarInventario();
-    return false;
-  }
-  return true;
- }catch(e){
-  console.warn("No se pudo restaurar la vista:",sec,e);
-  return false;
- }
+ if(typeof fn!=="function")return false;
+ try{fn();return true}catch(e){console.warn("No se pudo restaurar vista",sec,e);return false}
 }
 
 function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonEstadisticas","botonLicencias"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";if(sec!=="cuentasPagar")document.getElementById("vistaCuentasPagar").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",cuentasPagar:"botonCuentasPagar",flujoCaja:"botonFlujoCaja",finanzas:"botonFinanzas",estadisticas:"botonEstadisticas"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo");flkGuardarVistaActual(sec)}
