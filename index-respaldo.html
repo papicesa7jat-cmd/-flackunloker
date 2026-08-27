@@ -1344,8 +1344,8 @@ textarea::placeholder{
 .auth-password-toggle{position:absolute;right:7px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;border-radius:9px;background:transparent;cursor:pointer;font-size:19px;display:flex;align-items:center;justify-content:center;z-index:5}
 .auth-password-toggle:active{background:rgba(10,132,255,.08)}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+
+
 
 <style id="flk-lector-fisico-style">
 .flk-lector-fisico{margin-top:10px;padding:10px;border:1px solid #cfdae5;border-radius:12px;background:#f8fbfe}
@@ -1448,13 +1448,104 @@ textarea::placeholder{
 .flk-qr-confirmacion-botones button:first-child{background:#0a67d1;color:#fff}
 .flk-qr-confirmacion-botones button:last-child{background:#e9eef3;color:#29445c}
 </style>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
 
 <style id="flk-html5qr-iphone-style">
 #flkHtml5QrReader{overflow:hidden;border-radius:14px;background:#050505}
 #flkHtml5QrReader video{width:100%!important;height:auto!important;object-fit:cover!important;border-radius:14px}
 #flkHtml5QrReader canvas{max-width:100%!important}
 #flkQrLinternaBtn{border:0;border-radius:10px;padding:10px;font-weight:850;background:#f0f4f8;color:#17324a;cursor:pointer}
+</style>
+
+<script id="flk-qr-offline-loader">
+(function(){
+ const VERSION="qr-offline-v1";
+ const LIBS=[
+  {name:"qrcodejs",url:"https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js",key:"flk_lib_qrcodejs_v1",ok:()=>typeof window.QRCode==="function"},
+  {name:"jsqr",url:"https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js",key:"flk_lib_jsqr_v1",ok:()=>typeof window.jsQR==="function"},
+  {name:"html5qrcode",url:"https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js",key:"flk_lib_html5qrcode_v1",ok:()=>typeof window.Html5Qrcode==="function"}
+ ];
+
+ function ejecutar(codigo,nombre){
+  if(!codigo)return false;
+  try{
+   (0,eval)(String(codigo)+"\n//# sourceURL=flackunloker-offline-"+nombre+".js");
+   return true;
+  }catch(err){
+   console.error("No se pudo ejecutar "+nombre,err);
+   return false;
+  }
+ }
+
+ async function cargar(lib){
+  if(lib.ok())return true;
+
+  // 1. Intentar primero la copia guardada en el teléfono/computadora.
+  try{
+   const guardada=localStorage.getItem(lib.key);
+   if(guardada && ejecutar(guardada,lib.name) && lib.ok())return true;
+  }catch(_){}
+
+  // 2. Si hay Internet, descargarla una vez y dejarla almacenada para el futuro.
+  if(navigator.onLine){
+   try{
+    const r=await fetch(lib.url,{cache:"no-store"});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    const codigo=await r.text();
+    try{localStorage.setItem(lib.key,codigo)}catch(e){
+     console.warn("No se pudo guardar "+lib.name+" en localStorage",e);
+    }
+    if(ejecutar(codigo,lib.name) && lib.ok())return true;
+   }catch(err){
+    console.warn("No se pudo preparar "+lib.name+" para uso offline",err);
+   }
+  }
+  return lib.ok();
+ }
+
+ window.flkAsegurarMotoresQROffline=async function(){
+  const resultados={};
+  for(const lib of LIBS)resultados[lib.name]=await cargar(lib);
+  return resultados;
+ };
+
+ window.flkEstadoMotoresQROffline=function(){
+  return {
+   qrcodejs:typeof window.QRCode==="function",
+   jsqr:typeof window.jsQR==="function",
+   html5qrcode:typeof window.Html5Qrcode==="function"
+  };
+ };
+
+ window.flkPrepararQROffline=async function(silencioso=false){
+  const estado=await window.flkAsegurarMotoresQROffline();
+  const lectura=!!(estado.jsqr||estado.html5qrcode);
+  const generacion=!!estado.qrcodejs;
+  try{
+   localStorage.setItem("flk_qr_offline_preparado",JSON.stringify({
+    version:VERSION,fecha:new Date().toISOString(),lectura,generacion
+   }));
+  }catch(_){}
+  if(!silencioso){
+   alert(lectura&&generacion
+    ?"✅ QR preparado para trabajar sin Internet en este dispositivo."
+    :"⚠️ No se pudieron guardar todos los motores QR. Conéctate a Internet y vuelve a preparar el modo offline.");
+  }
+  return {lectura,generacion,...estado};
+ };
+
+ // Al entrar online, preparar automáticamente las librerías para el próximo corte.
+ if(navigator.onLine){
+  setTimeout(()=>window.flkPrepararQROffline(true),700);
+ }
+ window.addEventListener("online",()=>setTimeout(()=>window.flkPrepararQROffline(true),500));
+})();
+</script>
+
+<style id="flk-qr-offline-style">
+.flk-qr-offline-box{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0;padding:10px 11px;border:1px solid #cbd9e6;border-radius:12px;background:#f5faff;color:#17324a}
+.flk-qr-offline-box div{min-width:0}.flk-qr-offline-box strong{display:block;font-size:12px}.flk-qr-offline-box small{display:block;margin-top:3px;font-size:10.5px;color:#607486;line-height:1.3}
+.flk-qr-offline-box button{flex:0 0 auto;border:0;border-radius:9px;padding:8px 9px;background:#e4f1ff;color:#0965bd;font-weight:850;font-size:11px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -1819,6 +1910,14 @@ textarea::placeholder{
 <div class="fila-estadistica"><span>Pagos a proveedores</span><strong id="flujoPagosProveedores">$0.00</strong></div>
 </div>
 
+<div class="lista-estadisticas">
+<h3>👤 Movimientos del propietario</h3>
+<div class="fila-estadistica"><span>➕ Aportes al fondo de caja</span><strong id="flujoAportesPropietario">$0.00</strong></div>
+<div class="fila-estadistica"><span>🏦 Retiros de caja</span><strong id="flujoRetirosPropietario">$0.00</strong></div>
+<div class="fila-estadistica"><span>Variación neta de caja por propietario</span><strong id="flujoNetoPropietario">$0.00</strong></div>
+<p style="margin:8px 0 0;color:#dfe7ee;font-size:12px;line-height:1.45">Estos movimientos cambian el efectivo disponible, pero no modifican la ganancia del negocio.</p>
+</div>
+
 <div class="lista-estadisticas"><h3>💳 Flujo neto por método</h3>
 <div class="fila-estadistica"><span>💵 Efectivo</span><strong id="flujoEfectivo">$0.00</strong></div>
 <div class="fila-estadistica"><span>📱 ATH Móvil</span><strong id="flujoAth">$0.00</strong></div>
@@ -1907,10 +2006,19 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 </div>
 </div>
 
-<div class="lista-estadisticas"><h3>💵 Liquidez / Flujo del período</h3>
-<div class="fila-estadistica"><span>Entradas de dinero</span><strong id="finEntradas">$0.00</strong></div>
-<div class="fila-estadistica"><span>Salidas de dinero</span><strong id="finSalidas">$0.00</strong></div>
-<div class="fila-estadistica"><span>💰 Flujo neto</span><strong id="finFlujoNeto">$0.00</strong></div>
+<div class="lista-estadisticas"><h3>💵 Liquidez / Flujo operativo del período</h3>
+<div class="fila-estadistica"><span>Entradas operativas</span><strong id="finEntradas">$0.00</strong></div>
+<div class="fila-estadistica"><span>Salidas operativas</span><strong id="finSalidas">$0.00</strong></div>
+<div class="fila-estadistica"><span>💰 Flujo operativo neto</span><strong id="finFlujoNeto">$0.00</strong></div>
+</div>
+
+<div class="lista-estadisticas">
+<h3>👤 Aportes y retiros del propietario</h3>
+<div class="fila-estadistica"><span>➕ Aportes al fondo de caja</span><strong id="finAportesPropietario">$0.00</strong></div>
+<div class="fila-estadistica"><span>🏦 Retiros de caja</span><strong id="finRetirosPropietario">$0.00</strong></div>
+<div class="fila-estadistica"><span>Efecto neto sobre caja</span><strong id="finNetoPropietario">$0.00</strong></div>
+<div class="fila-estadistica"><span>Flujo total de caja incluyendo propietario</span><strong id="finFlujoCajaTotal">$0.00</strong></div>
+<p style="margin:8px 0 0;color:#dfe7ee;font-size:12px;line-height:1.45">Los aportes y retiros se muestran por control de efectivo. No forman parte de Ventas, Gastos, Ganancia bruta ni Ganancia neta.</p>
 </div>
 
 <div class="lista-estadisticas"><h3>📌 Indicadores</h3>
@@ -1977,6 +2085,10 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
    <button type="button" class="boton-guardar" onclick="iniciarEscanerQR()">📷 Activar cámara</button>
    <button type="button" id="flkQrLinternaBtn" style="display:none" onclick="flkAlternarLinternaQR()">🔦 Linterna</button>
    <button type="button" class="boton-cancelar" onclick="detenerEscanerQR()">⏹ Detener cámara</button>
+  </div>
+  <div class="flk-qr-offline-box">
+   <div><strong>📴 QR sin Internet</strong><small id="flkQrOfflineEstado">Comprobando motores QR…</small></div>
+   <button type="button" onclick="flkPrepararQROffline(false).then(actualizarEstadoQROfflineVisual)">Preparar offline</button>
   </div>
   <div class="flk-lector-fisico">
    <button type="button" id="flkBotonLectorFisico" onclick="toggleLectorFisico()">🔌 Activar lector físico</button>
@@ -2255,6 +2367,11 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   </div>
   <input id="archivoRespaldo" type="file" accept=".json,application/json" style="display:none" onchange="restaurarRespaldo(event)">
   <div id="estadoRespaldo" class="estado-respaldo"></div>
+  <div id="flkProteccionRestauracionBox" class="estado-respaldo" style="display:none">
+   <strong>🛡️ Restauración protegida</strong><br>
+   <span id="flkProteccionRestauracionTexto">Supabase no reemplazará estos datos automáticamente.</span>
+   <button type="button" class="boton-agregar" style="width:100%;margin-top:10px" onclick="flkLiberarProteccionRestauracion()">☁️ Reanudar sincronización con Supabase</button>
+  </div>
  </div>
  <div class="adminsw-panel adminsw-seguridad-compacta">
   <h3 style="margin:0 0 8px">🔐 Seguridad</h3>
@@ -7403,8 +7520,17 @@ function datosFlujoCaja(){
  const mov=movimientosFlujoCaja().filter(m=>{const f=fechaMovimientoFlujo(m.fecha);return f&&f>=lim.desde&&f<lim.hasta});
  const suma=(tipo,grupo)=>mov.filter(m=>(!tipo||m.tipo===tipo)&&(!grupo||m.grupo===grupo)).reduce((t,m)=>t+m.cantidad,0);
  const entradas=suma("entrada"),salidas=suma("salida"),metodos={};
+ const aportesPropietario=mov.filter(m=>m.grupo==="propietario"&&m.tipo==="entrada").reduce((t,m)=>t+Number(m.cantidad||0),0);
+ const retirosPropietario=mov.filter(m=>m.grupo==="propietario"&&m.tipo==="salida").reduce((t,m)=>t+Number(m.cantidad||0),0);
  ["Efectivo","ATH Móvil","Tarjeta","Transferencia","Otro"].forEach(k=>metodos[k]=mov.filter(m=>m.metodo===k).reduce((t,m)=>t+(m.tipo==="entrada"?m.cantidad:-m.cantidad),0));
- return {lim,mov,entradas,salidas,neto:entradas-salidas,ventas:suma("entrada","venta"),abonos:suma("entrada","abono"),gastos:suma("salida","gasto"),proveedores:suma("salida","proveedor"),metodos}
+ return {
+  lim,mov,entradas,salidas,neto:entradas-salidas,
+  ventas:suma("entrada","venta"),abonos:suma("entrada","abono"),
+  gastos:suma("salida","gasto"),proveedores:suma("salida","proveedor"),
+  aportesPropietario,retirosPropietario,
+  netoPropietario:aportesPropietario-retirosPropietario,
+  metodos
+ }
 }
 function cambiarPeriodoFlujo(){
  const personalizado=document.getElementById("periodoFlujo").value==="personalizado";
@@ -7458,6 +7584,13 @@ function actualizarFlujoCaja(){
  document.getElementById("flujoAbonosClientes").textContent="$"+d.abonos.toFixed(2);
  document.getElementById("flujoGastos").textContent="$"+d.gastos.toFixed(2);
  document.getElementById("flujoPagosProveedores").textContent="$"+d.proveedores.toFixed(2);
+ document.getElementById("flujoAportesPropietario").textContent="$"+d.aportesPropietario.toFixed(2);
+ document.getElementById("flujoRetirosPropietario").textContent="$"+d.retirosPropietario.toFixed(2);
+ const netoProp=document.getElementById("flujoNetoPropietario");
+ if(netoProp){
+  netoProp.textContent=(d.netoPropietario<0?"−":"+")+"$"+Math.abs(d.netoPropietario).toFixed(2);
+  netoProp.style.color=d.netoPropietario<0?"#d93025":"#111";
+ }
  document.getElementById("flujoEfectivo").textContent="$"+d.metodos["Efectivo"].toFixed(2);
  document.getElementById("flujoAth").textContent="$"+d.metodos["ATH Móvil"].toFixed(2);
  document.getElementById("flujoTarjeta").textContent="$"+d.metodos["Tarjeta"].toFixed(2);
@@ -7630,16 +7763,24 @@ function datosFinanzas(){
  const patrimonio=activos-porPagar;
 
  // Flujo operativo real del período. Retiros/aportes del dueño no son resultado del negocio.
- const mov=typeof movimientosFlujoCaja==="function"
-  ? movimientosFlujoCaja().filter(m=>enRango(m.fecha)&&m.grupo!=="propietario")
+ const todosMov=typeof movimientosFlujoCaja==="function"
+  ? movimientosFlujoCaja().filter(m=>enRango(m.fecha))
   : [];
+ const mov=todosMov.filter(m=>m.grupo!=="propietario");
+ const movPropietario=todosMov.filter(m=>m.grupo==="propietario");
  const entradas=mov.filter(m=>m.tipo==="entrada").reduce((t,m)=>t+Number(m.cantidad||0),0);
  const salidas=mov.filter(m=>m.tipo==="salida").reduce((t,m)=>t+Number(m.cantidad||0),0);
+ const aportesPropietario=movPropietario.filter(m=>m.tipo==="entrada").reduce((t,m)=>t+Number(m.cantidad||0),0);
+ const retirosPropietario=movPropietario.filter(m=>m.tipo==="salida").reduce((t,m)=>t+Number(m.cantidad||0),0);
+ const netoPropietario=aportesPropietario-retirosPropietario;
+ const flujoOperativo=entradas-salidas;
+ const flujoCajaTotal=flujoOperativo+netoPropietario;
 
  return {
   lim,ventasTotal,costo,bruta,gastosTotal,neta,
   caja,inventario,porCobrar,porPagar,activos,patrimonio,
-  entradas,salidas,flujo:entradas-salidas
+  entradas,salidas,flujo:flujoOperativo,
+  aportesPropietario,retirosPropietario,netoPropietario,flujoCajaTotal
  }
 }
 function cambiarPeriodoFinanzas(){
@@ -7672,6 +7813,14 @@ function actualizarFinanzas(){
  if(formula)formula.textContent=`$${d.caja.toFixed(2)} + $${d.inventario.toFixed(2)} + $${d.porCobrar.toFixed(2)} − $${d.porPagar.toFixed(2)} = $${d.patrimonio.toFixed(2)}`;
  money("finVentas",d.ventasTotal);money("finCosto",d.costo);money("finBruta",d.bruta);money("finGastos",d.gastosTotal);money("finNeta",d.neta);
  money("finEntradas",d.entradas);money("finSalidas",d.salidas);money("finFlujoNeto",d.flujo);
+ money("finAportesPropietario",d.aportesPropietario);
+ money("finRetirosPropietario",d.retirosPropietario);
+ money("finNetoPropietario",d.netoPropietario);
+ money("finFlujoCajaTotal",d.flujoCajaTotal);
+ const finNetoProp=document.getElementById("finNetoPropietario");
+ if(finNetoProp)finNetoProp.style.color=d.netoPropietario<0?"#d93025":"#111";
+ const finFlujoTotal=document.getElementById("finFlujoCajaTotal");
+ if(finFlujoTotal)finFlujoTotal.style.color=d.flujoCajaTotal<0?"#d93025":"#111";
  document.getElementById("finPatrimonio").style.color=d.patrimonio<0?"#d93025":"#0a84ff";
  document.getElementById("finNeta").style.color=d.neta<0?"#d93025":"#168044";
  document.getElementById("finFlujoNeto").style.color=d.flujo<0?"#d93025":"#168044";
@@ -8116,22 +8265,249 @@ document.addEventListener("visibilitychange",()=>{
  }
 });
 
+
+
+const FLK_RESTORE_PROTECTION_PREFIX="flackunloker_restore_protection::";
+function flkRestoreProtectionKey(){
+ const id=flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:flkBusinessGuardado();
+ return FLK_RESTORE_PROTECTION_PREFIX+(id||"sin-centro");
+}
+function flkProteccionRestauracionActiva(){
+ try{
+  const raw=localStorage.getItem(flkRestoreProtectionKey());
+  if(!raw)return false;
+  const obj=JSON.parse(raw);
+  return !!(obj&&obj.active===true);
+ }catch(_){return false}
+}
+function flkActivarProteccionRestauracion(meta={}){
+ try{
+  localStorage.setItem(flkRestoreProtectionKey(),JSON.stringify({
+   active:true,
+   restored_at:new Date().toISOString(),
+   centro_id:meta.centro_id||FLK_BUSINESS_ID||flkBusinessGuardado()||null,
+   centro_nombre:meta.centro_nombre||"",
+   backup_fecha:meta.backup_fecha||null
+  }));
+ }catch(_){}
+ flkPintarProteccionRestauracion();
+}
+function flkPintarProteccionRestauracion(){
+ const box=document.getElementById("flkProteccionRestauracionBox");
+ const txt=document.getElementById("flkProteccionRestauracionTexto");
+ if(!box)return;
+ const activa=flkProteccionRestauracionActiva();
+ box.style.display=activa?"block":"none";
+ if(txt&&activa){
+  txt.textContent="La copia restaurada queda como fuente local protegida. Supabase no podrá sustituirla automáticamente.";
+ }
+}
+async function flkLiberarProteccionRestauracion(){
+ if(!flkProteccionRestauracionActiva())return;
+ const ok=confirm(
+  "¿Reanudar la sincronización con Supabase?\n\n"+
+  "IMPORTANTE: si la nube todavía contiene datos diferentes a la copia restaurada, al actualizar desde Supabase podrían volver a reemplazarse datos locales.\n\n"+
+  "Continúa solo cuando estés seguro de que deseas volver a usar la nube."
+ );
+ if(!ok)return;
+ try{localStorage.removeItem(flkRestoreProtectionKey())}catch(_){}
+ flkPintarProteccionRestauracion();
+ mostrarEstadoRespaldo("☁️ Sincronización con Supabase habilitada nuevamente.");
+}
+document.addEventListener("DOMContentLoaded",()=>setTimeout(flkPintarProteccionRestauracion,100));
+
+const FLK_BACKUP_CENTER_NAME_PREFIX="flackunloker_backup_center_name::";
+function flkNombreCentroBackupLocal(){
+ const id=flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:flkBusinessGuardado();
+ if(!id)return "Centro_sin_identificar";
+ try{
+  const guardado=String(localStorage.getItem(FLK_BACKUP_CENTER_NAME_PREFIX+id)||"").trim();
+  if(guardado)return guardado;
+  const cache=typeof flkLeerCacheLicencia==="function"?flkLeerCacheLicencia():null;
+  const nombre=String(
+   cache?.info?.business_name||
+   cache?.info?.center_name||
+   cache?.info?.customer_name||
+   ""
+  ).trim();
+  if(nombre){
+   localStorage.setItem(FLK_BACKUP_CENTER_NAME_PREFIX+id,nombre);
+   return nombre;
+  }
+ }catch(_){}
+ return "Centro_"+String(id).slice(0,8);
+}
+async function flkResolverCentroBackup(){
+ let id=flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:flkBusinessGuardado();
+ if(!id && navigator.onLine){
+  try{id=await flkExigirCentroActual()}catch(_){}
+ }
+ if(!id)throw new Error("No se pudo identificar el centro activo.");
+
+ let nombre=flkNombreCentroBackupLocal();
+ if(navigator.onLine && typeof flkSupabase!=="undefined"){
+  try{
+   const {data,error}=await flkSupabase.from("businesses").select("name,business_name,customer_name").eq("id",id).maybeSingle();
+   if(!error&&data){
+    const n=String(data.business_name||data.name||data.customer_name||"").trim();
+    if(n){
+     nombre=n;
+     localStorage.setItem(FLK_BACKUP_CENTER_NAME_PREFIX+id,nombre);
+    }
+   }
+  }catch(_){}
+ }
+ return {id,nombre};
+}
+function flkNombreArchivoSeguro(valor){
+ return String(valor||"Centro")
+  .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+  .replace(/[^a-zA-Z0-9_-]+/g,"-")
+  .replace(/^-+|-+$/g,"")
+  .slice(0,50)||"Centro";
+}
+
 function mostrarEstadoRespaldo(m){const e=document.getElementById("estadoRespaldo");e.textContent=m;e.classList.add("visible")}
 
-function nombreRespaldoFlackunloker(){
+function nombreRespaldoFlackunloker(centroNombre="Centro",centroId=""){
  const d=new Date();
  const dos=n=>String(n).padStart(2,"0");
  let h=d.getHours();
  const ampm=h>=12?"PM":"AM";
  h=h%12||12;
- return `Flackunloker_Respaldo_${dos(d.getDate())}-${dos(d.getMonth()+1)}-${d.getFullYear()}_${dos(h)}-${dos(d.getMinutes())}-${dos(d.getSeconds())}_${ampm}.json`;
+ const centro=flkNombreArchivoSeguro(centroNombre);
+ const idCorto=String(centroId||"").slice(0,8);
+ return `Flackunloker_${centro}_${idCorto}_Respaldo_${dos(d.getDate())}-${dos(d.getMonth()+1)}-${d.getFullYear()}_${dos(h)}-${dos(d.getMinutes())}-${dos(d.getSeconds())}_${ampm}.json`;
 }
 
-function crearRespaldo(){const datos={aplicacion:"Flackunloker",version:"2.0",fecha:new Date().toISOString(),productos,historial,ventas,gastos,cierres,ordenesCompra,proveedores};const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=nombreRespaldoFlackunloker();document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);mostrarEstadoRespaldo("✅ Respaldo creado correctamente.")}
+async function crearRespaldo(){
+ try{
+  const centro=await flkResolverCentroBackup();
+  const datos={
+   aplicacion:"Flackunloker",
+   version:"2.1-multicentro",
+   fecha:new Date().toISOString(),
+   centro:{
+    business_id:centro.id,
+    nombre:centro.nombre
+   },
+   productos,historial,ventas,gastos,cierres,ordenesCompra,proveedores
+  };
+  const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;
+  a.download=nombreRespaldoFlackunloker(centro.nombre,centro.id);
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  mostrarEstadoRespaldo(`✅ Respaldo creado para ${centro.nombre}.`);
+ }catch(err){
+  console.error("Respaldo por centro:",err);
+  alert("No se pudo crear el respaldo porque no se pudo identificar el centro activo.");
+ }
+}
 function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
-function restaurarRespaldo(event){
- const archivo=event.target.files[0];if(!archivo)return;const lector=new FileReader();
- lector.onload=()=>{try{const datos=JSON.parse(lector.result);if(!datos||datos.aplicacion!=="Flackunloker")return alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial))return alert("El respaldo está incompleto o dañado.");if(!confirm("¿Quieres restaurar este respaldo?\n\nLos productos y el historial actuales serán reemplazados por los datos del respaldo."))return;productos=datos.productos;historial=datos.historial;ventas=Array.isArray(datos.ventas)?datos.ventas:[];gastos=Array.isArray(datos.gastos)?datos.gastos:[];cierres=Array.isArray(datos.cierres)?datos.cierres:[];ordenesCompra=Array.isArray(datos.ordenesCompra)?datos.ordenesCompra:[];proveedores=Array.isArray(datos.proveedores)?datos.proveedores:[];productos.forEach(p=>{if(p.stockMinimo===undefined||p.stockMinimo===null)p.stockMinimo=5;if(p.costo===undefined||p.costo===null||p.costo==="")p.costo=0;if(p.categoria===undefined||p.categoria===null)p.categoria="";if(p.proveedor===undefined||p.proveedor===null)p.proveedor="";if(p.ubicacion===undefined||p.ubicacion===null)p.ubicacion=""});[...productos.map(p=>String(p.proveedor||"").trim()),...ordenesCompra.map(o=>String(o.proveedor||"").trim())].filter(Boolean).forEach(nombre=>{if(!proveedores.some(pr=>nombreProveedorNorm(pr.nombre)===nombreProveedorNorm(nombre)))proveedores.push({id:Date.now()+Math.floor(Math.random()*100000)+proveedores.length,nombre,contacto:"",telefono:"",email:"",direccion:"",nota:"",creado:new Date().toISOString()})});recalcularSaldos();guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();guardarOrdenesCompra();guardarProveedores();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarReporte();actualizarFlujoCaja();actualizarFinanzas();actualizarCentroAlertas();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarFlujoCaja();actualizarEstadisticas();mostrarEstadoRespaldo("✅ Respaldo restaurado correctamente.");alert("Respaldo restaurado correctamente.")}catch(err){console.error(err);alert("No se pudo leer el respaldo. Comprueba que el archivo sea válido.")}finally{event.target.value=""}};lector.readAsText(archivo)
+async function restaurarRespaldo(event){
+ const archivo=event.target.files[0];
+ if(!archivo)return;
+ const lector=new FileReader();
+
+ lector.onload=async()=>{
+  try{
+   const datos=JSON.parse(lector.result);
+   if(!datos||datos.aplicacion!=="Flackunloker")
+    return alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");
+   if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial))
+    return alert("El respaldo está incompleto o dañado.");
+
+   const backupCentroId=String(datos?.centro?.business_id||"").trim();
+   const backupCentroNombre=String(datos?.centro?.nombre||"").trim();
+
+   // No adivinar el centro de respaldos antiguos.
+   if(!flkUuidValido(backupCentroId)){
+    return alert(
+     "⚠️ Este respaldo es de una versión antigua y no contiene la identificación del centro.\n\n"+
+     "Por seguridad multicentro no se restaurará automáticamente. Crea un respaldo nuevo por centro antes de usar esta función."
+    );
+   }
+
+   const centroActual=await flkResolverCentroBackup();
+   if(String(centroActual.id)!==backupCentroId){
+    return alert(
+     "⛔ RESPALDO DE OTRO CENTRO\n\n"+
+     "Respaldo: "+(backupCentroNombre||"Centro sin nombre")+" ("+backupCentroId.slice(0,8)+")\n"+
+     "Centro activo: "+centroActual.nombre+" ("+String(centroActual.id).slice(0,8)+")\n\n"+
+     "La restauración fue bloqueada para evitar mezclar datos entre centros."
+    );
+   }
+
+   const ok=confirm(
+    "✅ Centro verificado\n\n"+
+    "Respaldo: "+(backupCentroNombre||centroActual.nombre)+"\n"+
+    "Centro activo: "+centroActual.nombre+"\n\n"+
+    "¿Quieres restaurar este respaldo?\n\n"+
+    "Los datos locales actuales de ESTE CENTRO serán reemplazados por los datos del respaldo."
+   );
+   if(!ok)return;
+
+   // Proteger primero la restauración antes de aplicar los datos.
+   // Así ninguna lectura automática de Supabase puede reemplazarla durante el proceso.
+   flkActivarProteccionRestauracion({
+    centro_id:centroActual.id,
+    centro_nombre:centroActual.nombre,
+    backup_fecha:datos.fecha||null
+   });
+
+   productos=datos.productos;
+   historial=datos.historial;
+   ventas=Array.isArray(datos.ventas)?datos.ventas:[];
+   gastos=Array.isArray(datos.gastos)?datos.gastos:[];
+   cierres=Array.isArray(datos.cierres)?datos.cierres:[];
+   ordenesCompra=Array.isArray(datos.ordenesCompra)?datos.ordenesCompra:[];
+   proveedores=Array.isArray(datos.proveedores)?datos.proveedores:[];
+
+   productos.forEach(p=>{
+    if(p.stockMinimo===undefined||p.stockMinimo===null)p.stockMinimo=5;
+    if(p.costo===undefined||p.costo===null||p.costo==="")p.costo=0;
+    if(p.categoria===undefined||p.categoria===null)p.categoria="";
+    if(p.proveedor===undefined||p.proveedor===null)p.proveedor="";
+    if(p.ubicacion===undefined||p.ubicacion===null)p.ubicacion="";
+   });
+
+   [...productos.map(p=>String(p.proveedor||"").trim()),...ordenesCompra.map(o=>String(o.proveedor||"").trim())]
+    .filter(Boolean)
+    .forEach(nombre=>{
+     if(!proveedores.some(pr=>nombreProveedorNorm(pr.nombre)===nombreProveedorNorm(nombre))){
+      proveedores.push({
+       id:Date.now()+Math.floor(Math.random()*100000)+proveedores.length,
+       nombre,contacto:"",telefono:"",email:"",direccion:"",nota:"",
+       creado:new Date().toISOString()
+      });
+     }
+    });
+
+   recalcularSaldos();
+   guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();
+   guardarOrdenesCompra();guardarProveedores();
+
+   mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();
+   actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();
+   actualizarReporte();actualizarFlujoCaja();actualizarFinanzas();actualizarCentroAlertas();
+   actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();
+   actualizarEstadisticas();
+
+   mostrarEstadoRespaldo(`✅ Respaldo restaurado en ${centroActual.nombre}.`);
+   alert(
+    "Respaldo restaurado correctamente en "+centroActual.nombre+".\n\n"+
+    "🛡️ MODO PROTEGIDO ACTIVADO\n"+
+    "Supabase no reemplazará automáticamente esta restauración. Cuando decidas volver a sincronizar con la nube, usa el botón del panel de Respaldos."
+   );
+  }catch(err){
+   console.error(err);
+   alert("No se pudo restaurar el respaldo: "+(err?.message||"archivo no válido."));
+  }finally{
+   event.target.value="";
+  }
+ };
+ lector.readAsText(archivo);
 }
 
 document.getElementById("modalProducto").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarFormulario()});
@@ -9486,6 +9862,220 @@ cerrarEscanerQR=function(){
  if(oldVideo)oldVideo.style.display="";
  return flkCerrarScannerAnterior();
 };
+</script>
+
+<script id="flk-qr-antiduplicado-global">
+const FLK_QR_BLOQUEO_MS=900;
+let flkQrFuenteActiva="";
+let flkQrOperacionEnCurso=false;
+let flkQrCodigoGlobal="";
+let flkQrCodigoGlobalTs=0;
+
+function flkQrAceptarLecturaGlobal(codigo,fuente){
+ codigo=String(codigo||"").trim();
+ if(!codigo)return false;
+ const ahora=Date.now();
+
+ // While a non-continuous transaction is awaiting/performing confirmation,
+ // no second scanner source may launch another transaction.
+ if(flkQrOperacionEnCurso && flkQrModo!=="venta")return false;
+
+ // Same QR arriving from camera/HID/manual almost simultaneously = one read.
+ if(codigo===flkQrCodigoGlobal && ahora-flkQrCodigoGlobalTs<FLK_QR_BLOQUEO_MS)return false;
+
+ flkQrCodigoGlobal=codigo;
+ flkQrCodigoGlobalTs=ahora;
+ flkQrFuenteActiva=fuente||"desconocida";
+ return true;
+}
+
+// Camera mode: physical reader is ignored while camera is actively scanning.
+const flkPresentarLecturaOriginalGlobal=flkPresentarLecturaParaConfirmar;
+flkPresentarLecturaParaConfirmar=function(codigo){
+ if(!flkQrAceptarLecturaGlobal(codigo,"camara"))return;
+ flkQrOperacionEnCurso=true;
+ return flkPresentarLecturaOriginalGlobal(codigo);
+};
+
+// Preserve original business processor. Deliberate manual/HID inputs share the same lock.
+const flkProcesarNegocioGlobal=flkProcesarCodigoQRNegocio;
+flkProcesarCodigoQRNegocio=function(codigo,desdeCamara){
+ if(desdeCamara){
+  return flkProcesarNegocioGlobal(codigo,desdeCamara);
+ }
+ const fuente=(flkLectorFisicoActivo?"lector-fisico":"manual");
+ if(!flkQrAceptarLecturaGlobal(codigo,fuente))return;
+ flkQrOperacionEnCurso=true;
+ try{
+  return flkProcesarNegocioGlobal(codigo,desdeCamara);
+ }finally{
+  // Manual/HID calls are intentional and synchronous at this layer.
+  setTimeout(function(){flkQrOperacionEnCurso=false},FLK_QR_BLOQUEO_MS);
+ }
+};
+
+// When camera starts, disable HID capture to prevent the same physical code
+// being injected by two active sources.
+const flkIniciarCamaraGlobal=window.iniciarEscanerQRCamaraTrasera;
+window.iniciarEscanerQRCamaraTrasera=async function(){
+ if(typeof flkLectorFisicoActivo!=="undefined" && flkLectorFisicoActivo){
+  try{toggleLectorFisico(false)}catch(_){
+   try{
+    flkLectorFisicoActivo=false;
+    const b=document.getElementById("flkQrLectorFisico");
+    if(b)b.classList.remove("activo");
+   }catch(__){}
+  }
+ }
+ flkQrFuenteActiva="camara";
+ flkQrOperacionEnCurso=false;
+ return flkIniciarCamaraGlobal.apply(this,arguments);
+};
+
+// If physical reader is enabled, stop camera first.
+if(typeof toggleLectorFisico==="function"){
+ const flkToggleFisicoGlobal=toggleLectorFisico;
+ toggleLectorFisico=function(forzar){
+  const activar=(typeof forzar==="boolean")?forzar:!flkLectorFisicoActivo;
+  if(activar){
+   try{detenerEscanerQR(false)}catch(_){}
+   try{if(typeof flkDetenerHtml5QR==="function")flkDetenerHtml5QR()}catch(_){}
+   flkQrFuenteActiva="lector-fisico";
+   flkQrOperacionEnCurso=false;
+  }
+  return flkToggleFisicoGlobal.apply(this,arguments);
+ };
+}
+
+// Confirmation/cancel releases the transaction lock in a controlled way.
+const flkConfirmarGlobal=confirmarLecturaQRPendiente;
+confirmarLecturaQRPendiente=function(){
+ const modo=flkQrModo;
+ try{return flkConfirmarGlobal.apply(this,arguments)}
+ finally{
+  // Sale may resume continuous scanning, but not quickly enough to duplicate
+  // the same physical presentation of the QR.
+  setTimeout(function(){flkQrOperacionEnCurso=false},modo==="venta"?1000:FLK_QR_BLOQUEO_MS);
+ }
+};
+
+const flkCancelarGlobal=cancelarLecturaQRPendiente;
+cancelarLecturaQRPendiente=function(){
+ try{return flkCancelarGlobal.apply(this,arguments)}
+ finally{
+  setTimeout(function(){flkQrOperacionEnCurso=false},350);
+ }
+};
+</script>
+
+<script id="flk-qr-offline-integration">
+function actualizarEstadoQROfflineVisual(){
+ const el=document.getElementById("flkQrOfflineEstado");
+ if(!el||typeof flkEstadoMotoresQROffline!=="function")return;
+ const e=flkEstadoMotoresQROffline();
+ if(e.qrcodejs&&(e.jsqr||e.html5qrcode)){
+  el.textContent=navigator.onLine
+   ?"Listo: quedará disponible aunque se vaya Internet."
+   :"Modo offline activo en este dispositivo.";
+ }else{
+  el.textContent=navigator.onLine
+   ?"Pulsa Preparar offline para guardar los motores."
+   :"Sin copia local todavía. Usa lector físico o código manual.";
+ }
+}
+
+// Intercept the principal operation flow only to ensure QR engines are ready.
+// Physical HID/manual input remains independent and therefore works even if
+// no camera decoder has ever been cached.
+if(typeof abrirModoQRDesdePrincipalConCamara==="function"){
+ const flkAbrirModoQrOfflineOriginal=abrirModoQRDesdePrincipalConCamara;
+ abrirModoQRDesdePrincipalConCamara=async function(modo){
+  try{
+   if(typeof flkAsegurarMotoresQROffline==="function"){
+    await flkAsegurarMotoresQROffline();
+   }
+  }catch(_){}
+  actualizarEstadoQROfflineVisual();
+  return flkAbrirModoQrOfflineOriginal(modo);
+ };
+}
+
+// Also guard direct camera activation inside the scanner.
+if(typeof iniciarEscanerQRCamaraTrasera==="function"){
+ const flkInicioCamaraOfflineOriginal=window.iniciarEscanerQRCamaraTrasera;
+ window.iniciarEscanerQRCamaraTrasera=async function(){
+  try{
+   if(typeof flkAsegurarMotoresQROffline==="function"){
+    await flkAsegurarMotoresQROffline();
+   }
+  }catch(_){}
+  actualizarEstadoQROfflineVisual();
+  return flkInicioCamaraOfflineOriginal.apply(this,arguments);
+ };
+}
+
+const flkAbrirEscanerOfflineOriginal=abrirEscanerQR;
+abrirEscanerQR=function(){
+ const r=flkAbrirEscanerOfflineOriginal.apply(this,arguments);
+ setTimeout(actualizarEstadoQROfflineVisual,30);
+ return r;
+};
+</script>
+
+<script id="flk-restore-protection-supabase-guard">
+(function(){
+ function bloqueado(){
+  return typeof flkProteccionRestauracionActiva==="function" && flkProteccionRestauracionActiva();
+ }
+ function aviso(){
+  if(typeof flkPintarProteccionRestauracion==="function")flkPintarProteccionRestauracion();
+  if(typeof flkActualizarEstadoConexion==="function")flkActualizarEstadoConexion();
+ }
+
+ // These are the destructive/read-back paths that reconstruct local state from cloud.
+ const nombres=[
+  "flkRecuperacionEmergenciaNube",
+  "flkSincronizarSeguro",
+  "flkReconciliarInventarioNube",
+  "cargarInventarioSupabase",
+  "cargarHistorialSupabase",
+  "cargarVentasSupabase",
+  "cargarGastosSupabase",
+  "cargarComprasSupabase",
+  "cargarCierresSupabase",
+  "cargarMovimientosCajaSupabase"
+ ];
+
+ nombres.forEach(nombre=>{
+  const original=window[nombre];
+  if(typeof original!=="function")return;
+  window[nombre]=async function(){
+   if(bloqueado()){
+    aviso();
+    console.info("Restauración protegida: se omitió "+nombre);
+    return true;
+   }
+   return original.apply(this,arguments);
+  };
+ });
+
+ // Do not push queued operations and then immediately rebuild from cloud while
+ // a restored snapshot is protected. Local work remains stored in its current center.
+ if(typeof window.flkProcesarColaOffline==="function"){
+  const originalCola=window.flkProcesarColaOffline;
+  window.flkProcesarColaOffline=async function(){
+   if(bloqueado()){
+    aviso();
+    console.info("Restauración protegida: cola offline conservada sin enviar.");
+    return false;
+   }
+   return originalCola.apply(this,arguments);
+  };
+ }
+
+ // Make protection visible whenever Backup view/status is touched.
+ document.addEventListener("DOMContentLoaded",()=>setTimeout(aviso,250));
+})();
 </script>
 </body>
 </html>
