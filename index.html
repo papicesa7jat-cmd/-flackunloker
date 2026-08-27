@@ -8260,22 +8260,187 @@ document.addEventListener("visibilitychange",()=>{
  }
 });
 
+
+const FLK_BACKUP_CENTER_NAME_PREFIX="flackunloker_backup_center_name::";
+function flkNombreCentroBackupLocal(){
+ const id=flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:flkBusinessGuardado();
+ if(!id)return "Centro_sin_identificar";
+ try{
+  const guardado=String(localStorage.getItem(FLK_BACKUP_CENTER_NAME_PREFIX+id)||"").trim();
+  if(guardado)return guardado;
+  const cache=typeof flkLeerCacheLicencia==="function"?flkLeerCacheLicencia():null;
+  const nombre=String(
+   cache?.info?.business_name||
+   cache?.info?.center_name||
+   cache?.info?.customer_name||
+   ""
+  ).trim();
+  if(nombre){
+   localStorage.setItem(FLK_BACKUP_CENTER_NAME_PREFIX+id,nombre);
+   return nombre;
+  }
+ }catch(_){}
+ return "Centro_"+String(id).slice(0,8);
+}
+async function flkResolverCentroBackup(){
+ let id=flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:flkBusinessGuardado();
+ if(!id && navigator.onLine){
+  try{id=await flkExigirCentroActual()}catch(_){}
+ }
+ if(!id)throw new Error("No se pudo identificar el centro activo.");
+
+ let nombre=flkNombreCentroBackupLocal();
+ if(navigator.onLine && typeof flkSupabase!=="undefined"){
+  try{
+   const {data,error}=await flkSupabase.from("businesses").select("name,business_name,customer_name").eq("id",id).maybeSingle();
+   if(!error&&data){
+    const n=String(data.business_name||data.name||data.customer_name||"").trim();
+    if(n){
+     nombre=n;
+     localStorage.setItem(FLK_BACKUP_CENTER_NAME_PREFIX+id,nombre);
+    }
+   }
+  }catch(_){}
+ }
+ return {id,nombre};
+}
+function flkNombreArchivoSeguro(valor){
+ return String(valor||"Centro")
+  .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+  .replace(/[^a-zA-Z0-9_-]+/g,"-")
+  .replace(/^-+|-+$/g,"")
+  .slice(0,50)||"Centro";
+}
+
 function mostrarEstadoRespaldo(m){const e=document.getElementById("estadoRespaldo");e.textContent=m;e.classList.add("visible")}
 
-function nombreRespaldoFlackunloker(){
+function nombreRespaldoFlackunloker(centroNombre="Centro",centroId=""){
  const d=new Date();
  const dos=n=>String(n).padStart(2,"0");
  let h=d.getHours();
  const ampm=h>=12?"PM":"AM";
  h=h%12||12;
- return `Flackunloker_Respaldo_${dos(d.getDate())}-${dos(d.getMonth()+1)}-${d.getFullYear()}_${dos(h)}-${dos(d.getMinutes())}-${dos(d.getSeconds())}_${ampm}.json`;
+ const centro=flkNombreArchivoSeguro(centroNombre);
+ const idCorto=String(centroId||"").slice(0,8);
+ return `Flackunloker_${centro}_${idCorto}_Respaldo_${dos(d.getDate())}-${dos(d.getMonth()+1)}-${d.getFullYear()}_${dos(h)}-${dos(d.getMinutes())}-${dos(d.getSeconds())}_${ampm}.json`;
 }
 
-function crearRespaldo(){const datos={aplicacion:"Flackunloker",version:"2.0",fecha:new Date().toISOString(),productos,historial,ventas,gastos,cierres,ordenesCompra,proveedores};const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=nombreRespaldoFlackunloker();document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);mostrarEstadoRespaldo("✅ Respaldo creado correctamente.")}
+async function crearRespaldo(){
+ try{
+  const centro=await flkResolverCentroBackup();
+  const datos={
+   aplicacion:"Flackunloker",
+   version:"2.1-multicentro",
+   fecha:new Date().toISOString(),
+   centro:{
+    business_id:centro.id,
+    nombre:centro.nombre
+   },
+   productos,historial,ventas,gastos,cierres,ordenesCompra,proveedores
+  };
+  const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;
+  a.download=nombreRespaldoFlackunloker(centro.nombre,centro.id);
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  mostrarEstadoRespaldo(`✅ Respaldo creado para ${centro.nombre}.`);
+ }catch(err){
+  console.error("Respaldo por centro:",err);
+  alert("No se pudo crear el respaldo porque no se pudo identificar el centro activo.");
+ }
+}
 function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
-function restaurarRespaldo(event){
- const archivo=event.target.files[0];if(!archivo)return;const lector=new FileReader();
- lector.onload=()=>{try{const datos=JSON.parse(lector.result);if(!datos||datos.aplicacion!=="Flackunloker")return alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial))return alert("El respaldo está incompleto o dañado.");if(!confirm("¿Quieres restaurar este respaldo?\n\nLos productos y el historial actuales serán reemplazados por los datos del respaldo."))return;productos=datos.productos;historial=datos.historial;ventas=Array.isArray(datos.ventas)?datos.ventas:[];gastos=Array.isArray(datos.gastos)?datos.gastos:[];cierres=Array.isArray(datos.cierres)?datos.cierres:[];ordenesCompra=Array.isArray(datos.ordenesCompra)?datos.ordenesCompra:[];proveedores=Array.isArray(datos.proveedores)?datos.proveedores:[];productos.forEach(p=>{if(p.stockMinimo===undefined||p.stockMinimo===null)p.stockMinimo=5;if(p.costo===undefined||p.costo===null||p.costo==="")p.costo=0;if(p.categoria===undefined||p.categoria===null)p.categoria="";if(p.proveedor===undefined||p.proveedor===null)p.proveedor="";if(p.ubicacion===undefined||p.ubicacion===null)p.ubicacion=""});[...productos.map(p=>String(p.proveedor||"").trim()),...ordenesCompra.map(o=>String(o.proveedor||"").trim())].filter(Boolean).forEach(nombre=>{if(!proveedores.some(pr=>nombreProveedorNorm(pr.nombre)===nombreProveedorNorm(nombre)))proveedores.push({id:Date.now()+Math.floor(Math.random()*100000)+proveedores.length,nombre,contacto:"",telefono:"",email:"",direccion:"",nota:"",creado:new Date().toISOString()})});recalcularSaldos();guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();guardarOrdenesCompra();guardarProveedores();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();actualizarReporte();actualizarFlujoCaja();actualizarFinanzas();actualizarCentroAlertas();actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarFlujoCaja();actualizarEstadisticas();mostrarEstadoRespaldo("✅ Respaldo restaurado correctamente.");alert("Respaldo restaurado correctamente.")}catch(err){console.error(err);alert("No se pudo leer el respaldo. Comprueba que el archivo sea válido.")}finally{event.target.value=""}};lector.readAsText(archivo)
+async function restaurarRespaldo(event){
+ const archivo=event.target.files[0];
+ if(!archivo)return;
+ const lector=new FileReader();
+
+ lector.onload=async()=>{
+  try{
+   const datos=JSON.parse(lector.result);
+   if(!datos||datos.aplicacion!=="Flackunloker")
+    return alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");
+   if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial))
+    return alert("El respaldo está incompleto o dañado.");
+
+   const backupCentroId=String(datos?.centro?.business_id||"").trim();
+   const backupCentroNombre=String(datos?.centro?.nombre||"").trim();
+
+   // No adivinar el centro de respaldos antiguos.
+   if(!flkUuidValido(backupCentroId)){
+    return alert(
+     "⚠️ Este respaldo es de una versión antigua y no contiene la identificación del centro.\n\n"+
+     "Por seguridad multicentro no se restaurará automáticamente. Crea un respaldo nuevo por centro antes de usar esta función."
+    );
+   }
+
+   const centroActual=await flkResolverCentroBackup();
+   if(String(centroActual.id)!==backupCentroId){
+    return alert(
+     "⛔ RESPALDO DE OTRO CENTRO\n\n"+
+     "Respaldo: "+(backupCentroNombre||"Centro sin nombre")+" ("+backupCentroId.slice(0,8)+")\n"+
+     "Centro activo: "+centroActual.nombre+" ("+String(centroActual.id).slice(0,8)+")\n\n"+
+     "La restauración fue bloqueada para evitar mezclar datos entre centros."
+    );
+   }
+
+   const ok=confirm(
+    "✅ Centro verificado\n\n"+
+    "Respaldo: "+(backupCentroNombre||centroActual.nombre)+"\n"+
+    "Centro activo: "+centroActual.nombre+"\n\n"+
+    "¿Quieres restaurar este respaldo?\n\n"+
+    "Los datos locales actuales de ESTE CENTRO serán reemplazados por los datos del respaldo."
+   );
+   if(!ok)return;
+
+   productos=datos.productos;
+   historial=datos.historial;
+   ventas=Array.isArray(datos.ventas)?datos.ventas:[];
+   gastos=Array.isArray(datos.gastos)?datos.gastos:[];
+   cierres=Array.isArray(datos.cierres)?datos.cierres:[];
+   ordenesCompra=Array.isArray(datos.ordenesCompra)?datos.ordenesCompra:[];
+   proveedores=Array.isArray(datos.proveedores)?datos.proveedores:[];
+
+   productos.forEach(p=>{
+    if(p.stockMinimo===undefined||p.stockMinimo===null)p.stockMinimo=5;
+    if(p.costo===undefined||p.costo===null||p.costo==="")p.costo=0;
+    if(p.categoria===undefined||p.categoria===null)p.categoria="";
+    if(p.proveedor===undefined||p.proveedor===null)p.proveedor="";
+    if(p.ubicacion===undefined||p.ubicacion===null)p.ubicacion="";
+   });
+
+   [...productos.map(p=>String(p.proveedor||"").trim()),...ordenesCompra.map(o=>String(o.proveedor||"").trim())]
+    .filter(Boolean)
+    .forEach(nombre=>{
+     if(!proveedores.some(pr=>nombreProveedorNorm(pr.nombre)===nombreProveedorNorm(nombre))){
+      proveedores.push({
+       id:Date.now()+Math.floor(Math.random()*100000)+proveedores.length,
+       nombre,contacto:"",telefono:"",email:"",direccion:"",nota:"",
+       creado:new Date().toISOString()
+      });
+     }
+    });
+
+   recalcularSaldos();
+   guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();
+   guardarOrdenesCompra();guardarProveedores();
+
+   mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();
+   actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();
+   actualizarReporte();actualizarFlujoCaja();actualizarFinanzas();actualizarCentroAlertas();
+   actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();
+   actualizarEstadisticas();
+
+   mostrarEstadoRespaldo(`✅ Respaldo restaurado en ${centroActual.nombre}.`);
+   alert("Respaldo restaurado correctamente en "+centroActual.nombre+".");
+  }catch(err){
+   console.error(err);
+   alert("No se pudo restaurar el respaldo: "+(err?.message||"archivo no válido."));
+  }finally{
+   event.target.value="";
+  }
+ };
+ lector.readAsText(archivo);
 }
 
 document.getElementById("modalProducto").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarFormulario()});
