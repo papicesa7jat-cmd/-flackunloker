@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.49-caja-negativa">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.50-cache-clientes">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2182,7 +2182,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <form class="formulario" id="formularioVenta">
 <h2>Nuevo recibo de venta</h2>
 <p class="mensaje-movimiento" id="textoVenta">Agrega uno o varios productos al recibo.</p>
-<div class="campo"><label for="clienteVenta">Cliente</label><input id="clienteVenta" type="text" placeholder="Cliente general"></div>
+<div class="campo"><label for="clienteVenta">Cliente</label><input id="clienteVenta" type="text" placeholder="Cliente general" list="listaClientesVenta" autocomplete="off"><datalist id="listaClientesVenta"></datalist><small class="ayuda-campo">Selecciona un cliente existente para evitar nombres duplicados. Funciona también con la copia local sin conexión.</small></div>
 <div class="campo"><label for="telefonoVenta">Teléfono</label><input id="telefonoVenta" type="tel" placeholder="Opcional"></div>
 <div class="campo"><label for="productoRecibo">Producto para agregar</label><select id="productoRecibo"></select><small class="ayuda-campo">Selecciona un producto, indica cantidad y precio, y pulsa “Agregar al recibo”. Luego puedes elegir otro producto y repetir.</small></div>
 <div class="agregar-linea">
@@ -6869,9 +6869,26 @@ document.getElementById("productoRecibo").addEventListener("change",actualizarPr
 function fechaLocalISO(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),dia=String(d.getDate()).padStart(2,"0");return `${y}-${m}-${dia}`}
 function fechaVencimientoPredeterminada(){const d=new Date();d.setDate(d.getDate()+30);return fechaLocalISO(d)}
 function actualizarCamposCredito(){const esCredito=document.getElementById("estadoPagoVenta").value==="credito";document.getElementById("campoAbonoInicial").classList.toggle("visible",esCredito);document.getElementById("campoVencimientoCredito").classList.toggle("visible",esCredito);if(esCredito&&!document.getElementById("fechaVencimientoVenta").value)document.getElementById("fechaVencimientoVenta").value=fechaVencimientoPredeterminada();if(!esCredito){document.getElementById("abonoInicialVenta").value="0";document.getElementById("fechaVencimientoVenta").value=""}}
+function flkActualizarCacheClientesVenta(){
+ const dl=document.getElementById("listaClientesVenta");if(!dl)return;
+ const clientes=typeof obtenerClientes==="function"?obtenerClientes():[];
+ dl.innerHTML=clientes.filter(c=>c.nombre&&c.nombre!=="Cliente general").map(c=>`<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.telefono||"")}</option>`).join("");
+}
+function flkClienteExistentePorEntrada(nombre,telefono=""){
+ const clientes=typeof obtenerClientes==="function"?obtenerClientes():[];
+ const nom=flkNormalizarNombreCliente(nombre),tel=flkNormalizarTelefonoCliente(telefono);
+ return clientes.find(c=>flkNormalizarNombreCliente(c.nombre)===nom)||(tel?clientes.find(c=>flkNormalizarTelefonoCliente(c.telefono)===tel):null);
+}
+function flkAjustarClienteVentaDesdeCache(){
+ const inp=document.getElementById("clienteVenta"),tel=document.getElementById("telefonoVenta");if(!inp||!tel)return;
+ const c=flkClienteExistentePorEntrada(inp.value,tel.value);if(!c)return;
+ inp.value=c.nombre;if(!tel.value.trim()&&c.telefono)tel.value=c.telefono;
+}
+document.getElementById("clienteVenta").addEventListener("change",flkAjustarClienteVentaDesdeCache);
+document.getElementById("clienteVenta").addEventListener("blur",flkAjustarClienteVentaDesdeCache);
 function abrirVenta(id=null){
  carritoVenta=[];document.getElementById("formularioVenta").reset();document.getElementById("cantidadVenta").value="1";document.getElementById("abonoInicialVenta").value="0";document.getElementById("fechaVencimientoVenta").value="";
- actualizarCamposCredito();cargarSelectorProductosRecibo(id);renderCarritoVenta();
+ actualizarCamposCredito();cargarSelectorProductosRecibo(id);flkActualizarCacheClientesVenta();renderCarritoVenta();
  document.getElementById("textoVenta").textContent="Agrega uno o varios productos al mismo recibo del cliente.";
  document.getElementById("modalVenta").classList.add("visible");
  document.getElementById("clienteVenta").focus()
@@ -7123,7 +7140,7 @@ document.getElementById("formularioVenta").addEventListener("submit",async e=>{
  for(const item of carritoVenta){const p=productos.find(x=>x.id===item.productoId);if(!p||Number(item.cantidad)>Number(p.cantidad))return alert(`Revisa el inventario de ${item.nombre}. Ya no hay suficientes unidades.`)}
  procesandoGuardado=true;
  try{
-  const cliente=document.getElementById("clienteVenta").value.trim()||"Cliente general",telefono=document.getElementById("telefonoVenta").value.trim(),metodoPago=document.getElementById("metodoPagoVenta").value,estadoSolicitado=document.getElementById("estadoPagoVenta").value,abonoInicial=estadoSolicitado==="credito"?Number(document.getElementById("abonoInicialVenta").value||0):0,fechaVencimiento=estadoSolicitado==="credito"?document.getElementById("fechaVencimientoVenta").value:"",nota=document.getElementById("notaVenta").value.trim(),fecha=new Date().toISOString(),ventaId=Date.now()+Math.floor(Math.random()*100000);
+  let cliente=document.getElementById("clienteVenta").value.trim()||"Cliente general",telefono=document.getElementById("telefonoVenta").value.trim();const clienteExistente=flkClienteExistentePorEntrada(cliente,telefono);if(clienteExistente){cliente=clienteExistente.nombre;if(!telefono&&clienteExistente.telefono)telefono=clienteExistente.telefono;document.getElementById("clienteVenta").value=cliente;document.getElementById("telefonoVenta").value=telefono}const metodoPago=document.getElementById("metodoPagoVenta").value,estadoSolicitado=document.getElementById("estadoPagoVenta").value,abonoInicial=estadoSolicitado==="credito"?Number(document.getElementById("abonoInicialVenta").value||0):0,fechaVencimiento=estadoSolicitado==="credito"?document.getElementById("fechaVencimientoVenta").value:"",nota=document.getElementById("notaVenta").value.trim(),fecha=new Date().toISOString(),ventaId=Date.now()+Math.floor(Math.random()*100000);
   const items=carritoVenta.map(i=>{const p=productos.find(x=>x.id===i.productoId),cantidad=Number(i.cantidad),precioUnitario=Number(i.precioUnitario),costoUnitario=Number(p.costo??0);return {productoId:p.id,nombre:p.nombre,sku:p.sku,cantidad,precioUnitario,costoUnitario,ingreso:cantidad*precioUnitario,costo:cantidad*costoUnitario,ganancia:cantidad*(precioUnitario-costoUnitario)}});
   const cantidad=items.reduce((t,i)=>t+i.cantidad,0),ingreso=items.reduce((t,i)=>t+i.ingreso,0),costoTotal=items.reduce((t,i)=>t+i.costo,0),ganancia=ingreso-costoTotal;
   if(estadoSolicitado==="credito"&&(!Number.isFinite(abonoInicial)||abonoInicial<0))return alert("Revisa el abono inicial.");
