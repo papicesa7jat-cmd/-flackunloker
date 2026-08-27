@@ -1438,6 +1438,24 @@ textarea::placeholder{
  letter-spacing:.15mm;
 }
 </style>
+
+<style id="flk-qr-confirmacion-style">
+.flk-qr-confirmacion{margin-top:10px;padding:12px;border:1px solid #b9cad9;border-radius:13px;background:#f7fbff;color:#17324a}
+.flk-qr-confirmacion strong{display:block;font-size:14px;margin-bottom:5px}
+.flk-qr-confirmacion #flkQrConfirmacionDetalle{font-size:12px;line-height:1.45}
+.flk-qr-confirmacion-botones{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.flk-qr-confirmacion-botones button{border:0;border-radius:10px;padding:10px 7px;font-weight:850;cursor:pointer}
+.flk-qr-confirmacion-botones button:first-child{background:#0a67d1;color:#fff}
+.flk-qr-confirmacion-botones button:last-child{background:#e9eef3;color:#29445c}
+</style>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<style id="flk-html5qr-iphone-style">
+#flkHtml5QrReader{overflow:hidden;border-radius:14px;background:#050505}
+#flkHtml5QrReader video{width:100%!important;height:auto!important;object-fit:cover!important;border-radius:14px}
+#flkHtml5QrReader canvas{max-width:100%!important}
+#flkQrLinternaBtn{border:0;border-radius:10px;padding:10px;font-weight:850;background:#f0f4f8;color:#17324a;cursor:pointer}
+</style>
 </head>
 <body>
 
@@ -1949,6 +1967,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   </div>
   <div id="flkQrModoTexto" class="flk-qr-modo-texto">Modo: selecciona una operación</div>
   <div class="flk-qr-video-wrap">
+   <div id="flkHtml5QrReader" style="width:100%;display:none"></div>
    <video id="flkQrVideo" playsinline muted></video>
    <canvas id="flkQrCanvas" style="display:none"></canvas>
    <div class="flk-qr-marco"></div>
@@ -1956,6 +1975,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   </div>
   <div class="flk-qr-controles">
    <button type="button" class="boton-guardar" onclick="iniciarEscanerQR()">📷 Activar cámara</button>
+   <button type="button" id="flkQrLinternaBtn" style="display:none" onclick="flkAlternarLinternaQR()">🔦 Linterna</button>
    <button type="button" class="boton-cancelar" onclick="detenerEscanerQR()">⏹ Detener cámara</button>
   </div>
   <div class="flk-lector-fisico">
@@ -1967,6 +1987,14 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
    <input id="flkQrCodigoManual" type="text" autocomplete="off" placeholder="SKU o número de recibo">
   </div>
   <button type="button" class="boton-agregar" style="width:100%" onclick="procesarCodigoQR(document.getElementById('flkQrCodigoManual').value)">🔎 Buscar</button>
+  <div id="flkQrConfirmacionLectura" class="flk-qr-confirmacion" style="display:none">
+   <strong id="flkQrConfirmacionTitulo">QR detectado</strong>
+   <div id="flkQrConfirmacionDetalle"></div>
+   <div class="flk-qr-confirmacion-botones">
+    <button type="button" onclick="confirmarLecturaQRPendiente()">✅ Continuar</button>
+    <button type="button" onclick="cancelarLecturaQRPendiente()">↩️ Volver a escanear</button>
+   </div>
+  </div>
   <div id="flkQrResultado" class="flk-qr-resultado" style="display:none"></div>
   <div id="flkQrVentaContinua" class="flk-qr-venta-continua" style="display:none">
    <div class="flk-qr-carrito-cab"><strong>🛒 Venta por escaneo</strong><span id="flkQrVentaConteo">0 unidades</span></div>
@@ -9150,6 +9178,313 @@ const flkDetenerEscanerOriginal=detenerEscanerQR;
 detenerEscanerQR=function(cambiar=true){
  flkDetenerLoopJsQR();
  return flkDetenerEscanerOriginal(cambiar);
+};
+</script>
+
+<script id="flk-qr-lectura-estable-confirmada">
+let flkQrCodigoPendienteConfirmacion="";
+let flkQrProcesandoLectura=false;
+let flkQrUltimaLecturaAceptada="";
+let flkQrUltimaLecturaAceptadaTs=0;
+
+function flkPausarLecturaSinCerrarCamara(){
+ flkQrActivo=false;
+ if(typeof flkDetenerLoopJsQR==="function")flkDetenerLoopJsQR();
+}
+function flkReanudarLecturaActual(){
+ if(!flkQrStream)return;
+ flkQrUltimo="";
+ flkQrUltimoTs=0;
+ flkQrProcesandoLectura=false;
+ flkQrActivo=true;
+ if(flkQrDetector && "BarcodeDetector" in window){
+  flkQrLeer();
+ }else if(typeof jsQR==="function"){
+  flkQrLeerConJsQR();
+ }
+}
+function flkPresentarLecturaParaConfirmar(codigo){
+ if(flkQrProcesandoLectura)return;
+ codigo=String(codigo||"").trim();
+ if(!codigo)return;
+
+ const ahora=Date.now();
+ if(codigo===flkQrUltimaLecturaAceptada && ahora-flkQrUltimaLecturaAceptadaTs<1800)return;
+
+ flkQrProcesandoLectura=true;
+ flkQrCodigoPendienteConfirmacion=codigo;
+ flkPausarLecturaSinCerrarCamara();
+
+ const x=flkQrValor(codigo);
+ const box=document.getElementById("flkQrConfirmacionLectura");
+ const titulo=document.getElementById("flkQrConfirmacionTitulo");
+ const detalle=document.getElementById("flkQrConfirmacionDetalle");
+ if(!box||!titulo||!detalle)return;
+
+ let texto=codigo;
+ if(flkQrModo==="devolucion"){
+  const v=flkQrBuscarVenta(x);
+  titulo.textContent=v?"🧾 Recibo detectado":"⚠️ Código detectado";
+  texto=v?("Recibo #"+String(v.numero||v.id)+". Confirma para abrir la devolución."):"No se encontró un recibo con este código.";
+ }else{
+  const p=flkQrBuscarProducto(x);
+  titulo.textContent=p?"📦 "+p.nombre:"⚠️ Código detectado";
+  texto=p?("SKU: "+p.sku+" · Existencia: "+Number(p.cantidad||0)+". Confirma para continuar con "+({entrada:"Compra / Entrada",salida:"Salida",venta:"Venta"}[flkQrModo]||flkQrModo)+"."):"No se encontró un producto con este código.";
+ }
+ detalle.textContent=texto;
+ box.style.display="block";
+
+ const estado=document.getElementById("flkQrEstado");
+ if(estado)estado.textContent="QR detectado. Revisa y pulsa Continuar.";
+ if(navigator.vibrate)try{navigator.vibrate(70)}catch(_){}
+}
+function confirmarLecturaQRPendiente(){
+ const codigo=flkQrCodigoPendienteConfirmacion;
+ if(!codigo)return;
+ const box=document.getElementById("flkQrConfirmacionLectura");
+ if(box)box.style.display="none";
+ flkQrUltimaLecturaAceptada=codigo;
+ flkQrUltimaLecturaAceptadaTs=Date.now();
+ flkQrCodigoPendienteConfirmacion="";
+ flkQrProcesandoLectura=false;
+
+ // Call the original business-processing function, not the detection wrapper.
+ flkProcesarCodigoQRNegocio(codigo,true);
+
+ // In continuous sale mode, keep the same camera open and resume after a short,
+ // deliberate pause so the same QR is not counted repeatedly.
+ if(flkQrModo==="venta" && document.getElementById("modalEscanerQR")?.classList.contains("visible")){
+  const estado=document.getElementById("flkQrEstado");
+  if(estado)estado.textContent="Producto agregado. Preparando siguiente lectura…";
+  setTimeout(function(){
+   if(document.getElementById("modalEscanerQR")?.classList.contains("visible")){
+    flkReanudarLecturaActual();
+    if(estado)estado.textContent="Listo para escanear el siguiente producto.";
+   }
+  },900);
+ }
+}
+function cancelarLecturaQRPendiente(){
+ flkQrCodigoPendienteConfirmacion="";
+ flkQrProcesandoLectura=false;
+ const box=document.getElementById("flkQrConfirmacionLectura");
+ if(box)box.style.display="none";
+ const estado=document.getElementById("flkQrEstado");
+ if(estado)estado.textContent="Lectura cancelada. Vuelve a apuntar al QR.";
+ setTimeout(flkReanudarLecturaActual,350);
+}
+
+// Preserve original business logic and replace scanner-facing entry point.
+const flkProcesarCodigoQRNegocio=procesarCodigoQR;
+procesarCodigoQR=function(codigo,desdeCamara=false){
+ if(desdeCamara){
+  flkPresentarLecturaParaConfirmar(codigo);
+  return;
+ }
+ // Manual code and physical reader remain immediate, because they are deliberate inputs.
+ return flkProcesarCodigoQRNegocio(codigo,false);
+};
+
+// Override jsQR loop with throttled frame analysis. This reduces CPU use on iPhone
+// and prevents repeated reads of the same QR before UI state updates.
+flkQrLeerConJsQR=function(){
+ if(!flkQrActivo)return;
+ const video=document.getElementById("flkQrVideo");
+ const canvas=document.getElementById("flkQrCanvas");
+ if(!video||!canvas)return;
+
+ if(video.readyState>=2 && video.videoWidth>0 && video.videoHeight>0 && !flkQrProcesandoLectura){
+  const maxW=560;
+  const scale=Math.min(1,maxW/video.videoWidth);
+  canvas.width=Math.max(1,Math.round(video.videoWidth*scale));
+  canvas.height=Math.max(1,Math.round(video.videoHeight*scale));
+  const ctx=canvas.getContext("2d",{willReadFrequently:true});
+  try{
+   ctx.drawImage(video,0,0,canvas.width,canvas.height);
+   const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+   const qr=jsQR(img.data,img.width,img.height,{inversionAttempts:"attemptBoth"});
+   if(qr&&qr.data){
+    const codigo=String(qr.data||"").trim();
+    const ahora=Date.now();
+    if(codigo&&(codigo!==flkQrUltimo||ahora-flkQrUltimoTs>2200)){
+     flkQrUltimo=codigo;
+     flkQrUltimoTs=ahora;
+     const manual=document.getElementById("flkQrCodigoManual");
+     if(manual)manual.value=codigo;
+     flkPresentarLecturaParaConfirmar(codigo);
+    }
+   }
+  }catch(_){}
+ }
+ if(flkQrActivo){
+  setTimeout(function(){
+   if(flkQrActivo)flkQrJsLoopId=requestAnimationFrame(flkQrLeerConJsQR);
+  },140);
+ }
+};
+</script>
+
+<script id="flk-html5qr-iphone-engine">
+let flkHtml5QrInstancia=null;
+let flkHtml5QrActivo=false;
+let flkHtml5QrTorch=false;
+let flkHtml5QrBloqueado=false;
+
+async function flkDetenerHtml5QR(){
+ flkHtml5QrBloqueado=false;
+ flkHtml5QrTorch=false;
+ const b=document.getElementById("flkQrLinternaBtn");
+ if(b)b.style.display="none";
+ if(flkHtml5QrInstancia){
+  try{if(flkHtml5QrActivo)await flkHtml5QrInstancia.stop()}catch(_){}
+  try{await flkHtml5QrInstancia.clear()}catch(_){}
+ }
+ flkHtml5QrActivo=false;
+ flkHtml5QrInstancia=null;
+ const r=document.getElementById("flkHtml5QrReader");
+ if(r){r.innerHTML="";r.style.display="none"}
+}
+async function flkAlternarLinternaQR(){
+ if(!flkHtml5QrInstancia||!flkHtml5QrActivo)return;
+ try{
+  flkHtml5QrTorch=!flkHtml5QrTorch;
+  await flkHtml5QrInstancia.applyVideoConstraints({advanced:[{torch:flkHtml5QrTorch}]});
+  const b=document.getElementById("flkQrLinternaBtn");
+  if(b)b.textContent=flkHtml5QrTorch?"🔦 Apagar":"🔦 Linterna";
+ }catch(_){
+  flkHtml5QrTorch=false;
+ }
+}
+async function flkConfigurarLinternaSiExiste(){
+ const b=document.getElementById("flkQrLinternaBtn");
+ if(!b||!flkHtml5QrInstancia)return;
+ try{
+  const caps=flkHtml5QrInstancia.getRunningTrackCapabilities();
+  b.style.display=caps&&caps.torch?"inline-block":"none";
+ }catch(_){b.style.display="none"}
+}
+const iniciarEscanerQRCamaraTraseraFallback=window.iniciarEscanerQRCamaraTrasera;
+window.iniciarEscanerQRCamaraTrasera=async function(){
+ const estado=document.getElementById("flkQrEstado");
+ if(!flkQrModo){
+  alert("Primero selecciona Compra / Entrada, Venta o Devolución.");
+  return;
+ }
+ if(typeof Html5Qrcode!=="function"){
+  if(estado)estado.textContent="No cargó el motor QR compatible. Usando lector alternativo…";
+  if(typeof flkAbrirCamaraTraseraPreferida==="function"){
+   // fallback to the existing jsQR implementation if CDN is unavailable
+   return iniciarEscanerQRCamaraTraseraFallback();
+  }
+  return;
+ }
+ try{
+  // Shut down old native/jsQR stream first.
+  try{detenerEscanerQR(false)}catch(_){}
+  if(typeof flkDetenerLoopJsQR==="function")flkDetenerLoopJsQR();
+  await flkDetenerHtml5QR();
+
+  const oldVideo=document.getElementById("flkQrVideo");
+  if(oldVideo)oldVideo.style.display="none";
+  const reader=document.getElementById("flkHtml5QrReader");
+  reader.style.display="block";
+
+  flkHtml5QrInstancia=new Html5Qrcode("flkHtml5QrReader",{
+   formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE],
+   verbose:false
+  });
+
+  const ancho=Math.max(220,Math.min(320,Math.floor((window.innerWidth||360)*0.72)));
+  const config={
+   fps:10,
+   qrbox:{width:ancho,height:ancho},
+   aspectRatio:1.333333,
+   disableFlip:false,
+   experimentalFeatures:{useBarCodeDetectorIfSupported:false}
+  };
+
+  const onSuccess=function(decodedText){
+   if(flkHtml5QrBloqueado)return;
+   const codigo=String(decodedText||"").trim();
+   if(!codigo)return;
+   const ahora=Date.now();
+   if(codigo===flkQrUltimo && ahora-flkQrUltimoTs<2200)return;
+   flkQrUltimo=codigo;
+   flkQrUltimoTs=ahora;
+   flkHtml5QrBloqueado=true;
+
+   try{flkHtml5QrInstancia.pause(true)}catch(_){}
+   const manual=document.getElementById("flkQrCodigoManual");
+   if(manual)manual.value=codigo;
+
+   // Reuse the confirmation layer added previously.
+   if(typeof flkPresentarLecturaParaConfirmar==="function"){
+    flkPresentarLecturaParaConfirmar(codigo);
+   }else{
+    procesarCodigoQR(codigo,true);
+   }
+  };
+
+  await flkHtml5QrInstancia.start(
+   {facingMode:"environment"},
+   config,
+   onSuccess,
+   function(){}
+  );
+  flkHtml5QrActivo=true;
+  if(estado)estado.textContent="Cámara trasera activa. Acerca el QR al cuadro hasta que quede nítido.";
+  await flkConfigurarLinternaSiExiste();
+ }catch(err){
+  console.error("html5-qrcode iPhone:",err);
+  if(estado)estado.textContent="No se pudo iniciar el lector QR principal. Probando modo alternativo…";
+  await flkDetenerHtml5QR();
+  return iniciarEscanerQRCamaraTraseraFallback();
+ }
+};
+
+// Preserve current jsQR camera implementation as offline/failure fallback.
+
+// Rebind the operation-first flow to the new engine after definitions finish.
+abrirModoQRDesdePrincipalConCamara=async function(modo){
+ cerrarSelectorQRPrincipal();
+ abrirEscanerQR();
+ seleccionarModoQR(modo);
+ const estado=document.getElementById("flkQrEstado");
+ const nombres={entrada:"Compra / Entrada",venta:"Venta",devolucion:"Devolución"};
+ if(estado)estado.textContent="Modo "+(nombres[modo]||modo)+" seleccionado. Abriendo cámara trasera…";
+ await window.iniciarEscanerQRCamaraTrasera();
+};
+
+// Resume Html5Qrcode after cancel/after a confirmed sale.
+const flkCancelarAnterior=cancelarLecturaQRPendiente;
+cancelarLecturaQRPendiente=function(){
+ flkCancelarAnterior();
+ if(flkHtml5QrInstancia&&flkHtml5QrActivo){
+  setTimeout(function(){
+   flkHtml5QrBloqueado=false;
+   try{flkHtml5QrInstancia.resume()}catch(_){}
+  },450);
+ }
+};
+
+const flkConfirmarAnterior=confirmarLecturaQRPendiente;
+confirmarLecturaQRPendiente=function(){
+ const modoAntes=flkQrModo;
+ flkConfirmarAnterior();
+ if(modoAntes==="venta"&&flkHtml5QrInstancia&&flkHtml5QrActivo){
+  setTimeout(function(){
+   flkHtml5QrBloqueado=false;
+   try{flkHtml5QrInstancia.resume()}catch(_){}
+  },1000);
+ }
+};
+
+const flkCerrarScannerAnterior=cerrarEscanerQR;
+cerrarEscanerQR=function(){
+ flkDetenerHtml5QR();
+ const oldVideo=document.getElementById("flkQrVideo");
+ if(oldVideo)oldVideo.style.display="";
+ return flkCerrarScannerAnterior();
 };
 </script>
 </body>
