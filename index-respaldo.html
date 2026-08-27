@@ -1345,6 +1345,7 @@ textarea::placeholder{
 .auth-password-toggle:active{background:rgba(10,132,255,.08)}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
 <style id="flk-lector-fisico-style">
 .flk-lector-fisico{margin-top:10px;padding:10px;border:1px solid #cfdae5;border-radius:12px;background:#f8fbfe}
@@ -1949,6 +1950,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   <div id="flkQrModoTexto" class="flk-qr-modo-texto">Modo: selecciona una operación</div>
   <div class="flk-qr-video-wrap">
    <video id="flkQrVideo" playsinline muted></video>
+   <canvas id="flkQrCanvas" style="display:none"></canvas>
    <div class="flk-qr-marco"></div>
    <div id="flkQrEstado" class="flk-qr-estado">Pulsa Activar cámara.</div>
   </div>
@@ -9055,6 +9057,100 @@ async function abrirModoQRDesdePrincipalConCamara(modo){
   if(estado)estado.textContent="No se pudo abrir automáticamente la cámara. Revisa el permiso.";
  }
 }
+</script>
+
+<script id="flk-qr-compatibilidad-movil-jsqr">
+let flkQrJsCanvas=null,flkQrJsCtx=null,flkQrJsLoopId=null;
+
+function flkDetenerLoopJsQR(){
+ if(flkQrJsLoopId){cancelAnimationFrame(flkQrJsLoopId);flkQrJsLoopId=null}
+}
+
+async function iniciarEscanerQRCamaraTrasera(){
+ const estado=document.getElementById("flkQrEstado");
+ if(!flkQrModo){
+  alert("Primero selecciona Compra / Entrada, Venta o Devolución.");
+  return;
+ }
+ if(!navigator.mediaDevices?.getUserMedia){
+  if(estado)estado.textContent="Este navegador no permite usar la cámara.";
+  alert("La cámara no está disponible desde este navegador.");
+  return;
+ }
+ try{
+  detenerEscanerQR(false);
+  flkDetenerLoopJsQR();
+
+  flkQrStream=await flkAbrirCamaraTraseraPreferida();
+  const video=document.getElementById("flkQrVideo");
+  video.srcObject=flkQrStream;
+  await video.play();
+  flkQrActivo=true;
+
+  if("BarcodeDetector" in window){
+   try{
+    flkQrDetector=new BarcodeDetector({formats:["qr_code"]});
+    if(estado)estado.textContent="Cámara trasera activa. Apunta al código QR.";
+    flkQrLeer();
+    return;
+   }catch(_){}
+  }
+
+  flkQrDetector=null;
+  if(typeof jsQR==="function"){
+   if(estado)estado.textContent="Cámara trasera activa · lector QR compatible.";
+   flkQrLeerConJsQR();
+   return;
+  }
+
+  if(estado)estado.textContent="Cámara abierta, pero no se cargó el lector QR.";
+  alert("No se pudo cargar el lector QR. Puedes usar el código manual o el lector físico.");
+ }catch(err){
+  console.error("Cámara QR:",err);
+  if(estado)estado.textContent="No se pudo abrir la cámara trasera.";
+  alert("No se pudo abrir la cámara trasera. Revisa el permiso de cámara y que el sitio use HTTPS.");
+ }
+}
+
+function flkQrLeerConJsQR(){
+ if(!flkQrActivo)return;
+ const video=document.getElementById("flkQrVideo");
+ const canvas=document.getElementById("flkQrCanvas");
+ if(!video||!canvas)return;
+
+ if(video.readyState>=2 && video.videoWidth>0 && video.videoHeight>0){
+  const maxW=720;
+  const scale=Math.min(1,maxW/video.videoWidth);
+  canvas.width=Math.max(1,Math.round(video.videoWidth*scale));
+  canvas.height=Math.max(1,Math.round(video.videoHeight*scale));
+  const ctx=canvas.getContext("2d",{willReadFrequently:true});
+  try{
+   ctx.drawImage(video,0,0,canvas.width,canvas.height);
+   const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+   const qr=jsQR(img.data,img.width,img.height,{inversionAttempts:"attemptBoth"});
+   if(qr&&qr.data){
+    const codigo=String(qr.data||"").trim();
+    const ahora=Date.now();
+    if(codigo&&(codigo!==flkQrUltimo||ahora-flkQrUltimoTs>1400)){
+     flkQrUltimo=codigo;
+     flkQrUltimoTs=ahora;
+     const manual=document.getElementById("flkQrCodigoManual");
+     if(manual)manual.value=codigo;
+     procesarCodigoQR(codigo,true);
+    }
+   }
+  }catch(err){}
+ }
+ if(flkQrActivo)flkQrJsLoopId=requestAnimationFrame(flkQrLeerConJsQR);
+}
+
+// Preserve physical USB/Bluetooth reader. It continues to feed procesarCodigoQR()
+// through the existing keyboard/HID listener.
+const flkDetenerEscanerOriginal=detenerEscanerQR;
+detenerEscanerQR=function(cambiar=true){
+ flkDetenerLoopJsQR();
+ return flkDetenerEscanerOriginal(cambiar);
+};
 </script>
 </body>
 </html>
