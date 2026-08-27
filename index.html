@@ -1344,6 +1344,13 @@ textarea::placeholder{
 .auth-password-toggle:active{background:rgba(10,132,255,.08)}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style id="flk-lector-fisico-style">
+.flk-lector-fisico{margin-top:10px;padding:10px;border:1px solid #cfdae5;border-radius:12px;background:#f8fbfe}
+.flk-lector-fisico button{width:100%;border:0;border-radius:10px;padding:10px;background:#eef3f7;color:#23415e;font-weight:850;cursor:pointer}
+.flk-lector-fisico button.activo{background:#173f63;color:#fff}
+#flkLectorFisicoEstado{margin-top:7px;text-align:center;font-size:11.5px;color:#5b6c7b;font-weight:750}
+</style>
 </head>
 <body>
 
@@ -1841,7 +1848,11 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   </div>
   <div class="flk-qr-controles">
    <button type="button" class="boton-guardar" onclick="iniciarEscanerQR()">📷 Activar cámara</button>
-   <button type="button" class="boton-cancelar" onclick="detenerEscanerQR()">⏹ Detener</button>
+   <button type="button" class="boton-cancelar" onclick="detenerEscanerQR()">⏹ Detener cámara</button>
+  </div>
+  <div class="flk-lector-fisico">
+   <button type="button" id="flkBotonLectorFisico" onclick="toggleLectorFisico()">🔌 Activar lector físico</button>
+   <div id="flkLectorFisicoEstado">Lector físico desactivado.</div>
   </div>
   <div class="campo" style="margin-top:14px">
    <label>Código manual</label>
@@ -8583,6 +8594,7 @@ body.flk-v6125 #listaCierres .cierre-detalle strong {color:#000000 !important;}
 <script id="flk-qr-safe-js">
 let flkQrStream=null,flkQrDetector=null,flkQrActivo=false,flkProductoEtiquetaActual=null;
 let flkQrModo="",flkQrVentaItems=[],flkQrUltimo="",flkQrUltimoTs=0;
+let flkLectorFisicoActivo=false,flkLectorFisicoBuffer="",flkLectorFisicoUltimoTs=0,flkLectorFisicoTimer=null;
 
 function flkQrEsc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 function flkQrProductoTexto(p){return "FLK|SKU|"+String(p.sku||"").trim()}
@@ -8610,6 +8622,68 @@ function imprimirEtiquetaQRProducto(){
  w.document.open();w.document.write(html);w.document.close();setTimeout(function(){w.print()},250);
 }
 
+
+function actualizarEstadoLectorFisico(){
+ const b=document.getElementById("flkBotonLectorFisico");
+ const e=document.getElementById("flkLectorFisicoEstado");
+ if(b){
+  b.classList.toggle("activo",flkLectorFisicoActivo);
+  b.textContent=flkLectorFisicoActivo?"🔌 Lector físico activo":"🔌 Activar lector físico";
+ }
+ if(e)e.textContent=flkLectorFisicoActivo?"Escanea con el lector USB/Bluetooth. Esperando código…":"Lector físico desactivado.";
+}
+function toggleLectorFisico(){
+ flkLectorFisicoActivo=!flkLectorFisicoActivo;
+ flkLectorFisicoBuffer="";
+ flkLectorFisicoUltimoTs=0;
+ if(flkLectorFisicoTimer){clearTimeout(flkLectorFisicoTimer);flkLectorFisicoTimer=null}
+ actualizarEstadoLectorFisico();
+}
+function flkProcesarBufferLectorFisico(){
+ const codigo=flkLectorFisicoBuffer.trim();
+ flkLectorFisicoBuffer="";
+ if(!codigo)return;
+ const e=document.getElementById("flkLectorFisicoEstado");
+ if(e)e.textContent="Código recibido: "+codigo;
+ const i=document.getElementById("flkQrCodigoManual");if(i)i.value=codigo;
+ procesarCodigoQR(codigo,false);
+ setTimeout(function(){
+  if(flkLectorFisicoActivo&&e)e.textContent="Listo para el siguiente escaneo…";
+ },450);
+}
+document.addEventListener("keydown",function(ev){
+ if(!flkLectorFisicoActivo)return;
+ const modal=document.getElementById("modalEscanerQR");
+ if(!modal||!modal.classList.contains("visible"))return;
+ const target=ev.target;
+ if(target && ["TEXTAREA","SELECT"].includes(target.tagName))return;
+
+ const ahora=Date.now();
+ if(flkLectorFisicoUltimoTs && ahora-flkLectorFisicoUltimoTs>220)flkLectorFisicoBuffer="";
+ flkLectorFisicoUltimoTs=ahora;
+
+ if(ev.key==="Enter"){
+  ev.preventDefault();
+  if(flkLectorFisicoTimer){clearTimeout(flkLectorFisicoTimer);flkLectorFisicoTimer=null}
+  flkProcesarBufferLectorFisico();
+  return;
+ }
+ if(ev.key==="Tab"){
+  if(flkLectorFisicoBuffer){
+   ev.preventDefault();
+   flkProcesarBufferLectorFisico();
+  }
+  return;
+ }
+ if(ev.key.length===1 && !ev.ctrlKey && !ev.altKey && !ev.metaKey){
+  flkLectorFisicoBuffer+=ev.key;
+  if(flkLectorFisicoTimer)clearTimeout(flkLectorFisicoTimer);
+  flkLectorFisicoTimer=setTimeout(function(){
+    if(flkLectorFisicoBuffer.length>=4)flkProcesarBufferLectorFisico();
+  },90);
+ }
+});
+
 function seleccionarModoQR(modo){
  flkQrModo=modo;
  document.querySelectorAll("#flkQrModos button").forEach(b=>b.classList.toggle("activo",b.dataset.modo===modo));
@@ -8622,6 +8696,8 @@ function seleccionarModoQR(modo){
 function abrirEscanerQR(){
  try{cerrarMenuPrincipal()}catch(_){}
  flkQrModo="";flkQrVentaItems=[];flkQrUltimo="";flkQrUltimoTs=0;
+ flkLectorFisicoBuffer="";flkLectorFisicoUltimoTs=0;
+ actualizarEstadoLectorFisico();
  document.querySelectorAll("#flkQrModos button").forEach(b=>b.classList.remove("activo"));
  const t=document.getElementById("flkQrModoTexto");if(t)t.textContent="Modo: selecciona una operación";
  const r=document.getElementById("flkQrResultado");if(r){r.style.display="none";r.innerHTML=""}
@@ -8630,7 +8706,12 @@ function abrirEscanerQR(){
  renderVentaQR();
  document.getElementById("modalEscanerQR")?.classList.add("visible");
 }
-function cerrarEscanerQR(){detenerEscanerQR(false);document.getElementById("modalEscanerQR")?.classList.remove("visible")}
+function cerrarEscanerQR(){
+ detenerEscanerQR(false);
+ flkLectorFisicoBuffer="";
+ if(flkLectorFisicoTimer){clearTimeout(flkLectorFisicoTimer);flkLectorFisicoTimer=null}
+ document.getElementById("modalEscanerQR")?.classList.remove("visible");
+}
 function detenerEscanerQR(cambiar=true){
  flkQrActivo=false;
  if(flkQrStream){try{flkQrStream.getTracks().forEach(t=>t.stop())}catch(_){}flkQrStream=null}
