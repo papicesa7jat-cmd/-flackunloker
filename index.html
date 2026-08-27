@@ -1826,6 +1826,14 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 </form>
 </div>
 
+<div class="modal" id="modalAutorizacionDevolucion">
+ <form class="formulario" id="formularioAutorizacionDevolucion">
+  <h2>🔐 Autorización del administrador</h2>
+  <p class="mensaje-movimiento">Esta devolución requiere autorización del administrador de la unidad. Funciona también sin Internet con el PIN local de respaldo.</p>
+  <div class="campo"><label for="pinAutorizacionDevolucion">PIN de 6 dígitos</label><input id="pinAutorizacionDevolucion" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="off" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px" required><small class="ayuda-campo">El empleado debe solicitar al administrador que introduzca personalmente su PIN.</small></div>
+  <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarAutorizacionDevolucion()">Cancelar</button><button type="submit" class="boton-guardar">Autorizar devolución</button></div>
+ </form>
+</div>
 <div class="modal" id="modalDevolucion">
 <form class="formulario" id="formularioDevolucion">
 <h2>Devolución parcial</h2>
@@ -6048,7 +6056,54 @@ function generarReciboVenta(id){
 </style></head><body><div class="recibo"><h1>Flackunloker</h1><h2>Recibo de venta #${numero}<br><small>Gracias por confiar en nosotros</small></h2><div class="fila"><span>Fecha</span><strong>${f.toLocaleDateString("es-PR")} ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div class="fila"><span>Cliente</span><strong>${cliente}${telefono?`<br>${telefono}`:""}</strong></div>${filas}${filasDev}${filasPagos}${v.metodoPago?`<div class="fila"><span>Método inicial</span><strong>${escapeHtml(v.metodoPago)}</strong></div>`:""}<div class="fila"><span>Estado</span><strong>${estadoVencimientoVenta(v).texto}</strong></div>${v.saldo>0&&v.fechaVencimiento?`<div class="fila"><span>Vencimiento</span><strong>${new Date(v.fechaVencimiento+"T00:00:00").toLocaleDateString("es-PR")}</strong></div>`:""}<div class="fila"><span>Pagado</span><strong>$${Number(v.totalPagado||0).toFixed(2)}</strong></div><div class="fila"><span>Saldo pendiente</span><strong>$${Number(v.saldo||0).toFixed(2)}</strong></div><div class="fila total"><span>Total neto</span><strong>$${Number(v.ingreso??0).toFixed(2)}</strong></div>${nota?`<div class="fila"><span>Nota</span><strong>${nota}</strong></div>`:""}<div class="pie">Gracias por su compra.</div><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></body></html>`;
  const w=window.open("","_blank");if(!w)return alert("El navegador bloqueó el recibo. Permite ventanas emergentes para Flackunloker.");w.document.open();w.document.write(contenido);w.document.close()
 }
+let ventaPendienteAutorizacionDevolucion=null;
+const FLK_DEVOLUCION_PIN_LOCAL_HASH="080bf176a72d105681656ff5e16783e6a60c1fe531a4f3b2e1e7010781534424";
+async function flkHashPinLocal(pin){
+ const data=new TextEncoder().encode(String(pin||""));
+ const hash=await crypto.subtle.digest("SHA-256",data);
+ return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+async function flkValidarPinDevolucionLocal(pin){
+ try{return (await flkHashPinLocal(pin))===FLK_DEVOLUCION_PIN_LOCAL_HASH}catch(e){return false}
+}
 function abrirDevolucion(id){
+ if(rolSesion==="admin")return abrirDevolucionAutorizada(id);
+ ventaPendienteAutorizacionDevolucion=id;
+ const pin=document.getElementById("pinAutorizacionDevolucion");
+ if(pin)pin.value="";
+ document.getElementById("modalAutorizacionDevolucion").classList.add("visible");
+ setTimeout(()=>pin?.focus(),50);
+}
+function cerrarAutorizacionDevolucion(){
+ document.getElementById("modalAutorizacionDevolucion").classList.remove("visible");
+ const pin=document.getElementById("pinAutorizacionDevolucion");if(pin)pin.value="";
+ ventaPendienteAutorizacionDevolucion=null;
+}
+document.getElementById("formularioAutorizacionDevolucion").addEventListener("submit",async e=>{
+ e.preventDefault();
+ const pin=document.getElementById("pinAutorizacionDevolucion").value.trim();
+ if(!/^\d{6}$/.test(pin))return alert("El PIN debe tener exactamente 6 dígitos.");
+ const id=ventaPendienteAutorizacionDevolucion;
+ if(id==null)return cerrarAutorizacionDevolucion();
+ let autorizado=false;
+ if(navigator.onLine){
+  try{
+   const {data,error}=await flkSupabase.rpc("flk_authorize_return_pin",{p_pin:pin});
+   if(!error)autorizado=data===true||data?.authorized===true||data?.autorizado===true;
+  }catch(err){console.warn("Validación Supabase no disponible; usando PIN local.",err)}
+ }
+ if(!autorizado)autorizado=await flkValidarPinDevolucionLocal(pin);
+ if(!autorizado){
+  document.getElementById("pinAutorizacionDevolucion").value="";
+  return alert("PIN incorrecto. La devolución no fue autorizada.");
+ }
+ document.getElementById("modalAutorizacionDevolucion").classList.remove("visible");
+ document.getElementById("pinAutorizacionDevolucion").value="";
+ ventaPendienteAutorizacionDevolucion=null;
+ alert("✅ Administrador autorizado. Puede continuar con la devolución.");
+ abrirDevolucionAutorizada(id);
+});
+function abrirDevolucionAutorizada(id){
  const v=ventas.find(x=>x.id===id);if(!v)return;
  const todos=itemsDeVenta(v);
  const disponibles=todos.map((i,indice)=>({i,indice,disponible:Number(i.cantidad||0)-Number(i.devuelto||0)})).filter(x=>x.disponible>0);
