@@ -2360,7 +2360,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
  </div>
  <div class="adminsw-panel">
   <h3 style="margin:0 0 8px">💾 Respaldo y restauración</h3>
-  <p style="margin:0 0 14px;color:#667085;font-size:13px;line-height:1.55">Guarda una copia de los datos de Flackunloker o restaura un respaldo anterior.</p>
+  <p style="margin:0 0 14px;color:#667085;font-size:13px;line-height:1.55">Guarda una copia de los datos de Flackunloker o restaura un respaldo anterior. En iPhone, al crearla selecciona “Guardar en Archivos”.</p>
   <div class="botones-respaldo">
    <button class="boton-respaldo boton-crear-respaldo" type="button" onclick="crearRespaldo()">💾 Crear respaldo</button>
    <button class="boton-respaldo boton-restaurar-respaldo" type="button" onclick="seleccionarRespaldo()">📥 Restaurar respaldo</button>
@@ -8388,13 +8388,12 @@ function crearRespaldo(){
    return;
   }
 
-  // No usar await antes de la descarga: Safari/iPhone puede bloquearla
-  // si el gesto directo del usuario se pierde.
   const centroNombre=flkNombreCentroBackupLocal();
+  const nombreArchivo=nombreRespaldoFlackunloker(centroNombre,centroId);
 
   const datos={
    aplicacion:"Flackunloker",
-   version:"2.2-multicentro",
+   version:"2.3-multicentro",
    fecha:new Date().toISOString(),
    centro:{
     business_id:centroId,
@@ -8410,26 +8409,59 @@ function crearRespaldo(){
   };
 
   const texto=JSON.stringify(datos,null,2);
-  const blob=new Blob([texto],{type:"application/json;charset=utf-8"});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a");
+  const file=new File([texto],nombreArchivo,{type:"application/json"});
+  const esMovilApple=/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
 
+  // iPhone/iPad: usar la hoja nativa. Esta es la vía más confiable para
+  // seleccionar "Guardar en Archivos" y elegir la carpeta.
+  if(esMovilApple && navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+   mostrarEstadoRespaldo("💾 Respaldo preparado. Selecciona “Guardar en Archivos” en la ventana que aparecerá.");
+   navigator.share({
+    title:"Respaldo Flackunloker · "+centroNombre,
+    text:"Respaldo de "+centroNombre,
+    files:[file]
+   }).then(()=>{
+    mostrarEstadoRespaldo("✅ Respaldo entregado al sistema de archivos/compartir del iPhone.");
+   }).catch(err=>{
+    if(err && err.name==="AbortError"){
+     mostrarEstadoRespaldo("ℹ️ Guardado cancelado. Pulsa Crear respaldo para intentarlo nuevamente.");
+     return;
+    }
+    console.error("Compartir respaldo:",err);
+    flkDescargarRespaldoTradicional(file,nombreArchivo);
+   });
+   return;
+  }
+
+  flkDescargarRespaldoTradicional(file,nombreArchivo);
+
+ }catch(err){
+  console.error("Crear respaldo:",err);
+  alert("No se pudo crear el respaldo: "+(err?.message||err));
+ }
+}
+
+function flkDescargarRespaldoTradicional(file,nombreArchivo){
+ try{
+  const url=URL.createObjectURL(file);
+  const a=document.createElement("a");
   a.href=url;
-  a.download=nombreRespaldoFlackunloker(centroNombre,centroId);
+  a.download=nombreArchivo;
+  a.rel="noopener";
   a.style.display="none";
   document.body.appendChild(a);
-
   a.click();
 
   setTimeout(()=>{
    try{a.remove()}catch(_){}
    try{URL.revokeObjectURL(url)}catch(_){}
-  },1200);
+  },3000);
 
-  mostrarEstadoRespaldo("✅ Respaldo creado para "+centroNombre+". Revisa la carpeta Descargas del dispositivo.");
+  mostrarEstadoRespaldo("✅ Respaldo creado. Revisa Descargas o Archivos.");
  }catch(err){
-  console.error("Crear respaldo:",err);
-  alert("No se pudo crear el respaldo: "+(err?.message||err));
+  console.error("Descarga respaldo:",err);
+  alert("El navegador no permitió guardar la salva. Intenta desde Safari o Chrome actualizado.");
  }
 }
 function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
