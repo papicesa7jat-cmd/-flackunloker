@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.27a-estable-admin-fix">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.32-safari-offline-ui-owner-cache">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2133,7 +2133,8 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <form class="formulario" id="formularioMovimiento">
 <h2 id="tituloMovimiento">Movimiento</h2><p class="mensaje-movimiento" id="textoMovimiento">Movimiento de inventario</p>
 <div class="campo"><label for="cantidadMovimiento">Cantidad</label><input id="cantidadMovimiento" type="number" min="1" step="1" required></div>
-<div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarMovimiento()">Cancelar</button><button type="submit" class="boton-guardar">Confirmar</button></div>
+<div id="estadoMovimientoOffline" style="display:none;margin:8px 0 0;font-size:12px;font-weight:700;color:#a15c00">Guardando movimiento local...</div>
+<div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarMovimiento()">Cancelar</button><button id="botonConfirmarMovimiento" type="submit" class="boton-guardar">Confirmar</button></div>
 </form>
 </div>
 
@@ -3440,6 +3441,8 @@ function flkActualizarModoRendimiento(){
 }
 window.addEventListener("online",flkActualizarModoRendimiento);
 window.addEventListener("offline",flkActualizarModoRendimiento);
+window.addEventListener("online",()=>setTimeout(()=>flkComprobarPropietarioSoftware(),0));
+window.addEventListener("offline",()=>setTimeout(()=>flkComprobarPropietarioSoftware(),0));
 document.addEventListener("DOMContentLoaded",flkActualizarModoRendimiento);
 
 document.addEventListener("DOMContentLoaded",()=>{flkDeviceId();flkActualizarEstadoConexion()});
@@ -3593,7 +3596,7 @@ function flkPintarSesionLocal(user){
  document.getElementById("authUsuario").classList.add("visible");
  document.getElementById("authOverlay").classList.add("oculto");
  aplicarPermisosVisuales();
-  if(navigator.onLine)setTimeout(()=>flkComprobarPropietarioSoftware(),0);
+  setTimeout(()=>flkComprobarPropietarioSoftware(),0);
  if(typeof flkAplicarPendientesSobreDatos==="function")flkAplicarPendientesSobreDatos();
  if(typeof mostrarProductos==="function")mostrarProductos();
  if(typeof actualizarResumenHistorial==="function")actualizarResumenHistorial();
@@ -4524,20 +4527,54 @@ function flkOcultarTodasLasVistas(){
 
 
 let flkEsPropietarioSoftware=false;
+const FLK_OWNER_STATUS_CACHE_KEY="flackunloker_owner_status_cache_v1";
+
+function flkGuardarPropietarioSoftwareCache(esOwner){
+ try{
+  const ses=flkSesionLocal();
+  const uid=ses?.user?.id||null;
+  if(!uid)return;
+  localStorage.setItem(FLK_OWNER_STATUS_CACHE_KEY,JSON.stringify({
+   user_id:uid,owner:!!esOwner,saved_at:new Date().toISOString()
+  }));
+ }catch(e){}
+}
+function flkLeerPropietarioSoftwareCache(){
+ try{
+  const ses=flkSesionLocal();
+  const uid=ses?.user?.id||null;
+  const x=JSON.parse(localStorage.getItem(FLK_OWNER_STATUS_CACHE_KEY)||"null");
+  return x&&uid&&x.user_id===uid?!!x.owner:false;
+ }catch(e){return false}
+}
+function flkPintarPropietarioSoftware(esOwner){
+ flkEsPropietarioSoftware=!!esOwner;
+ document.body.classList.toggle("es-propietario",flkEsPropietarioSoftware);
+ const botonLic=document.getElementById("botonLicencias");
+ const botonAdmin=document.getElementById("botonAdminSoftware");
+ if(botonLic)botonLic.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
+ if(botonAdmin)botonAdmin.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
+}
 
 async function flkComprobarPropietarioSoftware(){
- flkEsPropietarioSoftware=false;
- document.body.classList.remove("es-propietario");
- const botonLicInicial=document.getElementById("botonLicencias");
- const botonAdminInicial=document.getElementById("botonAdminSoftware");
- if(botonAdminInicial)botonAdminInicial.style.setProperty("display","none","important");
- if(botonLicInicial)botonLicInicial.style.setProperty("display","none","important");
- if(!flkSesionActiva||!navigator.onLine)return false;
+ if(!flkSesionActiva){
+  flkPintarPropietarioSoftware(false);
+  return false;
+ }
+
+ // Offline: conservar el permiso del propietario validado previamente en este navegador.
+ if(!navigator.onLine){
+  const cached=flkLeerPropietarioSoftwareCache();
+  flkPintarPropietarioSoftware(cached);
+  return cached;
+ }
+
  try{
   const {data,error}=await flkSupabase.rpc("flk_is_software_owner");
   if(error)throw error;
   flkEsPropietarioSoftware=!!data;
-  document.body.classList.toggle("es-propietario",flkEsPropietarioSoftware);
+  flkGuardarPropietarioSoftwareCache(flkEsPropietarioSoftware);
+  flkPintarPropietarioSoftware(flkEsPropietarioSoftware);
   if(flkEsPropietarioSoftware){
     // La cuenta propietaria siempre prevalece sobre cualquier prueba de cliente.
     localStorage.removeItem(FLK_CLIENT_LICENSE_KEY_STORAGE);
@@ -4545,17 +4582,12 @@ async function flkComprobarPropietarioSoftware(){
     FLK_LICENSE_KEY=FLK_OWNER_LICENSE_KEY;
     flkOcultarActivacionCliente();
    }
-  const botonLic=document.getElementById("botonLicencias");
-  if(botonLic)botonLic.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
-   const botonAdmin=document.getElementById("botonAdminSoftware");
-   if(botonAdmin)botonAdmin.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
   return flkEsPropietarioSoftware
  }catch(err){
   console.error("Comprobación propietario software:",err);
-  document.body.classList.remove("es-propietario");
-  const botonLicError=document.getElementById("botonLicencias");
-  if(botonLicError)botonLicError.style.setProperty("display","none","important");
-  return false
+  const cached=flkLeerPropietarioSoftwareCache();
+  flkPintarPropietarioSoftware(cached);
+  return cached
  }
 }
 
@@ -6013,27 +6045,85 @@ function abrirMovimiento(id,tipo){
  document.getElementById("textoMovimiento").textContent=(tipo==="entrada"?"Agregar unidades a: ":"Retirar unidades de: ")+p.nombre;
  document.getElementById("cantidadMovimiento").value="";document.getElementById("modalMovimiento").classList.add("visible");document.getElementById("cantidadMovimiento").focus()
 }
-function cerrarMovimiento(){document.getElementById("modalMovimiento").classList.remove("visible");document.getElementById("formularioMovimiento").reset();productoMovimiento=null;tipoMovimiento=null}
+function cerrarMovimiento(){
+ const modal=document.getElementById("modalMovimiento");
+ if(modal)modal.classList.remove("visible");
+ const form=document.getElementById("formularioMovimiento");
+ if(form)form.reset();
+ const btn=document.getElementById("botonConfirmarMovimiento");
+ if(btn){btn.disabled=false;btn.textContent="Confirmar"}
+ const est=document.getElementById("estadoMovimientoOffline");
+ if(est)est.style.display="none";
+ productoMovimiento=null;tipoMovimiento=null
+}
 
 document.getElementById("formularioMovimiento").addEventListener("submit",async e=>{
  e.preventDefault();e.stopPropagation();
  if(!requiereAdmin())return;
- if(procesandoGuardado)return;procesandoGuardado=true;
+ if(procesandoGuardado)return;
+ procesandoGuardado=true;
+
+ const btn=document.getElementById("botonConfirmarMovimiento");
+ const est=document.getElementById("estadoMovimientoOffline");
+ if(btn){btn.disabled=true;btn.textContent=navigator.onLine?"Guardando...":"Guardando local..."}
+ if(est)est.style.display=navigator.onLine?"none":"block";
+
  try{
   const cantidad=Number(document.getElementById("cantidadMovimiento").value);
-  if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
-  const p=productos.find(x=>x.id===productoMovimiento);if(!p){cerrarMovimiento();return}
-  const delta=tipoMovimiento==="entrada"?cantidad:-cantidad;
-  p.cantidad=await ajustarStockSupabase(p,delta,tipoMovimiento,"Movimiento manual desde Flackunloker");
-  if(navigator.onLine)await cargarHistorialSupabase();
-  else{
-   historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:tipoMovimiento,cantidad,saldo:p.cantidad,fecha:new Date().toISOString(),detalle:"🟠 Pendiente de sincronización"});
-   guardarHistorial();actualizarResumenHistorial();mostrarListaHistorial()
+  if(!Number.isInteger(cantidad)||cantidad<=0){
+   if(btn){btn.disabled=false;btn.textContent="Confirmar"}
+   if(est)est.style.display="none";
+   return alert("Introduce una cantidad válida.");
   }
-  guardarDatos();mostrarProductos();actualizarEstadisticas();cerrarMovimiento();
-  // En modo offline el movimiento ya quedó guardado localmente; no mostrar alerta.
- }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el movimiento: "+(err.message||err))}
- finally{procesandoGuardado=false}
+
+  const p=productos.find(x=>x.id===productoMovimiento);
+  if(!p){cerrarMovimiento();return}
+
+  const delta=tipoMovimiento==="entrada"?cantidad:-cantidad;
+  const tipoGuardado=tipoMovimiento;
+
+  p.cantidad=await ajustarStockSupabase(p,delta,tipoGuardado,"Movimiento manual desde Flackunloker");
+
+  if(navigator.onLine){
+   await cargarHistorialSupabase();
+   guardarDatos();
+   mostrarProductos();
+   actualizarEstadisticas();
+   cerrarMovimiento();
+  }else{
+   // Safari/iPhone: persistir primero y liberar inmediatamente el modal.
+   // La operación ya está en la cola offline; NO se cambia la lógica de sincronización.
+   historial.unshift({
+    id:Date.now()+Math.floor(Math.random()*100000),
+    productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:tipoGuardado,
+    cantidad,saldo:p.cantidad,fecha:new Date().toISOString(),
+    detalle:"🟠 Pendiente de sincronización"
+   });
+   guardarDatos();
+   guardarHistorial();
+   cerrarMovimiento();
+
+   // Repintado diferido: evita que Safari parezca congelado tras tocar Confirmar.
+   setTimeout(()=>{
+    try{
+     mostrarProductos();
+     actualizarResumenHistorial();
+     mostrarListaHistorial();
+     actualizarEstadisticas();
+     flkActualizarEstadoConexion();
+    }catch(err){console.error("Repintado offline:",err)}
+   },0);
+  }
+ }catch(err){
+  console.error(err);
+  if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el movimiento: "+(err.message||err))
+ }finally{
+  procesandoGuardado=false;
+  if(document.getElementById("modalMovimiento")?.classList.contains("visible")){
+   if(btn){btn.disabled=false;btn.textContent="Confirmar"}
+   if(est)est.style.display="none";
+  }
+ }
 });
 async function eliminarProducto(id){
  if(!requiereAdmin())return;
