@@ -8380,28 +8380,56 @@ function nombreRespaldoFlackunloker(centroNombre="Centro",centroId=""){
  return `Flackunloker_${centro}_${idCorto}_Respaldo_${dos(d.getDate())}-${dos(d.getMonth()+1)}-${d.getFullYear()}_${dos(h)}-${dos(d.getMinutes())}-${dos(d.getSeconds())}_${ampm}.json`;
 }
 
-async function crearRespaldo(){
+function crearRespaldo(){
  try{
-  const centro=await flkResolverCentroBackup();
+  const centroId=flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:flkBusinessGuardado();
+  if(!centroId){
+   alert("No se pudo identificar el centro activo. Inicia sesión nuevamente y vuelve a intentar.");
+   return;
+  }
+
+  // No usar await antes de la descarga: Safari/iPhone puede bloquearla
+  // si el gesto directo del usuario se pierde.
+  const centroNombre=flkNombreCentroBackupLocal();
+
   const datos={
    aplicacion:"Flackunloker",
-   version:"2.1-multicentro",
+   version:"2.2-multicentro",
    fecha:new Date().toISOString(),
    centro:{
-    business_id:centro.id,
-    nombre:centro.nombre
+    business_id:centroId,
+    nombre:centroNombre
    },
-   productos,historial,ventas,gastos,cierres,ordenesCompra,proveedores
+   productos,
+   historial,
+   ventas,
+   gastos,
+   cierres,
+   ordenesCompra,
+   proveedores
   };
-  const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"});
-  const url=URL.createObjectURL(blob),a=document.createElement("a");
+
+  const texto=JSON.stringify(datos,null,2);
+  const blob=new Blob([texto],{type:"application/json;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+
   a.href=url;
-  a.download=nombreRespaldoFlackunloker(centro.nombre,centro.id);
-  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
-  mostrarEstadoRespaldo(`✅ Respaldo creado para ${centro.nombre}.`);
+  a.download=nombreRespaldoFlackunloker(centroNombre,centroId);
+  a.style.display="none";
+  document.body.appendChild(a);
+
+  a.click();
+
+  setTimeout(()=>{
+   try{a.remove()}catch(_){}
+   try{URL.revokeObjectURL(url)}catch(_){}
+  },1200);
+
+  mostrarEstadoRespaldo("✅ Respaldo creado para "+centroNombre+". Revisa la carpeta Descargas del dispositivo.");
  }catch(err){
-  console.error("Respaldo por centro:",err);
-  alert("No se pudo crear el respaldo porque no se pudo identificar el centro activo.");
+  console.error("Crear respaldo:",err);
+  alert("No se pudo crear el respaldo: "+(err?.message||err));
  }
 }
 function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
