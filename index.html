@@ -1381,12 +1381,12 @@ textarea::placeholder{
    <button id="tabLogin" class="auth-tab activo" onclick="cambiarModoAuth('login')">Iniciar sesión</button>
    <button id="tabRegistro" class="auth-tab" onclick="cambiarModoAuth('registro')">Crear cuenta</button>
   </div>
-  <form id="formAuth">
+  <form id="formAuth" autocomplete="off">
    <div id="campoNombreAuth" class="auth-campo" style="display:none">
     <label>Nombre</label><input id="authNombre" type="text" autocomplete="name" placeholder="Tu nombre">
    </div>
    <div class="auth-campo"><label>Correo electrónico</label><input id="authEmail" type="email" autocomplete="email" required placeholder="correo@ejemplo.com"></div>
-   <div class="auth-campo"><label>Contraseña</label><input id="authPassword" type="password" autocomplete="current-password" minlength="8" required placeholder="Mínimo 8 caracteres"></div>
+   <div class="auth-campo"><label>Contraseña</label><input id="authPassword" type="password" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" minlength="8" required placeholder="Mínimo 8 caracteres"></div>
    <button type="button" class="auth-olvido" id="botonOlvidePassword" onclick="abrirRecuperarPassword()">¿Olvidaste tu contraseña?</button>
    <button id="authSubmit" class="auth-btn" type="submit">Entrar</button>
   </form>
@@ -1983,14 +1983,14 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   <div class="formulario">
     <h2>🔑 Crear nueva contraseña</h2>
     <p class="recuperar-ayuda">Escribe una contraseña nueva de al menos 8 caracteres.</p>
-    <form id="formularioNuevaPassword">
+    <form id="formularioNuevaPassword" autocomplete="off">
       <div class="campo">
         <label for="nuevaPasswordRecuperacion">Nueva contraseña</label>
-        <input id="nuevaPasswordRecuperacion" type="password" autocomplete="new-password" minlength="8" placeholder="Mínimo 8 caracteres" required>
+        <input id="nuevaPasswordRecuperacion" type="password" autocomplete="off" data-lpignore="true" data-1p-ignore="true" minlength="8" placeholder="Mínimo 8 caracteres" required>
       </div>
       <div class="campo">
         <label for="confirmarPasswordRecuperacion">Confirmar contraseña</label>
-        <input id="confirmarPasswordRecuperacion" type="password" autocomplete="new-password" minlength="8" placeholder="Repite la contraseña" required>
+        <input id="confirmarPasswordRecuperacion" type="password" autocomplete="off" data-lpignore="true" data-1p-ignore="true" minlength="8" placeholder="Repite la contraseña" required>
       </div>
       <div class="botones-formulario">
         <button type="submit" class="boton-guardar" id="botonGuardarNuevaPassword">Guardar nueva contraseña</button>
@@ -2026,7 +2026,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   <h3 style="margin:0 0 14px">➕ Crear usuario y asignar</h3>
   <div class="adminsw-form" style="grid-template-columns:1.25fr 1.1fr 1fr 1fr auto">
    <div class="campo"><label>Correo del nuevo usuario</label><input id="adminswNuevoEmail" type="email" autocomplete="off" placeholder="usuario@correo.com"></div>
-   <div class="campo"><label>Contraseña inicial</label><input id="adminswNuevoPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Mínimo 8 caracteres"></div>
+   <div class="campo"><label>Contraseña inicial</label><input id="adminswNuevoPassword" type="password" autocomplete="off" data-lpignore="true" data-1p-ignore="true" minlength="8" placeholder="Mínimo 8 caracteres"></div>
    <div class="campo"><label>Centro</label><select id="adminswNuevoCentro"><option value="">Selecciona</option></select></div>
    <div class="campo"><label>Rol</label><select id="adminswNuevoRol"><option value="admin">Administrador</option><option value="employee">Empleado</option></select></div>
    <button class="boton-agregar" id="adminswBotonCrearUsuario" type="button" onclick="crearUsuarioAdminSoftware()">Crear y asignar</button>
@@ -2164,12 +2164,12 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <button class="boton-menu-flotante" onclick="abrirMenuPrincipal()">☰ Menú</button>
 
 <div class="modal" id="modalCambioPinDevolucion">
- <form class="formulario" id="formularioCambioPinDevolucion">
+ <form class="formulario" id="formularioCambioPinDevolucion" autocomplete="off">
   <h2>🔑 Cambiar PIN de devolución</h2>
   <p class="mensaje-movimiento">Solo el Administrador o Propietario puede cambiar este PIN. Funciona también sin Internet en este dispositivo.</p>
-  <div class="campo"><label>PIN actual</label><input id="pinDevolucionActual" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="off" required></div>
-  <div class="campo"><label>Nuevo PIN de 6 dígitos</label><input id="pinDevolucionNuevo" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="off" required></div>
-  <div class="campo"><label>Confirmar nuevo PIN</label><input id="pinDevolucionConfirmar" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="off" required></div>
+  <div class="campo"><label>PIN actual</label><input id="pinDevolucionActual" type="password" autocomplete="off" data-lpignore="true" data-1p-ignore="true" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="off" required></div>
+  <div class="campo"><label>Nuevo PIN de 6 dígitos</label><input id="pinDevolucionNuevo" type="password" autocomplete="off" data-lpignore="true" data-1p-ignore="true" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="off" required></div>
+  <div class="campo"><label>Confirmar nuevo PIN</label><input id="pinDevolucionConfirmar" type="password" autocomplete="off" data-lpignore="true" data-1p-ignore="true" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="off" required></div>
   <div class="botones-formulario">
    <button type="button" class="boton-cancelar" onclick="cerrarCambioPinDevolucion()">Cancelar</button>
    <button type="submit" class="boton-guardar">Guardar PIN</button>
@@ -2192,9 +2192,9 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   <div id="bloqueConfigurarPin">
    <p style="line-height:1.55">Primero establece un PIN secreto de <strong>6 dígitos</strong>. No se guarda de forma visible.</p>
    <label>Nuevo PIN de 6 dígitos</label>
-   <input id="nuevoPinReset" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
+   <input id="nuevoPinReset" autocomplete="off" data-lpignore="true" data-1p-ignore="true" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
    <label>Repetir PIN</label>
-   <input id="confirmarPinReset" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
+   <input id="confirmarPinReset" autocomplete="off" data-lpignore="true" data-1p-ignore="true" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
    <button class="guardar" type="button" onclick="guardarPinReset()">Guardar PIN</button>
   </div>
   <div id="bloqueEjecutarReset" style="display:none">
@@ -2203,7 +2203,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
     Se borrarán inventario, ventas, recibos, devoluciones, clientes, gastos, caja, cierres, proveedores, compras, pagos, reparaciones, historial y configuraciones operativas.
    </div>
    <label>PIN de 6 dígitos</label>
-   <input id="pinEjecutarReset" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
+   <input id="pinEjecutarReset" autocomplete="off" data-lpignore="true" data-1p-ignore="true" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
    <label>Escribe RESTABLECER para confirmar</label>
    <input id="textoConfirmarReset" type="text" autocomplete="off" placeholder="RESTABLECER">
    <button type="button" onclick="ejecutarRestablecimientoTotal()" style="width:100%;min-height:58px;margin-top:20px;border:0;border-radius:14px;background:#d93025;color:white;font-size:18px;font-weight:900">🗑️ Borrar todos los datos operativos</button>
@@ -6117,7 +6117,37 @@ function imprimirComprobanteDevolucion(ventaId,devolucionSupabaseId){
  const item=itemsDeVenta(v).find(i=>i.productoId===d.productoId)||{};
  const numero=d.numeroDevolucion?String(d.numeroDevolucion).padStart(6,"0"):String(d.id).slice(-6);
  const fecha=new Date(d.fecha);
- const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Devolución ${numero}</title><style>body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0;color:#111}.comprobante{max-width:430px;margin:24px auto;background:white;padding:28px;border-radius:18px}h1,h2{text-align:center}h1{margin:0;font-size:25px}h2{font-size:15px;margin:5px 0 22px}.dato{margin:8px 0}.fila{display:flex;justify-content:space-between;gap:15px;border-bottom:1px solid #ddd;padding:12px 0}.total{text-align:right;font-size:19px;font-weight:bold;margin-top:18px}.pie{text-align:center;color:#777;font-size:12px;margin-top:28px}.imprimir{width:100%;margin-top:20px;padding:12px;border:0;border-radius:10px;background:#0a84ff;color:white;font-weight:bold}@media print{body{background:white}.comprobante{margin:0;max-width:none}.imprimir{display:none}}</style></head><body><div class="comprobante"><h1>Flackunloker</h1><h2>COMPROBANTE DE DEVOLUCIÓN #${numero}</h2><div class="dato"><strong>Recibo original:</strong> #${escapeHtml(v.numero||"")}</div><div class="dato"><strong>Cliente:</strong> ${escapeHtml(v.cliente||"Cliente general")}</div><div class="dato"><strong>Fecha:</strong> ${fecha.toLocaleDateString("es-PR")} · ${fecha.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div><div class="fila"><span>${Number(d.cantidad||0)} × ${escapeHtml(item.nombre||"Producto")}<br><small>SKU: ${escapeHtml(item.sku||"")}</small></span><strong>-$${Number(d.monto||0).toFixed(2)}</strong></div><div class="dato"><strong>Motivo:</strong> ${escapeHtml(d.motivo||"No especificado")}</div><div class="total">Total devuelto: $${Number(d.monto||0).toFixed(2)}</div><div class="pie">Comprobante generado por Flackunloker</div><button class="imprimir" onclick="window.print()">🖨️ Imprimir comprobante</button></div></body></html>`;
+ const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Devolución ${numero}</title><style>body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0;color:#111}.comprobante{max-width:430px;margin:24px auto;background:white;padding:28px;border-radius:18px}h1,h2{text-align:center}h1{margin:0;font-size:25px}h2{font-size:15px;margin:5px 0 22px}.dato{margin:8px 0}.fila{display:flex;justify-content:space-between;gap:15px;border-bottom:1px solid #ddd;padding:12px 0}.total{text-align:right;font-size:19px;font-weight:bold;margin-top:18px}.pie{text-align:center;color:#777;font-size:12px;margin-top:28px}.imprimir{width:100%;margin-top:20px;padding:12px;border:0;border-radius:10px;background:#0a84ff;color:white;font-weight:bold}@media print{body{background:white}.comprobante{margin:0;max-width:none}.imprimir{display:none}}</style></head><body><div class="comprobante"><h1>Flackunloker</h1><h2>COMPROBANTE DE DEVOLUCIÓN #${numero}</h2><div class="dato"><strong>Recibo original:</strong> #${escapeHtml(v.numero||"")}</div><div class="dato"><strong>Cliente:</strong> ${escapeHtml(v.cliente||"Cliente general")}</div><div class="dato"><strong>Fecha:</strong> ${fecha.toLocaleDateString("es-PR")} · ${fecha.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div><div class="fila"><span>${Number(d.cantidad||0)} × ${escapeHtml(item.nombre||"Producto")}<br><small>SKU: ${escapeHtml(item.sku||"")}</small></span><strong>-$${Number(d.monto||0).toFixed(2)}</strong></div><div class="dato"><strong>Motivo:</strong> ${escapeHtml(d.motivo||"No especificado")}</div><div class="total">Total devuelto: $${Number(d.monto||0).toFixed(2)}</div><div class="pie">Comprobante generado por Flackunloker</div><button class="imprimir" onclick="window.print()">🖨️ Imprimir comprobante</button></div>
+<script id="flk-no-password-persist">
+(function(){
+  const sensitiveIds=[
+    "authPassword","adminswNuevoPassword","nuevaPasswordRecuperacion",
+    "confirmarPasswordRecuperacion","pinDevolucionActual","pinDevolucionNuevo",
+    "pinDevolucionConfirmar","nuevoPinReset","confirmarPinReset","pinEjecutarReset"
+  ];
+  function limpiarCamposSensibles(){
+    sensitiveIds.forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.value="";
+    });
+  }
+  window.addEventListener("pageshow", limpiarCamposSensibles);
+  window.addEventListener("pagehide", limpiarCamposSensibles);
+  document.addEventListener("visibilitychange",()=>{
+    if(document.visibilityState==="hidden") limpiarCamposSensibles();
+  });
+  document.addEventListener("DOMContentLoaded",()=>{
+    limpiarCamposSensibles();
+    document.querySelectorAll('input[type="password"]').forEach(el=>{
+      el.setAttribute("autocomplete","off");
+      el.setAttribute("data-lpignore","true");
+      el.setAttribute("data-1p-ignore","true");
+    });
+  });
+})();
+</script>
+
+</body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el comprobante.");w.document.write(html);w.document.close()
 }
 function generarReciboVenta(id){
