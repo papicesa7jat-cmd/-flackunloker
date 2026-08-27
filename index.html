@@ -1336,36 +1336,16 @@ textarea::placeholder{
  #vistaAdminSoftware .adminsw-seguridad-btn{min-height:36px;font-size:11.5px;padding:7px 9px}
 }
 </style>
-
-<style id="flk-login-ojo-password">
-.auth-password-wrap{
-  position:relative;
-}
-.auth-password-wrap #authPassword{
-  width:100%;
-  padding-right:48px !important;
-}
+<style id="flk-login-password-estable">
+.auth-password-wrap{position:relative}
+.auth-password-wrap #authPassword{width:100%;padding-right:50px !important}
 .auth-password-toggle{
-  position:absolute;
-  right:8px;
-  top:50%;
-  transform:translateY(-50%);
-  width:36px;
-  height:36px;
-  border:0;
-  background:transparent;
-  border-radius:10px;
-  cursor:pointer;
-  font-size:18px;
-  line-height:1;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+ position:absolute;right:7px;top:50%;transform:translateY(-50%);
+ width:38px;height:38px;border:0;border-radius:9px;background:transparent;
+ cursor:pointer;font-size:19px;display:flex;align-items:center;justify-content:center;
+ z-index:5;
 }
-.auth-password-toggle:focus{
-  outline:2px solid rgba(10,132,255,.25);
-  outline-offset:1px;
-}
+.auth-password-toggle:active{background:rgba(10,132,255,.08)}
 </style>
 </head>
 <body>
@@ -1412,16 +1392,16 @@ textarea::placeholder{
    <button id="tabLogin" class="auth-tab activo" onclick="cambiarModoAuth('login')">Iniciar sesión</button>
    <button id="tabRegistro" class="auth-tab" onclick="cambiarModoAuth('registro')">Crear cuenta</button>
   </div>
-  <form id="formAuth" autocomplete="off">
+  <form id="formAuth" autocomplete="on">
    <div id="campoNombreAuth" class="auth-campo" style="display:none">
     <label>Nombre</label><input id="authNombre" type="text" autocomplete="name" placeholder="Tu nombre">
    </div>
-   <div class="auth-campo"><label>Correo electrónico</label><input id="authEmail" type="email" autocomplete="off" autocapitalize="none" spellcheck="false" required placeholder="correo@ejemplo.com"></div>
+   <div class="auth-campo"><label>Correo electrónico</label><input id="authEmail" name="flk_username" type="email" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="correo@ejemplo.com"></div>
    <div class="auth-campo">
     <label>Contraseña</label>
     <div class="auth-password-wrap">
-      <input id="authPassword" type="password" autocomplete="off" minlength="8" required placeholder="Mínimo 8 caracteres">
-      <button type="button" class="auth-password-toggle" id="authPasswordToggle" aria-label="Mostrar contraseña" title="Mostrar contraseña"><span id="authPasswordToggleIcon">👁️</span></button>
+      <input id="authPassword" name="flk_login_secret" type="password" autocomplete="new-password" minlength="8" required placeholder="Mínimo 8 caracteres">
+      <button type="button" class="auth-password-toggle" id="authPasswordToggle" onclick="flkTogglePasswordLogin(event)" aria-label="Mostrar contraseña" title="Mostrar contraseña">👁️</button>
     </div>
    </div>
    <button type="button" class="auth-olvido" id="botonOlvidePassword" onclick="abrirRecuperarPassword()">¿Olvidaste tu contraseña?</button>
@@ -3250,7 +3230,7 @@ function cambiarModoAuth(modo){
  document.getElementById("tabRegistro").classList.toggle("activo",modo==="registro");
  document.getElementById("campoNombreAuth").style.display=modo==="registro"?"block":"none";
  document.getElementById("authSubmit").textContent=modo==="registro"?"Crear cuenta":"Entrar";
- document.getElementById("authPassword").autocomplete=modo==="registro"?"new-password":"current-password";
+ document.getElementById("authPassword").autocomplete="new-password";
  mostrarMensajeAuth("","");
 }
 function mostrarMensajeAuth(texto,tipo){
@@ -3584,15 +3564,12 @@ async function mostrarAppConSesion(session){
 }
 async function cerrarSesionFlackunloker(){
  try{
-  if(typeof flkLimpiarLoginVisual==="function")flkLimpiarLoginVisual();
+  const emailSesion=document.getElementById("authUsuarioEmail")?.textContent||"";
+  if(typeof flkRecordarSoloUsuario==="function" && emailSesion.includes("@"))flkRecordarSoloUsuario(emailSesion);
+  if(typeof flkLimpiarSoloPassword==="function")flkLimpiarSoloPassword();
   await flkSupabase.auth.signOut();
  }catch(err){console.error(err)}
- try{
-  flkLimpiarSesionLocal();
-  localStorage.removeItem("flackunloker_auth_email");
-  sessionStorage.removeItem("flackunloker_auth_email");
- }catch(_){}
- if(typeof flkLimpiarLoginVisual==="function")flkLimpiarLoginVisual();
+ try{flkLimpiarSesionLocal()}catch(_){}
  location.reload();
 }
 document.getElementById("formAuth").addEventListener("submit",async e=>{
@@ -3609,8 +3586,10 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
  }else{
   const {data,error}=await flkSupabase.auth.signInWithPassword({email,password});
   if(error){mostrarMensajeAuth("Correo o contraseña incorrectos, o la cuenta aún no está confirmada.","error");return}
+  if(typeof flkRecordarSoloUsuario==="function")flkRecordarSoloUsuario(email);
+  if(typeof flkLimpiarSoloPassword==="function")flkLimpiarSoloPassword();
   mostrarMensajeAuth("","");
-  window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});
+  await mostrarAppConSesion(data.session);
  }
 });
 
@@ -6155,58 +6134,46 @@ function imprimirComprobanteDevolucion(ventaId,devolucionSupabaseId){
 
 
 
+<script id="flk-login-estable-js">
+const FLK_LOGIN_USER_KEY="flackunloker_login_user";
 
+function flkTogglePasswordLogin(ev){
+ if(ev){ev.preventDefault();ev.stopPropagation();}
+ const campo=document.getElementById("authPassword");
+ const boton=document.getElementById("authPasswordToggle");
+ if(!campo)return false;
+ const mostrar=campo.getAttribute("type")==="password";
+ campo.setAttribute("type",mostrar?"text":"password");
+ if(boton){
+   boton.textContent=mostrar?"🙈":"👁️";
+   boton.title=mostrar?"Ocultar contraseña":"Mostrar contraseña";
+   boton.setAttribute("aria-label",boton.title);
+ }
+ return false;
+}
 
+function flkCargarUsuarioRecordado(){
+ try{
+  const campo=document.getElementById("authEmail");
+  if(campo && !campo.value)campo.value=localStorage.getItem(FLK_LOGIN_USER_KEY)||"";
+ }catch(_){}
+}
 
-<script id="flk-login-ojo-password-js">
-(function(){
-  function instalarOjoPassword(){
-    const input=document.getElementById("authPassword");
-    const btn=document.getElementById("authPasswordToggle");
-    const icon=document.getElementById("authPasswordToggleIcon");
-    if(!input||!btn)return;
-    btn.onclick=function(ev){
-      ev.preventDefault();
-      ev.stopPropagation();
-      const mostrar=input.type==="password";
-      try{
-        input.type=mostrar?"text":"password";
-      }catch(_){
-        input.setAttribute("type",mostrar?"text":"password");
-      }
-      if(icon)icon.textContent=mostrar?"🙈":"👁️";
-      btn.setAttribute("aria-label",mostrar?"Ocultar contraseña":"Mostrar contraseña");
-      btn.title=mostrar?"Ocultar contraseña":"Mostrar contraseña";
-      // Do not call focus immediately on some mobile browsers, which can redraw as password.
-      setTimeout(()=>{ try{ input.focus({preventScroll:true}); }catch(_){ input.focus(); } },0);
-    };
-  }
-  function limpiarLoginVisual(){
-    const email=document.getElementById("authEmail");
-    const pass=document.getElementById("authPassword");
-    const nombre=document.getElementById("authNombre");
-    const btn=document.getElementById("authPasswordToggle");
-    const icon=document.getElementById("authPasswordToggleIcon");
-    if(email)email.value="";
-    if(pass){pass.value="";pass.type="password";}
-    if(nombre)nombre.value="";
-    if(icon)icon.textContent="👁️";
-    if(btn){
-      btn.setAttribute("aria-label","Mostrar contraseña");
-      btn.title="Mostrar contraseña";
-    }
-  }
-  window.flkLimpiarLoginVisual=limpiarLoginVisual;
-  document.addEventListener("DOMContentLoaded",()=>{
-    instalarOjoPassword();
-    limpiarLoginVisual();
-  });
-  window.addEventListener("pageshow",()=>{
-    // Clear restored form values from BFCache/password autofill after logout/reload.
-    const overlay=document.getElementById("authOverlay");
-    if(overlay && !overlay.classList.contains("oculto")) limpiarLoginVisual();
-  });
-})();
+function flkRecordarSoloUsuario(email){
+ try{localStorage.setItem(FLK_LOGIN_USER_KEY,String(email||"").trim())}catch(_){}
+}
+
+function flkLimpiarSoloPassword(){
+ const campo=document.getElementById("authPassword");
+ const boton=document.getElementById("authPasswordToggle");
+ if(campo){campo.value="";campo.setAttribute("type","password")}
+ if(boton){boton.textContent="👁️";boton.title="Mostrar contraseña";boton.setAttribute("aria-label","Mostrar contraseña")}
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+ flkCargarUsuarioRecordado();
+ flkLimpiarSoloPassword();
+});
 </script>
 
 </body></html>`;
