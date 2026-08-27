@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.34-offline-autorizados-multinavegador">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.35-licencia-por-centro-propietario">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -4497,9 +4497,24 @@ async function flkValidarLicencia(){
  const cache=flkLeerCacheLicencia();
  if(cache){
   const info=cache.info;
+  flkLicenciaUltimaValidacion=cache.validated_at;
+
+  // v61.35: la licencia se decide por CENTRO, no por la cuenta individual.
+  // El Centro Propietario (incluye Propietario, Administradores y Empleados)
+  // usa la licencia interna principal también offline y NO entra en gracia offline.
+  const esLicenciaInternaCentroPropietario=
+   info?.software_owner===true || info?.internal_main_center===true;
+
+  if(esLicenciaInternaCentroPropietario){
+   // Respetar un estado real inválido/suspendido/vencido si alguna vez se guardara así,
+   // pero una licencia interna activa se muestra simplemente como ACTIVA.
+   flkPintarLicencia(info,"online");
+   return info
+  }
+
+  // Solo los centros de clientes/terceros usan el período de gracia offline.
   const gracia=Math.max(0,Number(info.offline_grace_days||0));
   const dias=flkDiasDesde(cache.validated_at);
-  flkLicenciaUltimaValidacion=cache.validated_at;
   if(info.valid&&String(info.license_status)==="active"&&dias<=gracia){
    flkPintarLicencia(info,"offline-grace");
    return info
