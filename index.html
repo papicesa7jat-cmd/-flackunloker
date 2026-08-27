@@ -1344,8 +1344,8 @@ textarea::placeholder{
 .auth-password-toggle{position:absolute;right:7px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;border-radius:9px;background:transparent;cursor:pointer;font-size:19px;display:flex;align-items:center;justify-content:center;z-index:5}
 .auth-password-toggle:active{background:rgba(10,132,255,.08)}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+
+
 
 <style id="flk-lector-fisico-style">
 .flk-lector-fisico{margin-top:10px;padding:10px;border:1px solid #cfdae5;border-radius:12px;background:#f8fbfe}
@@ -1448,13 +1448,104 @@ textarea::placeholder{
 .flk-qr-confirmacion-botones button:first-child{background:#0a67d1;color:#fff}
 .flk-qr-confirmacion-botones button:last-child{background:#e9eef3;color:#29445c}
 </style>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
 
 <style id="flk-html5qr-iphone-style">
 #flkHtml5QrReader{overflow:hidden;border-radius:14px;background:#050505}
 #flkHtml5QrReader video{width:100%!important;height:auto!important;object-fit:cover!important;border-radius:14px}
 #flkHtml5QrReader canvas{max-width:100%!important}
 #flkQrLinternaBtn{border:0;border-radius:10px;padding:10px;font-weight:850;background:#f0f4f8;color:#17324a;cursor:pointer}
+</style>
+
+<script id="flk-qr-offline-loader">
+(function(){
+ const VERSION="qr-offline-v1";
+ const LIBS=[
+  {name:"qrcodejs",url:"https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js",key:"flk_lib_qrcodejs_v1",ok:()=>typeof window.QRCode==="function"},
+  {name:"jsqr",url:"https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js",key:"flk_lib_jsqr_v1",ok:()=>typeof window.jsQR==="function"},
+  {name:"html5qrcode",url:"https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js",key:"flk_lib_html5qrcode_v1",ok:()=>typeof window.Html5Qrcode==="function"}
+ ];
+
+ function ejecutar(codigo,nombre){
+  if(!codigo)return false;
+  try{
+   (0,eval)(String(codigo)+"\n//# sourceURL=flackunloker-offline-"+nombre+".js");
+   return true;
+  }catch(err){
+   console.error("No se pudo ejecutar "+nombre,err);
+   return false;
+  }
+ }
+
+ async function cargar(lib){
+  if(lib.ok())return true;
+
+  // 1. Intentar primero la copia guardada en el teléfono/computadora.
+  try{
+   const guardada=localStorage.getItem(lib.key);
+   if(guardada && ejecutar(guardada,lib.name) && lib.ok())return true;
+  }catch(_){}
+
+  // 2. Si hay Internet, descargarla una vez y dejarla almacenada para el futuro.
+  if(navigator.onLine){
+   try{
+    const r=await fetch(lib.url,{cache:"no-store"});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    const codigo=await r.text();
+    try{localStorage.setItem(lib.key,codigo)}catch(e){
+     console.warn("No se pudo guardar "+lib.name+" en localStorage",e);
+    }
+    if(ejecutar(codigo,lib.name) && lib.ok())return true;
+   }catch(err){
+    console.warn("No se pudo preparar "+lib.name+" para uso offline",err);
+   }
+  }
+  return lib.ok();
+ }
+
+ window.flkAsegurarMotoresQROffline=async function(){
+  const resultados={};
+  for(const lib of LIBS)resultados[lib.name]=await cargar(lib);
+  return resultados;
+ };
+
+ window.flkEstadoMotoresQROffline=function(){
+  return {
+   qrcodejs:typeof window.QRCode==="function",
+   jsqr:typeof window.jsQR==="function",
+   html5qrcode:typeof window.Html5Qrcode==="function"
+  };
+ };
+
+ window.flkPrepararQROffline=async function(silencioso=false){
+  const estado=await window.flkAsegurarMotoresQROffline();
+  const lectura=!!(estado.jsqr||estado.html5qrcode);
+  const generacion=!!estado.qrcodejs;
+  try{
+   localStorage.setItem("flk_qr_offline_preparado",JSON.stringify({
+    version:VERSION,fecha:new Date().toISOString(),lectura,generacion
+   }));
+  }catch(_){}
+  if(!silencioso){
+   alert(lectura&&generacion
+    ?"✅ QR preparado para trabajar sin Internet en este dispositivo."
+    :"⚠️ No se pudieron guardar todos los motores QR. Conéctate a Internet y vuelve a preparar el modo offline.");
+  }
+  return {lectura,generacion,...estado};
+ };
+
+ // Al entrar online, preparar automáticamente las librerías para el próximo corte.
+ if(navigator.onLine){
+  setTimeout(()=>window.flkPrepararQROffline(true),700);
+ }
+ window.addEventListener("online",()=>setTimeout(()=>window.flkPrepararQROffline(true),500));
+})();
+</script>
+
+<style id="flk-qr-offline-style">
+.flk-qr-offline-box{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0;padding:10px 11px;border:1px solid #cbd9e6;border-radius:12px;background:#f5faff;color:#17324a}
+.flk-qr-offline-box div{min-width:0}.flk-qr-offline-box strong{display:block;font-size:12px}.flk-qr-offline-box small{display:block;margin-top:3px;font-size:10.5px;color:#607486;line-height:1.3}
+.flk-qr-offline-box button{flex:0 0 auto;border:0;border-radius:9px;padding:8px 9px;background:#e4f1ff;color:#0965bd;font-weight:850;font-size:11px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -1994,6 +2085,10 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
    <button type="button" class="boton-guardar" onclick="iniciarEscanerQR()">📷 Activar cámara</button>
    <button type="button" id="flkQrLinternaBtn" style="display:none" onclick="flkAlternarLinternaQR()">🔦 Linterna</button>
    <button type="button" class="boton-cancelar" onclick="detenerEscanerQR()">⏹ Detener cámara</button>
+  </div>
+  <div class="flk-qr-offline-box">
+   <div><strong>📴 QR sin Internet</strong><small id="flkQrOfflineEstado">Comprobando motores QR…</small></div>
+   <button type="button" onclick="flkPrepararQROffline(false).then(actualizarEstadoQROfflineVisual)">Preparar offline</button>
   </div>
   <div class="flk-lector-fisico">
    <button type="button" id="flkBotonLectorFisico" onclick="toggleLectorFisico()">🔌 Activar lector físico</button>
@@ -9638,6 +9733,60 @@ cancelarLecturaQRPendiente=function(){
  finally{
   setTimeout(function(){flkQrOperacionEnCurso=false},350);
  }
+};
+</script>
+
+<script id="flk-qr-offline-integration">
+function actualizarEstadoQROfflineVisual(){
+ const el=document.getElementById("flkQrOfflineEstado");
+ if(!el||typeof flkEstadoMotoresQROffline!=="function")return;
+ const e=flkEstadoMotoresQROffline();
+ if(e.qrcodejs&&(e.jsqr||e.html5qrcode)){
+  el.textContent=navigator.onLine
+   ?"Listo: quedará disponible aunque se vaya Internet."
+   :"Modo offline activo en este dispositivo.";
+ }else{
+  el.textContent=navigator.onLine
+   ?"Pulsa Preparar offline para guardar los motores."
+   :"Sin copia local todavía. Usa lector físico o código manual.";
+ }
+}
+
+// Intercept the principal operation flow only to ensure QR engines are ready.
+// Physical HID/manual input remains independent and therefore works even if
+// no camera decoder has ever been cached.
+if(typeof abrirModoQRDesdePrincipalConCamara==="function"){
+ const flkAbrirModoQrOfflineOriginal=abrirModoQRDesdePrincipalConCamara;
+ abrirModoQRDesdePrincipalConCamara=async function(modo){
+  try{
+   if(typeof flkAsegurarMotoresQROffline==="function"){
+    await flkAsegurarMotoresQROffline();
+   }
+  }catch(_){}
+  actualizarEstadoQROfflineVisual();
+  return flkAbrirModoQrOfflineOriginal(modo);
+ };
+}
+
+// Also guard direct camera activation inside the scanner.
+if(typeof iniciarEscanerQRCamaraTrasera==="function"){
+ const flkInicioCamaraOfflineOriginal=window.iniciarEscanerQRCamaraTrasera;
+ window.iniciarEscanerQRCamaraTrasera=async function(){
+  try{
+   if(typeof flkAsegurarMotoresQROffline==="function"){
+    await flkAsegurarMotoresQROffline();
+   }
+  }catch(_){}
+  actualizarEstadoQROfflineVisual();
+  return flkInicioCamaraOfflineOriginal.apply(this,arguments);
+ };
+}
+
+const flkAbrirEscanerOfflineOriginal=abrirEscanerQR;
+abrirEscanerQR=function(){
+ const r=flkAbrirEscanerOfflineOriginal.apply(this,arguments);
+ setTimeout(actualizarEstadoQROfflineVisual,30);
+ return r;
 };
 </script>
 </body>
