@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.32-safari-offline-ui-owner-cache">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.33-safari-offline-confirm">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -6057,6 +6057,23 @@ function cerrarMovimiento(){
  productoMovimiento=null;tipoMovimiento=null
 }
 
+
+function flkAvisoMovimientoOffline(texto){
+ let el=document.getElementById("flkToastMovimientoOffline");
+ if(!el){
+  el=document.createElement("div");
+  el.id="flkToastMovimientoOffline";
+  el.className="flk-toast-offline";
+  document.body.appendChild(el);
+ }
+ el.textContent=texto;
+ el.classList.remove("visible");
+ void el.offsetWidth;
+ el.classList.add("visible");
+ clearTimeout(flkAvisoMovimientoOffline._timer);
+ flkAvisoMovimientoOffline._timer=setTimeout(()=>el.classList.remove("visible"),3200);
+}
+
 document.getElementById("formularioMovimiento").addEventListener("submit",async e=>{
  e.preventDefault();e.stopPropagation();
  if(!requiereAdmin())return;
@@ -6102,6 +6119,18 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
    guardarDatos();
    guardarHistorial();
    cerrarMovimiento();
+
+   // Confirmación visible: evita que el usuario vuelva a tocar por duda.
+   const signo=tipoGuardado==="entrada"?"+":"−";
+   flkAvisoMovimientoOffline(`✅ ${tipoGuardado==="entrada"?"Entrada":"Salida"} ${signo}${cantidad} guardada localmente · pendiente de sincronizar`);
+
+   // Safari puede conservar el scroll del modal al cerrarlo. Volvemos suavemente al inventario.
+   requestAnimationFrame(()=>{
+    const inv=document.getElementById("vistaInventario");
+    if(inv&&inv.style.display!=="none"){
+     try{window.scrollTo({top:0,behavior:"smooth"})}catch(e){window.scrollTo(0,0)}
+    }
+   });
 
    // Repintado diferido: evita que Safari parezca congelado tras tocar Confirmar.
    setTimeout(()=>{
@@ -10399,6 +10428,17 @@ document.addEventListener("DOMContentLoaded",()=>{
 #flkDeepStorageCard{max-width:760px;margin:auto;background:#fff;border-radius:18px;padding:17px;color:#17324a}
 #flkDeepStorageOut{white-space:pre-wrap;background:#f3f8fc;border:1px solid #d5e5f1;border-radius:12px;padding:11px;margin:12px 0;max-height:58vh;overflow:auto;font-size:12px;line-height:1.5}
 .flk-ds-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.flk-ds-grid button{border:0;border-radius:10px;padding:11px;font-weight:850;background:#eaf3fb;color:#17324a}.flk-ds-grid .p{background:#0a84ff;color:#fff}
+
+/* v61.33 · aviso claro para movimientos offline */
+.flk-toast-offline{
+ position:fixed;left:50%;bottom:92px;transform:translateX(-50%) translateY(18px);
+ width:min(92vw,430px);padding:13px 16px;border-radius:14px;
+ background:#fff7e8;color:#7a4a00;border:1px solid #f1d49b;
+ box-shadow:0 8px 28px rgba(0,0,0,.16);font-size:13px;font-weight:800;
+ text-align:center;z-index:999999;opacity:0;pointer-events:none;
+ transition:opacity .18s ease,transform .18s ease;
+}
+.flk-toast-offline.visible{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 <div id="flkDeepStorage">
  <div id="flkDeepStorageCard">
