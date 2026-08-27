@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.27-restauracion-ventas-completa">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.27a-estable-admin-fix">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -4561,7 +4561,11 @@ async function flkComprobarPropietarioSoftware(){
 
 let flkAdminSoftwareCentros=[];
 
-function flkAdminSwEsc(v){return escapeHtml(String(v??""))}
+function flkAdminSwEsc(v){
+ return String(v??"").replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+ }[c]));
+}
 
 function mostrarAdminSoftware(){flkOcultarTodasLasVistas();
  if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
