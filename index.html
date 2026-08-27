@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.26-restauracion-segura">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.27-restauracion-ventas-completa">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -6195,10 +6195,35 @@ async function cargarVentasSupabase(){
    const reciboLocal=normalizarRecibo(v.numero||String(v.id).slice(-8));
 
    // Una venta se considera ya migrada si coincide por ID legado O por número de recibo.
-   // Esto evita volver a insertar un recibo que Supabase ya tiene.
-   if(existentesLegacy.has(legacy)||existentesRecibo.has(reciboLocal))continue;
+   // EXCEPCIÓN DE RESTAURACIÓN: si el recibo existe en Supabase pero quedó sin sale_items
+   // y el respaldo local sí conserva artículos, se reemplaza únicamente ese recibo incompleto
+   // para que flk_import_legacy_sale reconstruya venta + artículos + costos + pagos.
+   const ventaCloudExistente=(cloud||[]).find(cv=>
+    String(cv.legacy_id||"")===legacy || normalizarRecibo(cv.receipt_number)===reciboLocal
+   );
+   const itemsLocalesCrudos=Array.isArray(v.items)?v.items:[];
+   const ventaCloudSinItems=!!ventaCloudExistente &&
+    (!Array.isArray(ventaCloudExistente.sale_items) || ventaCloudExistente.sale_items.length===0);
 
-   const items=(Array.isArray(v.items)?v.items:[]).map(i=>({
+   if(ventaCloudExistente && !(window.flkRestauracionRespaldoActiva===true && ventaCloudSinItems && itemsLocalesCrudos.length)){
+    continue;
+   }
+
+   if(ventaCloudExistente && window.flkRestauracionRespaldoActiva===true && ventaCloudSinItems && itemsLocalesCrudos.length){
+    console.warn("Restauración: reparando recibo existente sin artículos:",reciboLocal);
+    const {error:delVentaErr}=await flkSupabase.from("sales").delete().eq("id",ventaCloudExistente.id);
+    if(delVentaErr){
+     console.error("No se pudo retirar el recibo incompleto:",reciboLocal,delVentaErr);
+     alert("No se pudo reparar el recibo #"+reciboLocal+" porque Supabase no permitió reemplazar la venta incompleta: "+String(delVentaErr.message||delVentaErr));
+     return false;
+    }
+    const pos=(cloud||[]).findIndex(cv=>cv.id===ventaCloudExistente.id);
+    if(pos>=0)cloud.splice(pos,1);
+    existentesLegacy.delete(String(ventaCloudExistente.legacy_id||""));
+    existentesRecibo.delete(normalizarRecibo(ventaCloudExistente.receipt_number));
+   }
+
+   const items=itemsLocalesCrudos.map(i=>({
     legacy_product_id:String(i.productoId),
     quantity:Number(i.cantidad||0),
     unit_price:Number(i.precioUnitario??0),
@@ -8464,7 +8489,13 @@ async function restaurarRespaldo(event){
    // IMPORTANTE: no permitir que una nube vacía vuelva a borrar la salva recién restaurada.
    // Los cargadores existentes migran primero los datos locales del Administrador y luego recargan Supabase.
    mostrarEstadoRespaldo(`⏳ Respaldo restaurado localmente en ${centroActual.nombre}. Verificando Supabase...`);
-   const syncRestore=await flkSincronizarRespaldoRestaurado();
+   window.flkRestauracionRespaldoActiva=true;
+   let syncRestore;
+   try{
+    syncRestore=await flkSincronizarRespaldoRestaurado();
+   }finally{
+    window.flkRestauracionRespaldoActiva=false;
+   }
 
    // Repintar después de la verificación/migración.
    mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();
