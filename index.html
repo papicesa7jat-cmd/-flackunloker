@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.42-visor-conflictos">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.43-proveedores-offline">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2635,7 +2635,7 @@ function flkDeviceId(){
 }
 const FLK_OPERACIONES_LOCAL_FIRST=new Set([
  "product_save","product_delete","stock_adjustment","sale","sale_payment","sale_return",
- "expense_save","expense_delete","supplier_save","purchase_order_save",
+ "expense_save","expense_delete","supplier_save","supplier_delete","purchase_order_save",
  "purchase_order_ordered","purchase_order_receive","supplier_payment",
  "owner_cash_movement","cash_closure_save","cash_closure_delete"
 ]);
@@ -2738,7 +2738,7 @@ function flkEscapeDiag(v){
 }
 function flkNombreOperacionDiag(tipo){
  const nombres={
-  supplier_save:"Proveedor",purchase_order_save:"Orden de compra",
+  supplier_save:"Proveedor",supplier_delete:"Eliminar proveedor",purchase_order_save:"Orden de compra",
   supplier_payment:"Pago a proveedor",stock_adjustment:"Movimiento de inventario",
   sale:"Venta",expense_save:"Gasto",expense_delete:"Eliminar gasto",
   sale_payment:"Abono de venta",sale_return:"Devolución"
@@ -3238,6 +3238,10 @@ function flkAplicarPendientesSobreDatos(){
   if(op.tipo==="sale_payment")flkAplicarAbonoLocal(op);
   if(op.tipo==="sale_return")flkAplicarDevolucionLocal(op);
   if(op.tipo==="supplier_save")flkAplicarProveedorLocal(op);
+  if(op.tipo==="supplier_delete"){
+   const p=op.payload||{};
+   proveedores=proveedores.filter(x=>!(p.supplier_id&&x.supabaseId===p.supplier_id)&&!(p.local_supplier_id&&String(x.id)===String(p.local_supplier_id)));
+  }
   if(op.tipo==="purchase_order_save")flkAplicarOrdenLocal(op);
   if(op.tipo==="purchase_order_ordered")flkAplicarOrdenOrdenadaLocal(op);
   if(op.tipo==="purchase_order_receive")flkAplicarRecepcionOrdenLocal(op);
@@ -3356,6 +3360,14 @@ async function flkProcesarOperacionOffline(op){
    p_email:p.email||null,p_address:p.address||null,p_notes:p.notes||null
   });
   if(error)throw error;return
+ }
+ if(op.tipo==="supplier_delete"){
+  const p=op.payload||{};
+  // Si el proveedor nunca llegó a Supabase, no hay nada remoto que borrar.
+  if(!p.supplier_id)return;
+  const {error}=await flkSupabase.from("suppliers").delete().eq("id",p.supplier_id);
+  if(error)throw error;
+  return
  }
  if(op.tipo==="purchase_order_save"){
   const p=op.payload||{};
@@ -7916,7 +7928,36 @@ document.getElementById("formularioProveedor").addEventListener("submit",async e
  cerrarProveedor();
  if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
 });
-function eliminarProveedor(id){const p=proveedores.find(x=>x.id===id);if(!p)return;const productosAsociados=productos.filter(x=>nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(p.nombre)).length,ordenesAsociadas=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)).length;if(!confirm(`¿Eliminar ${p.nombre} del directorio?\n\nSus ${productosAsociados} producto(s) y ${ordenesAsociadas} orden(es) conservarán el nombre del proveedor como historial.`))return;proveedores=proveedores.filter(x=>x.id!==id);guardarProveedores();actualizarProveedores();actualizarOpcionesOrganizacion()}
+function eliminarProveedor(id){
+ const p=proveedores.find(x=>x.id===id);if(!p)return;
+ const productosAsociados=productos.filter(x=>nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(p.nombre)).length,
+       ordenesAsociadas=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)).length;
+ if(!confirm(`¿Eliminar ${p.nombre} del directorio?\n\nSus ${productosAsociados} producto(s) y ${ordenesAsociadas} orden(es) conservarán el nombre del proveedor como historial.`))return;
+
+ // Si era un proveedor creado offline y todavía no sincronizado, cancelamos su alta pendiente.
+ let q=flkColaOffline();
+ const altaPendiente=q.find(op=>op.tipo==="supplier_save" &&
+   ["pendiente","error","conflicto"].includes(op.estado) &&
+   (
+    (p.offlineCreateOperationId && op.id===p.offlineCreateOperationId) ||
+    String(op.payload?.local_supplier_id||"")===String(p.id)
+   )
+ );
+ if(altaPendiente && !p.supabaseId){
+   q=q.filter(op=>op.id!==altaPendiente.id);
+   flkGuardarColaOffline(q);
+ }else{
+   flkEncolarOperacion("supplier_delete",{
+     supplier_id:p.supabaseId||null,
+     local_supplier_id:p.id,
+     name:p.nombre||"Proveedor"
+   });
+ }
+ proveedores=proveedores.filter(x=>x.id!==id);
+ guardarProveedores();actualizarProveedores();actualizarOpcionesOrganizacion();
+ flkActualizarEstadoConexion();
+ if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
+}
 function nuevaOrdenProveedor(id){const p=proveedores.find(x=>x.id===id);if(!p)return;abrirOrdenCompra(null,p.nombre)}
 function mostrarListaProveedores(){const q=document.getElementById("busquedaProveedores").value.toLowerCase().trim(),lista=document.getElementById("listaProveedoresVista");const arr=[...proveedores].filter(p=>[p.nombre,p.contacto,p.telefono,p.email,p.direccion,p.nota].some(v=>String(v||"").toLowerCase().includes(q))).sort((a,b)=>String(a.nombre||"").localeCompare(String(b.nombre||""),"es",{sensitivity:"base"}));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay proveedores con esa búsqueda.</div>';return}lista.innerHTML=arr.map(p=>{const prods=productos.filter(x=>nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(p.nombre)),ords=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)),pend=ords.filter(o=>o.estado!=="recibida").length,rec=ords.filter(o=>o.estado==="recibida"),total=rec.reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),vencidas=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").length;return `<div class="proveedor-card"><div class="proveedor-superior"><div><h3>${escapeHtml(p.nombre)}</h3><p>${p.contacto?`Contacto: ${escapeHtml(p.contacto)}`:"Proveedor registrado"}</p></div><div class="proveedor-total">$${saldo.toFixed(2)} por pagar</div></div><div class="proveedor-detalle">Productos asociados: <strong>${prods.length}</strong><br>Órdenes totales: <strong>${ords.length}</strong> · Pendientes/ordenadas: <strong>${pend}</strong><br>Compras recibidas: <strong>${rec.length}</strong> · Total: <strong>$${total.toFixed(2)}</strong><br>Pagado: <strong>$${pagado.toFixed(2)}</strong> · Saldo: <strong>$${saldo.toFixed(2)}</strong>${vencidas?`<br>🔴 Deudas vencidas: <strong>${vencidas}</strong>`:""}${p.telefono?`<br>Teléfono: <strong>${escapeHtml(p.telefono)}</strong>`:""}${p.email?`<br>Email: <strong>${escapeHtml(p.email)}</strong>`:""}${p.direccion?`<br>Dirección: ${escapeHtml(p.direccion)}`:""}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><div class="acciones-proveedor"><button class="boton-proveedor boton-proveedor-orden" onclick="abrirOrdenCompra(null,'${escapeHtml(p.nombre).replace(/'/g,"&#039;")}')">📦 Nueva orden</button>${saldo>0.009?`<button class="boton-proveedor boton-proveedor-orden" onclick="mostrarCuentasPagar();document.getElementById('filtroProveedorCuentas').value='${escapeHtml(p.nombre).replace(/'/g,"&#039;")}';mostrarListaCuentasPagar()">💳 Ver deuda</button>`:""}<button class="boton-proveedor boton-proveedor-editar" onclick="abrirProveedor(${p.id})">✏️ Editar</button><button class="boton-proveedor boton-proveedor-eliminar" onclick="eliminarProveedor(${p.id})">🗑️ Eliminar</button></div></div>`}).join("")}
 function actualizarProveedores(){const rec=ordenesCompra.filter(o=>o.estado==="recibida"),total=rec.reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),vencido=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").reduce((t,o)=>t+Number(o.saldoProveedor||0),0);document.getElementById("totalProveedores").textContent=proveedores.length;document.getElementById("proveedoresPendientes").textContent=proveedores.filter(p=>ordenesCompra.some(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)&&o.estado!=="recibida")).length;document.getElementById("totalCompradoProveedores").textContent="$"+total.toFixed(2);document.getElementById("totalPagadoProveedores").textContent="$"+pagado.toFixed(2);document.getElementById("saldoPorPagarProveedores").textContent="$"+saldo.toFixed(2);document.getElementById("deudaVencidaProveedores").textContent="$"+vencido.toFixed(2);mostrarListaProveedores()}
