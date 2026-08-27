@@ -9536,5 +9536,109 @@ cerrarEscanerQR=function(){
  return flkCerrarScannerAnterior();
 };
 </script>
+
+<script id="flk-qr-antiduplicado-global">
+const FLK_QR_BLOQUEO_MS=900;
+let flkQrFuenteActiva="";
+let flkQrOperacionEnCurso=false;
+let flkQrCodigoGlobal="";
+let flkQrCodigoGlobalTs=0;
+
+function flkQrAceptarLecturaGlobal(codigo,fuente){
+ codigo=String(codigo||"").trim();
+ if(!codigo)return false;
+ const ahora=Date.now();
+
+ // While a non-continuous transaction is awaiting/performing confirmation,
+ // no second scanner source may launch another transaction.
+ if(flkQrOperacionEnCurso && flkQrModo!=="venta")return false;
+
+ // Same QR arriving from camera/HID/manual almost simultaneously = one read.
+ if(codigo===flkQrCodigoGlobal && ahora-flkQrCodigoGlobalTs<FLK_QR_BLOQUEO_MS)return false;
+
+ flkQrCodigoGlobal=codigo;
+ flkQrCodigoGlobalTs=ahora;
+ flkQrFuenteActiva=fuente||"desconocida";
+ return true;
+}
+
+// Camera mode: physical reader is ignored while camera is actively scanning.
+const flkPresentarLecturaOriginalGlobal=flkPresentarLecturaParaConfirmar;
+flkPresentarLecturaParaConfirmar=function(codigo){
+ if(!flkQrAceptarLecturaGlobal(codigo,"camara"))return;
+ flkQrOperacionEnCurso=true;
+ return flkPresentarLecturaOriginalGlobal(codigo);
+};
+
+// Preserve original business processor. Deliberate manual/HID inputs share the same lock.
+const flkProcesarNegocioGlobal=flkProcesarCodigoQRNegocio;
+flkProcesarCodigoQRNegocio=function(codigo,desdeCamara){
+ if(desdeCamara){
+  return flkProcesarNegocioGlobal(codigo,desdeCamara);
+ }
+ const fuente=(flkLectorFisicoActivo?"lector-fisico":"manual");
+ if(!flkQrAceptarLecturaGlobal(codigo,fuente))return;
+ flkQrOperacionEnCurso=true;
+ try{
+  return flkProcesarNegocioGlobal(codigo,desdeCamara);
+ }finally{
+  // Manual/HID calls are intentional and synchronous at this layer.
+  setTimeout(function(){flkQrOperacionEnCurso=false},FLK_QR_BLOQUEO_MS);
+ }
+};
+
+// When camera starts, disable HID capture to prevent the same physical code
+// being injected by two active sources.
+const flkIniciarCamaraGlobal=window.iniciarEscanerQRCamaraTrasera;
+window.iniciarEscanerQRCamaraTrasera=async function(){
+ if(typeof flkLectorFisicoActivo!=="undefined" && flkLectorFisicoActivo){
+  try{toggleLectorFisico(false)}catch(_){
+   try{
+    flkLectorFisicoActivo=false;
+    const b=document.getElementById("flkQrLectorFisico");
+    if(b)b.classList.remove("activo");
+   }catch(__){}
+  }
+ }
+ flkQrFuenteActiva="camara";
+ flkQrOperacionEnCurso=false;
+ return flkIniciarCamaraGlobal.apply(this,arguments);
+};
+
+// If physical reader is enabled, stop camera first.
+if(typeof toggleLectorFisico==="function"){
+ const flkToggleFisicoGlobal=toggleLectorFisico;
+ toggleLectorFisico=function(forzar){
+  const activar=(typeof forzar==="boolean")?forzar:!flkLectorFisicoActivo;
+  if(activar){
+   try{detenerEscanerQR(false)}catch(_){}
+   try{if(typeof flkDetenerHtml5QR==="function")flkDetenerHtml5QR()}catch(_){}
+   flkQrFuenteActiva="lector-fisico";
+   flkQrOperacionEnCurso=false;
+  }
+  return flkToggleFisicoGlobal.apply(this,arguments);
+ };
+}
+
+// Confirmation/cancel releases the transaction lock in a controlled way.
+const flkConfirmarGlobal=confirmarLecturaQRPendiente;
+confirmarLecturaQRPendiente=function(){
+ const modo=flkQrModo;
+ try{return flkConfirmarGlobal.apply(this,arguments)}
+ finally{
+  // Sale may resume continuous scanning, but not quickly enough to duplicate
+  // the same physical presentation of the QR.
+  setTimeout(function(){flkQrOperacionEnCurso=false},modo==="venta"?1000:FLK_QR_BLOQUEO_MS);
+ }
+};
+
+const flkCancelarGlobal=cancelarLecturaQRPendiente;
+cancelarLecturaQRPendiente=function(){
+ try{return flkCancelarGlobal.apply(this,arguments)}
+ finally{
+  setTimeout(function(){flkQrOperacionEnCurso=false},350);
+ }
+};
+</script>
 </body>
 </html>
