@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-26-v61.25-gris-definitivo">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.26-restauracion-segura">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -8351,6 +8351,35 @@ async function crearRespaldo(){
  }
 }
 function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
+
+/* ===== RESTAURACIÓN SEGURA v61.26 =====
+   Primero conserva la salva local. Si hay Internet y el usuario es Administrador,
+   migra los datos restaurados a Supabase ANTES de aceptar la nube como fuente de verdad. */
+async function flkSincronizarRespaldoRestaurado(){
+ if(!navigator.onLine)return {ok:false,pendiente:true,mensaje:"Restaurado localmente. La subida a Supabase queda pendiente hasta tener Internet."};
+ if(!flkSesionActiva)return {ok:false,pendiente:true,mensaje:"Restaurado localmente. Inicia sesión para subir la salva a Supabase."};
+ if(rolSesion!=="admin")return {ok:false,pendiente:true,mensaje:"Restaurado localmente. Un Administrador debe abrir el sistema para subir la salva a Supabase."};
+
+ try{
+  // Orden importante: productos primero; ventas/compras dependen de ellos.
+  const inv=await cargarInventarioSupabase();
+  if(inv===false)throw new Error("No se pudo confirmar el inventario en Supabase.");
+
+  if(typeof cargarComprasSupabase==="function")await cargarComprasSupabase();
+  if(typeof cargarVentasSupabase==="function")await cargarVentasSupabase();
+  if(typeof cargarGastosSupabase==="function")await cargarGastosSupabase();
+  if(typeof cargarCierresSupabase==="function")await cargarCierresSupabase();
+
+  // Después de migrar, leer los movimientos confirmados por la nube.
+  if(typeof cargarHistorialSupabase==="function")await cargarHistorialSupabase();
+
+  return {ok:true,pendiente:false,mensaje:"Respaldo restaurado y confirmado en Supabase."};
+ }catch(err){
+  console.error("Restauración segura / sincronización:",err);
+  return {ok:false,pendiente:true,mensaje:"La salva quedó restaurada localmente, pero no se completó la subida a Supabase: "+(err?.message||err)};
+ }
+}
+
 async function restaurarRespaldo(event){
  const archivo=event.target.files[0];
  if(!archivo)return;
@@ -8432,8 +8461,25 @@ async function restaurarRespaldo(event){
    actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();
    actualizarEstadisticas();
 
-   mostrarEstadoRespaldo(`✅ Respaldo restaurado en ${centroActual.nombre}.`);
-   alert("Respaldo restaurado correctamente en "+centroActual.nombre+".");
+   // IMPORTANTE: no permitir que una nube vacía vuelva a borrar la salva recién restaurada.
+   // Los cargadores existentes migran primero los datos locales del Administrador y luego recargan Supabase.
+   mostrarEstadoRespaldo(`⏳ Respaldo restaurado localmente en ${centroActual.nombre}. Verificando Supabase...`);
+   const syncRestore=await flkSincronizarRespaldoRestaurado();
+
+   // Repintar después de la verificación/migración.
+   mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();
+   actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();
+   actualizarReporte();actualizarFlujoCaja();actualizarFinanzas();actualizarCentroAlertas();
+   actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();
+   actualizarEstadisticas();
+
+   if(syncRestore.ok){
+    mostrarEstadoRespaldo(`✅ Respaldo restaurado y sincronizado con Supabase en ${centroActual.nombre}.`);
+    alert("✅ Respaldo restaurado correctamente.\n\nLos datos fueron confirmados en Supabase antes de volver a usar la nube.");
+   }else{
+    mostrarEstadoRespaldo(`⚠️ ${syncRestore.mensaje}`);
+    alert("⚠️ RESTAURACIÓN LOCAL PROTEGIDA\n\n"+syncRestore.mensaje+"\n\nNo cierres ni restablezcas el sistema. Conserva también el archivo de respaldo.");
+   }
   }catch(err){
    console.error(err);
    alert("No se pudo restaurar el respaldo: "+(err?.message||"archivo no válido."));
