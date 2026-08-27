@@ -2367,6 +2367,11 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   </div>
   <input id="archivoRespaldo" type="file" accept=".json,application/json" style="display:none" onchange="restaurarRespaldo(event)">
   <div id="estadoRespaldo" class="estado-respaldo"></div>
+  <div id="flkProteccionRestauracionBox" class="estado-respaldo" style="display:none">
+   <strong>🛡️ Restauración protegida</strong><br>
+   <span id="flkProteccionRestauracionTexto">Supabase no reemplazará estos datos automáticamente.</span>
+   <button type="button" class="boton-agregar" style="width:100%;margin-top:10px" onclick="flkLiberarProteccionRestauracion()">☁️ Reanudar sincronización con Supabase</button>
+  </div>
  </div>
  <div class="adminsw-panel adminsw-seguridad-compacta">
   <h3 style="margin:0 0 8px">🔐 Seguridad</h3>
@@ -8261,6 +8266,56 @@ document.addEventListener("visibilitychange",()=>{
 });
 
 
+
+const FLK_RESTORE_PROTECTION_PREFIX="flackunloker_restore_protection::";
+function flkRestoreProtectionKey(){
+ const id=flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:flkBusinessGuardado();
+ return FLK_RESTORE_PROTECTION_PREFIX+(id||"sin-centro");
+}
+function flkProteccionRestauracionActiva(){
+ try{
+  const raw=localStorage.getItem(flkRestoreProtectionKey());
+  if(!raw)return false;
+  const obj=JSON.parse(raw);
+  return !!(obj&&obj.active===true);
+ }catch(_){return false}
+}
+function flkActivarProteccionRestauracion(meta={}){
+ try{
+  localStorage.setItem(flkRestoreProtectionKey(),JSON.stringify({
+   active:true,
+   restored_at:new Date().toISOString(),
+   centro_id:meta.centro_id||FLK_BUSINESS_ID||flkBusinessGuardado()||null,
+   centro_nombre:meta.centro_nombre||"",
+   backup_fecha:meta.backup_fecha||null
+  }));
+ }catch(_){}
+ flkPintarProteccionRestauracion();
+}
+function flkPintarProteccionRestauracion(){
+ const box=document.getElementById("flkProteccionRestauracionBox");
+ const txt=document.getElementById("flkProteccionRestauracionTexto");
+ if(!box)return;
+ const activa=flkProteccionRestauracionActiva();
+ box.style.display=activa?"block":"none";
+ if(txt&&activa){
+  txt.textContent="La copia restaurada queda como fuente local protegida. Supabase no podrá sustituirla automáticamente.";
+ }
+}
+async function flkLiberarProteccionRestauracion(){
+ if(!flkProteccionRestauracionActiva())return;
+ const ok=confirm(
+  "¿Reanudar la sincronización con Supabase?\n\n"+
+  "IMPORTANTE: si la nube todavía contiene datos diferentes a la copia restaurada, al actualizar desde Supabase podrían volver a reemplazarse datos locales.\n\n"+
+  "Continúa solo cuando estés seguro de que deseas volver a usar la nube."
+ );
+ if(!ok)return;
+ try{localStorage.removeItem(flkRestoreProtectionKey())}catch(_){}
+ flkPintarProteccionRestauracion();
+ mostrarEstadoRespaldo("☁️ Sincronización con Supabase habilitada nuevamente.");
+}
+document.addEventListener("DOMContentLoaded",()=>setTimeout(flkPintarProteccionRestauracion,100));
+
 const FLK_BACKUP_CENTER_NAME_PREFIX="flackunloker_backup_center_name::";
 function flkNombreCentroBackupLocal(){
  const id=flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:flkBusinessGuardado();
@@ -8393,6 +8448,14 @@ async function restaurarRespaldo(event){
    );
    if(!ok)return;
 
+   // Proteger primero la restauración antes de aplicar los datos.
+   // Así ninguna lectura automática de Supabase puede reemplazarla durante el proceso.
+   flkActivarProteccionRestauracion({
+    centro_id:centroActual.id,
+    centro_nombre:centroActual.nombre,
+    backup_fecha:datos.fecha||null
+   });
+
    productos=datos.productos;
    historial=datos.historial;
    ventas=Array.isArray(datos.ventas)?datos.ventas:[];
@@ -8432,7 +8495,11 @@ async function restaurarRespaldo(event){
    actualizarEstadisticas();
 
    mostrarEstadoRespaldo(`✅ Respaldo restaurado en ${centroActual.nombre}.`);
-   alert("Respaldo restaurado correctamente en "+centroActual.nombre+".");
+   alert(
+    "Respaldo restaurado correctamente en "+centroActual.nombre+".\n\n"+
+    "🛡️ MODO PROTEGIDO ACTIVADO\n"+
+    "Supabase no reemplazará automáticamente esta restauración. Cuando decidas volver a sincronizar con la nube, usa el botón del panel de Respaldos."
+   );
   }catch(err){
    console.error(err);
    alert("No se pudo restaurar el respaldo: "+(err?.message||"archivo no válido."));
@@ -9953,6 +10020,62 @@ abrirEscanerQR=function(){
  setTimeout(actualizarEstadoQROfflineVisual,30);
  return r;
 };
+</script>
+
+<script id="flk-restore-protection-supabase-guard">
+(function(){
+ function bloqueado(){
+  return typeof flkProteccionRestauracionActiva==="function" && flkProteccionRestauracionActiva();
+ }
+ function aviso(){
+  if(typeof flkPintarProteccionRestauracion==="function")flkPintarProteccionRestauracion();
+  if(typeof flkActualizarEstadoConexion==="function")flkActualizarEstadoConexion();
+ }
+
+ // These are the destructive/read-back paths that reconstruct local state from cloud.
+ const nombres=[
+  "flkRecuperacionEmergenciaNube",
+  "flkSincronizarSeguro",
+  "flkReconciliarInventarioNube",
+  "cargarInventarioSupabase",
+  "cargarHistorialSupabase",
+  "cargarVentasSupabase",
+  "cargarGastosSupabase",
+  "cargarComprasSupabase",
+  "cargarCierresSupabase",
+  "cargarMovimientosCajaSupabase"
+ ];
+
+ nombres.forEach(nombre=>{
+  const original=window[nombre];
+  if(typeof original!=="function")return;
+  window[nombre]=async function(){
+   if(bloqueado()){
+    aviso();
+    console.info("Restauración protegida: se omitió "+nombre);
+    return true;
+   }
+   return original.apply(this,arguments);
+  };
+ });
+
+ // Do not push queued operations and then immediately rebuild from cloud while
+ // a restored snapshot is protected. Local work remains stored in its current center.
+ if(typeof window.flkProcesarColaOffline==="function"){
+  const originalCola=window.flkProcesarColaOffline;
+  window.flkProcesarColaOffline=async function(){
+   if(bloqueado()){
+    aviso();
+    console.info("Restauración protegida: cola offline conservada sin enviar.");
+    return false;
+   }
+   return originalCola.apply(this,arguments);
+  };
+ }
+
+ // Make protection visible whenever Backup view/status is touched.
+ document.addEventListener("DOMContentLoaded",()=>setTimeout(aviso,250));
+})();
 </script>
 </body>
 </html>
