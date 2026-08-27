@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.38-acceso-resistente-3-fallos">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.39-login-offline-seguro">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -3553,6 +3553,134 @@ document.addEventListener("DOMContentLoaded",()=>{flkCargarUsuarioLogin();flkLim
 const FLK_SESSION_CACHE_KEY="flackunloker_session_cache_v1";
 const FLK_ROLE_CACHE_KEY="flackunloker_role_cache_v1";
 const FLK_AUTH_CONTEXT_CACHE_KEY="flackunloker_auth_context_cache_v1";
+const FLK_OFFLINE_LOGIN_VERIFIER_KEY="flackunloker_offline_login_verifier_v1";
+const FLK_OFFLINE_LOGIN_MAX_DAYS=30;
+
+function flkBytesToB64(bytes){
+ let bin="";
+ bytes.forEach(b=>bin+=String.fromCharCode(b));
+ return btoa(bin);
+}
+function flkB64ToBytes(b64){
+ const bin=atob(String(b64||""));
+ return Uint8Array.from(bin,c=>c.charCodeAt(0));
+}
+async function flkDerivarClaveOffline(password,saltBytes){
+ if(!window.crypto?.subtle)throw new Error("Este navegador no soporta verificación offline segura.");
+ const enc=new TextEncoder();
+ const material=await crypto.subtle.importKey("raw",enc.encode(String(password||"")),"PBKDF2",false,["deriveBits"]);
+ const bits=await crypto.subtle.deriveBits(
+  {name:"PBKDF2",salt:saltBytes,iterations:180000,hash:"SHA-256"},
+  material,256
+ );
+ return flkBytesToB64(new Uint8Array(bits));
+}
+function flkLeerVerificadoresOffline(){
+ try{
+  const x=JSON.parse(localStorage.getItem(FLK_OFFLINE_LOGIN_VERIFIER_KEY)||"{}");
+  return x&&typeof x==="object"&&!Array.isArray(x)?x:{};
+ }catch(e){return {}}
+}
+async function flkGuardarVerificadorOffline(user,password){
+ try{
+  if(!user?.id||!user?.email||!password)return false;
+  const ctx=flkContextoAutorizado(user.id);
+  if(!ctx?.business_id)return false;
+
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const hash=await flkDerivarClaveOffline(password,salt);
+  const todos=flkLeerVerificadoresOffline();
+  todos[String(user.email).trim().toLowerCase()]={
+   user_id:user.id,
+   email:String(user.email).trim().toLowerCase(),
+   salt:flkBytesToB64(salt),
+   hash,
+   role:ctx.role||"employee",
+   business_id:ctx.business_id,
+   validated_at:new Date().toISOString()
+  };
+  localStorage.setItem(FLK_OFFLINE_LOGIN_VERIFIER_KEY,JSON.stringify(todos));
+  return true;
+ }catch(e){
+  console.warn("No se pudo preparar acceso offline:",e);
+  return false;
+ }
+}
+function flkDiasDesdeIso(iso){
+ const t=new Date(iso||0).getTime();
+ if(!Number.isFinite(t))return Infinity;
+ return Math.max(0,(Date.now()-t)/86400000);
+}
+async function flkValidarAccesoOffline(email,password){
+ const key=String(email||"").trim().toLowerCase();
+ const reg=flkLeerVerificadoresOffline()[key];
+ if(!reg)return {ok:false,reason:"not-prepared"};
+ if(flkDiasDesdeIso(reg.validated_at)>FLK_OFFLINE_LOGIN_MAX_DAYS)return {ok:false,reason:"expired"};
+
+ try{
+  const actual=await flkDerivarClaveOffline(password,flkB64ToBytes(reg.salt));
+  if(actual!==reg.hash)return {ok:false,reason:"bad-password"};
+ }catch(e){
+  return {ok:false,reason:"unsupported"};
+ }
+
+ const ctx=flkContextoAutorizado(reg.user_id);
+ if(!ctx||ctx.business_id!==reg.business_id)return {ok:false,reason:"context-mismatch"};
+
+ return {
+  ok:true,
+  user:{id:reg.user_id,email:reg.email},
+  role:reg.role||ctx.role||"employee",
+  business_id:reg.business_id,
+  validated_at:reg.validated_at
+ };
+}
+async function flkEntrarOffline(email,password){
+ const r=await flkValidarAccesoOffline(email,password);
+ if(!r.ok){
+  const mensajes={
+   "not-prepared":"Este navegador debe iniciar sesión online al menos una vez antes de poder entrar sin Internet.",
+   "expired":"La autorización offline de este navegador venció. Conéctate una vez para renovarla.",
+   "bad-password":"Usuario o contraseña incorrectos.",
+   "unsupported":"Este navegador no permite verificar la contraseña offline de forma segura.",
+   "context-mismatch":"No se pudo confirmar el centro autorizado de este usuario."
+  };
+  throw new Error(mensajes[r.reason]||"No se pudo validar el acceso offline.");
+ }
+
+ const sesionLocal={
+  user:{id:r.user.id,email:r.user.email},
+  saved_at:new Date().toISOString(),
+  offline_login:true
+ };
+ localStorage.setItem(FLK_SESSION_CACHE_KEY,JSON.stringify(sesionLocal));
+ flkSesionActiva=true;
+ rolSesion=r.role;
+ FLK_BUSINESS_ID=r.business_id;
+ localStorage.setItem(FLK_BUSINESS_STORAGE_KEY,r.business_id);
+ flkCambiarContextoLocalCentro(r.business_id);
+
+ document.getElementById("authOverlay")?.classList.add("oculto");
+ flkPintarSesionLocal(r.user);
+ flkAplicarPendientesSobreDatos();
+ mostrarProductos();
+ actualizarResumenHistorial();
+ mostrarListaHistorial();
+ actualizarVentas();
+ actualizarClientes();
+ actualizarGastos();
+ actualizarCierre();
+ actualizarOpcionesOrganizacion();
+ actualizarProveedores();
+ actualizarOrdenesCompra();
+ actualizarCuentasPagar();
+ actualizarFlujoCaja();
+ actualizarFinanzas();
+ actualizarEstadisticas();
+ actualizarCentroAlertas();
+ flkActualizarEstadoConexion();
+ return true;
+}
 
 function flkAuthContextos(){
  try{
@@ -3987,7 +4115,20 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
  if(!password)return mostrarMensajeAuth("Escribe la contraseña.","error");
 
  if(!navigator.onLine){
-  mostrarMensajeAuth("❌ No hay conexión. Para iniciar una sesión nueva debes conectarte a Internet.","error");
+  flkAuthProcesando=true;
+  flkBloquearBotonAuth();
+  mostrarMensajeAuth("Verificando acceso offline…","ok");
+  try{
+   await flkEntrarOffline(email,password);
+   flkRecordarUsuarioLogin(email);
+   flkLimpiarPasswordLogin();
+   mostrarMensajeAuth("","");
+  }catch(errOffline){
+   mostrarMensajeAuth("❌ "+(errOffline?.message||"No se pudo iniciar offline."),"error");
+  }finally{
+   flkAuthProcesando=false;
+   flkRestaurarBotonAuth();
+  }
   return;
  }
 
@@ -4030,20 +4171,24 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
 
   flkRecordarUsuarioLogin(email);
 
+  // Preparar este navegador para futuros accesos sin Internet.
+  // La contraseña NO se guarda: solo un verificador PBKDF2 con salt.
+  try{
+   await flkPromesaConTiempo(mostrarAppConSesion(data.session),10000,"app-timeout");
+   await flkGuardarVerificadorOffline(data.session.user,password);
+  }catch(errPreparacion){
+   console.warn("Preparación inicial de sesión/offline:",errPreparacion?.message||errPreparacion);
+  }
+
   // La pantalla de login deja de marear en cuanto Supabase confirma la sesión.
   document.getElementById("authOverlay")?.classList.add("oculto");
   mostrarMensajeAuth("","");
 
-  try{
-   await flkPromesaConTiempo(mostrarAppConSesion(data.session),10000,"app-timeout");
-  }catch(errApp){
-   // Si una carga secundaria (rol, centro, licencia) demora por Internet,
-   // conservar la sesión ya confirmada y permitir que la app use sus cachés.
-   console.warn("Inicio confirmado; carga secundaria demorada:",errApp?.message||errApp);
-   flkGuardarSesionLocal(data.session);
-   flkPintarSesionLocal(data.session.user);
-   document.getElementById("authOverlay")?.classList.add("oculto");
-  }
+  // Si alguna carga secundaria demoró, la sesión online ya quedó confirmada;
+  // mantener la interfaz usable con los datos/cachés disponibles.
+  flkGuardarSesionLocal(data.session);
+  flkPintarSesionLocal(data.session.user);
+  document.getElementById("authOverlay")?.classList.add("oculto");
 
   flkLimpiarPasswordLogin();
 
