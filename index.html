@@ -1416,12 +1416,12 @@ textarea::placeholder{
    <div id="campoNombreAuth" class="auth-campo" style="display:none">
     <label>Nombre</label><input id="authNombre" type="text" autocomplete="name" placeholder="Tu nombre">
    </div>
-   <div class="auth-campo"><label>Correo electrónico</label><input id="authEmail" type="email" autocomplete="email" required placeholder="correo@ejemplo.com"></div>
+   <div class="auth-campo"><label>Correo electrónico</label><input id="authEmail" type="email" autocomplete="off" autocapitalize="none" spellcheck="false" required placeholder="correo@ejemplo.com"></div>
    <div class="auth-campo">
     <label>Contraseña</label>
     <div class="auth-password-wrap">
-      <input id="authPassword" type="password" autocomplete="current-password" minlength="8" required placeholder="Mínimo 8 caracteres">
-      <button type="button" class="auth-password-toggle" id="authPasswordToggle" aria-label="Mostrar contraseña" title="Mostrar contraseña" onclick="alternarVisibilidadPassword()">👁️</button>
+      <input id="authPassword" type="password" autocomplete="off" minlength="8" required placeholder="Mínimo 8 caracteres">
+      <button type="button" class="auth-password-toggle" id="authPasswordToggle" aria-label="Mostrar contraseña" title="Mostrar contraseña"><span id="authPasswordToggleIcon">👁️</span></button>
     </div>
    </div>
    <button type="button" class="auth-olvido" id="botonOlvidePassword" onclick="abrirRecuperarPassword()">¿Olvidaste tu contraseña?</button>
@@ -3583,20 +3583,17 @@ async function mostrarAppConSesion(session){
  }
 }
 async function cerrarSesionFlackunloker(){
- flkEsPropietarioSoftware=false;
- document.body.classList.remove("es-propietario");
- flkSesionActiva=false;
- rolSesion="employee";
- document.body.classList.add("rol-empleado");
- document.body.classList.remove("rol-admin");
- const fondo=document.getElementById("menuPrincipalFondo");if(fondo)fondo.classList.remove("visible");
- flkLimpiarSesionLocal();
- if(navigator.onLine){
-  try{await flkSupabase.auth.signOut()}catch(e){}
- }
- document.getElementById("authOverlay").classList.remove("oculto");
- document.getElementById("authUsuario").classList.remove("visible");
- cambiarModoAuth("login");
+ try{
+  if(typeof flkLimpiarLoginVisual==="function")flkLimpiarLoginVisual();
+  await flkSupabase.auth.signOut();
+ }catch(err){console.error(err)}
+ try{
+  flkLimpiarSesionLocal();
+  localStorage.removeItem("flackunloker_auth_email");
+  sessionStorage.removeItem("flackunloker_auth_email");
+ }catch(_){}
+ if(typeof flkLimpiarLoginVisual==="function")flkLimpiarLoginVisual();
+ location.reload();
 }
 document.getElementById("formAuth").addEventListener("submit",async e=>{
  e.preventDefault();
@@ -6158,18 +6155,58 @@ function imprimirComprobanteDevolucion(ventaId,devolucionSupabaseId){
 
 
 
+
+
+
 <script id="flk-login-ojo-password-js">
-function alternarVisibilidadPassword(){
-  const input=document.getElementById("authPassword");
-  const btn=document.getElementById("authPasswordToggle");
-  if(!input||!btn)return;
-  const mostrar=input.type==="password";
-  input.type=mostrar?"text":"password";
-  btn.textContent=mostrar?"🙈":"👁️";
-  btn.setAttribute("aria-label",mostrar?"Ocultar contraseña":"Mostrar contraseña");
-  btn.title=mostrar?"Ocultar contraseña":"Mostrar contraseña";
-  input.focus();
-}
+(function(){
+  function instalarOjoPassword(){
+    const input=document.getElementById("authPassword");
+    const btn=document.getElementById("authPasswordToggle");
+    const icon=document.getElementById("authPasswordToggleIcon");
+    if(!input||!btn)return;
+    btn.onclick=function(ev){
+      ev.preventDefault();
+      ev.stopPropagation();
+      const mostrar=input.type==="password";
+      try{
+        input.type=mostrar?"text":"password";
+      }catch(_){
+        input.setAttribute("type",mostrar?"text":"password");
+      }
+      if(icon)icon.textContent=mostrar?"🙈":"👁️";
+      btn.setAttribute("aria-label",mostrar?"Ocultar contraseña":"Mostrar contraseña");
+      btn.title=mostrar?"Ocultar contraseña":"Mostrar contraseña";
+      // Do not call focus immediately on some mobile browsers, which can redraw as password.
+      setTimeout(()=>{ try{ input.focus({preventScroll:true}); }catch(_){ input.focus(); } },0);
+    };
+  }
+  function limpiarLoginVisual(){
+    const email=document.getElementById("authEmail");
+    const pass=document.getElementById("authPassword");
+    const nombre=document.getElementById("authNombre");
+    const btn=document.getElementById("authPasswordToggle");
+    const icon=document.getElementById("authPasswordToggleIcon");
+    if(email)email.value="";
+    if(pass){pass.value="";pass.type="password";}
+    if(nombre)nombre.value="";
+    if(icon)icon.textContent="👁️";
+    if(btn){
+      btn.setAttribute("aria-label","Mostrar contraseña");
+      btn.title="Mostrar contraseña";
+    }
+  }
+  window.flkLimpiarLoginVisual=limpiarLoginVisual;
+  document.addEventListener("DOMContentLoaded",()=>{
+    instalarOjoPassword();
+    limpiarLoginVisual();
+  });
+  window.addEventListener("pageshow",()=>{
+    // Clear restored form values from BFCache/password autofill after logout/reload.
+    const overlay=document.getElementById("authOverlay");
+    if(overlay && !overlay.classList.contains("oculto")) limpiarLoginVisual();
+  });
+})();
 </script>
 
 </body></html>`;
