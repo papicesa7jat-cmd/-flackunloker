@@ -1344,22 +1344,6 @@ textarea::placeholder{
 .auth-password-toggle:active{background:rgba(10,132,255,.08)}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-<style id="flk-qr-integrado-style">
-.qr-producto{background:#f2edff;color:#6246b8}
-.flk-qr-video-wrap{position:relative;width:100%;aspect-ratio:4/3;border-radius:18px;overflow:hidden;background:#0f172a;margin-bottom:12px}
-#flkQrVideo{width:100%;height:100%;object-fit:cover;display:block}
-.flk-qr-marco{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:58%;aspect-ratio:1;border:3px solid #fff;border-radius:18px;box-shadow:0 0 0 999px rgba(0,0,0,.15);pointer-events:none}
-.flk-qr-estado{position:absolute;left:10px;right:10px;bottom:10px;padding:8px;border-radius:10px;background:rgba(15,23,42,.82);color:#fff;font-size:12px;font-weight:800;text-align:center}
-.flk-qr-controles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.flk-qr-resultado{margin-top:13px;padding:13px;border-radius:14px;background:#f7fbff;border:1px solid #cfe3f7;font-size:13px;line-height:1.55}
-.flk-qr-acciones{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-.flk-qr-acciones button{border:0;border-radius:11px;padding:10px 7px;font-weight:800;cursor:pointer}
-.flk-etiqueta-qr{width:52mm;max-width:100%;margin:0 auto;padding:3mm;background:#fff;border:1px dashed #9aa6b2;text-align:center;color:#111}
-.flk-etiqueta-qr h3{margin:1.5mm 0 .7mm;font-size:4mm}.flk-etiqueta-qr p{margin:.6mm 0;font-size:2.7mm}.flk-etiqueta-qr .qrbox{display:flex;justify-content:center;margin:1.5mm auto}
-.flk-etiqueta-qr .qrbox img,.flk-etiqueta-qr .qrbox canvas{width:30mm!important;height:30mm!important}
-@media(max-width:430px){.flk-qr-controles,.flk-qr-acciones{grid-template-columns:1fr}}
-</style>
 </head>
 <body>
 
@@ -1842,7 +1826,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="modal" id="modalEscanerQR">
  <div class="formulario flk-qr-form">
   <h2>📷 Escáner QR</h2>
-  <p class="mensaje-movimiento">Escanea el QR de un producto para Compra/Entrada o Venta, o el QR de un recibo para localizarlo y hacer una Devolución.</p>
+  <p class="mensaje-movimiento">Escanea el QR de un producto para Entrada o Venta, o el QR de un recibo para localizarlo y hacer una Devolución.</p>
   <div class="flk-qr-video-wrap">
    <video id="flkQrVideo" playsinline muted></video>
    <div class="flk-qr-marco"></div>
@@ -1863,10 +1847,9 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 </div>
 
 <div class="modal" id="modalEtiquetaQR">
- <div class="formulario flk-etiqueta-modal">
+ <div class="formulario">
   <h2>🏷️ Etiqueta QR del producto</h2>
   <div id="flkEtiquetaQRVista" class="flk-etiqueta-qr"></div>
-  <p class="ayuda-campo">El QR contiene el SKU del producto. Puedes imprimirlo y pegarlo físicamente al artículo o estante.</p>
   <div class="botones-formulario">
    <button type="button" class="boton-cancelar" onclick="cerrarEtiquetaQR()">Cerrar</button>
    <button type="button" class="boton-guardar" onclick="imprimirEtiquetaQRProducto()">🖨️ Imprimir</button>
@@ -6242,106 +6225,31 @@ function imprimirComprobanteDevolucion(ventaId,devolucionSupabaseId){
  const item=itemsDeVenta(v).find(i=>i.productoId===d.productoId)||{};
  const numero=d.numeroDevolucion?String(d.numeroDevolucion).padStart(6,"0"):String(d.id).slice(-6);
  const fecha=new Date(d.fecha),monto=Number(d.monto??d.reembolso??0),cantidad=Number(d.cantidad||0),unitario=cantidad>0?monto/cantidad:0;
- const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Devolución ${numero}</title><style>${flkCssComprobanteProfesional("#f25b18")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">↩ Devolución de cliente</span><span class="numero">N.º DV-${numero}</span></div></header><section class="meta"><div>Recibo original<strong>#${escapeHtml(v.numero||"")}</strong></div><div>Fecha y hora<strong>${fecha.toLocaleDateString("es-PR")} · ${fecha.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${escapeHtml(v.cliente||"Cliente general")}</strong></div><div>Teléfono<strong>${escapeHtml(v.telefono||"—")}</strong></div></section><section class="seccion"><h3>Detalle de devolución</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cant.</th><th class="num">Precio unit.</th><th class="num">Reembolso</th></tr></thead><tbody><tr><td>${escapeHtml(item.nombre||d.nombre||"Producto")}</td><td>${escapeHtml(item.sku||d.sku||"—")}</td><td class="num">${cantidad}</td><td class="num">$${unitario.toFixed(2)}</td><td class="num"><strong>$${monto.toFixed(2)}</strong></td></tr></tbody></table></section><section class="seccion"><div class="resumen"><div class="r"><span>Cantidad devuelta</span><strong>${cantidad}</strong></div><div class="r total"><span>TOTAL DEVOLUCIÓN</span><strong>$${monto.toFixed(2)}</strong></div></div></section><section class="seccion"><h3>Motivo / observaciones</h3><div class="nota">${escapeHtml(d.motivo||"No especificado")}</div><div class="firma"><div>Cliente / recibe devolución</div><div>Autorización administrativa</div></div></section><div class="pie">Comprobante generado por Flackunloker · Documento de control interno</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div>
-<script id="flk-qr-integrado-js">
-let flkQrStream=null,flkQrDetector=null,flkQrActivo=false,flkProductoEtiquetaActual=null;
-
-function flkQrEsc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
-function flkQrProductoTexto(p){return "FLK|SKU|"+String(p.sku||"").trim()}
-function flkQrVentaTexto(v){return "FLK|SALE|"+String(v.numero||v.id)}
-
-function mostrarEtiquetaQRProducto(id){
- const p=productos.find(x=>String(x.id)===String(id));if(!p)return alert("Producto no encontrado.");
- flkProductoEtiquetaActual=p;
- const box=document.getElementById("flkEtiquetaQRVista");
- box.innerHTML=`<strong style="font-size:2.4mm">FLACKUNLOKER</strong><div class="qrbox" id="flkQrEtiquetaCodigo"></div><h3>${flkQrEsc(p.nombre)}</h3><p>SKU: <strong>${flkQrEsc(p.sku)}</strong></p>`;
- document.getElementById("modalEtiquetaQR").classList.add("visible");
- setTimeout(()=>{
-  const q=document.getElementById("flkQrEtiquetaCodigo");
-  if(typeof QRCode==="undefined"){q.innerHTML='<div style="padding:12px;font-size:12px">Conéctate una vez a Internet para cargar el generador QR.</div>';return}
-  q.innerHTML="";
-  new QRCode(q,{text:flkQrProductoTexto(p),width:150,height:150,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
- },30);
-}
-function cerrarEtiquetaQR(){document.getElementById("modalEtiquetaQR")?.classList.remove("visible")}
-function imprimirEtiquetaQRProducto(){
- if(!flkProductoEtiquetaActual)return;
- const vista=document.getElementById("flkEtiquetaQRVista");
- const w=window.open("","_blank","width=420,height=560");
- if(!w)return alert("El navegador bloqueó la ventana de impresión.");
- w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Etiqueta QR</title><style>@page{size:58mm auto;margin:2mm}body{margin:0;width:54mm;font-family:Arial,sans-serif}.et{width:52mm;padding:2mm;text-align:center}.et img,.et canvas{width:30mm!important;height:30mm!important}.et h3{font-size:4mm;margin:1mm 0}.et p{font-size:2.7mm;margin:.5mm 0}</style></head><body><div class="et">${vista.innerHTML}</div><script>window.onload=()=>setTimeout(()=>window.print(),150)<\/script></body></html>`);
- w.document.close();
-}
-
-function abrirEscanerQR(){
- try{cerrarMenuPrincipal()}catch(_){}
- document.getElementById("flkQrResultado").style.display="none";
- document.getElementById("flkQrCodigoManual").value="";
- document.getElementById("modalEscanerQR").classList.add("visible");
-}
-function cerrarEscanerQR(){detenerEscanerQR(false);document.getElementById("modalEscanerQR")?.classList.remove("visible")}
-function detenerEscanerQR(cambiar=true){
- flkQrActivo=false;
- if(flkQrStream){try{flkQrStream.getTracks().forEach(t=>t.stop())}catch(_){} flkQrStream=null}
- const v=document.getElementById("flkQrVideo");if(v){try{v.pause()}catch(_){}v.srcObject=null}
- if(cambiar){const e=document.getElementById("flkQrEstado");if(e)e.textContent="Cámara detenida."}
-}
-async function iniciarEscanerQR(){
- const e=document.getElementById("flkQrEstado");
- if(!navigator.mediaDevices?.getUserMedia)return alert("Este navegador no permite usar la cámara.");
- if(!("BarcodeDetector" in window))return alert("Este navegador no tiene lector QR nativo. Usa el campo Código manual.");
- try{
-  detenerEscanerQR(false);
-  flkQrDetector=new BarcodeDetector({formats:["qr_code"]});
-  flkQrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
-  const v=document.getElementById("flkQrVideo");v.srcObject=flkQrStream;await v.play();
-  flkQrActivo=true;e.textContent="Apunta la cámara al QR.";flkQrLeer();
- }catch(err){console.error(err);e.textContent="No se pudo abrir la cámara.";alert("Revisa el permiso de cámara del navegador.")}
-}
-async function flkQrLeer(){
- if(!flkQrActivo||!flkQrDetector)return;
- try{
-  const v=document.getElementById("flkQrVideo");
-  if(v.readyState>=2){
-   const r=await flkQrDetector.detect(v);
-   if(r?.length){const c=String(r[0].rawValue||"").trim();if(c){document.getElementById("flkQrCodigoManual").value=c;procesarCodigoQR(c);detenerEscanerQR(false);return}}
-  }
- }catch(_){}
- if(flkQrActivo)requestAnimationFrame(flkQrLeer);
-}
-function flkQrValor(c){
- const raw=String(c||"").trim(),p=raw.split("|");
- if(p.length>=3&&String(p[0]).toUpperCase()==="FLK")return {tipo:String(p[1]).toUpperCase(),valor:p.slice(2).join("|")};
- return {tipo:"AUTO",valor:raw};
-}
-function procesarCodigoQR(codigo){
- const x=flkQrValor(codigo),valor=String(x.valor||"").trim().toLowerCase(),box=document.getElementById("flkQrResultado");
- if(!valor)return alert("Escribe o escanea un código.");
- let p=null,v=null;
- if(x.tipo==="SKU"||x.tipo==="AUTO")p=productos.find(z=>String(z.sku||"").trim().toLowerCase()===valor||String(z.id)===x.valor);
- if(!p&&(x.tipo==="SALE"||x.tipo==="AUTO"))v=ventas.find(z=>String(z.numero||"").trim().toLowerCase()===valor||String(z.id)===x.valor);
- box.style.display="block";
- if(p){
-  box.innerHTML=`<strong>📦 ${flkQrEsc(p.nombre)}</strong><br>SKU: ${flkQrEsc(p.sku)} · Existencia: ${Number(p.cantidad||0)}
-  <div class="flk-qr-acciones"><button style="background:#e9f8ef;color:#168044" onclick="cerrarEscanerQR();abrirMovimiento(${JSON.stringify(p.id)},'entrada')">📥 Compra / Entrada</button><button style="background:#eaf4ff;color:#0a67d1" onclick="cerrarEscanerQR();abrirVenta(${JSON.stringify(p.id)})">🧾 Venta</button></div>`;
- }else if(v){
-  box.innerHTML=`<strong>🧾 Recibo #${flkQrEsc(v.numero||v.id)}</strong><br>Cliente: ${flkQrEsc(v.cliente||"Cliente general")} · Total: $${Number(v.ingreso||0).toFixed(2)}
-  <div class="flk-qr-acciones"><button style="background:#eaf4ff;color:#0a67d1" onclick="cerrarEscanerQR();generarReciboVenta(${JSON.stringify(v.id)})">👁️ Ver recibo</button><button style="background:#fff1e8;color:#c45b19" onclick="cerrarEscanerQR();abrirDevolucion(${JSON.stringify(v.id)})">↩️ Devolución</button></div>`;
- }else box.innerHTML=`<strong>⚠️ Código no encontrado</strong><br>${flkQrEsc(codigo)}`;
-}
-window.addEventListener("pagehide",()=>detenerEscanerQR(false));
-</script>
-
-</body></html>`;
+ const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Devolución ${numero}</title><style>${flkCssComprobanteProfesional("#f25b18")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">↩ Devolución de cliente</span><span class="numero">N.º DV-${numero}</span></div></header><section class="meta"><div>Recibo original<strong>#${escapeHtml(v.numero||"")}</strong></div><div>Fecha y hora<strong>${fecha.toLocaleDateString("es-PR")} · ${fecha.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${escapeHtml(v.cliente||"Cliente general")}</strong></div><div>Teléfono<strong>${escapeHtml(v.telefono||"—")}</strong></div></section><section class="seccion"><h3>Detalle de devolución</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cant.</th><th class="num">Precio unit.</th><th class="num">Reembolso</th></tr></thead><tbody><tr><td>${escapeHtml(item.nombre||d.nombre||"Producto")}</td><td>${escapeHtml(item.sku||d.sku||"—")}</td><td class="num">${cantidad}</td><td class="num">$${unitario.toFixed(2)}</td><td class="num"><strong>$${monto.toFixed(2)}</strong></td></tr></tbody></table></section><section class="seccion"><div class="resumen"><div class="r"><span>Cantidad devuelta</span><strong>${cantidad}</strong></div><div class="r total"><span>TOTAL DEVOLUCIÓN</span><strong>$${monto.toFixed(2)}</strong></div></div></section><section class="seccion"><h3>Motivo / observaciones</h3><div class="nota">${escapeHtml(d.motivo||"No especificado")}</div><div class="firma"><div>Cliente / recibe devolución</div><div>Autorización administrativa</div></div></section><div class="pie">Comprobante generado por Flackunloker · Documento de control interno</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div></body></html>`;
  flkAbrirDocumentoComprobante(html)
+}
+
+function flkQrDataUrl(texto,tamano=112){
+ try{
+  if(typeof QRCode==="undefined")return "";
+  const host=document.createElement("div");
+  host.style.cssText="position:fixed;left:-9999px;top:-9999px;width:"+tamano+"px;height:"+tamano+"px";
+  document.body.appendChild(host);
+  new QRCode(host,{text:String(texto||""),width:tamano,height:tamano,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
+  const canvas=host.querySelector("canvas"),img=host.querySelector("img");
+  const url=canvas?canvas.toDataURL("image/png"):(img?img.src:"");
+  host.remove();
+  return url||"";
+ }catch(e){console.error("QR:",e);return ""}
 }
 function generarReciboVenta(id){
  const v=ventas.find(x=>x.id===id);if(!v)return;const f=new Date(v.fecha),numero=v.numero||String(v.id).slice(-8),items=itemsDeVenta(v);
+ const qrReciboData=flkQrDataUrl("FLK|SALE|"+String(numero),112);
  normalizarCuentaVenta(v);const cliente=escapeHtml(v.cliente||"Cliente general"),telefono=escapeHtml(v.telefono||""),nota=escapeHtml(v.nota||""),devoluciones=devolucionesDeVenta(v),pagos=pagosDeVenta(v);
  const filas=items.filter(i=>Number(i.cantidad)>0).map(i=>{const cant=Number(i.cantidad||0),pu=Number(i.precioUnitario??0),tot=Number(i.ingreso??(cant*pu));return `<tr><td>${escapeHtml(i.nombre)}<div class="muted">Producto vendido</div></td><td>${escapeHtml(i.sku||"—")}</td><td class="num">${cant}</td><td class="num">$${pu.toFixed(2)}</td><td class="num"><strong>$${tot.toFixed(2)}</strong></td></tr>`}).join("")||'<tr><td colspan="5">Sin artículos activos.</td></tr>';
  const devolucionesTxt=devoluciones.length?`${devoluciones.length} devolución(es) · -$${devoluciones.reduce((t,d)=>t+Number(d.reembolso??d.monto??0),0).toFixed(2)}`:"Ninguna";
  const pagosTxt=pagos.length?`${pagos.length} abono(s) registrado(s)`:"Sin abonos";
- const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recibo ${escapeHtml(numero)}</title><style>${flkCssComprobanteProfesional("#0a67d1")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">🧾 Recibo de venta</span><span class="numero">N.º SA-${escapeHtml(numero)}</span></div></header><section class="meta"><div>Fecha y hora<strong>${f.toLocaleDateString("es-PR")} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${cliente}</strong></div><div>Teléfono<strong>${telefono||"—"}</strong></div><div>Estado de pago<strong>${escapeHtml(estadoVencimientoVenta(v).texto)}</strong></div></section><section class="seccion"><h3>Productos</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cant.</th><th class="num">Precio unit.</th><th class="num">Total</th></tr></thead><tbody>${filas}</tbody></table></section><section class="seccion"><div class="resumen"><div class="r"><span>Método inicial</span><strong>${escapeHtml(v.metodoPago||"—")}</strong></div><div class="r"><span>Pagado</span><strong>$${Number(v.totalPagado||0).toFixed(2)}</strong></div><div class="r"><span>Saldo pendiente</span><strong>$${Number(v.saldo||0).toFixed(2)}</strong></div><div class="r"><span>Devoluciones</span><strong>${devolucionesTxt}</strong></div><div class="r"><span>Abonos</span><strong>${pagosTxt}</strong></div><div class="r total"><span>TOTAL NETO</span><strong>$${Number(v.ingreso??0).toFixed(2)}</strong></div></div></section>${nota?`<section class="seccion"><h3>Observaciones</h3><div class="nota">${nota}</div></section>`:""}<section class="seccion"><div class="firma"><div>Vendido / entregado por</div><div>Cliente / recibido por</div></div></section><div id="qrReciboFlk" style="display:flex;justify-content:center;margin:2mm auto 1mm"></div><div style="text-align:center;font-size:1.8mm;margin-bottom:1mm">Escanea para localizar este recibo / devolución</div><div class="pie">Gracias por su compra · Comprobante generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script><script>window.addEventListener("load",function(){try{new QRCode(document.getElementById("qrReciboFlk"),{text:"FLK|SALE|${String(v.numero||v.id)}",width:92,height:92,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M})}catch(e){console.error(e)}})<\/script></body></html>`;
+ const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recibo ${escapeHtml(numero)}</title><style>${flkCssComprobanteProfesional("#0a67d1")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">🧾 Recibo de venta</span><span class="numero">N.º SA-${escapeHtml(numero)}</span></div></header><section class="meta"><div>Fecha y hora<strong>${f.toLocaleDateString("es-PR")} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${cliente}</strong></div><div>Teléfono<strong>${telefono||"—"}</strong></div><div>Estado de pago<strong>${escapeHtml(estadoVencimientoVenta(v).texto)}</strong></div></section><section class="seccion"><h3>Productos</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cant.</th><th class="num">Precio unit.</th><th class="num">Total</th></tr></thead><tbody>${filas}</tbody></table></section><section class="seccion"><div class="resumen"><div class="r"><span>Método inicial</span><strong>${escapeHtml(v.metodoPago||"—")}</strong></div><div class="r"><span>Pagado</span><strong>$${Number(v.totalPagado||0).toFixed(2)}</strong></div><div class="r"><span>Saldo pendiente</span><strong>$${Number(v.saldo||0).toFixed(2)}</strong></div><div class="r"><span>Devoluciones</span><strong>${devolucionesTxt}</strong></div><div class="r"><span>Abonos</span><strong>${pagosTxt}</strong></div><div class="r total"><span>TOTAL NETO</span><strong>$${Number(v.ingreso??0).toFixed(2)}</strong></div></div></section>${nota?`<section class="seccion"><h3>Observaciones</h3><div class="nota">${nota}</div></section>`:""}<section class="seccion"><div class="firma"><div>Vendido / entregado por</div><div>Cliente / recibido por</div></div></section>${qrReciboData?`<div style="text-align:center;margin:2mm 0"><img src="${qrReciboData}" style="width:24mm;height:24mm"><div style="font-size:1.8mm;margin-top:.8mm">QR del recibo</div></div>`:""}<div class="pie">Gracias por su compra · Comprobante generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div></body></html>`;
  flkAbrirDocumentoComprobante(contenido,"El navegador bloqueó el recibo. Permite ventanas emergentes para Flackunloker.")
 }
 let ventaPendienteAutorizacionDevolucion=null;
@@ -7915,6 +7823,21 @@ body.flk-v6125 #cuentasTotalPagado {
   color:#000000 !important;
 }
 </style>
+
+<style id="flk-qr-safe-style">
+.qr-producto{background:#f2edff;color:#6246b8}
+.flk-qr-video-wrap{position:relative;width:100%;aspect-ratio:4/3;border-radius:18px;overflow:hidden;background:#0f172a;margin-bottom:12px}
+#flkQrVideo{width:100%;height:100%;object-fit:cover;display:block}
+.flk-qr-marco{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:58%;aspect-ratio:1;border:3px solid #fff;border-radius:18px;box-shadow:0 0 0 999px rgba(0,0,0,.15);pointer-events:none}
+.flk-qr-estado{position:absolute;left:10px;right:10px;bottom:10px;padding:8px;background:rgba(15,23,42,.82);color:#fff;border-radius:10px;font-size:12px;font-weight:800;text-align:center}
+.flk-qr-controles,.flk-qr-acciones{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.flk-qr-resultado{margin-top:13px;padding:13px;border-radius:14px;background:#f7fbff;border:1px solid #cfe3f7;font-size:13px;line-height:1.55}
+.flk-qr-acciones button{border:0;border-radius:11px;padding:10px 7px;font-weight:800;cursor:pointer}
+.flk-etiqueta-qr{width:52mm;max-width:100%;margin:0 auto;padding:3mm;background:#fff;border:1px dashed #9aa6b2;text-align:center;color:#111}
+.flk-etiqueta-qr h3{margin:1.5mm 0 .7mm;font-size:4mm}.flk-etiqueta-qr p{margin:.6mm 0;font-size:2.7mm}.flk-etiqueta-qr .qrbox{display:flex;justify-content:center;margin:1.5mm auto}
+.flk-etiqueta-qr .qrbox img,.flk-etiqueta-qr .qrbox canvas{width:30mm!important;height:30mm!important}
+@media(max-width:430px){.flk-qr-controles,.flk-qr-acciones{grid-template-columns:1fr}}
+</style>
 </head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el estado financiero.");w.document.write(html);w.document.close()
 }
@@ -8643,5 +8566,100 @@ body.flk-v6125 #listaCierres .cierre-detalle strong {color:#000000 !important;}
   color:#111111 !important;
 }
 </style>
+
+<script id="flk-qr-safe-js">
+let flkQrStream=null,flkQrDetector=null,flkQrActivo=false,flkProductoEtiquetaActual=null;
+function flkQrEsc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+function flkQrProductoTexto(p){return "FLK|SKU|"+String(p.sku||"").trim()}
+function mostrarEtiquetaQRProducto(id){
+ const p=productos.find(x=>String(x.id)===String(id));if(!p)return alert("Producto no encontrado.");
+ flkProductoEtiquetaActual=p;
+ const box=document.getElementById("flkEtiquetaQRVista");
+ box.innerHTML='<strong style="font-size:2.4mm">FLACKUNLOKER</strong><div class="qrbox" id="flkQrEtiquetaCodigo"></div><h3>'+flkQrEsc(p.nombre)+'</h3><p>SKU: <strong>'+flkQrEsc(p.sku)+'</strong></p>';
+ document.getElementById("modalEtiquetaQR").classList.add("visible");
+ setTimeout(function(){
+  const q=document.getElementById("flkQrEtiquetaCodigo");
+  if(typeof QRCode==="undefined"){q.innerHTML='<div style="padding:12px;font-size:12px">No se pudo cargar el generador QR.</div>';return}
+  q.innerHTML="";
+  new QRCode(q,{text:flkQrProductoTexto(p),width:150,height:150,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
+ },20);
+}
+function cerrarEtiquetaQR(){document.getElementById("modalEtiquetaQR")?.classList.remove("visible")}
+function imprimirEtiquetaQRProducto(){
+ if(!flkProductoEtiquetaActual)return;
+ const vista=document.getElementById("flkEtiquetaQRVista"),img=vista.querySelector("img"),canvas=vista.querySelector("canvas");
+ const qr=canvas?canvas.toDataURL("image/png"):(img?img.src:"");
+ const p=flkProductoEtiquetaActual,w=window.open("","_blank");if(!w)return alert("El navegador bloqueó la impresión.");
+ const html='<!doctype html><html><head><meta charset="utf-8"><title>Etiqueta QR</title><style>@page{size:58mm auto;margin:2mm}body{margin:0;width:54mm;font-family:Arial,sans-serif}.et{width:52mm;padding:2mm;text-align:center}.et img{width:30mm;height:30mm}.et h3{font-size:4mm;margin:1mm 0}.et p{font-size:2.7mm;margin:.5mm 0}</style></head><body><div class="et"><strong>FLACKUNLOKER</strong><br><img src="'+qr+'"><h3>'+flkQrEsc(p.nombre)+'</h3><p>SKU: <strong>'+flkQrEsc(p.sku)+'</strong></p></div></body></html>';
+ w.document.open();w.document.write(html);w.document.close();setTimeout(function(){w.print()},250);
+}
+function abrirEscanerQR(){
+ try{cerrarMenuPrincipal()}catch(_){}
+ const r=document.getElementById("flkQrResultado");if(r)r.style.display="none";
+ const i=document.getElementById("flkQrCodigoManual");if(i)i.value="";
+ document.getElementById("modalEscanerQR")?.classList.add("visible");
+}
+function cerrarEscanerQR(){detenerEscanerQR(false);document.getElementById("modalEscanerQR")?.classList.remove("visible")}
+function detenerEscanerQR(cambiar=true){
+ flkQrActivo=false;
+ if(flkQrStream){try{flkQrStream.getTracks().forEach(t=>t.stop())}catch(_){}flkQrStream=null}
+ const v=document.getElementById("flkQrVideo");if(v){try{v.pause()}catch(_){}v.srcObject=null}
+ if(cambiar){const e=document.getElementById("flkQrEstado");if(e)e.textContent="Cámara detenida."}
+}
+async function iniciarEscanerQR(){
+ const e=document.getElementById("flkQrEstado");
+ if(!navigator.mediaDevices?.getUserMedia)return alert("Este navegador no permite usar la cámara.");
+ if(!("BarcodeDetector" in window))return alert("Este navegador no tiene lector QR nativo. Usa Código manual.");
+ try{
+  detenerEscanerQR(false);
+  flkQrDetector=new BarcodeDetector({formats:["qr_code"]});
+  flkQrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
+  const v=document.getElementById("flkQrVideo");v.srcObject=flkQrStream;await v.play();flkQrActivo=true;e.textContent="Apunta la cámara al QR.";flkQrLeer();
+ }catch(err){console.error(err);e.textContent="No se pudo abrir la cámara.";alert("Revisa el permiso de cámara del navegador.")}
+}
+async function flkQrLeer(){
+ if(!flkQrActivo||!flkQrDetector)return;
+ try{
+  const v=document.getElementById("flkQrVideo");
+  if(v.readyState>=2){
+   const r=await flkQrDetector.detect(v);
+   if(r?.length){
+    const c=String(r[0].rawValue||"").trim();
+    if(c){document.getElementById("flkQrCodigoManual").value=c;procesarCodigoQR(c);detenerEscanerQR(false);return}
+   }
+  }
+ }catch(_){}
+ if(flkQrActivo)requestAnimationFrame(flkQrLeer);
+}
+function flkQrValor(c){
+ const raw=String(c||"").trim(),p=raw.split("|");
+ if(p.length>=3&&String(p[0]).toUpperCase()==="FLK")return{tipo:String(p[1]).toUpperCase(),valor:p.slice(2).join("|")};
+ return{tipo:"AUTO",valor:raw};
+}
+function procesarCodigoQR(codigo){
+ const x=flkQrValor(codigo),valor=String(x.valor||"").trim().toLowerCase(),box=document.getElementById("flkQrResultado");
+ if(!valor)return alert("Escribe o escanea un código.");
+ let p=null,v=null;
+ if(x.tipo==="SKU"||x.tipo==="AUTO")p=productos.find(z=>String(z.sku||"").trim().toLowerCase()===valor||String(z.id)===x.valor);
+ if(!p&&(x.tipo==="SALE"||x.tipo==="AUTO"))v=ventas.find(z=>String(z.numero||"").trim().toLowerCase()===valor||String(z.id)===x.valor);
+ box.style.display="block";
+ if(p){
+  box.innerHTML=`<strong>📦 ${flkQrEsc(p.nombre)}</strong><br>SKU: ${flkQrEsc(p.sku)} · Existencia: ${Number(p.cantidad||0)}
+   <div class="flk-qr-acciones">
+    <button style="background:#e9f8ef;color:#168044" onclick="cerrarEscanerQR();abrirMovimiento(${JSON.stringify(p.id)},'entrada')">📥 Entrada</button>
+    <button style="background:#eaf4ff;color:#0a67d1" onclick="cerrarEscanerQR();abrirVenta(${JSON.stringify(p.id)})">🧾 Venta</button>
+   </div>`;
+ }else if(v){
+  box.innerHTML=`<strong>🧾 Recibo #${flkQrEsc(v.numero||v.id)}</strong><br>Cliente: ${flkQrEsc(v.cliente||"Cliente general")} · Total: $${Number(v.ingreso||0).toFixed(2)}
+   <div class="flk-qr-acciones">
+    <button style="background:#eaf4ff;color:#0a67d1" onclick="cerrarEscanerQR();generarReciboVenta(${JSON.stringify(v.id)})">👁️ Ver recibo</button>
+    <button style="background:#fff1e8;color:#c45b19" onclick="cerrarEscanerQR();abrirDevolucion(${JSON.stringify(v.id)})">↩️ Devolución</button>
+   </div>`;
+ }else{
+  box.innerHTML='<strong>⚠️ Código no encontrado</strong><br>'+flkQrEsc(codigo);
+ }
+}
+window.addEventListener("pagehide",function(){detenerEscanerQR(false)});
+</script>
 </body>
 </html>
