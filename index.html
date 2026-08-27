@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.30-restauracion-proveedores-sin-duplicar">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.31-restauracion-proveedores-resuelta">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -5916,53 +5916,53 @@ async function cargarComprasSupabase(){
 }
 async function migrarComprasLocalesSupabase(){
  if(rolSesion!=="admin")return cargarComprasSupabase();
+
  const lp=[...proveedores],lo=[...ordenesCompra];
  const restaurando=window.flkRestauracionRespaldoActiva===true;
 
- // En una restauración, los supabaseId guardados en la salva pueden apuntar a filas
- // que ya no existen. Por eso se reconstruye por legacy_id en vez de saltarlos.
- for(const p of lp){
-  if(p.supabaseId && !restaurando)continue;
+ const {data:provCloud,error:provCloudErr}=await flkSupabase
+  .from("suppliers").select("*").eq("business_id",FLK_BUSINESS_ID).order("name");
+ if(provCloudErr)throw provCloudErr;
 
-  // Restauración multicentro: antes de insertar, reutilizar el proveedor que ya exista
-  // en este centro con el mismo nombre normalizado. Así respetamos
-  // suppliers_business_normalized_name_uidx y evitamos proveedores duplicados.
-  if(restaurando){
-   const {data:existentes,error:buscarErr}=await flkSupabase
-    .from("suppliers")
-    .select("id,legacy_id,name")
-    .eq("business_id",FLK_BUSINESS_ID);
-   if(buscarErr)throw buscarErr;
-
-   const existente=(existentes||[]).find(x=>
-    nombreProveedorNorm(x.name)===nombreProveedorNorm(p.nombre)
-   );
-
-   if(existente){
-    // Conservamos la fila existente del centro. Solo completamos legacy_id si está vacío,
-    // para poder vincular futuras restauraciones sin crear un duplicado.
-    if(!existente.legacy_id){
-     const {error:updErr}=await flkSupabase.from("suppliers")
-      .update({legacy_id:String(p.id)})
-      .eq("id",existente.id)
-      .eq("business_id",FLK_BUSINESS_ID);
-     if(updErr)throw updErr;
-    }
-    continue;
-   }
-  }
-
-  const {error}=await flkSupabase.from("suppliers").upsert({
-   legacy_id:String(p.id),name:p.nombre,contact_name:p.contacto||null,phone:p.telefono||null,
-   email:p.email||null,address:p.direccion||null,notes:p.nota||null,
-   business_id:FLK_BUSINESS_ID
-  },{onConflict:"legacy_id"});
-  if(error)throw error;
+ const mapaProv=new Map();
+ for(const pc of (provCloud||[])){
+  const clave=nombreProveedorNorm(pc.name);
+  if(clave&&!mapaProv.has(clave))mapaProv.set(clave,pc);
  }
 
- // Recargar solo proveedores para obtener los UUID actuales sin destruir las órdenes locales restauradas.
- const rs=await flkSupabase.from("suppliers").select("*").order("name");
+ for(const p of lp){
+  const clave=nombreProveedorNorm(p.nombre);
+  let existente=mapaProv.get(clave);
+
+  if(existente){
+   p.supabaseId=existente.id;
+   if(!existente.legacy_id&&p.id!=null){
+    const {error:updErr}=await flkSupabase.from("suppliers")
+     .update({legacy_id:String(p.id)})
+     .eq("id",existente.id).eq("business_id",FLK_BUSINESS_ID);
+    if(updErr)throw new Error('Proveedor "'+(p.nombre||"Sin nombre")+'": '+(updErr.message||updErr));
+   }
+   continue;
+  }
+
+  if(p.supabaseId&&!restaurando)continue;
+
+  const {data:nuevo,error:insErr}=await flkSupabase.from("suppliers")
+   .insert({
+    legacy_id:String(p.id),name:p.nombre,contact_name:p.contacto||null,
+    phone:p.telefono||null,email:p.email||null,address:p.direccion||null,
+    notes:p.nota||null,business_id:FLK_BUSINESS_ID
+   }).select("*").single();
+
+  if(insErr)throw new Error('Proveedor "'+(p.nombre||"Sin nombre")+'": '+(insErr.message||insErr));
+  p.supabaseId=nuevo.id;
+  mapaProv.set(clave,nuevo);
+ }
+
+ const rs=await flkSupabase.from("suppliers")
+  .select("*").eq("business_id",FLK_BUSINESS_ID).order("name");
  if(rs.error)throw rs.error;
+
  proveedores=(rs.data||[]).map(x=>({
   id:idLocalDesdeLegacy(x.legacy_id,x.id),supabaseId:x.id,nombre:x.name||"",
   contacto:x.contact_name||"",telefono:x.phone||"",email:x.email||"",
@@ -5971,134 +5971,32 @@ async function migrarComprasLocalesSupabase(){
  guardarProveedores();
 
  for(const o of lo){
-  if(o.supabaseId && !restaurando)continue;
+  if(o.supabaseId&&!restaurando)continue;
   const prov=proveedores.find(p=>nombreProveedorNorm(p.nombre)===nombreProveedorNorm(o.proveedor));
   const prod=productos.find(p=>String(p.id)===String(o.productoId));
-  if(!prov?.supabaseId||!prod?.supabaseId){
-   throw new Error("No se pudo vincular la orden "+String(o.numero||o.id)+" con su proveedor o producto.");
-  }
-  const {error}=await flkSupabase.from("purchase_orders").upsert({
-   legacy_id:String(o.id),
-   supplier_id:prov.supabaseId,
-   product_id:prod.supabaseId,
-   quantity:Number(o.cantidad||0),
-   unit_cost:Number(o.costoUnitario||0),
+
+  if(!prov?.supabaseId)throw new Error('Orden '+String(o.numero||o.id)+': proveedor "'+(o.proveedor||"")+'" no encontrado.');
+  if(!prod?.supabaseId)throw new Error('Orden '+String(o.numero||o.id)+': producto "'+(o.nombre||o.sku||o.productoId||"")+'" no encontrado.');
+
+  const {error:ordErr}=await flkSupabase.from("purchase_orders").upsert({
+   legacy_id:String(o.id),supplier_id:prov.supabaseId,product_id:prod.supabaseId,
+   quantity:Number(o.cantidad||0),unit_cost:Number(o.costoUnitario||0),
    order_date:o.fechaOrden||null,
    status:o.estado==="recibida"?"received":o.estado==="ordenada"?"ordered":"pending",
-   note:o.nota||null,
-   ordered_at:o.fechaOrdenada||null,
-   received_at:o.fechaRecibida||null,
-   payment_condition:o.condicionPagoProveedor||null,
-   payment_method:o.metodoPagoProveedor||null,
+   note:o.nota||null,ordered_at:o.fechaOrdenada||null,received_at:o.fechaRecibida||null,
+   payment_condition:o.condicionPagoProveedor||null,payment_method:o.metodoPagoProveedor||null,
    due_date:o.fechaVencimientoProveedor||null,
    total_amount:Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),
-   paid_amount:Number(o.totalPagadoProveedor||0),
-   balance_due:Number(o.saldoProveedor||0),
+   paid_amount:Number(o.totalPagadoProveedor||0),balance_due:Number(o.saldoProveedor||0),
    business_id:FLK_BUSINESS_ID
   },{onConflict:"legacy_id"});
-  if(error)throw error;
+
+  if(ordErr)throw new Error("Orden "+String(o.numero||o.id)+": "+(ordErr.message||ordErr));
  }
- return cargarComprasSupabase()
+
+ return cargarComprasSupabase();
 }
 
-function guardarOrdenesCompra(){localStorage.setItem(flkLocalKey("flackunloker_ordenes_compra"),JSON.stringify(ordenesCompra))}
-function guardarProveedores(){localStorage.setItem(flkLocalKey("flackunloker_proveedores"),JSON.stringify(proveedores))}
-if(flkUuidValido(FLK_BUSINESS_ID))flkMigrarLocalLegacyAlCentro(FLK_BUSINESS_ID);
-cargarDatos();
-proximoNumeroRecibo=Math.max(0,...ventas.map(v=>Number(v.numeroConsecutivo||0)))+1;
-function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
-
-function valoresUnicos(campo){return [...new Set(productos.map(p=>String(p[campo]||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"}))}
-function actualizarOpcionesOrganizacion(){
- const categorias=valoresUnicos("categoria"),nombresProveedores=[...new Set([...valoresUnicos("proveedor"),...proveedores.map(p=>String(p.nombre||"").trim()).filter(Boolean)])].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"})),ubicaciones=valoresUnicos("ubicacion");
- document.getElementById("listaCategorias").innerHTML=categorias.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
- document.getElementById("listaProveedores").innerHTML=nombresProveedores.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
- document.getElementById("listaUbicaciones").innerHTML=ubicaciones.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
- const fc=document.getElementById("filtroCategoria"),fu=document.getElementById("filtroUbicacion");
- const catPrev=filtroCategoriaActual,ubiPrev=filtroUbicacionActual;
- fc.innerHTML='<option value="">Todas las categorías</option>'+categorias.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
- fu.innerHTML='<option value="">Todas las ubicaciones</option>'+ubicaciones.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
- if(categorias.includes(catPrev))fc.value=catPrev;else filtroCategoriaActual="";
- if(ubicaciones.includes(ubiPrev))fu.value=ubiPrev;else filtroUbicacionActual="";
-}
-function cambiarFiltrosInventario(){filtroCategoriaActual=document.getElementById("filtroCategoria").value;filtroUbicacionActual=document.getElementById("filtroUbicacion").value;mostrarProductos()}
-
-function abrirFormulario(){
- if(!requiereAdmin())return;
- productoEditando=null;document.getElementById("tituloFormulario").textContent="Agregar producto";document.getElementById("formularioProducto").reset();document.getElementById("stockMinimo").value=5;document.getElementById("modalProducto").classList.add("visible");requestAnimationFrame(()=>document.getElementById("nombre").focus())
-}
-function editarProducto(id){
- if(!requiereAdmin())return;
- const p=productos.find(x=>x.id===id);if(!p)return;
- productoEditando=id;document.getElementById("tituloFormulario").textContent="Editar producto";
- document.getElementById("nombre").value=p.nombre;document.getElementById("sku").value=p.sku;document.getElementById("cantidadProducto").value=p.cantidad;document.getElementById("costo").value=Number(p.costo??0);document.getElementById("precio").value=p.precio;document.getElementById("categoria").value=p.categoria||"";document.getElementById("proveedor").value=p.proveedor||"";document.getElementById("ubicacion").value=p.ubicacion||"";document.getElementById("stockMinimo").value=Number(p.stockMinimo??5);document.getElementById("modalProducto").classList.add("visible")
-}
-function cerrarFormulario(){document.getElementById("modalProducto").classList.remove("visible");document.getElementById("formularioProducto").reset();productoEditando=null}
-
-document.getElementById("formularioProducto").addEventListener("submit",async e=>{
- e.preventDefault();e.stopPropagation();
- if(!requiereAdmin())return;
- if(procesandoGuardado)return;procesandoGuardado=true;
- try{
-  const nombre=document.getElementById("nombre").value.trim(),sku=document.getElementById("sku").value.trim();
-  const cantidad=Number(document.getElementById("cantidadProducto").value),costo=Number(document.getElementById("costo").value),precio=Number(document.getElementById("precio").value);
-  const categoria=document.getElementById("categoria").value.trim(),proveedor=document.getElementById("proveedor").value.trim(),ubicacion=document.getElementById("ubicacion").value.trim(),stockMinimo=Number(document.getElementById("stockMinimo").value);
-  if(!nombre||!sku)return alert("Completa el nombre y el SKU.");
-  if(cantidad<0||costo<0||precio<0||stockMinimo<0||!Number.isInteger(stockMinimo))return alert("Revisa los valores introducidos.");
-  const skuNorm=sku.toLowerCase();
-  if(productoEditando!==null){
-   const p=productos.find(x=>x.id===productoEditando);if(!p)return;
-   if(productos.some(x=>x.id!==productoEditando&&String(x.sku||"").trim().toLowerCase()===skuNorm))return alert("Ya existe otro producto con ese SKU.");
-   const stockAnterior=Number(p.cantidad||0),createRef=p.offlineCreateOperationId||null;
-   const op=flkEncolarOperacion("product_save",{product_id:p.supabaseId||null,product_operation_id:!p.supabaseId?createRef:null,legacy_id:String(p.id),local_product_id:p.id,sku,name:nombre,category:categoria||null,cost:costo,price:precio,min_stock:stockMinimo,supplier_name:proveedor||null,location:ubicacion||null,initial_stock:0,local_stock:stockAnterior});
-   p.nombre=nombre;p.sku=sku;p.costo=costo;p.precio=precio;p.categoria=categoria;p.proveedor=proveedor;p.ubicacion=ubicacion;p.stockMinimo=stockMinimo;p.offlineOperationId=op.id;p.offlinePendiente=true;
-   if(createRef)p.offlineCreateOperationId=createRef;
-   if(cantidad!==stockAnterior){
-    const delta=cantidad-stockAnterior,tipo=delta>0?"entrada":"salida";
-    p.cantidad=await ajustarStockSupabase(p,delta,tipo,"Ajuste desde edición de producto");
-    historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo,cantidad:Math.abs(delta),saldo:p.cantidad,fecha:new Date().toISOString(),detalle:"🟠 Ajuste pendiente de sincronización"});
-   }
-  }else{
-   if(productos.some(x=>String(x.sku||"").trim().toLowerCase()===skuNorm))return alert("Ya existe un producto con ese SKU.");
-   const id=Date.now()+Math.floor(Math.random()*100000);
-   const op=flkEncolarOperacion("product_save",{product_id:null,product_operation_id:null,legacy_id:String(id),local_product_id:id,sku,name:nombre,category:categoria||null,cost:costo,price:precio,min_stock:stockMinimo,supplier_name:proveedor||null,location:ubicacion||null,initial_stock:cantidad,local_stock:cantidad});
-   productos.push({id,nombre,sku,cantidad,costo,precio,categoria,proveedor,ubicacion,stockMinimo,supabaseId:null,offlineCreateOperationId:op.id,offlineOperationId:op.id,offlinePendiente:true});
-   if(cantidad>0)historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:id,nombre,sku,tipo:"entrada",cantidad,saldo:cantidad,fecha:new Date().toISOString(),detalle:"🟠 Inventario inicial pendiente de sincronización"});
-  }
-  guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();cerrarFormulario();
-  if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
- }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("No se pudo guardar el producto: "+(err.message||err))}
- finally{procesandoGuardado=false}
-});
-function abrirMovimiento(id,tipo){
- if(!requiereAdmin())return;
- const p=productos.find(x=>x.id===id);if(!p)return;productoMovimiento=id;tipoMovimiento=tipo;
- document.getElementById("tituloMovimiento").textContent=tipo==="entrada"?"Entrada de mercancía":"Salida de mercancía";
- document.getElementById("textoMovimiento").textContent=(tipo==="entrada"?"Agregar unidades a: ":"Retirar unidades de: ")+p.nombre;
- document.getElementById("cantidadMovimiento").value="";document.getElementById("modalMovimiento").classList.add("visible");document.getElementById("cantidadMovimiento").focus()
-}
-function cerrarMovimiento(){document.getElementById("modalMovimiento").classList.remove("visible");document.getElementById("formularioMovimiento").reset();productoMovimiento=null;tipoMovimiento=null}
-
-document.getElementById("formularioMovimiento").addEventListener("submit",async e=>{
- e.preventDefault();e.stopPropagation();
- if(!requiereAdmin())return;
- if(procesandoGuardado)return;procesandoGuardado=true;
- try{
-  const cantidad=Number(document.getElementById("cantidadMovimiento").value);
-  if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
-  const p=productos.find(x=>x.id===productoMovimiento);if(!p){cerrarMovimiento();return}
-  const delta=tipoMovimiento==="entrada"?cantidad:-cantidad;
-  p.cantidad=await ajustarStockSupabase(p,delta,tipoMovimiento,"Movimiento manual desde Flackunloker");
-  if(navigator.onLine)await cargarHistorialSupabase();
-  else{
-   historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:tipoMovimiento,cantidad,saldo:p.cantidad,fecha:new Date().toISOString(),detalle:"🟠 Pendiente de sincronización"});
-   guardarHistorial();actualizarResumenHistorial();mostrarListaHistorial()
-  }
-  guardarDatos();mostrarProductos();actualizarEstadisticas();cerrarMovimiento();
-  // En modo offline el movimiento ya quedó guardado localmente; no mostrar alerta.
- }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el movimiento: "+(err.message||err))}
- finally{procesandoGuardado=false}
-});
 async function eliminarProducto(id){
  if(!requiereAdmin())return;
  const p=productos.find(x=>x.id===id);if(!p)return;
