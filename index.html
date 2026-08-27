@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.47-recibo-abonos-detallados">
+<meta name="flackunloker-offline-version" content="2026-08-27-v61.49-caja-negativa">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1782,10 +1782,10 @@ textarea::placeholder{
 </div>
 <div class="lista-estadisticas"><h3>💵 Dinero realmente cobrado hoy</h3>
 <div class="fila-estadistica"><span>Total cobrado</span><strong id="cierreCobradoHoy">$0.00</strong></div>
-<div class="fila-estadistica"><span>💵 Efectivo</span><strong id="cierreEfectivoHoy">$0.00</strong></div>
-<div class="fila-estadistica"><span>📱 ATH Móvil</span><strong id="cierreAthHoy">$0.00</strong></div>
-<div class="fila-estadistica"><span>💳 Tarjeta</span><strong id="cierreTarjetaHoy">$0.00</strong></div>
-<div class="fila-estadistica"><span>Otros métodos</span><strong id="cierreOtrosHoy">$0.00</strong></div>
+<div class="fila-estadistica"><span>💵 Efectivo CUP</span><strong id="cierreEfectivoHoy">$0.00</strong></div>
+<div class="fila-estadistica"><span>💵 Efectivo USD</span><strong id="cierreAthHoy">$0.00</strong></div>
+<div class="fila-estadistica"><span>💳 Tarjetas CUP / USD</span><strong id="cierreTarjetaHoy">$0.00</strong></div>
+<div class="fila-estadistica"><span>Zelle / MLC</span><strong id="cierreOtrosHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>Ventas a crédito del día</span><strong id="cierreCreditoHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>Saldo pendiente de esas ventas</span><strong id="cierreSaldoCreditoHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>Efectivo gastado hoy</span><strong id="cierreGastoEfectivoHoy">$0.00</strong></div>
@@ -1822,10 +1822,10 @@ textarea::placeholder{
 <div class="estadistica-card ancha azul"><span>Dinero realmente cobrado</span><strong id="reporteCobrado">$0.00</strong></div>
 </div>
 <div class="lista-estadisticas"><h3>💳 Métodos de cobro</h3>
-<div class="fila-estadistica"><span>💵 Efectivo</span><strong id="reporteEfectivo">$0.00</strong></div>
-<div class="fila-estadistica"><span>📱 ATH Móvil</span><strong id="reporteAth">$0.00</strong></div>
-<div class="fila-estadistica"><span>💳 Tarjeta</span><strong id="reporteTarjeta">$0.00</strong></div>
-<div class="fila-estadistica"><span>Otros métodos</span><strong id="reporteOtros">$0.00</strong></div>
+<div class="fila-estadistica"><span>💵 Efectivo CUP</span><strong id="reporteEfectivo">$0.00</strong></div>
+<div class="fila-estadistica"><span>💵 Efectivo USD</span><strong id="reporteAth">$0.00</strong></div>
+<div class="fila-estadistica"><span>💳 Tarjetas CUP / USD</span><strong id="reporteTarjeta">$0.00</strong></div>
+<div class="fila-estadistica"><span>Zelle / MLC</span><strong id="reporteOtros">$0.00</strong></div>
 <div class="fila-estadistica"><span>Saldo pendiente de créditos</span><strong id="reporteSaldoCredito">$0.00</strong></div>
 </div>
 <div class="lista-estadisticas"><h3>🏆 Productos vendidos en el período</h3><div id="reporteProductos"></div></div>
@@ -1931,7 +1931,7 @@ textarea::placeholder{
 <div class="reporte-botones"><button class="boton-agregar" onclick="actualizarFlujoCaja()">🔄 Actualizar flujo</button><button class="boton-respaldo boton-crear-respaldo" onclick="imprimirFlujoCaja()">🧾 Ver / imprimir</button></div>
 </div>
 
-<div class="lista-estadisticas"><h3>🏦 Caja física</h3><div class="fila-estadistica"><span>Saldo actual en efectivo</span><strong id="saldoCajaFisica">$0.00</strong></div><div class="acciones" style="margin-top:12px"><button class="accion entrada" type="button" onclick="abrirMovimientoPropietario('contribution')">➕ Aporte</button><button class="accion salida" type="button" onclick="abrirMovimientoPropietario('withdrawal')">🏦 Retirar efectivo</button></div></div>
+<div class="lista-estadisticas"><h3>🏦 Caja física</h3><div class="fila-estadistica"><span>Saldo actual en efectivo</span><strong id="saldoCajaFisica">$0.00</strong></div><div id="avisoCajaNegativa" style="display:none;margin:10px 0 0;padding:10px 12px;border:1px solid #d93025;border-radius:10px;background:rgba(217,48,37,.14);color:#fff;font-weight:700;line-height:1.35">⚠️ Déficit de caja: el efectivo disponible está en negativo.</div><div class="acciones" style="margin-top:12px"><button class="accion entrada" type="button" onclick="abrirMovimientoPropietario('contribution')">➕ Aporte</button><button class="accion salida" type="button" onclick="abrirMovimientoPropietario('withdrawal')">🏦 Retirar efectivo</button></div></div>
 
 <div class="estadisticas-grid">
 <div class="estadistica-card ancha positiva"><span>⬇️ Entradas de dinero</span><strong id="flujoEntradas">$0.00</strong></div>
@@ -1958,11 +1958,12 @@ textarea::placeholder{
 </div>
 
 <div class="lista-estadisticas"><h3>💳 Flujo neto por método</h3>
-<div class="fila-estadistica"><span>💵 Efectivo</span><strong id="flujoEfectivo">$0.00</strong></div>
-<div class="fila-estadistica"><span>📱 ATH Móvil</span><strong id="flujoAth">$0.00</strong></div>
-<div class="fila-estadistica"><span>💳 Tarjeta</span><strong id="flujoTarjeta">$0.00</strong></div>
-<div class="fila-estadistica"><span>🏦 Transferencia</span><strong id="flujoTransferencia">$0.00</strong></div>
-<div class="fila-estadistica"><span>Otros métodos</span><strong id="flujoOtros">$0.00</strong></div>
+<div class="fila-estadistica"><span>💵 Efectivo CUP</span><strong id="flujoEfectivo">$0.00</strong></div>
+<div class="fila-estadistica"><span>💵 Efectivo USD</span><strong id="flujoAth">$0.00</strong></div>
+<div class="fila-estadistica"><span>💳 Tarjeta CUP</span><strong id="flujoTarjeta">$0.00</strong></div>
+<div class="fila-estadistica"><span>💳 Tarjeta USD</span><strong id="flujoTransferencia">$0.00</strong></div>
+<div class="fila-estadistica"><span>⚡ Zelle</span><strong id="flujoOtros">$0.00</strong></div>
+<div class="fila-estadistica"><span>🌐 MLC</span><strong id="flujoMLC">$0.00</strong></div>
 </div>
 
 <div class="lista-estadisticas"><h3>🧾 Movimientos de efectivo del período</h3><div id="listaFlujoCaja"></div></div>
@@ -2192,7 +2193,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="seccion-titulo" style="margin:14px 0 8px"><h2 style="font-size:16px">Productos en este recibo</h2><strong id="contadorCarrito" style="color:#0a84ff">0</strong></div>
 <div id="carritoVenta" class="carrito-venta"></div>
 <div class="campo"><label for="estadoPagoVenta">Condición de pago</label><select id="estadoPagoVenta" onchange="actualizarCamposCredito()"><option value="pagado">✅ Pagado</option><option value="credito">💳 Crédito</option></select></div>
-<div class="campo"><label for="metodoPagoVenta">Método de pago / abono</label><select id="metodoPagoVenta"><option value="Efectivo">Efectivo</option><option value="ATH Móvil">ATH Móvil</option><option value="Tarjeta">Tarjeta</option><option value="Otro">Otro</option></select></div>
+<div class="campo"><label for="metodoPagoVenta">Método de pago / abono</label><select id="metodoPagoVenta"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Tarjeta CUP">Tarjeta CUP</option><option value="Tarjeta USD">Tarjeta USD</option><option value="Zelle">Zelle</option><option value="MLC">MLC</option></select></div>
 <div class="campo campo-credito" id="campoAbonoInicial"><label for="abonoInicialVenta">Abono inicial</label><input id="abonoInicialVenta" type="number" min="0" step="0.01" value="0"><small class="ayuda-campo">Puedes dejarlo en $0.00 y registrar los abonos después desde el recibo o desde Clientes.</small></div>
 <div class="campo campo-credito" id="campoVencimientoCredito"><label for="fechaVencimientoVenta">Fecha de vencimiento</label><input id="fechaVencimientoVenta" type="date"><small class="ayuda-campo">La cuenta aparecerá como próxima a vencer durante los 7 días anteriores a esta fecha.</small></div>
 <div class="campo"><label for="notaVenta">Nota</label><input id="notaVenta" type="text" placeholder="Opcional"></div>
@@ -2224,7 +2225,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <h2>💵 Registrar abono</h2>
 <p class="mensaje-movimiento" id="textoAbono">Cuenta por cobrar</p>
 <div class="campo"><label for="cantidadAbono">Cantidad del abono</label><input id="cantidadAbono" type="number" min="0.01" step="0.01" required><small class="ayuda-campo" id="ayudaAbono"></small></div>
-<div class="campo"><label for="metodoAbono">Método de pago</label><select id="metodoAbono"><option value="Efectivo">Efectivo</option><option value="ATH Móvil">ATH Móvil</option><option value="Tarjeta">Tarjeta</option><option value="Otro">Otro</option></select></div>
+<div class="campo"><label for="metodoAbono">Método de pago</label><select id="metodoAbono"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Tarjeta CUP">Tarjeta CUP</option><option value="Tarjeta USD">Tarjeta USD</option><option value="Zelle">Zelle</option><option value="MLC">MLC</option></select></div>
 <div class="campo"><label for="notaAbono">Nota</label><input id="notaAbono" type="text" placeholder="Opcional"></div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarAbono()">Cancelar</button><button type="submit" class="boton-guardar">Registrar abono</button></div>
 </form>
@@ -2255,7 +2256,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="campo"><label for="conceptoGasto">Concepto</label><input id="conceptoGasto" type="text" placeholder="Ej. Electricidad, transporte, compra de mercancía" required></div>
 <div class="campo"><label for="categoriaGasto">Categoría</label><select id="categoriaGasto"><option>Compra de mercancía</option><option>Renta</option><option>Electricidad</option><option>Agua</option><option>Internet / teléfono</option><option>Transporte</option><option>Publicidad</option><option>Reparaciones</option><option>Materiales</option><option>Comisiones</option><option>Otro</option></select></div>
 <div class="campo"><label for="cantidadGasto">Cantidad</label><input id="cantidadGasto" type="number" min="0.01" step="0.01" required></div>
-<div class="campo"><label for="metodoGasto">Método de pago</label><select id="metodoGasto"><option>Efectivo</option><option>ATH Móvil</option><option>Tarjeta</option><option>Transferencia</option><option>Otro</option></select></div>
+<div class="campo"><label for="metodoGasto">Método de pago</label><select id="metodoGasto"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Tarjeta CUP">Tarjeta CUP</option><option value="Tarjeta USD">Tarjeta USD</option><option value="Zelle">Zelle</option><option value="MLC">MLC</option></select></div>
 <div class="campo"><label for="fechaGasto">Fecha</label><input id="fechaGasto" type="date" required></div>
 <div class="campo"><label for="notaGasto">Nota</label><input id="notaGasto" type="text" placeholder="Opcional"></div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarGasto()">Cancelar</button><button type="submit" class="boton-guardar">Guardar gasto</button></div>
@@ -2296,13 +2297,13 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <form class="formulario" id="formularioRecepcionOrden">
 <h2>✅ Recibir orden</h2><p class="mensaje-movimiento" id="textoRecepcionOrden">Confirma la recepción y cómo se pagó la compra.</p>
 <div class="campo"><label for="condicionPagoProveedor">Condición de pago</label><select id="condicionPagoProveedor" onchange="actualizarCamposCreditoProveedor()"><option value="pagado">✅ Pagada</option><option value="credito">💳 A crédito</option></select></div>
-<div class="campo"><label for="metodoPagoProveedor">Método de pago / abono inicial</label><select id="metodoPagoProveedor"><option>Efectivo</option><option>ATH Móvil</option><option>Tarjeta</option><option>Transferencia</option><option>Otro</option></select></div>
+<div class="campo"><label for="metodoPagoProveedor">Método de pago / abono inicial</label><select id="metodoPagoProveedor"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Tarjeta CUP">Tarjeta CUP</option><option value="Tarjeta USD">Tarjeta USD</option><option value="Zelle">Zelle</option><option value="MLC">MLC</option></select></div>
 <div class="campo campo-credito" id="campoAbonoProveedor"><label for="abonoInicialProveedor">Abono inicial</label><input id="abonoInicialProveedor" type="number" min="0" step="0.01" value="0"></div>
 <div class="campo campo-credito" id="campoVencimientoProveedor"><label for="fechaVencimientoProveedor">Fecha de vencimiento</label><input id="fechaVencimientoProveedor" type="date"></div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarRecepcionOrden()">Cancelar</button><button type="submit" class="boton-guardar">Recibir mercancía</button></div>
 </form></div>
 
-<div class="modal" id="modalPagoProveedor"><form class="formulario" id="formularioPagoProveedor"><h2>💵 Registrar pago</h2><p class="mensaje-movimiento" id="textoPagoProveedor">Cuenta por pagar</p><div class="campo"><label for="cantidadPagoProveedor">Cantidad</label><input id="cantidadPagoProveedor" type="number" min="0.01" step="0.01" required><small id="ayudaPagoProveedor" class="ayuda-campo"></small></div><div class="campo"><label for="metodoPagoCuentaProveedor">Método de pago</label><select id="metodoPagoCuentaProveedor"><option>Efectivo</option><option>ATH Móvil</option><option>Tarjeta</option><option>Transferencia</option><option>Otro</option></select></div><div class="campo"><label for="notaPagoProveedor">Nota</label><input id="notaPagoProveedor" type="text" placeholder="Opcional"></div><div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarPagoProveedor()">Cancelar</button><button type="submit" class="boton-guardar">Registrar pago</button></div></form></div>
+<div class="modal" id="modalPagoProveedor"><form class="formulario" id="formularioPagoProveedor"><h2>💵 Registrar pago</h2><p class="mensaje-movimiento" id="textoPagoProveedor">Cuenta por pagar</p><div class="campo"><label for="cantidadPagoProveedor">Cantidad</label><input id="cantidadPagoProveedor" type="number" min="0.01" step="0.01" required><small id="ayudaPagoProveedor" class="ayuda-campo"></small></div><div class="campo"><label for="metodoPagoCuentaProveedor">Método de pago</label><select id="metodoPagoCuentaProveedor"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Tarjeta CUP">Tarjeta CUP</option><option value="Tarjeta USD">Tarjeta USD</option><option value="Zelle">Zelle</option><option value="MLC">MLC</option></select></div><div class="campo"><label for="notaPagoProveedor">Nota</label><input id="notaPagoProveedor" type="text" placeholder="Opcional"></div><div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarPagoProveedor()">Cancelar</button><button type="submit" class="boton-guardar">Registrar pago</button></div></form></div>
 
 <div class="modal" id="modalHistorialPagosProveedor"><div class="formulario"><h2>📋 Historial de pagos</h2><p class="mensaje-movimiento" id="textoHistorialPagosProveedor"></p><div id="listaHistorialPagosProveedor"></div><div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarHistorialPagosProveedor()">Cerrar</button></div></div></div>
 
@@ -7331,8 +7332,8 @@ function generarReciboVenta(id){
  const filas=items.filter(i=>Number(i.cantidad)>0).map(i=>{const cant=Number(i.cantidad||0),pu=Number(i.precioUnitario??0),tot=Number(i.ingreso??(cant*pu));return `<tr><td>${escapeHtml(i.nombre)}<div class="muted">Producto vendido</div></td><td>${escapeHtml(i.sku||"—")}</td><td class="num">${cant}</td><td class="num">$${pu.toFixed(2)}</td><td class="num"><strong>$${tot.toFixed(2)}</strong></td></tr>`}).join("")||'<tr><td colspan="5">Sin artículos activos.</td></tr>';
  const devolucionesTxt=devoluciones.length?`${devoluciones.length} devolución(es) · -$${devoluciones.reduce((t,d)=>t+Number(d.reembolso??d.monto??0),0).toFixed(2)}`:"Ninguna";
  const pagosTxt=pagos.length?`${pagos.length} abono(s) registrado(s)`:"Sin abonos";
- const pagosDetalleHtml=pagos.length?`<section class="seccion"><h3>Historial de abonos</h3><table><thead><tr><th>Fecha</th><th>Método</th><th class="num">Abono</th><th class="num">Saldo</th></tr></thead><tbody>${[...pagos].sort((a,b)=>new Date(a.fecha||0)-new Date(b.fecha||0)).map(p=>{const fp=new Date(p.fecha);return `<tr><td>${fp.toLocaleDateString("es-PR")}<div class="muted">${fp.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div></td><td><strong>${escapeHtml(p.metodo||"No indicado")}</strong></td><td class="num"><strong>$${Number(p.cantidad||0).toFixed(2)}</strong></td><td class="num">$${Number(p.saldoRestante??0).toFixed(2)}</td></tr>`}).join("")}</tbody></table></section>`:"";
- const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recibo ${escapeHtml(numero)}</title><style>${flkCssComprobanteProfesional("#0a67d1")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">🧾 Recibo de venta</span><span class="numero">N.º SA-${escapeHtml(numero)}</span></div></header><section class="meta"><div>Fecha y hora<strong>${f.toLocaleDateString("es-PR")} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${cliente}</strong></div><div>Teléfono<strong>${telefono||"—"}</strong></div><div>Estado de pago<strong>${escapeHtml(estadoVencimientoVenta(v).texto)}</strong></div></section><section class="seccion"><h3>Productos</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cant.</th><th class="num">Precio unit.</th><th class="num">Total</th></tr></thead><tbody>${filas}</tbody></table></section><section class="seccion"><div class="resumen"><div class="r"><span>Método inicial</span><strong>${escapeHtml(v.metodoPago||"—")}</strong></div><div class="r"><span>Pagado</span><strong>$${Number(v.totalPagado||0).toFixed(2)}</strong></div><div class="r"><span>Saldo pendiente</span><strong>$${Number(v.saldo||0).toFixed(2)}</strong></div><div class="r"><span>Devoluciones</span><strong>${devolucionesTxt}</strong></div><div class="r"><span>Abonos</span><strong>${pagosTxt}</strong></div><div class="r total"><span>TOTAL NETO</span><strong>$${Number(v.ingreso??0).toFixed(2)}</strong></div></div></section>${pagosDetalleHtml}${nota?`<section class="seccion"><h3>Observaciones</h3><div class="nota">${nota}</div></section>`:""}<section class="seccion"><div class="firma"><div>Vendido / entregado por</div><div>Cliente / recibido por</div></div></section>${qrReciboData?`<div style="text-align:center;margin:2mm 0"><img src="${qrReciboData}" style="width:24mm;height:24mm"><div style="font-size:1.8mm;margin-top:.8mm">QR del recibo</div></div>`:""}<div class="pie">Gracias por su compra · Comprobante generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div></body></html>`;
+ const pagosDetalleHtml=pagos.length?`<section class="seccion"><h3>Historial de abonos</h3><table><thead><tr><th>Fecha</th><th>Método</th><th class="num">Abono</th><th class="num">Saldo</th></tr></thead><tbody>${[...pagos].sort((a,b)=>new Date(a.fecha||0)-new Date(b.fecha||0)).map(p=>{const fp=new Date(p.fecha);return `<tr><td>${fp.toLocaleDateString("es-PR")}<div class="muted">${fp.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div></td><td><strong>${escapeHtml(normalizarMetodoFlujo(p.metodo||"MLC"))}</strong></td><td class="num"><strong>$${Number(p.cantidad||0).toFixed(2)}</strong></td><td class="num">$${Number(p.saldoRestante??0).toFixed(2)}</td></tr>`}).join("")}</tbody></table></section>`:"";
+ const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recibo ${escapeHtml(numero)}</title><style>${flkCssComprobanteProfesional("#0a67d1")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">🧾 Recibo de venta</span><span class="numero">N.º SA-${escapeHtml(numero)}</span></div></header><section class="meta"><div>Fecha y hora<strong>${f.toLocaleDateString("es-PR")} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${cliente}</strong></div><div>Teléfono<strong>${telefono||"—"}</strong></div><div>Estado de pago<strong>${escapeHtml(estadoVencimientoVenta(v).texto)}</strong></div></section><section class="seccion"><h3>Productos</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cant.</th><th class="num">Precio unit.</th><th class="num">Total</th></tr></thead><tbody>${filas}</tbody></table></section><section class="seccion"><div class="resumen"><div class="r"><span>Método inicial</span><strong>${escapeHtml(normalizarMetodoFlujo(v.metodoPago||"MLC"))}</strong></div><div class="r"><span>Pagado</span><strong>$${Number(v.totalPagado||0).toFixed(2)}</strong></div><div class="r"><span>Saldo pendiente</span><strong>$${Number(v.saldo||0).toFixed(2)}</strong></div><div class="r"><span>Devoluciones</span><strong>${devolucionesTxt}</strong></div><div class="r"><span>Abonos</span><strong>${pagosTxt}</strong></div><div class="r total"><span>TOTAL NETO</span><strong>$${Number(v.ingreso??0).toFixed(2)}</strong></div></div></section>${pagosDetalleHtml}${nota?`<section class="seccion"><h3>Observaciones</h3><div class="nota">${nota}</div></section>`:""}<section class="seccion"><div class="firma"><div>Vendido / entregado por</div><div>Cliente / recibido por</div></div></section>${qrReciboData?`<div style="text-align:center;margin:2mm 0"><img src="${qrReciboData}" style="width:24mm;height:24mm"><div style="font-size:1.8mm;margin-top:.8mm">QR del recibo</div></div>`:""}<div class="pie">Gracias por su compra · Comprobante generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div></body></html>`;
  flkAbrirDocumentoComprobante(contenido,"El navegador bloqueó el recibo. Permite ventanas emergentes para Flackunloker.")
 }
 let ventaPendienteAutorizacionDevolucion=null;
@@ -7550,12 +7551,12 @@ document.getElementById("formularioAbono").addEventListener("submit",async e=>{
  }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el abono: "+(err.message||err))}
  finally{procesandoGuardado=false}
 });
-function verHistorialAbonos(id){const v=ventas.find(x=>x.id===id);if(!v)return;normalizarCuentaVenta(v);const pagos=[...pagosDeVenta(v)].sort((a,b)=>new Date(b.fecha||0)-new Date(a.fecha||0)||Number(b.id||0)-Number(a.id||0)),numero=v.numero||String(v.id).slice(-8);document.getElementById("textoHistorialAbonos").textContent=`Recibo #${numero} · ${v.cliente||"Cliente general"} · ${pagos.length} abono(s)`;const lista=document.getElementById("listaHistorialAbonos");lista.innerHTML=pagos.length?pagos.map((p,n)=>{const f=new Date(p.fecha);return `<div class="abono-card"><div class="abono-superior"><strong>Abono #${pagos.length-n}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}<br>Método: <strong>${escapeHtml(p.metodo||"No indicado")}</strong><br>Saldo anterior: <strong>$${Number(p.saldoAnterior??0).toFixed(2)}</strong><br>Saldo restante: <strong>$${Number(p.saldoRestante??0).toFixed(2)}</strong>${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><button type="button" class="boton-comprobante" onclick="generarComprobanteAbono(${v.id},${p.id})">🧾 Ver comprobante</button></div>`}).join(""):'<div class="sin-productos">Este recibo todavía no tiene abonos registrados.</div>';document.getElementById("modalHistorialAbonos").classList.add("visible")}
+function verHistorialAbonos(id){const v=ventas.find(x=>x.id===id);if(!v)return;normalizarCuentaVenta(v);const pagos=[...pagosDeVenta(v)].sort((a,b)=>new Date(b.fecha||0)-new Date(a.fecha||0)||Number(b.id||0)-Number(a.id||0)),numero=v.numero||String(v.id).slice(-8);document.getElementById("textoHistorialAbonos").textContent=`Recibo #${numero} · ${v.cliente||"Cliente general"} · ${pagos.length} abono(s)`;const lista=document.getElementById("listaHistorialAbonos");lista.innerHTML=pagos.length?pagos.map((p,n)=>{const f=new Date(p.fecha);return `<div class="abono-card"><div class="abono-superior"><strong>Abono #${pagos.length-n}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}<br>Método: <strong>${escapeHtml(normalizarMetodoFlujo(p.metodo||"MLC"))}</strong><br>Saldo anterior: <strong>$${Number(p.saldoAnterior??0).toFixed(2)}</strong><br>Saldo restante: <strong>$${Number(p.saldoRestante??0).toFixed(2)}</strong>${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><button type="button" class="boton-comprobante" onclick="generarComprobanteAbono(${v.id},${p.id})">🧾 Ver comprobante</button></div>`}).join(""):'<div class="sin-productos">Este recibo todavía no tiene abonos registrados.</div>';document.getElementById("modalHistorialAbonos").classList.add("visible")}
 function cerrarHistorialAbonos(){document.getElementById("modalHistorialAbonos").classList.remove("visible")}
 function generarComprobanteAbono(ventaId,pagoId){
  const v=ventas.find(x=>x.id===ventaId);if(!v)return;normalizarCuentaVenta(v);const pagos=pagosDeVenta(v),p=pagos.find(x=>x.id===pagoId);if(!p)return alert("No encontramos ese abono.");
  const numero=v.numero||String(v.id).slice(-8),indice=pagos.findIndex(x=>x.id===pagoId)+1,f=new Date(p.fecha),cliente=escapeHtml(v.cliente||"Cliente general"),telefono=escapeHtml(v.telefono||""),nota=escapeHtml(p.nota||"");
- const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comprobante de abono</title><style>${flkCssComprobanteProfesional("#168044")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">💵 Abono recibido</span><span class="numero">Recibo #${escapeHtml(numero)} · AB-${String(indice).padStart(3,"0")}</span></div></header><section class="meta"><div>Fecha y hora<strong>${f.toLocaleDateString("es-PR")} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${cliente}</strong></div><div>Teléfono<strong>${telefono||"—"}</strong></div><div>Método<strong>${escapeHtml(p.metodo||"No indicado")}</strong></div></section><section class="seccion"><h3>Detalle del pago</h3><div class="resumen"><div class="r"><span>Saldo anterior</span><strong>$${Number(p.saldoAnterior??0).toFixed(2)}</strong></div><div class="r total"><span>ABONO RECIBIDO</span><strong>$${Number(p.cantidad||0).toFixed(2)}</strong></div><div class="r"><span>Saldo restante</span><strong>$${Number(p.saldoRestante??0).toFixed(2)}</strong></div></div></section>${nota?`<section class="seccion"><h3>Observaciones</h3><div class="nota">${nota}</div></section>`:""}<section class="seccion"><div class="firma"><div>Recibido por</div><div>Cliente / pagador</div></div></section><div class="pie">Gracias por su pago · Comprobante generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div></body></html>`;
+ const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comprobante de abono</title><style>${flkCssComprobanteProfesional("#168044")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">💵 Abono recibido</span><span class="numero">Recibo #${escapeHtml(numero)} · AB-${String(indice).padStart(3,"0")}</span></div></header><section class="meta"><div>Fecha y hora<strong>${f.toLocaleDateString("es-PR")} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${cliente}</strong></div><div>Teléfono<strong>${telefono||"—"}</strong></div><div>Método<strong>${escapeHtml(normalizarMetodoFlujo(p.metodo||"MLC"))}</strong></div></section><section class="seccion"><h3>Detalle del pago</h3><div class="resumen"><div class="r"><span>Saldo anterior</span><strong>$${Number(p.saldoAnterior??0).toFixed(2)}</strong></div><div class="r total"><span>ABONO RECIBIDO</span><strong>$${Number(p.cantidad||0).toFixed(2)}</strong></div><div class="r"><span>Saldo restante</span><strong>$${Number(p.saldoRestante??0).toFixed(2)}</strong></div></div></section>${nota?`<section class="seccion"><h3>Observaciones</h3><div class="nota">${nota}</div></section>`:""}<section class="seccion"><div class="firma"><div>Recibido por</div><div>Cliente / pagador</div></div></section><div class="pie">Gracias por su pago · Comprobante generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div></body></html>`;
  flkAbrirDocumentoComprobante(contenido,"El navegador bloqueó el comprobante. Permite ventanas emergentes para Flackunloker.")
 }
 
@@ -7741,6 +7742,8 @@ document.getElementById("formularioGasto").addEventListener("submit",async e=>{
   }else{
    legacy=String(Date.now()+Math.floor(Math.random()*100000));
   }
+  const creditoEdicion=(g&&normalizarMetodoFlujo(g.metodo)==="Efectivo CUP")?Number(g.cantidad||0):0;
+  if(!flkValidarSalidaEfectivoCUP(cantidad,metodo,estabaEditando?"La actualización del gasto":"El gasto",creditoEdicion))return;
   if(!navigator.onLine){
    const payload={
     expense_id:supabaseId,
@@ -7822,13 +7825,13 @@ function mostrarListaGastos(){
  const lista=document.getElementById("listaGastos"),q=document.getElementById("busquedaGastos").value.toLowerCase().trim(),cat=document.getElementById("filtroCategoriaGasto").value,mes=document.getElementById("filtroMesGasto").value;
  const arr=gastos.filter(g=>[g.concepto,g.categoria,g.metodo,g.nota].some(x=>String(x||"").toLowerCase().includes(q))&&(!cat||g.categoria===cat)&&(!mes||(g.fechaLocal||String(g.fecha||"").slice(0,7)).startsWith(mes))).sort((a,b)=>fechaGastoObj(b)-fechaGastoObj(a));lista.innerHTML="";
  if(!arr.length){lista.innerHTML=`<div class="sin-productos">${gastos.length?"No encontramos gastos con esos filtros.":"No hay gastos registrados todavía."}</div>`;return}
- arr.forEach(g=>{const el=document.createElement("div");el.className="gasto-card";const f=fechaGastoObj(g);el.innerHTML=`<div class="gasto-superior"><div><h3>${escapeHtml(g.concepto)}</h3><p>${escapeHtml(g.categoria||"Otro")}</p></div><div class="gasto-total">-$${Number(g.cantidad||0).toFixed(2)}</div></div><div class="gasto-detalle">Método: <strong>${escapeHtml(g.metodo||"—")}</strong>${g.nota?`<br>Nota: ${escapeHtml(g.nota)}`:""}<br>Fecha: <strong>${f.toLocaleDateString("es-PR")}</strong></div><div class="acciones-gasto"><button class="boton-editar-gasto" onclick="abrirGasto(${g.id})">✏️ Editar</button><button class="boton-eliminar-gasto" onclick="eliminarGasto(${g.id})">🗑️ Eliminar</button></div>`;lista.appendChild(el)})
+ arr.forEach(g=>{const el=document.createElement("div");el.className="gasto-card";const f=fechaGastoObj(g);el.innerHTML=`<div class="gasto-superior"><div><h3>${escapeHtml(g.concepto)}</h3><p>${escapeHtml(g.categoria||"Otro")}</p></div><div class="gasto-total">-$${Number(g.cantidad||0).toFixed(2)}</div></div><div class="gasto-detalle">Método: <strong>${escapeHtml(normalizarMetodoFlujo(g.metodo||"MLC"))}</strong>${g.nota?`<br>Nota: ${escapeHtml(g.nota)}`:""}<br>Fecha: <strong>${f.toLocaleDateString("es-PR")}</strong></div><div class="acciones-gasto"><button class="boton-editar-gasto" onclick="abrirGasto(${g.id})">✏️ Editar</button><button class="boton-eliminar-gasto" onclick="eliminarGasto(${g.id})">🗑️ Eliminar</button></div>`;lista.appendChild(el)})
 }
 document.getElementById("busquedaGastos").addEventListener("input",mostrarListaGastos);
 async function mostrarGastos(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;if(navigator.onLine)setTimeout(()=>cargarGastosSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="block";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("gastos");actualizarGastos();scrollTop()}
 
-function metodoCajaClave(metodo){const m=String(metodo||"").trim().toLowerCase();if(m.includes("efectivo"))return "efectivo";if(m.includes("ath"))return "ath";if(m.includes("tarjeta"))return "tarjeta";return "otros"}
+function metodoCajaClave(metodo){const m=normalizarMetodoFlujo(metodo);if(m==="Efectivo CUP")return "efectivo";if(m==="Efectivo USD")return "ath";if(m==="Tarjeta CUP"||m==="Tarjeta USD")return "tarjeta";return "otros"}
 function resumenCierreFecha(fechaLocal){
  const ventasDia=ventas.filter(v=>fechaLocalDeValor(v.fecha)===fechaLocal);
  const gastosDia=gastos.filter(g=>(g.fechaLocal||String(g.fecha||"").slice(0,10))===fechaLocal);
@@ -7844,10 +7847,10 @@ function resumenCierreFecha(fechaLocal){
  const credito=ventasCredito.reduce((t,v)=>t+Number(v.ingreso||0),0),
        saldoCredito=ventasCredito.reduce((t,v)=>t+Number(v.saldo||0),0);
  const gastoEfectivo=movimientosDia
-  .filter(m=>m.tipo==="salida"&&m.grupo==="gasto"&&normalizarMetodoFlujo(m.metodo)==="Efectivo")
+  .filter(m=>m.tipo==="salida"&&m.grupo==="gasto"&&normalizarMetodoFlujo(m.metodo)==="Efectivo CUP")
   .reduce((t,m)=>t+Number(m.cantidad||0),0);
  const efectivoNeto=movimientosDia
-  .filter(m=>normalizarMetodoFlujo(m.metodo)==="Efectivo")
+  .filter(m=>normalizarMetodoFlujo(m.metodo)==="Efectivo CUP")
   .reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0);
  return {fechaLocal,recibos,unidades,ventasTotal,costo,gananciaBruta,gastosTotal,gananciaNeta,cobrado,efectivo:cobros.efectivo,ath:cobros.ath,tarjeta:cobros.tarjeta,otros:cobros.otros,credito,saldoCredito,gastoEfectivo,efectivoNeto}
 }
@@ -7878,10 +7881,10 @@ async function guardarCierreHoy(){
  guardarCierres();actualizarCierre();
  if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
 }
-function mostrarListaCierres(){const lista=document.getElementById("listaCierres"),arr=[...cierres].sort((a,b)=>String(b.fechaLocal).localeCompare(String(a.fechaLocal)));if(!arr.length){lista.innerHTML='<div class="sin-productos">Todavía no hay cierres guardados.</div>';return}lista.innerHTML=arr.map(c=>{const f=new Date(c.fechaLocal+"T12:00:00");return `<div class="cierre-card"><div class="venta-superior"><div><h3>Cierre · ${f.toLocaleDateString("es-PR")}</h3><p>Guardado ${new Date(c.guardado||Date.now()).toLocaleString("es-PR")}</p></div><div class="cierre-total">${formatoDineroCierre(c.gananciaNeta)}</div></div><div class="cierre-detalle">Ventas: <strong>${formatoDineroCierre(c.ventasTotal)}</strong> · Gastos: <strong>${formatoDineroCierre(c.gastosTotal)}</strong><br>Ganancia bruta: <strong>${formatoDineroCierre(c.gananciaBruta)}</strong> · Ganancia neta: <strong>${formatoDineroCierre(c.gananciaNeta)}</strong><br>Cobrado: <strong>${formatoDineroCierre(c.cobrado)}</strong> · Efectivo neto: <strong>${formatoDineroCierre(c.efectivoNeto)}</strong><br>Efectivo: ${formatoDineroCierre(c.efectivo)} · ATH: ${formatoDineroCierre(c.ath)} · Tarjeta: ${formatoDineroCierre(c.tarjeta)} · Otros: ${formatoDineroCierre(c.otros)}<br>Crédito: ${formatoDineroCierre(c.credito)} · Saldo pendiente: ${formatoDineroCierre(c.saldoCredito)}</div><div class="cierre-acciones"><button class="boton-cierre" onclick="imprimirCierre(${c.id})">🧾 Ver / imprimir</button><button class="boton-cierre boton-cierre-peligro" onclick="eliminarCierre(${c.id})">🗑️ Eliminar</button></div></div>`}).join("")}
+function mostrarListaCierres(){const lista=document.getElementById("listaCierres"),arr=[...cierres].sort((a,b)=>String(b.fechaLocal).localeCompare(String(a.fechaLocal)));if(!arr.length){lista.innerHTML='<div class="sin-productos">Todavía no hay cierres guardados.</div>';return}lista.innerHTML=arr.map(c=>{const f=new Date(c.fechaLocal+"T12:00:00");return `<div class="cierre-card"><div class="venta-superior"><div><h3>Cierre · ${f.toLocaleDateString("es-PR")}</h3><p>Guardado ${new Date(c.guardado||Date.now()).toLocaleString("es-PR")}</p></div><div class="cierre-total">${formatoDineroCierre(c.gananciaNeta)}</div></div><div class="cierre-detalle">Ventas: <strong>${formatoDineroCierre(c.ventasTotal)}</strong> · Gastos: <strong>${formatoDineroCierre(c.gastosTotal)}</strong><br>Ganancia bruta: <strong>${formatoDineroCierre(c.gananciaBruta)}</strong> · Ganancia neta: <strong>${formatoDineroCierre(c.gananciaNeta)}</strong><br>Cobrado: <strong>${formatoDineroCierre(c.cobrado)}</strong> · Efectivo neto: <strong>${formatoDineroCierre(c.efectivoNeto)}</strong><br>Efectivo CUP: ${formatoDineroCierre(c.efectivo)} · Efectivo USD: ${formatoDineroCierre(c.ath)} · Tarjetas CUP/USD: ${formatoDineroCierre(c.tarjeta)} · Zelle/MLC: ${formatoDineroCierre(c.otros)}<br>Crédito: ${formatoDineroCierre(c.credito)} · Saldo pendiente: ${formatoDineroCierre(c.saldoCredito)}</div><div class="cierre-acciones"><button class="boton-cierre" onclick="imprimirCierre(${c.id})">🧾 Ver / imprimir</button><button class="boton-cierre boton-cierre-peligro" onclick="eliminarCierre(${c.id})">🗑️ Eliminar</button></div></div>`}).join("")}
 function imprimirCierre(id){const c=cierres.find(x=>x.id===id);if(!c)return;const f=new Date(c.fechaLocal+"T12:00:00"),contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cierre ${c.fechaLocal}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#f4f7fb;color:#111;margin:0}.hoja{max-width:460px;margin:24px auto;background:#fff;padding:28px;border-radius:18px}.fila{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid #eee}.total{font-size:20px;font-weight:800}.btn{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700}@media print{body{background:#fff}.hoja{margin:0;max-width:none}.btn{display:none}}
 .cuenta-proveedor-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px;border-left:5px solid #f5a623}.cuenta-proveedor-card.vencida{border-left-color:#d93025}.cuenta-proveedor-card.pagada{border-left-color:#168044}.cuenta-proveedor-superior{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.cuenta-proveedor-superior h3{margin:0 0 5px;font-size:16px}.cuenta-proveedor-superior p{margin:0;color:#777;font-size:13px}.cuenta-proveedor-saldo{font-weight:800;color:#d93025;white-space:nowrap}.cuenta-proveedor-detalle{margin-top:12px;font-size:13px;line-height:1.75;color:#555}.acciones-cuenta-proveedor{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-cuenta-proveedor{border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.boton-pagar-proveedor{background:#e9f8ef;color:#168044}.boton-historial-proveedor{background:#eaf4ff;color:#0a84ff}.estado-cuenta{display:inline-block;margin-top:8px;padding:7px 10px;border-radius:10px;font-size:12px;font-weight:800}.estado-cuenta.pendiente{background:#fff7e8;color:#a15c00}.estado-cuenta.vencida{background:#ffecec;color:#d93025}.estado-cuenta.pagada{background:#e9f8ef;color:#168044}
-</style></head><body><div class="hoja"><h1>Flackunloker</h1><h2>Cierre de caja · ${f.toLocaleDateString("es-PR")}</h2><div class="fila"><span>Recibos / Unidades</span><strong>${c.recibos} / ${c.unidades}</strong></div><div class="fila"><span>Ventas</span><strong>${formatoDineroCierre(c.ventasTotal)}</strong></div><div class="fila"><span>Costo mercancía</span><strong>${formatoDineroCierre(c.costo)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>${formatoDineroCierre(c.gananciaBruta)}</strong></div><div class="fila"><span>Gastos</span><strong>${formatoDineroCierre(c.gastosTotal)}</strong></div><div class="fila total"><span>Ganancia neta</span><strong>${formatoDineroCierre(c.gananciaNeta)}</strong></div><div class="fila"><span>Total cobrado</span><strong>${formatoDineroCierre(c.cobrado)}</strong></div><div class="fila"><span>Efectivo</span><strong>${formatoDineroCierre(c.efectivo)}</strong></div><div class="fila"><span>ATH Móvil</span><strong>${formatoDineroCierre(c.ath)}</strong></div><div class="fila"><span>Tarjeta</span><strong>${formatoDineroCierre(c.tarjeta)}</strong></div><div class="fila"><span>Otros</span><strong>${formatoDineroCierre(c.otros)}</strong></div><div class="fila"><span>Ventas a crédito</span><strong>${formatoDineroCierre(c.credito)}</strong></div><div class="fila"><span>Saldo pendiente</span><strong>${formatoDineroCierre(c.saldoCredito)}</strong></div><div class="fila total"><span>Efectivo neto caja</span><strong>${formatoDineroCierre(c.efectivoNeto)}</strong></div><button class="btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></body></html>`;const w=window.open("","_blank");if(!w)return alert("El navegador bloqueó la ventana. Permite ventanas emergentes para ver el cierre.");w.document.open();w.document.write(contenido);w.document.close()}
+</style></head><body><div class="hoja"><h1>Flackunloker</h1><h2>Cierre de caja · ${f.toLocaleDateString("es-PR")}</h2><div class="fila"><span>Recibos / Unidades</span><strong>${c.recibos} / ${c.unidades}</strong></div><div class="fila"><span>Ventas</span><strong>${formatoDineroCierre(c.ventasTotal)}</strong></div><div class="fila"><span>Costo mercancía</span><strong>${formatoDineroCierre(c.costo)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>${formatoDineroCierre(c.gananciaBruta)}</strong></div><div class="fila"><span>Gastos</span><strong>${formatoDineroCierre(c.gastosTotal)}</strong></div><div class="fila total"><span>Ganancia neta</span><strong>${formatoDineroCierre(c.gananciaNeta)}</strong></div><div class="fila"><span>Total cobrado</span><strong>${formatoDineroCierre(c.cobrado)}</strong></div><div class="fila"><span>Efectivo CUP</span><strong>${formatoDineroCierre(c.efectivo)}</strong></div><div class="fila"><span>Efectivo USD</span><strong>${formatoDineroCierre(c.ath)}</strong></div><div class="fila"><span>Tarjetas CUP / USD</span><strong>${formatoDineroCierre(c.tarjeta)}</strong></div><div class="fila"><span>Zelle / MLC</span><strong>${formatoDineroCierre(c.otros)}</strong></div><div class="fila"><span>Ventas a crédito</span><strong>${formatoDineroCierre(c.credito)}</strong></div><div class="fila"><span>Saldo pendiente</span><strong>${formatoDineroCierre(c.saldoCredito)}</strong></div><div class="fila total"><span>Efectivo neto caja</span><strong>${formatoDineroCierre(c.efectivoNeto)}</strong></div><button class="btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></body></html>`;const w=window.open("","_blank");if(!w)return alert("El navegador bloqueó la ventana. Permite ventanas emergentes para ver el cierre.");w.document.open();w.document.write(contenido);w.document.close()}
 async function eliminarCierre(id){
  const c=cierres.find(x=>x.id===id);if(!c)return;
  if(!confirm("¿Eliminar este cierre guardado? Las ventas y gastos originales no se eliminarán."))return;
@@ -8163,6 +8166,7 @@ document.getElementById("formularioRecepcionOrden").addEventListener("submit",as
 
  if(!Number.isFinite(abono)||abono<0||abono>total)return alert("Revisa el abono inicial.");
  if(condicion==="credito"&&!vencimiento)return alert("Selecciona la fecha de vencimiento.");
+ if(abono>0&&!flkValidarSalidaEfectivoCUP(abono,metodo,condicion==="credito"?"El abono inicial al proveedor":"El pago de la compra"))return;
  if(!o.supabaseId&&!o.offlineOperationId)return alert("Esta orden no tiene una referencia segura para sincronizar.");
 
  const prod=productos.find(x=>x.id===o.productoId);
@@ -8230,6 +8234,7 @@ document.getElementById("formularioPagoProveedor").addEventListener("submit",asy
  if(!Number.isFinite(cantidad)||cantidad<=0||cantidad>saldoAnterior+0.009){
   return alert("El pago no puede ser mayor que el saldo pendiente.");
  }
+ if(!flkValidarSalidaEfectivoCUP(cantidad,metodo,"El pago al proveedor"))return;
  if(!o.supabaseId&&!o.offlineOperationId)return alert("Esta cuenta no tiene una referencia segura para sincronizar.");
 
  const op=flkEncolarOperacion("supplier_payment",{
@@ -8251,7 +8256,7 @@ document.getElementById("formularioPagoProveedor").addEventListener("submit",asy
  cerrarPagoProveedor();
  if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
 });
-function verHistorialPagosProveedor(id){const o=ordenesCompra.find(x=>x.id===id);if(!o)return;document.getElementById("textoHistorialPagosProveedor").textContent=`${o.proveedor} · ${numeroOrdenCompra(o)} · Total $${Number(o.costoTotal||0).toFixed(2)}`;const pagos=Array.isArray(o.pagosProveedor)?[...o.pagosProveedor].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)):[];document.getElementById("listaHistorialPagosProveedor").innerHTML=pagos.length?pagos.map(p=>`<div class="abono-card"><div class="abono-superior"><strong>${new Date(p.fecha).toLocaleString("es-PR")}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">Método: <strong>${escapeHtml(p.metodo||"—")}</strong><br>Saldo anterior: $${Number(p.saldoAnterior||0).toFixed(2)} · Restante: $${Number(p.saldoRestante||0).toFixed(2)}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div></div>`).join(""):'<div class="sin-productos">No hay pagos registrados.</div>';document.getElementById("modalHistorialPagosProveedor").classList.add("visible")}
+function verHistorialPagosProveedor(id){const o=ordenesCompra.find(x=>x.id===id);if(!o)return;document.getElementById("textoHistorialPagosProveedor").textContent=`${o.proveedor} · ${numeroOrdenCompra(o)} · Total $${Number(o.costoTotal||0).toFixed(2)}`;const pagos=Array.isArray(o.pagosProveedor)?[...o.pagosProveedor].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)):[];document.getElementById("listaHistorialPagosProveedor").innerHTML=pagos.length?pagos.map(p=>`<div class="abono-card"><div class="abono-superior"><strong>${new Date(p.fecha).toLocaleString("es-PR")}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">Método: <strong>${escapeHtml(normalizarMetodoFlujo(p.metodo||"MLC"))}</strong><br>Saldo anterior: $${Number(p.saldoAnterior||0).toFixed(2)} · Restante: $${Number(p.saldoRestante||0).toFixed(2)}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div></div>`).join(""):'<div class="sin-productos">No hay pagos registrados.</div>';document.getElementById("modalHistorialPagosProveedor").classList.add("visible")}
 function cerrarHistorialPagosProveedor(){document.getElementById("modalHistorialPagosProveedor").classList.remove("visible")}
 function actualizarFiltroProveedorCuentas(){const sel=document.getElementById("filtroProveedorCuentas");if(!sel)return;const prev=sel.value,nombres=[...new Set(ordenesCompra.filter(o=>o.estado==="recibida").map(o=>String(o.proveedor||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"}));sel.innerHTML='<option value="">Todos los proveedores</option>'+nombres.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");if(nombres.includes(prev))sel.value=prev}
 function mostrarListaCuentasPagar(){actualizarFiltroProveedorCuentas();const lista=document.getElementById("listaCuentasPagar");if(!lista)return;const q=document.getElementById("busquedaCuentasPagar").value.toLowerCase().trim(),filtro=document.getElementById("filtroCuentasPagar").value,prov=document.getElementById("filtroProveedorCuentas").value;let arr=ordenesCompra.filter(o=>o.estado==="recibida"&&(!prov||o.proveedor===prov)&&[o.proveedor,o.nombre,o.sku,numeroOrdenCompra(o)].some(v=>String(v||"").toLowerCase().includes(q)));arr=arr.filter(o=>{const e=estadoCuentaProveedor(o);return filtro==="todas"||(filtro==="pendientes"&&e.clave!=="pagada")||(filtro==="vencidas"&&e.clave==="vencida")||(filtro==="pagadas"&&e.clave==="pagada")});arr.sort((a,b)=>Number(b.saldoProveedor||0)-Number(a.saldoProveedor||0));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay cuentas con esos filtros.</div>';return}lista.innerHTML=arr.map(o=>{const e=estadoCuentaProveedor(o),total=Number(o.costoTotal||0),pagado=Number(o.totalPagadoProveedor||0),saldo=Number(o.saldoProveedor||0);return `<div class="cuenta-proveedor-card ${e.clave}"><div class="cuenta-proveedor-superior"><div><h3>${escapeHtml(o.proveedor||"Proveedor")}</h3><p>${numeroOrdenCompra(o)} · ${escapeHtml(o.nombre)}</p></div><div class="cuenta-proveedor-saldo">$${saldo.toFixed(2)}</div></div><span class="estado-cuenta ${e.clave}">${e.texto}</span><div class="cuenta-proveedor-detalle">Compra total: <strong>$${total.toFixed(2)}</strong><br>Total pagado: <strong>$${pagado.toFixed(2)}</strong><br>Saldo pendiente: <strong>$${saldo.toFixed(2)}</strong>${o.fechaVencimientoProveedor?`<br>Vencimiento: <strong>${new Date(o.fechaVencimientoProveedor+"T00:00:00").toLocaleDateString("es-PR")}</strong>`:""}</div><div class="acciones-cuenta-proveedor">${saldo>0.009?`<button class="boton-cuenta-proveedor boton-pagar-proveedor" onclick="abrirPagoProveedor(${o.id})">💵 Registrar pago</button>`:""}<button class="boton-cuenta-proveedor boton-historial-proveedor" onclick="verHistorialPagosProveedor(${o.id})">📋 Historial</button></div></div>`}).join("")}
@@ -8299,12 +8304,16 @@ async function cargarMovimientosCajaSupabase(){
  return true
 }
 function normalizarMetodoFlujo(m){
- const x=String(m||"Otro").trim().toLowerCase();
- if(x.includes("efectivo")||x==="cash"||x.includes("cash"))return "Efectivo";
- if(x.includes("ath"))return "ATH Móvil";
- if(x.includes("tarjeta"))return "Tarjeta";
- if(x.includes("transfer"))return "Transferencia";
- return "Otro"
+ const x=String(m||"MLC").trim().toLowerCase();
+ // Compatibilidad hacia atrás: los métodos usados durante las pruebas anteriores
+ // se muestran dentro de los nuevos renglones sin alterar los registros guardados.
+ if(x==="efectivo cup"||x==="efectivo"||x==="cash"||x==="cash cup")return "Efectivo CUP";
+ if(x==="efectivo usd"||x==="euro"||x.includes("ath"))return "Efectivo USD";
+ if(x==="tarjeta cup"||x==="tarjeta")return "Tarjeta CUP";
+ if(x==="tarjeta usd")return "Tarjeta USD";
+ if(x==="zelle"||x.includes("transfer"))return "Zelle";
+ if(x==="mlc"||x==="otro"||x==="otros"||x.includes("otro método"))return "MLC";
+ return String(m||"MLC").trim()||"MLC"
 }
 function fechaMovimientoFlujo(v){const d=new Date(v);return Number.isNaN(d.getTime())?null:d}
 function limitesFlujo(){
@@ -8416,7 +8425,7 @@ function datosFlujoCaja(){
  const entradas=suma("entrada"),salidas=suma("salida"),metodos={};
  const aportesPropietario=mov.filter(m=>m.grupo==="propietario"&&m.tipo==="entrada").reduce((t,m)=>t+Number(m.cantidad||0),0);
  const retirosPropietario=mov.filter(m=>m.grupo==="propietario"&&m.tipo==="salida").reduce((t,m)=>t+Number(m.cantidad||0),0);
- ["Efectivo","ATH Móvil","Tarjeta","Transferencia","Otro"].forEach(k=>metodos[k]=mov.filter(m=>m.metodo===k).reduce((t,m)=>t+(m.tipo==="entrada"?m.cantidad:-m.cantidad),0));
+ ["Efectivo CUP","Efectivo USD","Tarjeta CUP","Tarjeta USD","Zelle","MLC"].forEach(k=>metodos[k]=mov.filter(m=>m.metodo===k).reduce((t,m)=>t+(m.tipo==="entrada"?m.cantidad:-m.cantidad),0));
  return {
   lim,mov,entradas,salidas,neto:entradas-salidas,
   ventas:suma("entrada","venta"),abonos:suma("entrada","abono"),
@@ -8432,12 +8441,27 @@ function cambiarPeriodoFlujo(){
  actualizarFlujoCaja()
 }
 function saldoCajaFisicaActual(){
- return movimientosFlujoCaja().filter(m=>normalizarMetodoFlujo(m.metodo)==="Efectivo").reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0)
+ return movimientosFlujoCaja().filter(m=>normalizarMetodoFlujo(m.metodo)==="Efectivo CUP").reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0)
 }
 function actualizarSaldoCajaFisica(){
  const el=document.getElementById("saldoCajaFisica");if(!el)return;
  const saldo=saldoCajaFisicaActual();
- el.textContent="$"+(Math.abs(saldo)<0.005?0:saldo).toFixed(2)
+ const valor=Math.abs(saldo)<0.005?0:saldo;
+ el.textContent=(valor<0?"−$":"$")+Math.abs(valor).toFixed(2);
+ el.style.color=valor<0?"#d93025":"#fff";
+ const aviso=document.getElementById("avisoCajaNegativa");
+ if(aviso){
+  aviso.style.display=valor<0?"block":"none";
+  aviso.textContent=valor<0?`⚠️ Déficit de caja: faltan $${Math.abs(valor).toFixed(2)} en Efectivo CUP.`:"";
+ }
+}
+function flkValidarSalidaEfectivoCUP(cantidad,metodo,contexto,creditoExtra=0){
+ if(normalizarMetodoFlujo(metodo)!=="Efectivo CUP")return true;
+ const disponible=Math.max(0,Number(saldoCajaFisicaActual()||0)+Number(creditoExtra||0));
+ const monto=Math.max(0,Number(cantidad||0));
+ if(monto<=disponible+0.009)return true;
+ alert(`⚠️ EFECTIVO INSUFICIENTE\n\n${contexto||"Esta operación"} requiere $${monto.toFixed(2)} en Efectivo CUP, pero la caja física dispone de $${disponible.toFixed(2)}.\n\nRegistra primero un aporte de efectivo o selecciona otro método de pago.`);
+ return false;
 }
 function abrirMovimientoPropietario(tipo){
  if(!requiereAdmin())return;
@@ -8473,7 +8497,7 @@ function actualizarFlujoCaja(){
  document.getElementById("textoPeriodoFlujo").value=d.lim.texto;
  document.getElementById("flujoEntradas").textContent="$"+d.entradas.toFixed(2);
  document.getElementById("flujoSalidas").textContent="$"+d.salidas.toFixed(2);
- const net=document.getElementById("flujoNeto");net.textContent="$"+d.neto.toFixed(2);net.style.color=d.neto<0?"#d93025":"#168044";
+ const net=document.getElementById("flujoNeto");net.textContent=(d.neto<0?"−$":"$")+Math.abs(d.neto).toFixed(2);net.style.color=d.neto<0?"#d93025":"#168044";
  document.getElementById("flujoVentasContado").textContent="$"+d.ventas.toFixed(2);
  document.getElementById("flujoAbonosClientes").textContent="$"+d.abonos.toFixed(2);
  document.getElementById("flujoGastos").textContent="$"+d.gastos.toFixed(2);
@@ -8485,11 +8509,12 @@ function actualizarFlujoCaja(){
   netoProp.textContent=(d.netoPropietario<0?"−":"+")+"$"+Math.abs(d.netoPropietario).toFixed(2);
   netoProp.style.color=d.netoPropietario<0?"#d93025":"#111";
  }
- document.getElementById("flujoEfectivo").textContent="$"+d.metodos["Efectivo"].toFixed(2);
- document.getElementById("flujoAth").textContent="$"+d.metodos["ATH Móvil"].toFixed(2);
- document.getElementById("flujoTarjeta").textContent="$"+d.metodos["Tarjeta"].toFixed(2);
- document.getElementById("flujoTransferencia").textContent="$"+d.metodos["Transferencia"].toFixed(2);
- document.getElementById("flujoOtros").textContent="$"+d.metodos["Otro"].toFixed(2);
+ document.getElementById("flujoEfectivo").textContent="$"+d.metodos["Efectivo CUP"].toFixed(2);
+ document.getElementById("flujoAth").textContent="$"+d.metodos["Efectivo USD"].toFixed(2);
+ document.getElementById("flujoTarjeta").textContent="$"+d.metodos["Tarjeta CUP"].toFixed(2);
+ document.getElementById("flujoTransferencia").textContent="$"+d.metodos["Tarjeta USD"].toFixed(2);
+ document.getElementById("flujoOtros").textContent="$"+d.metodos["Zelle"].toFixed(2);
+ document.getElementById("flujoMLC").textContent="$"+d.metodos["MLC"].toFixed(2);
  const lista=document.getElementById("listaFlujoCaja"),arr=[...d.mov].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
  lista.innerHTML=arr.length?arr.map(m=>`<div class="fila-estadistica"><span>${m.tipo==="entrada"?"⬇️":"⬆️"} ${escapeHtml(m.concepto)}<br><small>${new Date(m.fecha).toLocaleString("es-PR")} · ${escapeHtml(m.metodo)}</small></span><strong style="color:${m.tipo==="entrada"?"#168044":"#d93025"}">${m.tipo==="entrada"?"+":"-"}$${m.cantidad.toFixed(2)}</strong></div>`).join(""):'<div class="fila-estadistica"><span>No hay movimientos de dinero en este período.</span><strong>—</strong></div>'
 }
