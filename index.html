@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-28-v61.75-qr-venta-sin-selector-producto">
-<title>Flackunloker · v61.75</title>
+<meta name="flackunloker-offline-version" content="2026-08-28-v61.76-qr-venta-producto-identificado">
+<title>Flackunloker · v61.76</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}
@@ -758,6 +758,12 @@ button.menu-toggle{
 #vistaCuentasPagar .lista-estadisticas .fila-estadistica strong{
   color:#000 !important;
 }
+
+/* v61.76 · Venta por QR: el SKU ya identifica el producto.
+   Ocultar de forma obligatoria los controles de selección manual solo en ese flujo. */
+#formularioVenta[data-venta-desde-qr="1"] #bloqueProductoVentaManual,
+#formularioVenta[data-venta-desde-qr="1"] #bloquePrecioCantidadVentaManual,
+#formularioVenta[data-venta-desde-qr="1"] #botonAgregarProductoVentaManual{display:none!important;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="manifest" href="./manifest.webmanifest">
@@ -2184,12 +2190,12 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <p class="mensaje-movimiento" id="textoVenta">Agrega uno o varios productos al recibo.</p>
 <div class="campo"><label for="clienteVenta">Cliente</label><input id="clienteVenta" type="text" placeholder="Cliente general" list="listaClientesVenta" autocomplete="off"><datalist id="listaClientesVenta"></datalist><small class="ayuda-campo">Selecciona un cliente existente para evitar nombres duplicados. Funciona también con la copia local sin conexión.</small></div>
 <div class="campo"><label for="telefonoVenta">Teléfono</label><input id="telefonoVenta" type="tel" placeholder="Opcional"></div>
-<div class="campo"><label for="productoRecibo">Producto para agregar</label><select id="productoRecibo"></select><small class="ayuda-campo">Selecciona un producto, indica cantidad y precio, y pulsa “Agregar al recibo”. Luego puedes elegir otro producto y repetir.</small></div>
-<div class="agregar-linea">
+<div class="campo" id="bloqueProductoVentaManual"><label for="productoRecibo">Producto para agregar</label><select id="productoRecibo"></select><small class="ayuda-campo">Selecciona un producto, indica cantidad y precio, y pulsa “Agregar al recibo”. Luego puedes elegir otro producto y repetir.</small></div>
+<div class="agregar-linea" id="bloquePrecioCantidadVentaManual">
 <div class="campo"><label for="precioVentaUnitario">Precio por unidad</label><input id="precioVentaUnitario" type="number" min="0" step="0.01"></div>
 <div class="campo"><label for="cantidadVenta">Cantidad</label><input id="cantidadVenta" type="number" min="1" step="1" value="1"></div>
 </div>
-<button type="button" class="boton-agregar-carrito" onclick="agregarProductoAlRecibo()">＋ Agregar producto a ESTE recibo</button>
+<button type="button" id="botonAgregarProductoVentaManual" class="boton-agregar-carrito" onclick="agregarProductoAlRecibo()">＋ Agregar producto a ESTE recibo</button>
 <div class="seccion-titulo" style="margin:14px 0 8px"><h2 style="font-size:16px">Productos en este recibo</h2><strong id="contadorCarrito" style="color:#0a84ff">0</strong></div>
 <div id="carritoVenta" class="carrito-venta"></div>
 <div class="campo"><label for="estadoPagoVenta">Condición de pago</label><select id="estadoPagoVenta" onchange="actualizarCamposCredito()"><option value="pagado">✅ Pagado</option><option value="credito">💳 Crédito</option></select></div>
@@ -7013,14 +7019,22 @@ function flkAjustarClienteVentaDesdeCache(){
 document.getElementById("clienteVenta").addEventListener("change",flkAjustarClienteVentaDesdeCache);
 document.getElementById("clienteVenta").addEventListener("blur",flkAjustarClienteVentaDesdeCache);
 function flkConfigurarVentaDesdeQR(activo=false){
- const sel=document.getElementById("productoRecibo");
- const campoProducto=sel?.closest(".campo")||null;
- const fila= document.getElementById("precioVentaUnitario")?.closest(".agregar-linea")||null;
- const btn=document.querySelector('#formularioVenta .boton-agregar-carrito');
- if(campoProducto)campoProducto.style.display=activo?"none":"";
- if(fila)fila.style.display=activo?"none":"";
- if(btn)btn.style.display=activo?"none":"";
- document.getElementById("formularioVenta")?.setAttribute("data-venta-desde-qr",activo?"1":"0");
+ const form=document.getElementById("formularioVenta");
+ if(form)form.setAttribute("data-venta-desde-qr",activo?"1":"0");
+ const ids=["bloqueProductoVentaManual","bloquePrecioCantidadVentaManual","botonAgregarProductoVentaManual"];
+ ids.forEach(id=>{
+  const el=document.getElementById(id);
+  if(!el)return;
+  if(activo){
+   el.hidden=true;
+   el.setAttribute("aria-hidden","true");
+   el.style.setProperty("display","none","important");
+  }else{
+   el.hidden=false;
+   el.removeAttribute("aria-hidden");
+   el.style.removeProperty("display");
+  }
+ });
 }
 function abrirVenta(id=null){
  carritoVenta=[];document.getElementById("formularioVenta").reset();document.getElementById("cantidadVenta").value="1";document.getElementById("abonoInicialVenta").value="0";document.getElementById("fechaVencimientoVenta").value="";
@@ -10000,7 +10014,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.75",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.76",{updateViaCache:"none"});
    if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
@@ -10885,6 +10899,8 @@ function continuarVentaQR(){
  abrirVenta();
  carritoVenta=copia;
  flkConfigurarVentaDesdeQR(true);
+ // Reaplicar al siguiente frame por compatibilidad con Safari/Chrome móvil y estilos restaurados del modal.
+ requestAnimationFrame(()=>flkConfigurarVentaDesdeQR(true));
  renderCarritoVenta();
  const nombres=copia.map(i=>i.nombre+" ("+i.sku+")").join(", ");
  document.getElementById("textoVenta").textContent="Venta por QR: "+nombres+". El SKU ya identificó el producto; completa cliente y forma de pago, y confirma la venta.";
