@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-28-v61.56-pin-devolucion-por-centro">
-<title>Flackunloker · v61.71</title>
+<meta name="flackunloker-offline-version" content="2026-08-28-v61.73-saldo-posterior-supabase">
+<title>Flackunloker · v61.73</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}
@@ -6496,9 +6496,12 @@ function movimientoDesdeSupabase(m){
 }
 async function cargarHistorialSupabase(){
  if(flkModoRecuperacionPassword)return false;
+ if(navigator.onLine)await flkExigirCentroActual();
  if(navigator.onLine&&!flkSesionActiva)return false;
+ const centro=await flkExigirCentroActual();
  const {data,error}=await flkSupabase.from("stock_movements")
-  .select("id,product_id,movement_type,quantity,stock_after,note,created_at")
+  .select("id,product_id,movement_type,quantity,stock_after,note,created_at,business_id")
+  .eq("business_id",centro)
   .order("created_at",{ascending:false});
  if(error){
   console.error("Supabase historial:",error);
@@ -6507,57 +6510,29 @@ async function cargarHistorialSupabase(){
  }
  historial=(data||[]).map(movimientoDesdeSupabase);
 
- // La devolución real está en sale_returns y ya viene asociada a cada venta
- // por cargarVentasSupabase(). Usamos esa fuente primero para el historial.
- const devoluciones=[];
- const vistos=new Set();
- (Array.isArray(ventas)?ventas:[]).forEach(v=>{
-  (Array.isArray(v.devoluciones)?v.devoluciones:[]).forEach(r=>{
-   const rid=String(r.supabaseId||r.id||"");
-   if(!rid||vistos.has(rid))return;
-   let p=null,productoId=r.productoId;
-   if(productoId!=null)p=productos.find(x=>String(x.id)===String(productoId));
-   if(!p && r.supabaseProductId){
-    p=productos.find(x=>String(x.supabaseId||"")===String(r.supabaseProductId));
-    if(p)productoId=p.id;
-   }
-   if(!p){
-    const item=(v.items||[]).find(i=>String(i.supabaseSaleItemId||"")===String(r.supabaseSaleItemId||""));
-    if(item){
-     productoId=item.productoId;
-     p=productos.find(x=>String(x.id)===String(productoId));
-    }
-   }
-   if(!p)return;
-   vistos.add(rid);
-   devoluciones.push({
-    id:idLocalDesdeLegacy(null,"sale_return_history_"+rid),
-    supabaseId:null,devolucionSupabaseId:rid,
-    ventaSupabaseId:v.supabaseId||null,ventaId:v.id||null,
-    productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:"entrada",
-    cantidad:Number(r.cantidad||0),saldo:Number(p.cantidad||0),
-    fecha:r.fecha||new Date().toISOString(),
-    detalle:"↩️ Devolución · Recibo "+String(v.numero||"")+" · Cliente "+String(v.cliente||"Cliente general"),
-    esSistema:true,esDevolucion:true,numeroDevolucion:r.numeroDevolucion||""
-   });
-  });
- });
-
- // Respaldo directo por si una venta no quedó en memoria.
+ // La fuente principal del historial es stock_movements. Las devoluciones nuevas
+ // ya crean una ENTRADA allí. sale_returns se usa solamente como respaldo si por
+ // alguna razón falta el movimiento, evitando duplicar una devolución existente.
  try{
   const {data:returns,error:returnError}=await flkSupabase.from("sale_returns")
-   .select("id,sale_id,product_id,quantity,reason,created_at,return_number")
+   .select("id,sale_id,product_id,quantity,reason,created_at,return_number,business_id")
+   .eq("business_id",centro)
    .order("created_at",{ascending:false});
   if(!returnError && Array.isArray(returns)){
-   returns.forEach(r=>{
-    const rid=String(r.id||"");
-    if(!rid||vistos.has(rid))return;
+   const extras=[];
+   for(const r of returns){
     const p=productos.find(x=>String(x.supabaseId||"")===String(r.product_id||""));
-    if(!p)return;
+    if(!p)continue;
+    const yaExiste=historial.some(m=>
+     String(m.productoId)===String(p.id) &&
+     /devoluci[oó]n/i.test(String(m.detalle||"")) &&
+     Math.abs(new Date(m.fecha||0)-new Date(r.created_at||0))<120000
+    );
+    if(yaExiste)continue;
     const v=(Array.isArray(ventas)?ventas:[]).find(x=>String(x.supabaseId||"")===String(r.sale_id||""));
-    devoluciones.push({
-     id:idLocalDesdeLegacy(null,"sale_return_history_"+rid),
-     supabaseId:null,devolucionSupabaseId:rid,
+    extras.push({
+     id:idLocalDesdeLegacy(null,"sale_return_history_"+String(r.id)),
+     supabaseId:null,devolucionSupabaseId:r.id,
      ventaSupabaseId:r.sale_id||null,ventaId:v?.id||null,
      productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:"entrada",
      cantidad:Number(r.quantity||0),saldo:Number(p.cantidad||0),
@@ -6565,12 +6540,11 @@ async function cargarHistorialSupabase(){
      detalle:"↩️ Devolución · Recibo "+String(v?.numero||"")+" · Cliente "+String(v?.cliente||"Cliente general"),
      esSistema:true,esDevolucion:true,numeroDevolucion:r.return_number||""
     });
-    vistos.add(rid);
-   });
+   }
+   if(extras.length)historial=[...extras,...historial];
   }
  }catch(e){console.warn("Consulta secundaria de devoluciones:",e)}
 
- historial=[...devoluciones,...historial];
  guardarHistorial();
  recalcularSaldos();
  actualizarResumenHistorial();
@@ -8139,8 +8113,28 @@ function recalcularSaldos(){
  const porProducto={};
  const orden=[...historial].sort((a,b)=>new Date(a.fecha)-new Date(b.fecha)||Number(a.id)-Number(b.id));
  const bases={};
- productos.forEach(p=>{let neto=0;historial.filter(m=>m.productoId===p.id).forEach(m=>neto+=m.tipo==="entrada"?Number(m.cantidad):-Number(m.cantidad));bases[p.id]=Number(p.cantidad)-neto;porProducto[p.id]=bases[p.id]});
- orden.forEach(m=>{if(porProducto[m.productoId]===undefined)porProducto[m.productoId]=0;porProducto[m.productoId]+=m.tipo==="entrada"?Number(m.cantidad):-Number(m.cantidad);m.saldo=porProducto[m.productoId]});
+ productos.forEach(p=>{
+  let neto=0;
+  historial.filter(m=>m.productoId===p.id).forEach(m=>neto+=m.tipo==="entrada"?Number(m.cantidad):-Number(m.cantidad));
+  bases[p.id]=Number(p.cantidad)-neto;
+  porProducto[p.id]=bases[p.id];
+ });
+ orden.forEach(m=>{
+  if(porProducto[m.productoId]===undefined)porProducto[m.productoId]=0;
+
+  // v61.73: los movimientos que vienen de Supabase ya traen stock_after,
+  // que es el saldo posterior autoritativo guardado al crear el movimiento.
+  // No lo recalculamos porque hacerlo desde el historial completo podía
+  // sobrescribir, por ejemplo, una devolución con saldo 6 y mostrar 5.
+  if(m.supabaseId && m.saldo!==undefined && m.saldo!==null && Number.isFinite(Number(m.saldo))){
+   porProducto[m.productoId]=Number(m.saldo);
+   m.saldo=Number(m.saldo);
+   return;
+  }
+
+  porProducto[m.productoId]+=m.tipo==="entrada"?Number(m.cantidad):-Number(m.cantidad);
+  m.saldo=porProducto[m.productoId];
+ });
 }
 function abrirEditarMovimiento(id){
  const m=historial.find(x=>x.id===id);if(!m)return;
@@ -9669,7 +9663,7 @@ function flkRestaurarVistaActual(){
 }
 
 function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonEstadisticas","botonLicencias"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";if(sec!=="cuentasPagar")document.getElementById("vistaCuentasPagar").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",cuentasPagar:"botonCuentasPagar",flujoCaja:"botonFlujoCaja",finanzas:"botonFinanzas",estadisticas:"botonEstadisticas"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo");flkGuardarVistaActual(sec)}
-function mostrarInventario(){flkOcultarTodasLasVistas();document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";document.getElementById("vistaFlujoCaja").style.display="none";document.getElementById("vistaFinanzas").style.display="none";const vl=document.getElementById("vistaLicencias");if(vl)vl.style.display="none";const va=document.getElementById("vistaAdminSoftware");if(va)va.style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
+async function mostrarInventario(){flkOcultarTodasLasVistas();document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";document.getElementById("vistaFlujoCaja").style.display="none";document.getElementById("vistaFinanzas").style.display="none";const vl=document.getElementById("vistaLicencias");if(vl)vl.style.display="none";const va=document.getElementById("vistaAdminSoftware");if(va)va.style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop();if(navigator.onLine&&flkSesionActiva){try{await cargarInventarioSupabase();mostrarProductos();actualizarEstadisticas()}catch(e){console.warn("No se pudo refrescar Inventario:",e)}}}
 function scrollTop(){window.scrollTo({top:0,behavior:"auto"})}
 document.addEventListener("visibilitychange",()=>{
  if(document.visibilityState==="visible"){
@@ -9995,7 +9989,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.62",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.73",{updateViaCache:"none"});
    if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
