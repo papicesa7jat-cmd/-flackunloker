@@ -1414,6 +1414,7 @@ textarea::placeholder{
 }
 .flk-qr-selector-compra{background:#e9f8ef;color:#168044}
 .flk-qr-selector-venta{background:#eaf4ff;color:#0a67d1}
+.flk-qr-selector-salida{background:#fff1e8;color:#c45b19}
 .flk-qr-selector-devolucion{background:#fff1e8;color:#c45b19}
 @media(max-width:430px){
  .flk-qr-principal{left:10px;bottom:10px;right:auto;top:auto;padding:9px 12px;font-size:13px;border-radius:13px}
@@ -1660,6 +1661,7 @@ textarea::placeholder{
   <p class="mensaje-movimiento">Selecciona la operación y Flackunloker abrirá directamente el escáner en ese modo.</p>
   <div class="flk-qr-selector-grid">
    <button type="button" class="flk-qr-selector-compra" onclick="abrirModoQRDesdePrincipalConCamara('entrada')">📥 Compra / Entrada</button>
+   <button type="button" class="flk-qr-selector-salida" onclick="abrirModoQRDesdePrincipalConCamara('salida')">📤 Salida</button>
    <button type="button" class="flk-qr-selector-venta" onclick="abrirModoQRDesdePrincipalConCamara('venta')">🧾 Venta</button>
    <button type="button" class="flk-qr-selector-devolucion" onclick="abrirModoQRDesdePrincipalConCamara('devolucion')">↩️ Devolución</button>
   </div>
@@ -10701,7 +10703,7 @@ function abrirModoQRDesdePrincipal(modo){
    seleccionarModoQR(modo);
    const estado=document.getElementById("flkQrEstado");
    if(estado){
-    const nombres={entrada:"Compra / Entrada",venta:"Venta",devolucion:"Devolución"};
+    const nombres={entrada:"Compra / Entrada",salida:"Salida",venta:"Venta",devolucion:"Devolución"};
     estado.textContent="Modo "+(nombres[modo]||modo)+" listo. Activa cámara o lector físico.";
    }
  },30);
@@ -10711,18 +10713,12 @@ function abrirModoQRDesdePrincipal(modo){
 <script id="flk-qr-camara-trasera-auto">
 async function abrirQrPrincipalConCamara(){
  try{if(typeof cerrarMenuPrincipal==="function")cerrarMenuPrincipal()}catch(_){}
- try{
-  if(typeof abrirEscanerQR==="function")abrirEscanerQR();
-  // Default to Venta so camera can start immediately; user can switch mode in the scanner.
-  if(typeof seleccionarModoQR==="function")seleccionarModoQR("venta");
-  const estado=document.getElementById("flkQrEstado");
-  if(estado)estado.textContent="Abriendo cámara trasera…";
-  await iniciarEscanerQRCamaraTrasera();
- }catch(err){
-  console.error("QR cámara:",err);
-  const estado=document.getElementById("flkQrEstado");
-  if(estado)estado.textContent="No se pudo abrir automáticamente la cámara.";
+ // No asumir Venta: primero se selecciona la operación y luego se abre la cámara.
+ if(typeof abrirSelectorQRPrincipal==="function"){
+  abrirSelectorQRPrincipal();
+  return;
  }
+ if(typeof abrirEscanerQR==="function")abrirEscanerQR();
 }
 
 async function iniciarEscanerQRCamaraTrasera(){
@@ -11181,7 +11177,7 @@ abrirModoQRDesdePrincipalConCamara=async function(modo){
  abrirEscanerQR();
  seleccionarModoQR(modo);
  const estado=document.getElementById("flkQrEstado");
- const nombres={entrada:"Compra / Entrada",venta:"Venta",devolucion:"Devolución"};
+ const nombres={entrada:"Compra / Entrada",salida:"Salida",venta:"Venta",devolucion:"Devolución"};
  if(estado)estado.textContent="Modo "+(nombres[modo]||modo)+" seleccionado. Abriendo cámara trasera…";
  await window.iniciarEscanerQRCamaraTrasera();
 };
