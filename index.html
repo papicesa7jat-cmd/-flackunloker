@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-28-v61.53-offline-abono-real">
+<meta name="flackunloker-offline-version" content="2026-08-28-v61.54-abono-offline-ui-inmediata">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -7575,6 +7575,17 @@ document.getElementById("formularioAbono").addEventListener("submit",async e=>{
   const saldoAhora=Number(v.saldo||0);
   cerrarAbono();
 
+  // v61.54: refresco visual inmediato en iPhone/Safari después de cerrar el modal.
+  // Algunos WebKit difieren el repintado hasta la siguiente interacción/refresh.
+  requestAnimationFrame(()=>{
+   try{actualizarVentas()}catch(_){}
+   try{actualizarClientes()}catch(_){}
+   try{actualizarFlujoCaja()}catch(_){}
+   try{actualizarFinanzas()}catch(_){}
+   try{if(typeof actualizarAlertas==="function")actualizarAlertas()}catch(_){}
+   requestAnimationFrame(()=>{ try{window.dispatchEvent(new Event("resize"))}catch(_){} });
+  });
+
   alert(!navigator.onLine
    ? `✅ Abono guardado OFFLINE.\n\nSaldo anterior: $${saldoAntes.toFixed(2)}\nSaldo pendiente: $${saldoAhora.toFixed(2)}\n\nSe sincronizará al volver Internet.`
    : (saldoAhora<=0.009
@@ -9580,7 +9591,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.53",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.54",{updateViaCache:"none"});
    if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
