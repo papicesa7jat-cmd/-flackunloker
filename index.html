@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-28-v61.54-abono-offline-ui-inmediata">
+<meta name="flackunloker-offline-version" content="2026-08-28-v61.55-abono-offline-persistencia-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2652,7 +2652,8 @@ function flkColaOffline(){
   q.forEach(op=>{
    if(FLK_OPERACIONES_LOCAL_FIRST.has(op.tipo)){
     if(!op.payload||typeof op.payload!=="object")op.payload={};
-    if(op.payload.local_applied!==true){
+    // v61.55: un abono solo se marca aplicado DESPUÉS de modificar y guardar la venta.
+    if(op.tipo!=="sale_payment" && op.payload.local_applied!==true){
      op.payload.local_applied=true;
      cambio=true;
     }
@@ -2670,7 +2671,8 @@ function flkGuardarColaOffline(q){
 function flkEncolarOperacion(tipo,payload){
  const q=flkColaOffline();
  const datos=(payload&&typeof payload==="object")?{...payload}:{};
- if(FLK_OPERACIONES_LOCAL_FIRST.has(tipo))datos.local_applied=true;
+ if(FLK_OPERACIONES_LOCAL_FIRST.has(tipo) && tipo!=="sale_payment")datos.local_applied=true;
+ if(tipo==="sale_payment")datos.local_applied=false;
  const op={id:flkUUID(),tipo,payload:datos,device_id:flkDeviceId(),created_at:new Date().toISOString(),estado:"pendiente",intentos:0};
  q.push(op);
  flkGuardarColaOffline(q);
@@ -3245,6 +3247,14 @@ function flkAplicarEliminarProductoLocal(op){
 function flkAplicarPendientesSobreDatos(){
  const q=flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado));
  for(const op of q){
+  // v61.55: los abonos pendientes se reaplican de forma idempotente.
+  // Esto protege el saldo local si una lectura parcial de la nube reconstruye la venta
+  // antes de que el abono haya podido sincronizarse.
+  if(op.tipo==="sale_payment"){
+   flkAplicarAbonoLocal(op);
+   continue;
+  }
+
   // Regla V27: si ya fue aplicada y persistida localmente, la cola NO la ejecuta otra vez.
   // La operación queda pendiente exclusivamente para subirla a Supabase.
   if(op.payload?.local_applied===true)continue;
@@ -3291,6 +3301,12 @@ function flkAplicarPendientesSobreDatos(){
   if(op.tipo==="product_save")flkAplicarProductoLocal(op);
   if(op.tipo==="product_delete")flkAplicarEliminarProductoLocal(op);
  }
+ // v61.55: antes de renderizar, volver a superponer operaciones pendientes.
+ // flkAplicarAbonoLocal es idempotente por offlineOperationId.
+ try{
+  const qPend=flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado));
+  qPend.filter(x=>x.tipo==="sale_payment").forEach(flkAplicarAbonoLocal);
+ }catch(_){}
  guardarDatos();guardarVentas();guardarGastos();guardarHistorial();guardarProveedores();guardarOrdenesCompra();guardarCierres();guardarMovimientosCajaLocal();
  if(typeof mostrarProductos==="function")mostrarProductos();
  if(typeof actualizarVentas==="function")actualizarVentas();
@@ -7563,6 +7579,17 @@ document.getElementById("formularioAbono").addEventListener("submit",async e=>{
    throw new Error("No se pudo aplicar el abono a la copia local del recibo.");
   }
 
+  // v61.55: marcar aplicado SOLO después de modificar la venta.
+  {
+   const q=flkColaOffline();
+   const guardada=q.find(x=>x.id===op.id);
+   if(guardada){
+    if(!guardada.payload||typeof guardada.payload!=="object")guardada.payload={};
+    guardada.payload.local_applied=true;
+    flkGuardarColaOffline(q);
+   }
+  }
+
   // Persistir antes de cualquier intento de Internet.
   guardarVentas();
   try{guardarMovimientosCajaLocal()}catch(_){}
@@ -9591,7 +9618,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.54",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.55",{updateViaCache:"none"});
    if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
