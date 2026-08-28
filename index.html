@@ -3012,7 +3012,7 @@ function flkAplicarDevolucionLocal(op){
    productoId:prod.id,nombre:prod.nombre,sku:prod.sku,tipo:"entrada",
    cantidad:aplicada,saldo:Number(prod.cantidad||0),
    fecha:op.created_at||new Date().toISOString(),
-   detalle:"🟠 Devolución pendiente de sincronización"
+   detalle:"🟠 Devolución pendiente de sincronización · Recibo "+String(v.numero||v.id)+" · Cliente "+String(v.cliente||"Cliente general")
   })
  }
  return true
@@ -6497,6 +6497,7 @@ function movimientoDesdeSupabase(m){
 async function cargarHistorialSupabase(){
  if(flkModoRecuperacionPassword)return false;
  if(navigator.onLine&&!flkSesionActiva)return false;
+
  const {data,error}=await flkSupabase.from("stock_movements")
   .select("id,product_id,movement_type,quantity,stock_after,note,created_at")
   .order("created_at",{ascending:false});
@@ -6505,8 +6506,70 @@ async function cargarHistorialSupabase(){
   if(!flkSilenciarSiEsConexion(error))flkRegistrarFalloCargaNube("Historial",error);
   return false;
  }
- historial=(data||[]).map(movimientoDesdeSupabase);
+
+ const movimientos=(data||[]).map(movimientoDesdeSupabase);
+
+ // Las devoluciones se registran en sale_returns. Si la función RPC no creó
+ // además un stock_movement, las incorporamos al historial como ENTRADA de
+ // inventario. Nunca duplicamos una devolución ya representada por un
+ // movimiento con la misma referencia.
+ let devolucionesHistorial=[];
+ try{
+  const {data:returns,error:returnError}=await flkSupabase.from("sale_returns")
+   .select("id,sale_id,sale_item_id,product_id,quantity,refund_amount,reason,created_at,return_number")
+   .order("created_at",{ascending:false});
+
+  if(!returnError && Array.isArray(returns)){
+   devolucionesHistorial=returns.map(r=>{
+    const p=productos.find(x=>String(x.supabaseId||"")===String(r.product_id||""));
+    if(!p)return null;
+
+    const sale=Array.isArray(ventas)?ventas.find(v=>
+     String(v.supabaseId||"")===String(r.sale_id||"") ||
+     String(v.id||"")===String(r.sale_id||"")
+    ):null;
+
+    const numero=sale?.numero||r.return_number||"";
+    const cliente=sale?.cliente||"Cliente general";
+    const cantidad=Number(r.quantity||0);
+
+    // Si ya existe un movimiento de inventario que identifica esta devolución,
+    // no añadimos un segundo movimiento.
+    const yaExiste=movimientos.some(m=>
+     String(m.productoId)===String(p.id) &&
+     Number(m.cantidad||0)===cantidad &&
+     /devoluci[oó]n/i.test(String(m.detalle||"")) &&
+     Math.abs(new Date(m.fecha||0)-new Date(r.created_at||0))<60000
+    );
+    if(yaExiste)return null;
+
+    return {
+     id:idLocalDesdeLegacy(null,"sale_return_history_"+String(r.id)),
+     supabaseId:null,
+     devolucionSupabaseId:r.id,
+     productoId:p.id,
+     nombre:p.nombre,
+     sku:p.sku,
+     tipo:"entrada",
+     cantidad,
+     saldo:Number(p.cantidad||0),
+     fecha:r.created_at,
+     detalle:"↩️ Devolución · Recibo "+String(numero)+
+      " · Cliente "+String(cliente)+
+      (r.reason?" · Motivo: "+String(r.reason):""),
+     esSistema:true,
+     esDevolucion:true,
+     ventaId:sale?.id||null
+    };
+   }).filter(Boolean);
+  }
+ }catch(e){
+  console.warn("Historial de devoluciones:",e);
+ }
+
+ historial=[...devolucionesHistorial,...movimientos];
  guardarHistorial();
+ recalcularSaldos();
  actualizarResumenHistorial();
  mostrarListaHistorial();
  return true
@@ -10624,29 +10687,30 @@ function flkQrValor(c){
  return {tipo:"AUTO",valor:raw};
 }
 function flkQrBuscarProducto(codigo){
- const valor=(codigo&&typeof codigo==="object"&&Object.prototype.hasOwnProperty.call(codigo,"valor"))
-  ?String(codigo.valor||"").trim()
-  :String(codigo||"").trim();
- if(!valor)return null;
+ const original=String(codigo||"").trim();
+ if(!original)return null;
 
+ // Las etiquetas de Flackunloker pueden devolver:
+ //   CHA-001
+ //   FLK SKU CHA-001
+ //   FLK SKU: CHA-001
+ // El QR sigue identificando al producto; normalizamos antes de buscar.
  const candidatos=[];
- const agregar=v=>{
+ const agregar=(v)=>{
   const x=String(v||"").trim();
-  if(x&&!candidatos.some(c=>c.toLowerCase()===x.toLowerCase()))candidatos.push(x);
+  if(x && !candidatos.some(c=>c.toLowerCase()===x.toLowerCase()))candidatos.push(x);
  };
- agregar(valor);
+ agregar(original);
 
- const partes=valor.split("|");
- if(partes.length>=3 && partes[0].trim().toUpperCase()==="FLK" && partes[1].trim().toUpperCase()==="SKU"){
-  agregar(partes.slice(2).join("|"));
- }
- const mf=valor.match(/^FLK\s+SKU\s*:?\s*(.+)$/i);
- if(mf)agregar(mf[1]);
- const ms=valor.match(/^SKU\s*:?\s*(.+)$/i);
- if(ms)agregar(ms[1]);
+ const mFlk=original.match(/(?:FLK\s*)?SKU\s*[:#-]?\s*([A-Za-z0-9._/-]+)/i);
+ if(mFlk)agregar(mFlk[1]);
 
- const normal=v=>String(v??"").trim().toLowerCase();
- const compact=v=>normal(v).replace(/\s+/g,"");
+ // Si viene texto adicional alrededor del SKU, intenta también extraer
+ // el último bloque con formato de código.
+ const mSku=original.match(/\bSKU\s*[:#-]?\s*([A-Za-z0-9._/-]+)/i);
+ if(mSku)agregar(mSku[1]);
+
+ const normal=(v)=>String(v||"").trim().toLowerCase();
 
  for(const c of candidatos){
   const p=(Array.isArray(productos)?productos:[]).find(p=>
@@ -10657,6 +10721,9 @@ function flkQrBuscarProducto(codigo){
   );
   if(p)return p;
  }
+
+ // Compatibilidad adicional: algunos códigos pueden venir con espacios.
+ const compact=v=>normal(v).replace(/\s+/g,"");
  for(const c of candidatos){
   const p=(Array.isArray(productos)?productos:[]).find(p=>
    compact(p.sku)===compact(c) ||
@@ -10665,6 +10732,7 @@ function flkQrBuscarProducto(codigo){
   );
   if(p)return p;
  }
+
  return null;
 }
 function flkQrBuscarVenta(x){
@@ -11056,23 +11124,9 @@ function flkPresentarLecturaParaConfirmar(codigo){
 
  let texto=codigo;
  if(flkQrModo==="devolucion"){
-  const p=flkQrBuscarProducto(x);
-  if(!p){
-   titulo.textContent="⚠️ Producto no encontrado";
-   texto="No se encontró un producto con el SKU escaneado.";
-  }else{
-   const compatibles=(Array.isArray(ventas)?ventas:[]).filter(v=>
-    itemsDeVenta(v).some(i=>
-     String(i.productoId)===String(p.id) &&
-     Number(i.cantidad||0)>Number(i.devuelto||0)
-    )
-   );
-   titulo.textContent="↩️ Producto identificado";
-   texto=String(p.nombre||"Producto")+" · SKU: "+String(p.sku||"—")+
-    (compatibles.length
-     ? " · Comprobantes disponibles: "+compatibles.map(v=>"#"+String(v.numero||v.id)+" · "+String(v.cliente||"Cliente general")).join(", ")
-     : " · No hay comprobantes con unidades disponibles para devolver.");
-  }
+  const v=flkQrBuscarVenta(x);
+  titulo.textContent=v?"🧾 Recibo detectado":"⚠️ Código detectado";
+  texto=v?("Recibo #"+String(v.numero||v.id)+". Confirma para abrir la devolución."):"No se encontró un recibo con este código.";
  }else{
   const p=flkQrBuscarProducto(x);
   titulo.textContent=p?"📦 "+p.nombre:"⚠️ Código detectado";
