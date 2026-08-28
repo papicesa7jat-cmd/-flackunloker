@@ -6506,46 +6506,71 @@ async function cargarHistorialSupabase(){
   return false;
  }
  historial=(data||[]).map(movimientoDesdeSupabase);
+
+ // La devolución real está en sale_returns y ya viene asociada a cada venta
+ // por cargarVentasSupabase(). Usamos esa fuente primero para el historial.
+ const devoluciones=[];
+ const vistos=new Set();
+ (Array.isArray(ventas)?ventas:[]).forEach(v=>{
+  (Array.isArray(v.devoluciones)?v.devoluciones:[]).forEach(r=>{
+   const rid=String(r.supabaseId||r.id||"");
+   if(!rid||vistos.has(rid))return;
+   let p=null,productoId=r.productoId;
+   if(productoId!=null)p=productos.find(x=>String(x.id)===String(productoId));
+   if(!p && r.supabaseProductId){
+    p=productos.find(x=>String(x.supabaseId||"")===String(r.supabaseProductId));
+    if(p)productoId=p.id;
+   }
+   if(!p){
+    const item=(v.items||[]).find(i=>String(i.supabaseSaleItemId||"")===String(r.supabaseSaleItemId||""));
+    if(item){
+     productoId=item.productoId;
+     p=productos.find(x=>String(x.id)===String(productoId));
+    }
+   }
+   if(!p)return;
+   vistos.add(rid);
+   devoluciones.push({
+    id:idLocalDesdeLegacy(null,"sale_return_history_"+rid),
+    supabaseId:null,devolucionSupabaseId:rid,
+    ventaSupabaseId:v.supabaseId||null,ventaId:v.id||null,
+    productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:"entrada",
+    cantidad:Number(r.cantidad||0),saldo:Number(p.cantidad||0),
+    fecha:r.fecha||new Date().toISOString(),
+    detalle:"↩️ Devolución · Recibo "+String(v.numero||"")+" · Cliente "+String(v.cliente||"Cliente general"),
+    esSistema:true,esDevolucion:true,numeroDevolucion:r.numeroDevolucion||""
+   });
+  });
+ });
+
+ // Respaldo directo por si una venta no quedó en memoria.
  try{
   const {data:returns,error:returnError}=await flkSupabase.from("sale_returns")
    .select("id,sale_id,product_id,quantity,reason,created_at,return_number")
    .order("created_at",{ascending:false});
   if(!returnError && Array.isArray(returns)){
-   const devoluciones=returns.map(r=>{
+   returns.forEach(r=>{
+    const rid=String(r.id||"");
+    if(!rid||vistos.has(rid))return;
     const p=productos.find(x=>String(x.supabaseId||"")===String(r.product_id||""));
-    if(!p)return null;
-    const venta=Array.isArray(ventas)?ventas.find(v=>
-     String(v.supabaseId||"")===String(r.sale_id||"") ||
-     String(v.id||"")===String(r.sale_id||"")
-    ):null;
-    const numero=venta?.numero||r.return_number||"";
-    const cliente=venta?.cliente||"Cliente general";
-    const duplicada=historial.some(m=>
-     String(m.devolucionSupabaseId||"")===String(r.id||"")
-    );
-    if(duplicada)return null;
-    return {
-     id:idLocalDesdeLegacy(null,"sale_return_history_"+String(r.id)),
-     supabaseId:null,
-     devolucionSupabaseId:r.id,
-     ventaSupabaseId:r.sale_id||null,
-     ventaId:venta?.id||null,
-     productoId:p.id,
-     nombre:p.nombre,
-     sku:p.sku,
-     tipo:"entrada",
-     cantidad:Number(r.quantity||0),
-     saldo:Number(p.cantidad||0),
+    if(!p)return;
+    const v=(Array.isArray(ventas)?ventas:[]).find(x=>String(x.supabaseId||"")===String(r.sale_id||""));
+    devoluciones.push({
+     id:idLocalDesdeLegacy(null,"sale_return_history_"+rid),
+     supabaseId:null,devolucionSupabaseId:rid,
+     ventaSupabaseId:r.sale_id||null,ventaId:v?.id||null,
+     productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:"entrada",
+     cantidad:Number(r.quantity||0),saldo:Number(p.cantidad||0),
      fecha:r.created_at,
-     detalle:"↩️ Devolución · Recibo "+String(numero)+" · Cliente "+String(cliente),
-     esSistema:true,
-     esDevolucion:true,
-     numeroDevolucion:r.return_number||""
-    };
-   }).filter(Boolean);
-   historial=[...devoluciones,...historial];
+     detalle:"↩️ Devolución · Recibo "+String(v?.numero||"")+" · Cliente "+String(v?.cliente||"Cliente general"),
+     esSistema:true,esDevolucion:true,numeroDevolucion:r.return_number||""
+    });
+    vistos.add(rid);
+   });
   }
- }catch(e){console.warn("Historial devoluciones:",e)}
+ }catch(e){console.warn("Consulta secundaria de devoluciones:",e)}
+
+ historial=[...devoluciones,...historial];
  guardarHistorial();
  recalcularSaldos();
  actualizarResumenHistorial();
