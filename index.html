@@ -7438,46 +7438,51 @@ async function flkRefrescarDevolucionesVentaAntesDeRecibo(v){
 
 async function generarReciboVenta(id){
  const v=ventas.find(x=>x.id===id);if(!v)return;
- // Abrir la pestaña inmediatamente, dentro del gesto del usuario.
  const ventanaComprobante=window.open("","_blank");
  if(!ventanaComprobante){alert("El navegador bloqueó el recibo. Permite ventanas emergentes para Flackunloker.");return;}
- try{ventanaComprobante.document.open();ventanaComprobante.document.write("<p style=\"font-family:Arial;padding:20px\">Cargando recibo...</p>");ventanaComprobante.document.close()}catch(_){}
- // Refresco definitivo del recibo: se consulta la venta y sus devoluciones
- // directamente por número de recibo. No dependemos de la copia local.
+ try{ventanaComprobante.document.open();ventanaComprobante.document.write("<p style=\"font-family:Arial;padding:20px\">Cargando recibo...</p>");ventanaComprobante.document.close()}catch(_){ }
  try{
   if(navigator.onLine && flkSesionActiva && flkSupabase){
    const numeroBuscado=String(v.numero||"").trim();
    const sr=await flkSupabase.from("sales")
     .select("id,receipt_number,created_at,customer_name,customer_phone,total,paid_amount,balance_due,payment_method,due_date,note,sale_items(id,product_id,quantity,unit_price,unit_cost),sale_payments(id,amount,payment_method,note,balance_before,balance_after,created_at),sale_returns(id,return_number,sale_item_id,product_id,quantity,refund_amount,reason,created_at)")
     .eq("receipt_number",numeroBuscado).maybeSingle();
-   if(!sr.error && sr.data){
+   if(sr.error)throw sr.error;
+   if(sr.data){
     const sale=sr.data;
-    const retornos=Array.isArray(sale.sale_returns)?sale.sale_returns:[];
     const saleItems=Array.isArray(sale.sale_items)?sale.sale_items:[];
+    const retornos=Array.isArray(sale.sale_returns)?sale.sale_returns:[];
     const pagosCloud=Array.isArray(sale.sale_payments)?sale.sale_payments:[];
+    const itemsCloud=saleItems.map(si=>{
+      const p=productos.find(x=>String(x.supabaseId||"")===String(si.product_id||""));
+      const cantidad=Number(si.quantity||0),precioUnitario=Number(si.unit_price||0),costoUnitario=Number(si.unit_cost||0);
+      const devuelto=retornos.filter(r=>String(r.sale_item_id||"")===String(si.id||"")).reduce((t,r)=>t+Number(r.quantity||0),0);
+      const neta=Math.max(0,cantidad-devuelto);
+      return {productoId:p?p.id:idLocalDesdeLegacy(null,si.product_id),supabaseProductId:si.product_id,supabaseSaleItemId:si.id,devuelto,nombre:p?p.nombre:"Producto",sku:p?p.sku:"",cantidad,precioUnitario,costoUnitario,ingreso:neta*precioUnitario,costo:neta*costoUnitario,ganancia:neta*(precioUnitario-costoUnitario)};
+    });
     v.supabaseId=sale.id;
+    v.numero=sale.receipt_number||v.numero;
+    v.fecha=sale.created_at||v.fecha;
+    v.cliente=sale.customer_name||v.cliente||"Cliente general";
+    v.telefono=sale.customer_phone||v.telefono||"";
+    v.metodoPago=sale.payment_method||v.metodoPago||"cash";
     v.totalPagado=Number(sale.paid_amount||0);
     v.saldo=Math.max(0,Number(sale.balance_due||0));
     v.estadoPago=v.saldo>0.009?"credito":"pagado";
-    v.metodoPago=sale.payment_method||v.metodoPago||"cash";
     v.fechaVencimiento=sale.due_date||"";
-    v.nota=sale.note||v.nota||"";
-    v.devoluciones=retornos.map(r=>({
-     id:idLocalDesdeLegacy(null,r.id),supabaseId:r.id,numeroDevolucion:r.return_number,ventaId:v.id,
-     productoId:(v.items||[]).find(i=>String(i.supabaseSaleItemId)===String(r.sale_item_id))?.productoId||idLocalDesdeLegacy(null,r.product_id),
-     cantidad:Number(r.quantity||0),monto:Number(r.refund_amount||0),reembolso:Number(r.refund_amount||0),motivo:r.reason||"",fecha:r.created_at
-    }));
-    (v.items||[]).forEach(i=>{i.devuelto=retornos.filter(r=>String(r.sale_item_id)===String(i.supabaseSaleItemId)).reduce((t,r)=>t+Number(r.quantity||0),0)});
-    v.cantidad=(v.items||[]).reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0);
-    v.ingreso=(v.items||[]).reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0))*Number(i.precioUnitario||0),0);
-    v.costoTotal=(v.items||[]).reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0))*Number(i.costoUnitario||0),0);
-    v.ganancia=Number(v.ingreso||0)-Number(v.costoTotal||0);
-    if(v.ingreso<=0.009){v.totalPagado=0;v.saldo=0;v.estadoPago="pagado";v.fechaVencimiento="";}
-    if(pagosCloud.length){v.pagos=pagosCloud.map(p=>({id:idLocalDesdeLegacy(null,p.id),supabaseId:p.id,cantidad:Number(p.amount||0),fecha:p.created_at,metodo:p.payment_method||"cash",nota:p.note||"",saldoAnterior:Number(p.balance_before??0),saldoRestante:Number(p.balance_after??0)}));}
+    v.nota=sale.note||"";
+    v.items=itemsCloud;
+    v.devoluciones=retornos.map(r=>({id:idLocalDesdeLegacy(null,r.id),supabaseId:r.id,numeroDevolucion:r.return_number,ventaId:v.id,productoId:(itemsCloud.find(i=>String(i.supabaseSaleItemId)===String(r.sale_item_id||""))||{}).productoId||idLocalDesdeLegacy(null,r.product_id),cantidad:Number(r.quantity||0),monto:Number(r.refund_amount||0),reembolso:Number(r.refund_amount||0),motivo:r.reason||"",fecha:r.created_at}));
+    v.cantidad=itemsCloud.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0);
+    // El total neto contable viene de Supabase; no se vuelve a sumar el total bruto de los artículos.
+    v.ingreso=Math.max(0,Number(sale.total||0));
+    v.costoTotal=itemsCloud.reduce((t,i)=>t+Number(i.costo||0),0);
+    v.ganancia=v.ingreso-v.costoTotal;
+    if(pagosCloud.length)v.pagos=pagosCloud.map(p=>({id:idLocalDesdeLegacy(null,p.id),supabaseId:p.id,cantidad:Number(p.amount||0),fecha:p.created_at,metodo:p.payment_method||"cash",nota:p.note||"",saldoAnterior:Number(p.balance_before??0),saldoRestante:Number(p.balance_after??0)}));
     guardarVentas();
    }
   }
- }catch(e){console.warn("Refresco directo del recibo:",e)}
+ }catch(e){console.warn("No se pudo refrescar el recibo desde Supabase; se mantiene la copia local.",e)}
  const f=new Date(v.fecha),numero=v.numero||String(v.id).slice(-8),items=itemsDeVenta(v);
  const qrReciboData=flkQrDataUrl("FLK|SALE|"+String(numero),112);
  const cliente=escapeHtml(v.cliente||"Cliente general"),telefono=escapeHtml(v.telefono||""),nota=escapeHtml(v.nota||""),devoluciones=devolucionesDeVenta(v),pagos=pagosDeVenta(v);
@@ -7486,7 +7491,7 @@ async function generarReciboVenta(id){
  const pagosTxt=pagos.length?`${pagos.length} abono(s) registrado(s)`:"Sin abonos";
  const pagosDetalleHtml=pagos.length?`<section class="seccion"><h3>Historial de abonos</h3><table><thead><tr><th>Fecha</th><th>Método</th><th class="num">Abono</th><th class="num">Saldo</th></tr></thead><tbody>${[...pagos].sort((a,b)=>new Date(a.fecha||0)-new Date(b.fecha||0)).map(p=>{const fp=new Date(p.fecha);return `<tr><td>${fp.toLocaleDateString("es-PR")}<div class="muted">${fp.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div></td><td><strong>${escapeHtml(normalizarMetodoFlujo(p.metodo||"MLC"))}</strong></td><td class="num"><strong>$${Number(p.cantidad||0).toFixed(2)}</strong></td><td class="num">$${Number(p.saldoRestante??0).toFixed(2)}</td></tr>`}).join("")}</tbody></table></section>`:"";
  const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recibo ${escapeHtml(numero)}</title><style>${flkCssComprobanteProfesional("#0a67d1")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">🧾 Recibo de venta</span><span class="numero">N.º SA-${escapeHtml(numero)}</span></div></header><section class="meta"><div>Fecha y hora<strong>${f.toLocaleDateString("es-PR")} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${cliente}</strong></div><div>Teléfono<strong>${telefono||"—"}</strong></div><div>Estado de pago<strong>${escapeHtml(estadoVencimientoVenta(v).texto)}</strong></div></section><section class="seccion"><h3>Productos</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cant.</th><th class="num">Precio unit.</th><th class="num">Total</th></tr></thead><tbody>${filas}</tbody></table></section><section class="seccion"><div class="resumen"><div class="r"><span>Método inicial</span><strong>${escapeHtml(normalizarMetodoFlujo(v.metodoPago||"MLC"))}</strong></div><div class="r"><span>Pagado</span><strong>$${Number(v.totalPagado||0).toFixed(2)}</strong></div><div class="r"><span>Saldo pendiente</span><strong>$${Number(v.saldo||0).toFixed(2)}</strong></div><div class="r"><span>Devoluciones</span><strong>${devolucionesTxt}</strong></div><div class="r"><span>Abonos</span><strong>${pagosTxt}</strong></div><div class="r total"><span>TOTAL NETO</span><strong>$${Number(v.ingreso??0).toFixed(2)}</strong></div></div></section>${pagosDetalleHtml}${nota?`<section class="seccion"><h3>Observaciones</h3><div class="nota">${nota}</div></section>`:""}<section class="seccion"><div class="firma"><div>Vendido / entregado por</div><div>Cliente / recibido por</div></div></section>${qrReciboData?`<div style="text-align:center;margin:2mm 0"><img src="${qrReciboData}" style="width:24mm;height:24mm"><div style="font-size:1.8mm;margin-top:.8mm">QR del recibo</div></div>`:""}<div class="pie">Gracias por su compra · Comprobante generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div></body></html>`;
- flkAbrirDocumentoComprobante(contenido,"El navegador bloqueó el recibo. Permite ventanas emergentes para Flackunloker.",ventanaComprobante)
+ try{ventanaComprobante.document.open();ventanaComprobante.document.write(contenido);ventanaComprobante.document.close()}catch(e){console.error("Recibo:",e)}
 }
 
 let ventaPendienteAutorizacionDevolucion=null;
@@ -9798,7 +9803,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.59",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.62",{updateViaCache:"none"});
    if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
