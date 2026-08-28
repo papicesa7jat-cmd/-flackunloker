@@ -10820,7 +10820,7 @@ async function iniciarEscanerQRCamaraTrasera(){
   await video.play();
   flkQrActivo=true;
 
-  if("BarcodeDetector" in window){
+  if(navigator.onLine && "BarcodeDetector" in window){
    try{
     flkQrDetector=new BarcodeDetector({formats:["qr_code"]});
     if(estado)estado.textContent="Cámara trasera activa. Apunta al código QR.";
@@ -10869,7 +10869,8 @@ function flkQrLeerConJsQR(){
      flkQrUltimoTs=ahora;
      const manual=document.getElementById("flkQrCodigoManual");
      if(manual)manual.value=codigo;
-     procesarCodigoQR(codigo,true);
+     if(typeof flkPresentarLecturaParaConfirmar==="function")flkPresentarLecturaParaConfirmar(codigo);
+     else procesarCodigoQR(codigo,true);
     }
    }
   }catch(err){}
@@ -11789,101 +11790,6 @@ async function flkDeepStorageCopy(){
  try{await navigator.clipboard.writeText(t);alert("Resumen copiado.")}catch(_){alert(t)}
 }
 
-</script>
-
-<script id="flk-qr-v6174-pausa-estable">
-/* v61.74 — QR aislado: conserva la versión base y corrige SOLO el flujo de cámara QR.
-   No modifica Supabase, licencias, usuarios, inventario ni sincronización. */
-(function(){
-  const pausa=750;
-  let reanudando=false;
-  function estado(t){const e=document.getElementById("flkQrEstado");if(e)e.textContent=t}
-  async function iniciarJsQR(){
-    if(typeof jsQR!=="function")return false;
-    try{ if(typeof detenerEscanerQR==="function")detenerEscanerQR(false); }catch(_){ }
-    try{ if(typeof flkDetenerLoopJsQR==="function")flkDetenerLoopJsQR(); }catch(_){ }
-    flkQrStream=await flkAbrirCamaraTraseraPreferida();
-    const video=document.getElementById("flkQrVideo");
-    const reader=document.getElementById("flkHtml5QrReader");
-    if(reader)reader.style.display="none";
-    if(!video)throw new Error("QR video no encontrado");
-    video.style.display="block"; video.srcObject=flkQrStream; await video.play();
-    flkQrActivo=true; flkQrDetector=null;
-    estado(navigator.onLine?"Cámara trasera activa. Apunta al QR.":"📴 Cámara trasera activa · QR offline.");
-    flkQrLeerConJsQR();
-    return true;
-  }
-  async function iniciarHtml5(){
-    if(typeof Html5Qrcode!=="function")return false;
-    try{await flkDetenerHtml5QR()}catch(_){ }
-    try{ if(typeof detenerEscanerQR==="function")detenerEscanerQR(false); }catch(_){ }
-    const oldVideo=document.getElementById("flkQrVideo"); if(oldVideo)oldVideo.style.display="none";
-    const reader=document.getElementById("flkHtml5QrReader"); if(!reader)throw new Error("QR reader no encontrado");
-    reader.style.display="block";
-    flkHtml5QrInstancia=new Html5Qrcode("flkHtml5QrReader",{formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE],verbose:false});
-    const ancho=Math.max(220,Math.min(320,Math.floor((window.innerWidth||360)*.72)));
-    const config={fps:10,qrbox:{width:ancho,height:ancho},aspectRatio:1.333333,disableFlip:false,experimentalFeatures:{useBarCodeDetectorIfSupported:false}};
-    const ok=function(decoded){
-      if(flkHtml5QrBloqueado||flkQrProcesandoLectura)return;
-      const codigo=String(decoded||"").trim(); if(!codigo)return;
-      const ahora=Date.now(); if(codigo===flkQrUltimo&&ahora-flkQrUltimoTs<2200)return;
-      flkQrUltimo=codigo;flkQrUltimoTs=ahora;flkHtml5QrBloqueado=true;
-      try{flkHtml5QrInstancia.pause(true)}catch(_){ }
-      const m=document.getElementById("flkQrCodigoManual");if(m)m.value=codigo;
-      if(typeof flkPresentarLecturaParaConfirmar==="function")flkPresentarLecturaParaConfirmar(codigo);
-    };
-    await flkHtml5QrInstancia.start({facingMode:"environment"},config,ok,function(){});
-    flkHtml5QrActivo=true;estado(navigator.onLine?"Cámara trasera activa. Apunta al QR.":"📴 Cámara trasera activa · QR offline.");
-    try{await flkConfigurarLinternaSiExiste()}catch(_){ }
-    return true;
-  }
-  window.flkIniciarQRv6174=async function(){
-    if(!flkQrModo){estado("Primero selecciona Compra / Entrada, Venta o Devolución.");return false}
-    try{await flkAsegurarMotoresQROffline()}catch(_){ }
-    try{
-      if(await iniciarJsQR())return true;
-    }catch(e){console.warn("QR jsQR v61.74:",e)}
-    try{
-      if(await iniciarHtml5())return true;
-    }catch(e){console.warn("QR html5 v61.74:",e)}
-    estado("No se pudo iniciar el lector QR en este dispositivo. Usa Preparar offline y vuelve a intentarlo.");
-    return false;
-  };
-  function reanudar(){
-    if(reanudando)return; reanudando=true;
-    setTimeout(function(){
-      reanudando=false;
-      if(!document.getElementById("modalEscanerQR")?.classList.contains("visible"))return;
-      try{flkHtml5QrBloqueado=false}catch(_){ }
-      if(flkHtml5QrInstancia&&flkHtml5QrActivo){try{flkHtml5QrInstancia.resume()}catch(_){ }}
-      else if(flkQrStream){flkQrActivo=true; if(typeof flkQrLeerConJsQR==="function")flkQrLeerConJsQR()}
-      estado("Listo para escanear.");
-    },pausa);
-  }
-  const originalConfirmar=window.confirmarLecturaQRPendiente;
-  if(typeof originalConfirmar==="function"){
-    window.confirmarLecturaQRPendiente=function(){
-      const modo=flkQrModo;
-      const r=originalConfirmar.apply(this,arguments);
-      // La pausa corta aplica a Entrada, Salida, Venta y Devolución.
-      if(modo)reanudar();
-      return r;
-    };
-  }
-  const originalCancelar=window.cancelarLecturaQRPendiente;
-  if(typeof originalCancelar==="function"){
-    window.cancelarLecturaQRPendiente=function(){const r=originalCancelar.apply(this,arguments);reanudar();return r};
-  }
-  // En OFFLINE usamos este motor aislado; ONLINE conserva el motor existente.
-  const originalAbrir=window.abrirModoQRDesdePrincipalConCamara;
-  if(typeof originalAbrir==="function"){
-    window.abrirModoQRDesdePrincipalConCamara=async function(modo){
-      if(navigator.onLine)return originalAbrir.apply(this,arguments);
-      cerrarSelectorQRPrincipal();abrirEscanerQR();seleccionarModoQR(modo);
-      return window.flkIniciarQRv6174();
-    };
-  }
-})();
 </script>
 </body>
 </html>
