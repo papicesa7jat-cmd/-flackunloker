@@ -4374,125 +4374,86 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
  if(!email)return mostrarMensajeAuth("Escribe el usuario/correo.","error");
  if(!password)return mostrarMensajeAuth("Escribe la contraseña.","error");
 
- if(!navigator.onLine){
-  flkAuthProcesando=true;
-  flkBloquearBotonAuth();
-  mostrarMensajeAuth("Comprobando acceso…","ok");
-  try{
-   try{
-    const respOnline=await flkPromesaConTiempo(
-     flkSupabase.auth.signInWithPassword({email,password}),
-     4500,
-     "login-network-timeout"
-    );
-    const {data:onlineData,error:onlineError}=respOnline||{};
-    if(onlineError)throw onlineError;
-    if(onlineData?.session){
-     flkRecordarUsuarioLogin(email);
-     document.getElementById("authOverlay")?.classList.add("oculto");
-     await flkPromesaConTiempo(mostrarAppConSesion(onlineData.session),9000,"app-timeout").catch(()=>{});
-     await flkGuardarVerificadorOffline(onlineData.session.user,password);
-     flkLimpiarPasswordLogin();
-     mostrarMensajeAuth("","");
-     return;
-    }
-   }catch(errOnlineBreve){
-    const m=String(errOnlineBreve?.message||errOnlineBreve||"").toLowerCase();
-    if(m.includes("invalid login credentials")||m.includes("invalid credentials")){
-     flkEliminarVerificadorOffline(email);
-     throw new Error("Usuario o contraseña incorrectos.");
-    }
-   }
-
-   await flkEntrarOffline(email,password);
-   flkRecordarUsuarioLogin(email);
-   flkLimpiarPasswordLogin();
-   mostrarMensajeAuth("","");
-  }catch(errOffline){
-   mostrarMensajeAuth("❌ "+(errOffline?.message||"No se pudo iniciar offline."),"error");
-  }finally{
-   flkAuthProcesando=false;
-   flkRestaurarBotonAuth();
-  }
-  return;
- }
-
  flkAuthProcesando=true;
  flkBloquearBotonAuth();
  mostrarMensajeAuth("Procesando…","ok");
 
  try{
-  if(modoAuth==="registro"){
-   const nombre=document.getElementById("authNombre").value.trim();
-   const resp=await flkPromesaConTiempo(
-    flkSupabase.auth.signUp({email,password,options:{data:{full_name:nombre}}}),
-    12000,
-    "registro-timeout"
-   );
-   const {data,error}=resp||{};
-   if(error)throw error;
+  let data=null,error=null;
 
-   flkRecordarUsuarioLogin(email);
-   flkLimpiarPasswordLogin();
-
-   if(data?.session){
-    mostrarMensajeAuth("","");
-    await flkPromesaConTiempo(mostrarAppConSesion(data.session),10000,"app-timeout");
-   }else{
-    mostrarMensajeAuth("Cuenta creada. Revisa tu correo para confirmar el registro y luego inicia sesión.","ok");
+  // No depender de navigator.onLine para decidir si se intenta Supabase.
+  // En conexiones inestables el navegador puede reportar offline aun teniendo red.
+  if(navigator.onLine){
+   try{
+    const resp=await flkPromesaConTiempo(
+     flkSupabase.auth.signInWithPassword({email,password}),
+     15000,
+     "login-timeout"
+    );
+    data=resp?.data||null;
+    error=resp?.error||null;
+   }catch(err){
+    const msg=String(err?.message||err||"").toLowerCase();
+    if(msg.includes("invalid login credentials")||msg.includes("invalid credentials")){
+     flkEliminarVerificadorOffline(email);
+     throw new Error("Usuario o contraseña incorrectos.");
+    }
+    // Si la red agotó el tiempo, intentar el acceso offline del navegador.
+    if(msg.includes("timeout")||msg.includes("failed to fetch")||msg.includes("network")||msg.includes("fetch")){
+     try{
+      await flkEntrarOffline(email,password);
+      flkRecordarUsuarioLogin(email);
+      flkLimpiarPasswordLogin();
+      mostrarMensajeAuth("","");
+      return;
+     }catch(_){}
+    }
+    throw err;
    }
+
+   if(error)throw error;
+   if(!data?.session)throw new Error("No se recibió una sesión válida.");
+
+   // La autenticación ya fue confirmada. Ocultar el login inmediatamente.
+   // La carga de centro/licencia/datos no puede volver a bloquear el acceso.
+   flkRecordarUsuarioLogin(email);
+   flkGuardarSesionLocal(data.session);
+   flkSesionActiva=true;
+   document.getElementById("authOverlay")?.classList.add("oculto");
+   flkPintarSesionLocal(data.session.user);
+   flkLimpiarPasswordLogin();
+   mostrarMensajeAuth("","");
+
+   // Preparación posterior: si alguna consulta falla, no invalida el login.
+   Promise.resolve().then(async()=>{
+    try{
+     await mostrarAppConSesion(data.session);
+    }catch(errPreparacion){
+     console.warn("Preparación posterior al login:",errPreparacion?.message||errPreparacion);
+     flkSesionActiva=true;
+     document.getElementById("authOverlay")?.classList.add("oculto");
+    }
+    try{await flkGuardarVerificadorOffline(data.session.user,password)}catch(_){}
+   }).catch(()=>{});
    return;
   }
 
-  const resp=await flkPromesaConTiempo(
-   flkSupabase.auth.signInWithPassword({email,password}),
-   12000,
-   "login-timeout"
-  );
-  const {data,error}=resp||{};
-
-  if(error)throw error;
-  if(!data?.session)throw new Error("No se recibió una sesión válida.");
-
+  // OFFLINE: usar el verificador local ya preparado.
+  await flkEntrarOffline(email,password);
   flkRecordarUsuarioLogin(email);
-
-  // Preparar este navegador para futuros accesos sin Internet.
-  // La contraseña NO se guarda: solo un verificador PBKDF2 con salt.
-  try{
-   await flkPromesaConTiempo(mostrarAppConSesion(data.session),10000,"app-timeout");
-   await flkGuardarVerificadorOffline(data.session.user,password);
-  }catch(errPreparacion){
-   console.warn("Preparación inicial de sesión/offline:",errPreparacion?.message||errPreparacion);
-  }
-
-  // La pantalla de login deja de marear en cuanto Supabase confirma la sesión.
-  document.getElementById("authOverlay")?.classList.add("oculto");
-  mostrarMensajeAuth("","");
-
-  // Si alguna carga secundaria demoró, la sesión online ya quedó confirmada;
-  // mantener la interfaz usable con los datos/cachés disponibles.
-  flkGuardarSesionLocal(data.session);
-  flkPintarSesionLocal(data.session.user);
-  document.getElementById("authOverlay")?.classList.add("oculto");
-
   flkLimpiarPasswordLogin();
-
+  mostrarMensajeAuth("","");
  }catch(err){
   const msg=String(err?.message||err||"").toLowerCase();
-  const timeout=String(err?.code||"").includes("timeout")||msg.includes("timeout");
-
-  if(timeout){
-   await flkCancelarSesionTardia();
-   document.getElementById("authOverlay")?.classList.remove("oculto");
-   mostrarMensajeAuth(
-    "⚠️ La conexión está inestable y el inicio tardó demasiado. No quedó bloqueado: espera a que mejore Internet y pulsa Entrar una sola vez.",
-    "error"
-   );
-  }else if(msg.includes("invalid login credentials")||msg.includes("invalid credentials")){
+  if(msg.includes("invalid login credentials")||msg.includes("invalid credentials")){
    flkEliminarVerificadorOffline(email);
    mostrarMensajeAuth("❌ Usuario o contraseña incorrectos. Revisa la contraseña.","error");
   }else if(msg.includes("email not confirmed")){
    mostrarMensajeAuth("❌ La cuenta todavía no está confirmada.","error");
+  }else if(msg.includes("not-prepared")){
+   mostrarMensajeAuth("❌ Este navegador debe iniciar sesión online al menos una vez antes de poder entrar sin Internet.","error");
+  }else if(msg.includes("expired")){
+   mostrarMensajeAuth("❌ La autorización offline de este navegador venció. Conéctate a Internet para renovarla.","error");
   }else{
    mostrarMensajeAuth("❌ No se pudo iniciar sesión: "+(err?.message||"Error de conexión"),"error");
   }
@@ -4501,6 +4462,7 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
   flkRestaurarBotonAuth();
  }
 });
+
 window.addEventListener("online",async()=>{
  try{
   const ses=flkSesionLocal();
