@@ -6927,7 +6927,7 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
    // Aviso descriptivo del movimiento realizado. No modifica la cola ni la sincronización.
    const avisoMovimientoQR=`✅ ${tipoGuardado==="entrada"?"Entrada agregada":"Salida realizada"}: ${p.nombre} · SKU: ${p.sku} · Cantidad: ${cantidad} · Existencia: ${p.cantidad} · Pendiente de sincronizar`;
    // Se muestra después de cerrar el modal para evitar que el repintado de Safari lo oculte.
-   setTimeout(()=>{try{flkAvisoMovimientoOffline(avisoMovimientoQR)}catch(_){ }},80);
+   setTimeout(()=>{try{flkAvisoMovimientoOffline(avisoMovimientoQR)}catch(_){ }},220);
 
    // La confirmación offline general ya fue emitida desde la cola central.
    // Safari puede conservar el scroll del modal al cerrarlo. Volvemos suavemente al inventario.
@@ -11647,14 +11647,15 @@ document.addEventListener("DOMContentLoaded",()=>{
 
 /* v61.33 · aviso claro para movimientos offline */
 .flk-toast-offline{
- position:fixed;left:50%;bottom:92px;transform:translateX(-50%) translateY(18px);
- width:min(92vw,430px);padding:13px 16px;border-radius:14px;
+ position:fixed !important;left:50% !important;top:18px !important;bottom:auto !important;
+ transform:translateX(-50%) translateY(-14px);
+ width:min(92vw,430px);padding:14px 16px;border-radius:14px;
  background:#fff7e8;color:#7a4a00;border:1px solid #f1d49b;
  box-shadow:0 8px 28px rgba(0,0,0,.16);font-size:13px;font-weight:800;
- text-align:center;z-index:999999;opacity:0;pointer-events:none;
- transition:opacity .18s ease,transform .18s ease;
+ text-align:center;z-index:2147483647 !important;opacity:0;visibility:hidden;display:block !important;pointer-events:none;
+ transition:opacity .18s ease,transform .18s ease,visibility .18s ease;
 }
-.flk-toast-offline.visible{opacity:1;transform:translateX(-50%) translateY(0)}
+.flk-toast-offline.visible{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
 </style>
 <div id="flkDeepStorage">
  <div id="flkDeepStorageCard">
