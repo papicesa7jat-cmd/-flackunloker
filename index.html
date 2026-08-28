@@ -5206,6 +5206,30 @@ async function flkComprobarPropietarioSoftware(){
 
 let flkAdminSoftwareCentros=[];
 
+// ===== v61.69 · CACHÉ OFFLINE DEL SOFTWARE DEL PROPIETARIO =====
+const FLK_ADMIN_SOFTWARE_CENTROS_CACHE_KEY="flackunloker_admin_software_centros_v1";
+const FLK_ADMIN_SOFTWARE_USUARIOS_CACHE_KEY="flackunloker_admin_software_usuarios_v1";
+function flkGuardarCacheAdminSoftwareCentros(centros){try{localStorage.setItem(FLK_ADMIN_SOFTWARE_CENTROS_CACHE_KEY,JSON.stringify({saved_at:new Date().toISOString(),centros:Array.isArray(centros)?centros:[]}))}catch(e){}}
+function flkLeerCacheAdminSoftwareCentros(){try{const x=JSON.parse(localStorage.getItem(FLK_ADMIN_SOFTWARE_CENTROS_CACHE_KEY)||"null");return Array.isArray(x?.centros)?x.centros:[]}catch(e){return []}}
+function flkGuardarCacheAdminSoftwareUsuarios(usuarios){try{localStorage.setItem(FLK_ADMIN_SOFTWARE_USUARIOS_CACHE_KEY,JSON.stringify({saved_at:new Date().toISOString(),usuarios:Array.isArray(usuarios)?usuarios:[]}))}catch(e){}}
+function flkLeerCacheAdminSoftwareUsuarios(){try{const x=JSON.parse(localStorage.getItem(FLK_ADMIN_SOFTWARE_USUARIOS_CACHE_KEY)||"null");return Array.isArray(x?.usuarios)?x.usuarios:[]}catch(e){return []}}
+function flkPintarResumenAdminSoftwareOffline(){
+ const centros=Array.isArray(flkAdminSoftwareCentros)?flkAdminSoftwareCentros:[];
+ const total=document.getElementById("adminswTotalCentros"),act=document.getElementById("adminswCentrosActivos"),mem=document.getElementById("adminswTotalMiembros");
+ if(total)total.textContent=centros.length;
+ if(act)act.textContent=centros.filter(c=>String(c.status||"active").toLowerCase()==="active").length;
+ if(mem)mem.textContent=centros.reduce((n,c)=>n+Number(c.members_count||c.member_count||0),0);
+ const opciones='<option value="">Selecciona</option>'+centros.map(c=>`<option value="${flkEscAttr(c.business_id||"")}">${flkAdminSwEsc(c.name||"Centro")}${c.code?" · "+flkAdminSwEsc(c.code):""}</option>`).join("");
+ ["adminswUsuarioCentro","adminswNuevoCentro"].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=opciones});
+ if(typeof flkCargarSelectPinCentro==="function")flkCargarSelectPinCentro();
+}
+function flkPintarCentrosAdminSoftwareOffline(){
+ const lista=document.getElementById("adminswListaCentros");if(!lista)return;
+ const centros=Array.isArray(flkAdminSoftwareCentros)?flkAdminSoftwareCentros:[];
+ if(!centros.length){lista.innerHTML='<div class="sin-productos">No hay centros guardados para trabajar offline. Conéctate una vez para actualizar esta copia local.</div>';return}
+ lista.innerHTML=centros.map(c=>`<div class="adminsw-centro" id="adminsw-centro-${flkEscAttr(c.business_id||"")}"><div class="adminsw-centro-top"><div><h3>${flkAdminSwEsc(c.name||"Centro")}</h3><p>Código: ${flkAdminSwEsc(c.code||"—")}<br>ID: ${flkAdminSwEsc(c.business_id||"—")}</p></div><span class="adminsw-badge ${String(c.status||"active")==="active"?"active":"inactive"}">${String(c.status||"active")==="active"?"ACTIVO":"INACTIVO"}</span></div><div class="adminsw-acciones"><button class="adminsw-btn azul" onclick="cargarMiembrosCentroAdminSoftware('${flkEscAttr(c.business_id||"")}')">👥 Ver usuarios</button><button class="adminsw-btn ${String(c.status||"active")==="active"?"rojo":"verde"}" onclick="cambiarEstadoCentroAdminSoftware('${flkEscAttr(c.business_id||"")}','${String(c.status||"active")==="active"?"inactive":"active"}')">${String(c.status||"active")==="active"?"⛔ Desactivar":"✅ Activar"}</button></div><div class="adminsw-miembros" id="adminsw-miembros-${flkEscAttr(c.business_id||"")}" style="display:none"></div></div>`).join("");
+}
+
 function flkAdminSwEsc(v){
  return String(v??"").replace(/[&<>"']/g,c=>({
   "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
@@ -5373,10 +5397,13 @@ async function flkCargarUsuariosExistentesAdminSoftware(){
  if(!sel)return;
 
  if(!navigator.onLine){
-  sel.innerHTML='<option value="">Conéctate a Internet</option>';
+  const cacheUsuarios=flkLeerCacheAdminSoftwareUsuarios();
+  const mapa=new Map();
+  cacheUsuarios.forEach(u=>{const id=String(u.user_id||"").trim();if(id&&!mapa.has(id))mapa.set(id,u)});
+  const usuarios=[...mapa.values()].sort((a,b)=>String(a.email||"").localeCompare(String(b.email||""),"es",{sensitivity:"base"}));
+  sel.innerHTML=usuarios.length?'<option value="">Selecciona un usuario...</option>'+usuarios.map(u=>{const email=String(u.email||"");const contexto=u.business_name?` · ${flkAdminSwEsc(u.business_name)} · ${flkAdminSwEsc(u.member_role||u.role||"")}`:' · Sin centro';return `<option value="${flkEscAttr(email)}">${flkAdminSwEsc(email)}${contexto}</option>`}).join(""):'<option value="">No hay usuarios guardados offline</option>';
   return;
- }
-
+}
  sel.innerHTML='<option value="">Cargando usuarios...</option>';
 
  try{
@@ -5384,6 +5411,7 @@ async function flkCargarUsuariosExistentesAdminSoftware(){
   if(error)throw error;
 
   const filas=Array.isArray(data)?data:[];
+  flkGuardarCacheAdminSoftwareUsuarios(filas);
   const mapa=new Map();
 
   filas.forEach(u=>{
@@ -5423,18 +5451,26 @@ async function flkCargarUsuariosExistentesAdminSoftware(){
 
 async function cargarAdminSoftware(){
  if(!flkEsPropietarioSoftware)return;
- flkCargarUsuariosExistentesAdminSoftware();
  const lista=document.getElementById("adminswListaCentros");
- if(!navigator.onLine){lista.innerHTML='<div class="sin-productos">Conéctate a Internet para administrar centros.</div>';return}
+ const seguridad=document.querySelector("#vistaAdminSoftware .adminsw-seguridad-compacta");
+ if(seguridad)seguridad.style.display="block";
+ if(!navigator.onLine){
+  flkAdminSoftwareCentros=flkLeerCacheAdminSoftwareCentros();
+  flkPintarResumenAdminSoftwareOffline();
+  flkPintarCentrosAdminSoftwareOffline();
+  flkCargarUsuariosExistentesAdminSoftware();
+  return;
+ }
+ flkCargarUsuariosExistentesAdminSoftware();
  lista.innerHTML='<div class="sin-productos">Cargando centros...</div>';
  try{
   const {data,error}=await flkSupabase.rpc("flk_software_admin_list_centers");
   if(error)throw error;
   flkAdminSoftwareCentros=Array.isArray(data)?data:[];
-   
+  flkGuardarCacheAdminSoftwareCentros(flkAdminSoftwareCentros);
   document.getElementById("adminswTotalCentros").textContent=flkAdminSoftwareCentros.length;
   document.getElementById("adminswCentrosActivos").textContent=flkAdminSoftwareCentros.filter(c=>String(c.status)==="active").length;
-  document.getElementById("adminswTotalMiembros").textContent=flkAdminSoftwareCentros.reduce((a,c)=>a+Number(c.members_count||0),0);
+  document.getElementById("adminswTotalMiembros").textContent=flkAdminSoftwareCentros.reduce((a,c)=>a+Number(c.members_count||c.member_count||0),0);
   const opcionesCentros='<option value="">Selecciona</option>'+flkAdminSoftwareCentros.map(c=>`<option value="${flkEscAttr(c.business_id)}">${flkAdminSwEsc(c.name)} · ${flkAdminSwEsc(c.code||"")}</option>`).join("");
   const sel=document.getElementById("adminswUsuarioCentro");if(sel)sel.innerHTML=opcionesCentros;
   const selNuevo=document.getElementById("adminswNuevoCentro");if(selNuevo)selNuevo.innerHTML=opcionesCentros;
@@ -5630,6 +5666,8 @@ async function flkRefrescarMiembrosCentro(businessId){
   const {data,error}=await flkSupabase.rpc("flk_software_admin_list_members",{p_business_id:businessId});
   if(error)throw error;
   const miembros=Array.isArray(data)?data:[];
+  const otros=flkLeerCacheAdminSoftwareUsuarios().filter(u=>String(u.business_id||"")!==String(businessId));
+  flkGuardarCacheAdminSoftwareUsuarios(otros.concat(miembros));
   box.innerHTML=flkHtmlMiembrosCentro(businessId,miembros);
   const total=flkAdminSoftwareCentros.reduce((n,c)=>n+Number(c.member_count||c.members_count||0),0);
   // contador principal se actualiza completamente al recargar el panel cuando cambia membresía
@@ -5670,35 +5708,34 @@ function flkHtmlMiembrosCentro(businessId,miembros){
 }
 async function cargarMiembrosCentroAdminSoftware(businessId){
  if(!flkEsPropietarioSoftware)return;
-
  const card=document.querySelector(`[data-business-id="${CSS.escape(String(businessId))}"]`);
  if(!card)return alert("No se encontró la tarjeta del centro.");
-
- // Elimina cualquier lista antigua que haya quedado renderizada.
  card.querySelectorAll(".adminsw-miembros-legacy,[data-members-business-id]").forEach(el=>el.remove());
-
  const box=document.createElement("div");
  box.setAttribute("data-members-business-id",String(businessId));
  box.style.cssText="margin-top:10px;border-top:1px solid #e5e7eb;padding-top:2px";
-
  const lic=card.querySelector(".adminsw-licencia-centro");
- if(lic)card.insertBefore(box,lic);
- else card.appendChild(box);
-
+ if(lic)card.insertBefore(box,lic);else card.appendChild(box);
+ if(!navigator.onLine){
+  const miembros=flkLeerCacheAdminSoftwareUsuarios().filter(u=>String(u.business_id||"")===String(businessId));
+  box.innerHTML=miembros.length?flkHtmlMiembrosCentro(businessId,miembros):'<div class="sin-productos">No hay usuarios guardados offline para este centro.</div>';
+  return;
+ }
  box.innerHTML='<div class="sin-productos">Cargando usuarios...</div>';
-
  try{
-  const {data,error}=await flkSupabase.rpc("flk_software_admin_list_members",{
-   p_business_id:businessId
-  });
+  const {data,error}=await flkSupabase.rpc("flk_software_admin_list_members",{p_business_id:businessId});
   if(error)throw error;
   const miembros=Array.isArray(data)?data:[];
+  const otros=flkLeerCacheAdminSoftwareUsuarios().filter(u=>String(u.business_id||"")!==String(businessId));
+  flkGuardarCacheAdminSoftwareUsuarios(otros.concat(miembros));
   box.innerHTML=flkHtmlMiembrosCentro(businessId,miembros);
  }catch(err){
   console.error("Usuarios del centro:",err);
-  box.innerHTML='<div class="sin-productos">No se pudieron cargar los usuarios.</div>';
+  const cache=flkLeerCacheAdminSoftwareUsuarios().filter(u=>String(u.business_id||"")===String(businessId));
+  box.innerHTML=cache.length?flkHtmlMiembrosCentro(businessId,cache):'<div class="sin-productos">No se pudieron cargar los usuarios.</div>';
  }
 }
+
 async function quitarUsuarioCentroAdminSoftware(businessId,userId,email){
  if(!confirm(`¿Quitar ${email||"este usuario"} de este centro?`))return;
  try{const {error}=await flkSupabase.rpc("flk_software_admin_remove_user",{p_business_id:businessId,p_user_id:userId});if(error)throw error;await cargarAdminSoftware();await cargarMiembrosCentroAdminSoftware(businessId)}catch(err){alert("No se pudo quitar el usuario: "+(err?.message||"Error desconocido"))}
