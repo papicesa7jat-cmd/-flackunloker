@@ -6506,7 +6506,48 @@ async function cargarHistorialSupabase(){
   return false;
  }
  historial=(data||[]).map(movimientoDesdeSupabase);
+ try{
+  const {data:returns,error:returnError}=await flkSupabase.from("sale_returns")
+   .select("id,sale_id,product_id,quantity,reason,created_at,return_number")
+   .order("created_at",{ascending:false});
+  if(!returnError && Array.isArray(returns)){
+   const devoluciones=returns.map(r=>{
+    const p=productos.find(x=>String(x.supabaseId||"")===String(r.product_id||""));
+    if(!p)return null;
+    const venta=Array.isArray(ventas)?ventas.find(v=>
+     String(v.supabaseId||"")===String(r.sale_id||"") ||
+     String(v.id||"")===String(r.sale_id||"")
+    ):null;
+    const numero=venta?.numero||r.return_number||"";
+    const cliente=venta?.cliente||"Cliente general";
+    const duplicada=historial.some(m=>
+     String(m.devolucionSupabaseId||"")===String(r.id||"")
+    );
+    if(duplicada)return null;
+    return {
+     id:idLocalDesdeLegacy(null,"sale_return_history_"+String(r.id)),
+     supabaseId:null,
+     devolucionSupabaseId:r.id,
+     ventaSupabaseId:r.sale_id||null,
+     ventaId:venta?.id||null,
+     productoId:p.id,
+     nombre:p.nombre,
+     sku:p.sku,
+     tipo:"entrada",
+     cantidad:Number(r.quantity||0),
+     saldo:Number(p.cantidad||0),
+     fecha:r.created_at,
+     detalle:"↩️ Devolución · Recibo "+String(numero)+" · Cliente "+String(cliente),
+     esSistema:true,
+     esDevolucion:true,
+     numeroDevolucion:r.return_number||""
+    };
+   }).filter(Boolean);
+   historial=[...devoluciones,...historial];
+  }
+ }catch(e){console.warn("Historial devoluciones:",e)}
  guardarHistorial();
+ recalcularSaldos();
  actualizarResumenHistorial();
  mostrarListaHistorial();
  return true
@@ -7445,9 +7486,12 @@ async function flkRefrescarDevolucionesVentaAntesDeRecibo(v){
   if(!sale){
    const numero=String(v.numero||"").trim();
    if(!numero)throw new Error("El recibo no tiene número para refrescarlo.");
-   const rs=await flkSupabase.from("sales").select("id,receipt_number,total,paid_amount,balance_due,payment_method,due_date,note").eq("receipt_number",numero).maybeSingle();
-   if(rs.error)throw rs.error;
-   sale=rs.data||null;
+   const numeros=[numero,numero.padStart(6,"0")].filter((n,i,a)=>n&&a.indexOf(n)===i);
+   for(const n of numeros){
+    const rs=await flkSupabase.from("sales").select("id,receipt_number,total,paid_amount,balance_due,payment_method,due_date,note").eq("receipt_number",n).maybeSingle();
+    if(rs.error)throw rs.error;
+    if(rs.data){sale=rs.data;break;}
+   }
    if(sale){v.supabaseId=sale.id;saleId=sale.id}
   }
   if(!sale)throw new Error("No se encontró el recibo en Supabase.");
@@ -7494,50 +7538,43 @@ async function flkRefrescarDevolucionesVentaAntesDeRecibo(v){
 
 async function generarReciboVenta(id){
  const v=ventas.find(x=>x.id===id);if(!v)return;
+ if(navigator.onLine && flkSesionActiva && flkSupabase){
+  await flkRefrescarDevolucionesVentaAntesDeRecibo(v);
+ }
  const ventanaComprobante=window.open("","_blank");
  if(!ventanaComprobante){alert("El navegador bloqueó el recibo. Permite ventanas emergentes para Flackunloker.");return;}
  try{ventanaComprobante.document.open();ventanaComprobante.document.write("<p style=\"font-family:Arial;padding:20px\">Cargando recibo...</p>");ventanaComprobante.document.close()}catch(_){ }
  try{
   if(navigator.onLine && flkSesionActiva && flkSupabase){
    const numeroBuscado=String(v.numero||"").trim();
-   const numerosBusqueda=[numeroBuscado,numeroBuscado.replace(/^#/,""),numeroBuscado.padStart(6,"0")]
+   // El recibo local puede ser 009 mientras Supabase conserva 000009.
+   // Probar ambas formas evita usar una copia local sin la devolución.
+   const numerosBusqueda=[numeroBuscado,numeroBuscado.padStart(6,"0")]
     .filter((n,i,a)=>n&&a.indexOf(n)===i);
-
-   let sale=null;
+   let sr=null;
    for(const numeroCloud of numerosBusqueda){
     const r=await flkSupabase.from("sales")
-     .select("id,receipt_number,created_at,customer_name,customer_phone,total,paid_amount,balance_due,payment_method,due_date,note,sale_items(id,product_id,quantity,unit_price,unit_cost),sale_payments(id,amount,payment_method,note,balance_before,balance_after,created_at)")
+     .select("id,receipt_number,created_at,customer_name,customer_phone,total,paid_amount,balance_due,payment_method,due_date,note,sale_items(id,product_id,quantity,unit_price,unit_cost),sale_payments(id,amount,payment_method,note,balance_before,balance_after,created_at),sale_returns(id,return_number,sale_item_id,product_id,quantity,refund_amount,reason,created_at)")
      .eq("receipt_number",numeroCloud).maybeSingle();
     if(r.error)throw r.error;
-    if(r.data){sale=r.data;break;}
+    if(r.data){sr=r;break;}
    }
-
-   if(sale){
-    // NO dependemos de la relación embebida sales -> sale_returns.
-    // Consultamos sale_returns directamente por sale_id.
-    const rr=await flkSupabase.from("sale_returns")
-     .select("id,return_number,sale_id,sale_item_id,product_id,quantity,refund_amount,reason,created_at")
-     .eq("sale_id",sale.id)
-     .order("created_at",{ascending:true});
-    if(rr.error)throw rr.error;
-
+   if(sr?.data){
+    const sale=sr.data;
     const saleItems=Array.isArray(sale.sale_items)?sale.sale_items:[];
-    const retornos=Array.isArray(rr.data)?rr.data:[];
     const pagosCloud=Array.isArray(sale.sale_payments)?sale.sale_payments:[];
-
+    const rr=await flkSupabase.from("sale_returns")
+     .select("id,return_number,sale_item_id,product_id,quantity,refund_amount,reason,created_at")
+     .eq("sale_id",sale.id).order("created_at",{ascending:true});
+    if(rr.error)throw rr.error;
+    const retornos=Array.isArray(rr.data)?rr.data:[];
     const itemsCloud=saleItems.map(si=>{
-     const p=productos.find(x=>String(x.supabaseId||"")===String(si.product_id||""));
-     const devuelto=retornos
-      .filter(r=>String(r.sale_item_id||"")===String(si.id||""))
-      .reduce((t,r)=>t+Number(r.quantity||0),0);
-     const cantidad=Number(si.quantity||0),precioUnitario=Number(si.unit_price||0),costoUnitario=Number(si.unit_cost||0);
-     const neta=Math.max(0,cantidad-devuelto);
-     return {productoId:p?p.id:idLocalDesdeLegacy(null,si.product_id),supabaseProductId:si.product_id,
-      supabaseSaleItemId:si.id,devuelto,nombre:p?p.nombre:"Producto",sku:p?p.sku:"",
-      cantidad,precioUnitario,costoUnitario,ingreso:neta*precioUnitario,costo:neta*costoUnitario,
-      ganancia:neta*(precioUnitario-costoUnitario)};
+      const p=productos.find(x=>String(x.supabaseId||"")===String(si.product_id||""));
+      const cantidad=Number(si.quantity||0),precioUnitario=Number(si.unit_price||0),costoUnitario=Number(si.unit_cost||0);
+      const devuelto=retornos.filter(r=>String(r.sale_item_id||"")===String(si.id||"")).reduce((t,r)=>t+Number(r.quantity||0),0);
+      const neta=Math.max(0,cantidad-devuelto);
+      return {productoId:p?p.id:idLocalDesdeLegacy(null,si.product_id),supabaseProductId:si.product_id,supabaseSaleItemId:si.id,devuelto,nombre:p?p.nombre:"Producto",sku:p?p.sku:"",cantidad,precioUnitario,costoUnitario,ingreso:neta*precioUnitario,costo:neta*costoUnitario,ganancia:neta*(precioUnitario-costoUnitario)};
     });
-
     v.supabaseId=sale.id;
     v.numero=sale.receipt_number||v.numero;
     v.fecha=sale.created_at||v.fecha;
@@ -7550,40 +7587,17 @@ async function generarReciboVenta(id){
     v.fechaVencimiento=sale.due_date||"";
     v.nota=sale.note||"";
     v.items=itemsCloud;
-
-    v.devoluciones=retornos.map(r=>{
-     let item=itemsCloud.find(i=>String(i.supabaseSaleItemId||"")===String(r.sale_item_id||""));
-     if(!item){
-      item=itemsCloud.find(i=>String(i.supabaseProductId||"")===String(r.product_id||""));
-     }
-     return {
-      id:idLocalDesdeLegacy(null,r.id),supabaseId:r.id,numeroDevolucion:r.return_number,
-      ventaId:v.id,productoId:item?.productoId||idLocalDesdeLegacy(null,r.product_id),
-      cantidad:Number(r.quantity||0),monto:Number(r.refund_amount||0),
-      reembolso:Number(r.refund_amount||0),motivo:r.reason||"",fecha:r.created_at
-     };
-    });
-
-    v.items.forEach(i=>{
-     i.devuelto=retornos.filter(r=>
-      String(r.sale_item_id||"")===String(i.supabaseSaleItemId||"") ||
-      String(r.product_id||"")===String(i.supabaseProductId||"")
-     ).reduce((t,r)=>t+Number(r.quantity||0),0);
-    });
-
+    v.devoluciones=retornos.map(r=>({id:idLocalDesdeLegacy(null,r.id),supabaseId:r.id,numeroDevolucion:r.return_number,ventaId:v.id,productoId:(itemsCloud.find(i=>String(i.supabaseSaleItemId)===String(r.sale_item_id||""))||{}).productoId||idLocalDesdeLegacy(null,r.product_id),cantidad:Number(r.quantity||0),monto:Number(r.refund_amount||0),reembolso:Number(r.refund_amount||0),motivo:r.reason||"",fecha:r.created_at}));
     v.cantidad=itemsCloud.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0);
+    // El total neto contable viene de Supabase; no se vuelve a sumar el total bruto de los artículos.
     v.ingreso=Math.max(0,Number(sale.total||0));
     v.costoTotal=itemsCloud.reduce((t,i)=>t+Number(i.costo||0),0);
     v.ganancia=v.ingreso-v.costoTotal;
-    if(pagosCloud.length)v.pagos=pagosCloud.map(p=>({
-     id:idLocalDesdeLegacy(null,p.id),supabaseId:p.id,cantidad:Number(p.amount||0),
-     fecha:p.created_at,metodo:p.payment_method||"cash",nota:p.note||"",
-     saldoAnterior:Number(p.balance_before??0),saldoRestante:Number(p.balance_after??0)
-    }));
+    if(pagosCloud.length)v.pagos=pagosCloud.map(p=>({id:idLocalDesdeLegacy(null,p.id),supabaseId:p.id,cantidad:Number(p.amount||0),fecha:p.created_at,metodo:p.payment_method||"cash",nota:p.note||"",saldoAnterior:Number(p.balance_before??0),saldoRestante:Number(p.balance_after??0)}));
     guardarVentas();
    }
   }
- }catch(e){console.error("No se pudo refrescar el recibo desde Supabase:",e)}
+ }catch(e){console.warn("No se pudo refrescar el recibo desde Supabase; se mantiene la copia local.",e)}
  const f=new Date(v.fecha),numero=v.numero||String(v.id).slice(-8),items=itemsDeVenta(v);
  const qrReciboData=flkQrDataUrl("FLK|SALE|"+String(numero),112);
  const cliente=escapeHtml(v.cliente||"Cliente general"),telefono=escapeHtml(v.telefono||""),nota=escapeHtml(v.nota||""),devoluciones=devolucionesDeVenta(v),pagos=pagosDeVenta(v);
