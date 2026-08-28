@@ -10624,30 +10624,29 @@ function flkQrValor(c){
  return {tipo:"AUTO",valor:raw};
 }
 function flkQrBuscarProducto(codigo){
- const original=String(codigo||"").trim();
- if(!original)return null;
+ const valor=(codigo&&typeof codigo==="object"&&Object.prototype.hasOwnProperty.call(codigo,"valor"))
+  ?String(codigo.valor||"").trim()
+  :String(codigo||"").trim();
+ if(!valor)return null;
 
- // Las etiquetas de Flackunloker pueden devolver:
- //   CHA-001
- //   FLK SKU CHA-001
- //   FLK SKU: CHA-001
- // El QR sigue identificando al producto; normalizamos antes de buscar.
  const candidatos=[];
- const agregar=(v)=>{
+ const agregar=v=>{
   const x=String(v||"").trim();
-  if(x && !candidatos.some(c=>c.toLowerCase()===x.toLowerCase()))candidatos.push(x);
+  if(x&&!candidatos.some(c=>c.toLowerCase()===x.toLowerCase()))candidatos.push(x);
  };
- agregar(original);
+ agregar(valor);
 
- const mFlk=original.match(/(?:FLK\s*)?SKU\s*[:#-]?\s*([A-Za-z0-9._/-]+)/i);
- if(mFlk)agregar(mFlk[1]);
+ const partes=valor.split("|");
+ if(partes.length>=3 && partes[0].trim().toUpperCase()==="FLK" && partes[1].trim().toUpperCase()==="SKU"){
+  agregar(partes.slice(2).join("|"));
+ }
+ const mf=valor.match(/^FLK\s+SKU\s*:?\s*(.+)$/i);
+ if(mf)agregar(mf[1]);
+ const ms=valor.match(/^SKU\s*:?\s*(.+)$/i);
+ if(ms)agregar(ms[1]);
 
- // Si viene texto adicional alrededor del SKU, intenta también extraer
- // el último bloque con formato de código.
- const mSku=original.match(/\bSKU\s*[:#-]?\s*([A-Za-z0-9._/-]+)/i);
- if(mSku)agregar(mSku[1]);
-
- const normal=(v)=>String(v||"").trim().toLowerCase();
+ const normal=v=>String(v??"").trim().toLowerCase();
+ const compact=v=>normal(v).replace(/\s+/g,"");
 
  for(const c of candidatos){
   const p=(Array.isArray(productos)?productos:[]).find(p=>
@@ -10658,9 +10657,6 @@ function flkQrBuscarProducto(codigo){
   );
   if(p)return p;
  }
-
- // Compatibilidad adicional: algunos códigos pueden venir con espacios.
- const compact=v=>normal(v).replace(/\s+/g,"");
  for(const c of candidatos){
   const p=(Array.isArray(productos)?productos:[]).find(p=>
    compact(p.sku)===compact(c) ||
@@ -10669,7 +10665,6 @@ function flkQrBuscarProducto(codigo){
   );
   if(p)return p;
  }
-
  return null;
 }
 function flkQrBuscarVenta(x){
@@ -11061,9 +11056,23 @@ function flkPresentarLecturaParaConfirmar(codigo){
 
  let texto=codigo;
  if(flkQrModo==="devolucion"){
-  const v=flkQrBuscarVenta(x);
-  titulo.textContent=v?"🧾 Recibo detectado":"⚠️ Código detectado";
-  texto=v?("Recibo #"+String(v.numero||v.id)+". Confirma para abrir la devolución."):"No se encontró un recibo con este código.";
+  const p=flkQrBuscarProducto(x);
+  if(!p){
+   titulo.textContent="⚠️ Producto no encontrado";
+   texto="No se encontró un producto con el SKU escaneado.";
+  }else{
+   const compatibles=(Array.isArray(ventas)?ventas:[]).filter(v=>
+    itemsDeVenta(v).some(i=>
+     String(i.productoId)===String(p.id) &&
+     Number(i.cantidad||0)>Number(i.devuelto||0)
+    )
+   );
+   titulo.textContent="↩️ Producto identificado";
+   texto=String(p.nombre||"Producto")+" · SKU: "+String(p.sku||"—")+
+    (compatibles.length
+     ? " · Comprobantes disponibles: "+compatibles.map(v=>"#"+String(v.numero||v.id)+" · "+String(v.cliente||"Cliente general")).join(", ")
+     : " · No hay comprobantes con unidades disponibles para devolver.");
+  }
  }else{
   const p=flkQrBuscarProducto(x);
   titulo.textContent=p?"📦 "+p.nombre:"⚠️ Código detectado";
