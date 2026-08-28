@@ -8021,11 +8021,18 @@ function nuevoReciboCliente(enc){const c=clientePorClave(enc);if(!c)return;abrir
 document.getElementById("busquedaClientes").addEventListener("input",actualizarClientes);
 
 async function mostrarHistorial(){flkOcultarTodasLasVistas();
- if(navigator.onLine){
-  setTimeout(()=>cargarInventarioSupabase().catch(()=>{}),0);
-  setTimeout(()=>cargarHistorialSupabase().catch(()=>{}),0);
+ document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="block";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("historial");actualizarResumenHistorial();mostrarListaHistorial();scrollTop();
+ if(navigator.onLine && flkSesionActiva){
+  // ORDEN OBLIGATORIO: productos -> ventas -> historial.
+  // Antes se lanzaban inventario e historial simultáneamente con setTimeout.
+  // Historial podía ejecutarse primero, no encontrar el producto/devolución
+  // y pintar la lista sin ella.
+  try{
+   await cargarInventarioSupabase();
+   await cargarVentasSupabase();
+   await cargarHistorialSupabase();
+  }catch(e){console.warn("No se pudo refrescar Historial:",e)}
  }
- document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="block";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("historial");actualizarResumenHistorial();mostrarListaHistorial();scrollTop()
 }
 function actualizarResumenHistorial(){
  const entradas=historial.reduce((t,m)=>m.tipo==="entrada"?t+Number(m.cantidad):t,0),salidas=historial.reduce((t,m)=>m.tipo==="salida"?t+Number(m.cantidad):t,0);
