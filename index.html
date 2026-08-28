@@ -1414,7 +1414,6 @@ textarea::placeholder{
 }
 .flk-qr-selector-compra{background:#e9f8ef;color:#168044}
 .flk-qr-selector-venta{background:#eaf4ff;color:#0a67d1}
-.flk-qr-selector-salida{background:#fff1e8;color:#c45b19}
 .flk-qr-selector-devolucion{background:#fff1e8;color:#c45b19}
 @media(max-width:430px){
  .flk-qr-principal{left:10px;bottom:10px;right:auto;top:auto;padding:9px 12px;font-size:13px;border-radius:13px}
@@ -1661,7 +1660,6 @@ textarea::placeholder{
   <p class="mensaje-movimiento">Selecciona la operación y Flackunloker abrirá directamente el escáner en ese modo.</p>
   <div class="flk-qr-selector-grid">
    <button type="button" class="flk-qr-selector-compra" onclick="abrirModoQRDesdePrincipalConCamara('entrada')">📥 Compra / Entrada</button>
-   <button type="button" class="flk-qr-selector-salida" onclick="abrirModoQRDesdePrincipalConCamara('salida')">📤 Salida</button>
    <button type="button" class="flk-qr-selector-venta" onclick="abrirModoQRDesdePrincipalConCamara('venta')">🧾 Venta</button>
    <button type="button" class="flk-qr-selector-devolucion" onclick="abrirModoQRDesdePrincipalConCamara('devolucion')">↩️ Devolución</button>
   </div>
@@ -2175,7 +2173,6 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <form class="formulario" id="formularioMovimiento">
 <h2 id="tituloMovimiento">Movimiento</h2><p class="mensaje-movimiento" id="textoMovimiento">Movimiento de inventario</p>
 <div class="campo"><label for="cantidadMovimiento">Cantidad</label><input id="cantidadMovimiento" type="number" min="1" step="1" required></div>
-<div class="campo"><label for="notaMovimiento">Nota / descripción del comprobante</label><textarea id="notaMovimiento" rows="3" placeholder="Ejemplo: Traslado a tienda, mercancía dañada, entrega a empleado..."></textarea></div>
 <div id="estadoMovimientoOffline" style="display:none;margin:8px 0 0;font-size:12px;font-weight:700;color:#a15c00">Guardando movimiento local...</div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarMovimiento()">Cancelar</button><button id="botonConfirmarMovimiento" type="submit" class="boton-guardar">Confirmar</button></div>
 </form>
@@ -6828,8 +6825,6 @@ function cerrarMovimiento(){
  if(btn){btn.disabled=false;btn.textContent="Confirmar"}
  const est=document.getElementById("estadoMovimientoOffline");
  if(est)est.style.display="none";
- const nota=document.getElementById("notaMovimiento");
- if(nota)nota.value="";
  productoMovimiento=null;tipoMovimiento=null
 }
 
@@ -6892,11 +6887,8 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
 
   const delta=tipoMovimiento==="entrada"?cantidad:-cantidad;
   const tipoGuardado=tipoMovimiento;
-  const notaEl=document.getElementById("notaMovimiento");
-  const notaMovimiento=notaEl?notaEl.value.trim():"";
-  const detalleMovimiento=notaMovimiento||"Movimiento manual desde Flackunloker";
 
-  p.cantidad=await ajustarStockSupabase(p,delta,tipoGuardado,detalleMovimiento);
+  p.cantidad=await ajustarStockSupabase(p,delta,tipoGuardado,"Movimiento manual desde Flackunloker");
 
   if(navigator.onLine){
    await cargarHistorialSupabase();
@@ -6911,7 +6903,7 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
     id:Date.now()+Math.floor(Math.random()*100000),
     productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:tipoGuardado,
     cantidad,saldo:p.cantidad,fecha:new Date().toISOString(),
-    detalle:(notaMovimiento?notaMovimiento+" · ":"")+"🟠 Pendiente de sincronización"
+    detalle:"🟠 Pendiente de sincronización"
    });
    guardarDatos();
    guardarHistorial();
@@ -7019,11 +7011,6 @@ function flkAjustarClienteVentaDesdeCache(){
 document.getElementById("clienteVenta").addEventListener("change",flkAjustarClienteVentaDesdeCache);
 document.getElementById("clienteVenta").addEventListener("blur",flkAjustarClienteVentaDesdeCache);
 function abrirVenta(id=null){
- const selectorVentaNormal=document.getElementById("productoRecibo");
- const campoSelectorVentaNormal=selectorVentaNormal?.closest(".campo");
- if(campoSelectorVentaNormal)campoSelectorVentaNormal.style.display="";
- const botonAgregarVentaNormal=document.querySelector(".boton-agregar-carrito");
- if(botonAgregarVentaNormal)botonAgregarVentaNormal.style.display="";
  carritoVenta=[];document.getElementById("formularioVenta").reset();document.getElementById("cantidadVenta").value="1";document.getElementById("abonoInicialVenta").value="0";document.getElementById("fechaVencimientoVenta").value="";
  actualizarCamposCredito();cargarSelectorProductosRecibo(id);flkActualizarCacheClientesVenta();renderCarritoVenta();
  document.getElementById("textoVenta").textContent="Agrega uno o varios productos al mismo recibo del cliente.";
@@ -8024,11 +8011,25 @@ function actualizarResumenHistorial(){
  document.getElementById("totalMovimientos").textContent=historial.length;document.getElementById("totalEntradas").textContent=entradas;document.getElementById("totalSalidas").textContent=salidas
 }
 function imprimirComprobanteMovimiento(id){
- const m=historial.find(x=>String(x.id)===String(id)||String(x.supabaseId||"")===String(id));if(!m)return alert("Movimiento no encontrado.");
- const f=new Date(m.fecha),entrada=m.tipo==="entrada",color=entrada?"#138a43":"#0a67d1",pref=entrada?"EN":"SA",numero=flkNumeroComprobanteConsecutivo(pref,m.supabaseId||m.id||m.fecha);
+ const m=historial.find(x=>String(x.id)===String(id)||String(x.supabaseId||"")===String(id));
+ if(!m)return alert("Movimiento no encontrado.");
+ const f=new Date(m.fecha),esEntrada=m.tipo==="entrada";
+ const ventaRelacionada=m.ventaId?ventas.find(v=>String(v.id)===String(m.ventaId)):null;
+ const esVenta=!!ventaRelacionada;
+ const color=esVenta?"#168044":(esEntrada?"#138a43":"#0a67d1");
+ const pref=esVenta?"VE":(esEntrada?"EN":"SA");
+ const referencia=esVenta?(ventaRelacionada.supabaseId||ventaRelacionada.offlineOperationId||ventaRelacionada.id):(m.supabaseId||m.id||m.fecha);
+ const numero=esVenta?(ventaRelacionada.numero||String(ventaRelacionada.numeroConsecutivo||"")):flkNumeroComprobanteConsecutivo(pref,referencia);
  const saldo=m.saldo!==undefined&&m.saldo!==null?Number(m.saldo):null;
- const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${entrada?"Entrada":"Salida"} de inventario</title><style>${flkCssComprobanteProfesional(color)}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">${entrada?"↓ Entrada de inventario":"↑ Salida de inventario"}</span><span class="numero">N.º ${pref}-${numero}</span></div></header><section class="meta"><div>Fecha y hora<strong>${f.toLocaleDateString("es-PR")} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Tipo de movimiento<strong>${entrada?"Entrada":"Salida"}</strong></div><div>Origen / detalle<strong>${escapeHtml(m.detalle||"Movimiento de inventario")}</strong></div><div>Saldo posterior<strong>${saldo===null?"No disponible":saldo+" unidades"}</strong></div></section><section class="seccion"><h3>Detalle del movimiento</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cantidad</th><th class="num">Saldo posterior</th></tr></thead><tbody><tr><td>${escapeHtml(m.nombre||"Producto")}</td><td>${escapeHtml(m.sku||"—")}</td><td class="num"><strong>${Number(m.cantidad||0)}</strong></td><td class="num">${saldo===null?"—":saldo}</td></tr></tbody></table></section><section class="seccion"><div class="firma"><div>Registrado por</div><div>Revisión / conformidad</div></div></section><div class="pie">Documento de control de inventario · Generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div></body></html>`;
- flkAbrirDocumentoComprobante(html)
+ const cliente=esVenta?(ventaRelacionada.cliente||"Cliente general"):"";
+ const metodo=esVenta?(ventaRelacionada.metodoPago||"Efectivo"):"";
+ const recibo=esVenta?(ventaRelacionada.numero||""):"";
+ const titulo=esVenta?"Venta":(esEntrada?"Entrada":"Salida");
+ const tipoTexto=esVenta?"Venta":(esEntrada?"Entrada":"Salida");
+ const detalle=esVenta?`Venta · Recibo ${escapeHtml(recibo)}`:(m.detalle||"Movimiento de inventario");
+
+ const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${titulo}</title><style>${flkCssComprobanteProfesional(color)}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">${esVenta?"💰 Venta":(esEntrada?"↓ Entrada de inventario":"↑ Salida de inventario")}</span><span class="numero">N.º ${escapeHtml(String(recibo||numero))}</span></div></header><section class="meta"><div>Fecha y hora<strong>${f.toLocaleDateString("es-PR")} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Tipo de movimiento<strong>${tipoTexto}</strong></div>${esVenta?`<div>Cliente<strong>${escapeHtml(cliente)}</strong></div><div>Método de pago<strong>${escapeHtml(metodo)}</strong></div><div>Recibo<strong>#${escapeHtml(String(recibo))}</strong></div>`:""}<div>Origen / detalle<strong>${detalle}</strong></div><div>Saldo posterior<strong>${saldo===null?"No disponible":saldo+" unidades"}</strong></div></section><section class="seccion"><h3>${esVenta?"Detalle de la venta":"Detalle del movimiento"}</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cantidad</th><th class="num">Saldo posterior</th></tr></thead><tbody><tr><td>${escapeHtml(m.nombre||"Producto")}</td><td>${escapeHtml(m.sku||"—")}</td><td class="num"><strong>${Number(m.cantidad||0)}</strong></td><td class="num">${saldo===null?"—":saldo}</td></tr></tbody></table></section>${esVenta?`<section class="seccion"><div style="font-size:12px;color:#555">Movimiento de inventario asociado al recibo de venta. La existencia se descuenta como salida de inventario.</div></section>`:""}<section class="seccion"><div class="firma"><div>Registrado por</div><div>Revisión / conformidad</div></div></section><div class="pie">Documento de control de inventario · Generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div></body></html>`;
+ flkAbrirDocumentoComprobante(html);
 }
 function mostrarListaHistorial(){
  const lista=document.getElementById("listaHistorial"),q=document.getElementById("busquedaHistorial").value.toLowerCase().trim();
@@ -10641,32 +10642,13 @@ function procesarCodigoQR(codigo,desdeCamara=false){
  }
 }
 function agregarProductoVentaQR(p){
- const maxDisponible=Number(p.cantidad||0);
- if(maxDisponible<=0){
-  flkQrAviso('<strong>⚠️ Sin disponibilidad</strong><br>No hay unidades disponibles de '+flkQrEsc(p.nombre)+'.');return;
- }
- const respuesta=prompt("¿Cuántas unidades de "+p.nombre+" deseas vender?\n\nDisponibles: "+maxDisponible,"1");
- if(respuesta===null)return;
- const cantidad=Math.floor(Number(String(respuesta).replace(",", ".")));
- if(!Number.isInteger(cantidad)||cantidad<=0){
-  flkQrAviso('<strong>⚠️ Cantidad no válida</strong><br>Introduce un número entero mayor que 0.');return;
- }
- if(cantidad>maxDisponible){
-  flkQrAviso('<strong>⚠️ Sin disponibilidad</strong><br>Solo hay '+maxDisponible+' unidad(es) disponibles de '+flkQrEsc(p.nombre)+'.');return;
- }
  const existente=flkQrVentaItems.find(i=>String(i.productoId)===String(p.id));
- if(existente){
-  const nuevaCantidad=Number(existente.cantidad||0)+cantidad;
-  if(nuevaCantidad>maxDisponible){
-   flkQrAviso('<strong>⚠️ Sin disponibilidad</strong><br>Ya tienes '+Number(existente.cantidad||0)+' unidad(es) de '+flkQrEsc(p.nombre)+' en la venta.');return;
-  }
-  existente.cantidad=nuevaCantidad;
- }else{
-  flkQrVentaItems.push({productoId:p.id,nombre:p.nombre,sku:p.sku,cantidad,precioUnitario:Number(p.precio||0),costoUnitario:Number(p.costo||0)});
- }
+ const ya=existente?Number(existente.cantidad):0;
+ if(ya+1>Number(p.cantidad||0)){flkQrAviso('<strong>⚠️ Sin disponibilidad</strong><br>No puedes agregar más unidades de '+flkQrEsc(p.nombre)+'.');return}
+ if(existente)existente.cantidad+=1;
+ else flkQrVentaItems.push({productoId:p.id,nombre:p.nombre,sku:p.sku,cantidad:1,precioUnitario:Number(p.precio||0),costoUnitario:Number(p.costo||0)});
  renderVentaQR();
- const e=document.getElementById("flkQrEstado");
- if(e)e.textContent="✅ "+p.nombre+" · "+cantidad+" unidad"+(cantidad===1?"":"es")+" agregada(s).";
+ const e=document.getElementById("flkQrEstado");if(e)e.textContent="✅ "+p.nombre+" agregado. Continúa escaneando.";
 }
 function quitarUnidadVentaQR(id){
  const i=flkQrVentaItems.find(x=>String(x.productoId)===String(id));if(!i)return;
@@ -10689,11 +10671,6 @@ function continuarVentaQR(){
  abrirVenta();
  carritoVenta=copia;
  renderCarritoVenta();
- const selectorQRVenta=document.getElementById("productoRecibo");
- const campoSelectorQRVenta=selectorQRVenta?.closest(".campo");
- if(campoSelectorQRVenta)campoSelectorQRVenta.style.display="none";
- const botonAgregarQRVenta=document.querySelector(".boton-agregar-carrito");
- if(botonAgregarQRVenta)botonAgregarQRVenta.style.display="none";
  document.getElementById("textoVenta").textContent="Productos agregados por QR. Revisa el recibo, completa cliente y forma de pago, y confirma la venta.";
 }
 window.addEventListener("pagehide",function(){detenerEscanerQR(false)});
@@ -10713,7 +10690,7 @@ function abrirModoQRDesdePrincipal(modo){
    seleccionarModoQR(modo);
    const estado=document.getElementById("flkQrEstado");
    if(estado){
-    const nombres={entrada:"Compra / Entrada",salida:"Salida",venta:"Venta",devolucion:"Devolución"};
+    const nombres={entrada:"Compra / Entrada",venta:"Venta",devolucion:"Devolución"};
     estado.textContent="Modo "+(nombres[modo]||modo)+" listo. Activa cámara o lector físico.";
    }
  },30);
@@ -10811,7 +10788,6 @@ async function abrirModoQRDesdePrincipalConCamara(modo){
  const estado=document.getElementById("flkQrEstado");
  const nombres={
   entrada:"Compra / Entrada",
-  salida:"Salida",
   venta:"Venta",
   devolucion:"Devolución"
  };
@@ -11194,7 +11170,7 @@ abrirModoQRDesdePrincipalConCamara=async function(modo){
  abrirEscanerQR();
  seleccionarModoQR(modo);
  const estado=document.getElementById("flkQrEstado");
- const nombres={entrada:"Compra / Entrada",salida:"Salida",venta:"Venta",devolucion:"Devolución"};
+ const nombres={entrada:"Compra / Entrada",venta:"Venta",devolucion:"Devolución"};
  if(estado)estado.textContent="Modo "+(nombres[modo]||modo)+" seleccionado. Abriendo cámara trasera…";
  await window.iniciarEscanerQRCamaraTrasera();
 };
