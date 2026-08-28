@@ -1660,7 +1660,6 @@ textarea::placeholder{
   <p class="mensaje-movimiento">Selecciona la operación y Flackunloker abrirá directamente el escáner en ese modo.</p>
   <div class="flk-qr-selector-grid">
    <button type="button" class="flk-qr-selector-compra" onclick="abrirModoQRDesdePrincipalConCamara('entrada')">📥 Compra / Entrada</button>
-   <button type="button" class="flk-qr-selector-salida" onclick="abrirModoQRDesdePrincipalConCamara('salida')">📤 Salida</button>
    <button type="button" class="flk-qr-selector-venta" onclick="abrirModoQRDesdePrincipalConCamara('venta')">🧾 Venta</button>
    <button type="button" class="flk-qr-selector-devolucion" onclick="abrirModoQRDesdePrincipalConCamara('devolucion')">↩️ Devolución</button>
   </div>
@@ -10435,7 +10434,7 @@ body.flk-v6125 #listaCierres .cierre-detalle strong {color:#000000 !important;}
 
 <script id="flk-qr-safe-js">
 let flkQrStream=null,flkQrDetector=null,flkQrActivo=false,flkProductoEtiquetaActual=null;
-let flkQrModo="",flkQrModoOperacionActiva="",flkQrVentaItems=[],flkQrUltimo="",flkQrUltimoTs=0;
+let flkQrModo="",flkQrVentaItems=[],flkQrUltimo="",flkQrUltimoTs=0;
 let flkLectorFisicoActivo=false,flkLectorFisicoBuffer="",flkLectorFisicoUltimoTs=0,flkLectorFisicoTimer=null;
 
 function flkQrEsc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
@@ -10528,7 +10527,6 @@ document.addEventListener("keydown",function(ev){
 
 function seleccionarModoQR(modo){
  flkQrModo=modo;
- flkQrModoOperacionActiva=modo;
  document.querySelectorAll("#flkQrModos button").forEach(b=>b.classList.toggle("activo",b.dataset.modo===modo));
  const nombres={entrada:"📥 Entrada de mercancía",salida:"📤 Salida de mercancía",venta:"🧾 Venta por escaneo continuo",devolucion:"↩️ Devolución por recibo"};
  const t=document.getElementById("flkQrModoTexto");if(t)t.textContent="Modo: "+(nombres[modo]||"");
@@ -10538,7 +10536,7 @@ function seleccionarModoQR(modo){
 }
 function abrirEscanerQR(){
  try{cerrarMenuPrincipal()}catch(_){}
- flkQrModo="";flkQrModoOperacionActiva="";flkQrVentaItems=[];flkQrUltimo="";flkQrUltimoTs=0;
+ flkQrModo="";flkQrVentaItems=[];flkQrUltimo="";flkQrUltimoTs=0;
  flkLectorFisicoBuffer="";flkLectorFisicoUltimoTs=0;
  actualizarEstadoLectorFisico();
  document.querySelectorAll("#flkQrModos button").forEach(b=>b.classList.remove("activo"));
@@ -10609,13 +10607,7 @@ function flkQrAviso(html){
  box.style.display="block";box.innerHTML=html;
 }
 function procesarCodigoQR(codigo,desdeCamara=false){
- const modoOperacion=flkQrModoOperacionActiva||flkQrModo;
- if(!modoOperacion)return alert("Primero selecciona el tipo de operación.");
- // The selected operation is authoritative for this QR transaction.
- // Camera callbacks are asynchronous, so do not let a later UI change
- // redirect a Venta into Salida (or vice versa).
- const modoAnterior=flkQrModo;
- flkQrModo=modoOperacion;
+ if(!flkQrModo)return alert("Primero selecciona el tipo de operación.");
  const x=flkQrValor(codigo);
  if(!String(x.valor||"").trim())return alert("Escribe o escanea un código.");
  if(flkQrModo==="devolucion"){
@@ -10989,7 +10981,7 @@ function cancelarLecturaQRPendiente(){
 }
 
 // Preserve original business logic and replace scanner-facing entry point.
-const flkProcesarCodigoQRNegocio=procesarCodigoQR;
+let flkProcesarCodigoQRNegocio=procesarCodigoQR;
 procesarCodigoQR=function(codigo,desdeCamara=false){
  if(desdeCamara){
   flkPresentarLecturaParaConfirmar(codigo);
@@ -11798,6 +11790,69 @@ async function flkDeepStorageCopy(){
  try{await navigator.clipboard.writeText(t);alert("Resumen copiado.")}catch(_){alert(t)}
 }
 
+</script>
+
+<script id="flk-qr-operacion-segura-final">
+/* v61.83: la operación elegida por el usuario queda bloqueada durante la lectura.
+   Evita que Venta termine ejecutándose como Entrada/Salida por otra capa del lector. */
+let flkQrModoSeguroSeleccionado="";
+let flkQrModoSeguroPendiente="";
+
+const flkSeleccionarModoQR_Seguro=seleccionarModoQR;
+seleccionarModoQR=function(modo){
+  const permitido=["entrada","salida","venta","devolucion"];
+  if(!permitido.includes(String(modo)))return;
+  flkQrModoSeguroSeleccionado=String(modo);
+  return flkSeleccionarModoQR_Seguro(modo);
+};
+
+const flkAbrirEscanerQR_Seguro=abrirEscanerQR;
+abrirEscanerQR=function(){
+  flkQrModoSeguroSeleccionado="";
+  flkQrModoSeguroPendiente="";
+  return flkAbrirEscanerQR_Seguro.apply(this,arguments);
+};
+
+const flkPresentarLecturaQR_Seguro=flkPresentarLecturaParaConfirmar;
+flkPresentarLecturaParaConfirmar=function(codigo){
+  const modo=flkQrModoSeguroSeleccionado||flkQrModo;
+  if(!modo)return alert("Primero selecciona la operación.");
+  flkQrModoSeguroPendiente=modo;
+  const modoAnterior=flkQrModo;
+  try{
+    flkQrModo=modo;
+    return flkPresentarLecturaQR_Seguro(codigo);
+  }finally{
+    flkQrModo=modoAnterior;
+  }
+};
+
+const flkConfirmarLecturaQR_Seguro=confirmarLecturaQRPendiente;
+confirmarLecturaQRPendiente=function(){
+  const modo=flkQrModoSeguroPendiente||flkQrModoSeguroSeleccionado||flkQrModo;
+  const modoAnterior=flkQrModo;
+  try{
+    flkQrModo=modo;
+    return flkConfirmarLecturaQR_Seguro.apply(this,arguments);
+  }finally{
+    flkQrModo=modoAnterior;
+    flkQrModoSeguroPendiente="";
+  }
+};
+
+/* La ruta de Venta queda explícitamente separada de Entrada/Salida. */
+const flkProcesarNegocioSeguroFinal=flkProcesarCodigoQRNegocio;
+flkProcesarCodigoQRNegocio=function(codigo,desdeCamara){
+  const modo=flkQrModoSeguroPendiente||flkQrModoSeguroSeleccionado||flkQrModo;
+  if(!modo)return;
+  const modoAnterior=flkQrModo;
+  try{
+    flkQrModo=modo;
+    return flkProcesarNegocioSeguroFinal(codigo,desdeCamara);
+  }finally{
+    flkQrModo=modoAnterior;
+  }
+};
 </script>
 </body>
 </html>
