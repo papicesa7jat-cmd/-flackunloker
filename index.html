@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-27-v61.52-abono-local-first">
+<meta name="flackunloker-offline-version" content="2026-08-28-v61.53-offline-abono-real">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -4178,6 +4178,12 @@ async function flkRecuperacionEmergenciaNube(){
   actualizarCuentasPagar();actualizarFlujoCaja();actualizarFinanzas();actualizarEstadisticas();
 
   if(fallos.length){
+   const soloConexion=fallos.every(x=>/load failed|failed to fetch|network|fetch/i.test(String(x||"")));
+   if(!navigator.onLine||soloConexion){
+    console.warn("Recuperación pausada por falta de conexión:",fallos);
+    flkActualizarEstadoConexion("offline");
+    return false;
+   }
    alert("Recuperación parcial.\n\n"+fallos.join("\n\n"));
    return false;
   }
@@ -7529,16 +7535,17 @@ document.getElementById("formularioAbono").addEventListener("submit",async e=>{
  e.preventDefault();if(procesandoGuardado)return;
  const v=ventas.find(x=>x.id===ventaAbonoId);if(!v)return cerrarAbono();
  normalizarCuentaVenta(v);
- const cantidad=Number(document.getElementById("cantidadAbono").value),metodo=document.getElementById("metodoAbono").value,nota=document.getElementById("notaAbono").value.trim();
+ const cantidad=Number(document.getElementById("cantidadAbono").value);
+ const metodo=document.getElementById("metodoAbono").value;
+ const nota=document.getElementById("notaAbono").value.trim();
  if(!Number.isFinite(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
  if(cantidad>Number(v.saldo)+0.009)return alert(`El abono no puede superar el saldo de $${Number(v.saldo).toFixed(2)}.`);
  if(!v.supabaseId&&!v.offlineOperationId)return alert("Este recibo no tiene una referencia segura para sincronizar el abono.");
 
- // v61.52: los abonos son LOCAL-FIRST siempre. No dependemos de navigator.onLine,
- // que en iPhone puede seguir en true aunque no exista salida real a Internet.
- // La interfaz y el saldo cambian de inmediato; la cola idempotente sincroniza después.
  procesandoGuardado=true;
  try{
+  // v61.53: escribir PRIMERO en la copia local, sin consultar red ni sesión.
+  const saldoAntes=Number(v.saldo||0);
   const op=flkEncolarOperacion("sale_payment",{
    sale_id:v.supabaseId||null,
    sale_operation_id:v.offlineOperationId||null,
@@ -7548,21 +7555,44 @@ document.getElementById("formularioAbono").addEventListener("submit",async e=>{
    payment_method:metodo,
    note:nota||null
   });
-  const aplicado=flkAplicarAbonoLocal(op);
-  if(!aplicado)throw new Error("No se pudo aplicar el abono a la copia local del recibo.");
-  guardarVentas();actualizarVentas();actualizarClientes();actualizarFlujoCaja();actualizarFinanzas();
+
+  if(!flkAplicarAbonoLocal(op)){
+   // Si no pudo aplicarse, retirar la operación recién creada para no dejar basura en cola.
+   const q=flkColaOffline().filter(x=>x.id!==op.id);
+   flkGuardarColaOffline(q);
+   throw new Error("No se pudo aplicar el abono a la copia local del recibo.");
+  }
+
+  // Persistir antes de cualquier intento de Internet.
+  guardarVentas();
+  try{guardarMovimientosCajaLocal()}catch(_){}
+  actualizarVentas();
+  actualizarClientes();
+  actualizarFlujoCaja();
+  actualizarFinanzas();
+  if(typeof actualizarAlertas==="function")actualizarAlertas();
+
   const saldoAhora=Number(v.saldo||0);
   cerrarAbono();
-  alert(saldoAhora<=0.009
-   ?"✅ Abono registrado. La cuenta quedó pagada."
-   :`✅ Abono registrado.\n\nSaldo pendiente: $${saldoAhora.toFixed(2)}`);
-  // Si hay conexión real, intentamos sincronizar enseguida. Si no la hay,
-  // la operación permanece en la cola sin bloquear ni revertir el abono local.
-  if(navigator.onLine)setTimeout(()=>{flkSincronizarSeguro().catch(()=>{})},0);
+
+  alert(!navigator.onLine
+   ? `✅ Abono guardado OFFLINE.\n\nSaldo anterior: $${saldoAntes.toFixed(2)}\nSaldo pendiente: $${saldoAhora.toFixed(2)}\n\nSe sincronizará al volver Internet.`
+   : (saldoAhora<=0.009
+      ?"✅ Abono registrado. La cuenta quedó pagada."
+      :`✅ Abono registrado.\n\nSaldo pendiente: $${saldoAhora.toFixed(2)}`));
+
+  // Nunca esperar red para considerar guardado el abono.
+  if(navigator.onLine){
+   setTimeout(async()=>{
+    try{await flkSincronizarSeguro()}catch(err){console.warn("Abono pendiente de sincronización:",err)}
+   },250);
+  }
  }catch(err){
-  console.error(err);
-  alert("No se pudo registrar el abono: "+(err.message||err));
- }finally{procesandoGuardado=false}
+  console.error("Abono local:",err);
+  alert("No se pudo registrar el abono local: "+(err.message||err));
+ }finally{
+  procesandoGuardado=false;
+ }
 });
 function verHistorialAbonos(id){const v=ventas.find(x=>x.id===id);if(!v)return;normalizarCuentaVenta(v);const pagos=[...pagosDeVenta(v)].sort((a,b)=>new Date(b.fecha||0)-new Date(a.fecha||0)||Number(b.id||0)-Number(a.id||0)),numero=v.numero||String(v.id).slice(-8);document.getElementById("textoHistorialAbonos").textContent=`Recibo #${numero} · ${v.cliente||"Cliente general"} · ${pagos.length} abono(s)`;const lista=document.getElementById("listaHistorialAbonos");lista.innerHTML=pagos.length?pagos.map((p,n)=>{const f=new Date(p.fecha);return `<div class="abono-card"><div class="abono-superior"><strong>Abono #${pagos.length-n}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}<br>Método: <strong>${escapeHtml(normalizarMetodoFlujo(p.metodo||"MLC"))}</strong><br>Saldo anterior: <strong>$${Number(p.saldoAnterior??0).toFixed(2)}</strong><br>Saldo restante: <strong>$${Number(p.saldoRestante??0).toFixed(2)}</strong>${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><button type="button" class="boton-comprobante" onclick="generarComprobanteAbono(${v.id},${p.id})">🧾 Ver comprobante</button></div>`}).join(""):'<div class="sin-productos">Este recibo todavía no tiene abonos registrados.</div>';document.getElementById("modalHistorialAbonos").classList.add("visible")}
 function cerrarHistorialAbonos(){document.getElementById("modalHistorialAbonos").classList.remove("visible")}
@@ -9550,7 +9580,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.24",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.53",{updateViaCache:"none"});
    if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
