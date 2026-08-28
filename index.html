@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-28-v61.73-saldo-posterior-supabase">
-<title>Flackunloker · v61.73</title>
+<meta name="flackunloker-offline-version" content="2026-08-28-v61.74-saldo-posterior-supabase">
+<title>Flackunloker · v61.74</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}
@@ -8122,7 +8122,7 @@ function recalcularSaldos(){
  orden.forEach(m=>{
   if(porProducto[m.productoId]===undefined)porProducto[m.productoId]=0;
 
-  // v61.73: los movimientos que vienen de Supabase ya traen stock_after,
+  // v61.74: los movimientos que vienen de Supabase ya traen stock_after,
   // que es el saldo posterior autoritativo guardado al crear el movimiento.
   // No lo recalculamos porque hacerlo desde el historial completo podía
   // sobrescribir, por ejemplo, una devolución con saldo 6 y mostrar 5.
@@ -9989,7 +9989,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.73",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.74",{updateViaCache:"none"});
    if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
@@ -10773,7 +10773,7 @@ function procesarCodigoQR(codigo,desdeCamara=false){
   // En devolución, el QR identifica EL PRODUCTO, no el recibo.
   // Buscamos las ventas que contienen ese producto y que aún tienen unidades
   // disponibles para devolver. El usuario elige el comprobante correcto.
-  const p=flkQrBuscarProducto(x);
+  const p=flkQrBuscarProducto(x.valor);
   if(!p)return flkQrAviso('<strong>⚠️ Producto no encontrado</strong><br>'+flkQrEsc(codigo));
 
   const ventasCompatibles=(Array.isArray(ventas)?ventas:[]).map(v=>{
@@ -10833,7 +10833,7 @@ function procesarCodigoQR(codigo,desdeCamara=false){
   );
   return;
  }
- const p=flkQrBuscarProducto(x);
+ const p=flkQrBuscarProducto(x.valor);
  if(!p)return flkQrAviso('<strong>⚠️ Producto no encontrado</strong><br>'+flkQrEsc(codigo));
  if(flkQrModo==="entrada"||flkQrModo==="salida"){
   flkQrAviso('<strong>📦 '+flkQrEsc(p.nombre)+'</strong><br>SKU: '+flkQrEsc(p.sku)+' · Existencia: '+Number(p.cantidad||0)+'<br>Abriendo cantidad para confirmar '+(flkQrModo==="entrada"?"entrada":"salida")+'.');
@@ -11146,11 +11146,11 @@ function flkPresentarLecturaParaConfirmar(codigo){
 
  let texto=codigo;
  if(flkQrModo==="devolucion"){
-  const v=flkQrBuscarVenta(x);
-  titulo.textContent=v?"🧾 Recibo detectado":"⚠️ Código detectado";
-  texto=v?("Recibo #"+String(v.numero||v.id)+". Confirma para abrir la devolución."):"No se encontró un recibo con este código.";
+  const p=flkQrBuscarProducto(x.valor);
+  titulo.textContent=p?"↩️ "+p.nombre:"⚠️ Código detectado";
+  texto=p?("SKU: "+p.sku+" · Existencia: "+Number(p.cantidad||0)+". Confirma para buscar los comprobantes disponibles para devolución."):"No se encontró un producto con este código.";
  }else{
-  const p=flkQrBuscarProducto(x);
+  const p=flkQrBuscarProducto(x.valor);
   titulo.textContent=p?"📦 "+p.nombre:"⚠️ Código detectado";
   texto=p?("SKU: "+p.sku+" · Existencia: "+Number(p.cantidad||0)+". Confirma para continuar con "+({entrada:"Compra / Entrada",salida:"Salida",venta:"Venta"}[flkQrModo]||flkQrModo)+"."):"No se encontró un producto con este código.";
  }
