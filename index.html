@@ -7565,7 +7565,37 @@ document.getElementById("formularioAbono").addEventListener("submit",async e=>{
   const actualizado=ventas.find(x=>x.supabaseId===v.supabaseId);
   cerrarAbono();
   alert(actualizado&&actualizado.saldo<=0?"✅ Cuenta pagada completamente.":`Abono guardado en Supabase.\n\nSaldo pendiente: $${Number(actualizado?.saldo||0).toFixed(2)}`);
- }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el abono: "+(err.message||err))}
+ }catch(err){
+  console.error(err);
+  // v61.51: si el navegador cree estar online pero la llamada a Supabase falla
+  // por conexión, conservar el abono localmente y sincronizarlo después.
+  if(flkEsErrorConexion(err)){
+   try{
+    const op=flkEncolarOperacion("sale_payment",{
+     sale_id:v.supabaseId||null,
+     sale_operation_id:v.offlineOperationId||null,
+     local_sale_id:v.id,
+     local_payment_id:Date.now()+Math.floor(Math.random()*100000),
+     amount:cantidad,
+     payment_method:metodo,
+     note:nota||null
+    });
+    flkAplicarAbonoLocal(op);
+    guardarVentas();actualizarVentas();actualizarClientes();actualizarFlujoCaja();actualizarFinanzas();
+    const saldoAhora=Number(v.saldo||0);
+    cerrarAbono();
+    flkActualizarEstadoConexion();
+    alert(saldoAhora<=0.009
+     ?"✅ Abono guardado localmente. La cuenta quedó pagada y se sincronizará automáticamente."
+     :`✅ Abono guardado localmente.\n\nSaldo pendiente: $${saldoAhora.toFixed(2)}\nSe sincronizará automáticamente cuando mejore la conexión.`);
+   }catch(localErr){
+    console.error(localErr);
+    alert("No se pudo conservar el abono localmente: "+(localErr.message||localErr));
+   }
+  }else{
+   alert("Supabase rechazó el abono: "+(err.message||err));
+  }
+ }
  finally{procesandoGuardado=false}
 });
 function verHistorialAbonos(id){const v=ventas.find(x=>x.id===id);if(!v)return;normalizarCuentaVenta(v);const pagos=[...pagosDeVenta(v)].sort((a,b)=>new Date(b.fecha||0)-new Date(a.fecha||0)||Number(b.id||0)-Number(a.id||0)),numero=v.numero||String(v.id).slice(-8);document.getElementById("textoHistorialAbonos").textContent=`Recibo #${numero} · ${v.cliente||"Cliente general"} · ${pagos.length} abono(s)`;const lista=document.getElementById("listaHistorialAbonos");lista.innerHTML=pagos.length?pagos.map((p,n)=>{const f=new Date(p.fecha);return `<div class="abono-card"><div class="abono-superior"><strong>Abono #${pagos.length-n}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}<br>Método: <strong>${escapeHtml(normalizarMetodoFlujo(p.metodo||"MLC"))}</strong><br>Saldo anterior: <strong>$${Number(p.saldoAnterior??0).toFixed(2)}</strong><br>Saldo restante: <strong>$${Number(p.saldoRestante??0).toFixed(2)}</strong>${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><button type="button" class="boton-comprobante" onclick="generarComprobanteAbono(${v.id},${p.id})">🧾 Ver comprobante</button></div>`}).join(""):'<div class="sin-productos">Este recibo todavía no tiene abonos registrados.</div>';document.getElementById("modalHistorialAbonos").classList.add("visible")}
