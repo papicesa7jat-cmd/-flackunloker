@@ -3012,7 +3012,7 @@ function flkAplicarDevolucionLocal(op){
    productoId:prod.id,nombre:prod.nombre,sku:prod.sku,tipo:"entrada",
    cantidad:aplicada,saldo:Number(prod.cantidad||0),
    fecha:op.created_at||new Date().toISOString(),
-   detalle:"🟠 Devolución pendiente de sincronización · Recibo "+String(v.numero||v.id)+" · Cliente "+String(v.cliente||"Cliente general")
+   detalle:"🟠 Devolución pendiente de sincronización"
   })
  }
  return true
@@ -4100,34 +4100,73 @@ async function flkRecuperacionEmergenciaNube(){
 
    const items=rItems.data||[],pagos=rPagos.data||[],devol=rDevol.data||[];
    ventas=(rVentas.data||[]).map(v=>{
+    const saleItems=items.filter(x=>String(x.sale_id)===String(v.id));
+    const salePayments=pagos.filter(x=>String(x.sale_id)===String(v.id));
+    const saleReturns=devol.filter(x=>String(x.sale_id)===String(v.id));
+
     const row={
      ...v,
-     sale_items:items.filter(x=>x.sale_id===v.id),
-     sale_payments:pagos.filter(x=>x.sale_id===v.id),
-     sale_returns:devol.filter(x=>x.sale_id===v.id)
+     sale_items:saleItems,
+     sale_payments:salePayments,
+     sale_returns:saleReturns
     };
+
     const local=ventaDesdeSupabase(row);
-    const retornos=row.sale_returns||[];
-    local.devoluciones=retornos.map(r=>({
-     id:idLocalDesdeLegacy(null,r.id),
-     supabaseId:r.id,
-     numeroDevolucion:r.return_number,
-     ventaId:local.id,
-     productoId:(local.items.find(i=>i.supabaseSaleItemId===r.sale_item_id)||{}).productoId,
-     cantidad:Number(r.quantity||0),
-     monto:Number(r.refund_amount||0),
-     reembolso:Number(r.refund_amount||0),
-     motivo:r.reason||"",
-     fecha:r.created_at
-    }));
-    local.items.forEach(i=>{
-     i.devuelto=retornos.filter(r=>r.sale_item_id===i.supabaseSaleItemId)
-      .reduce((t,r)=>t+Number(r.quantity||0),0);
+
+    // Build the return relationship by the real Supabase sale_item_id first.
+    // Also keep a fallback by product_id, so older/local item IDs cannot make
+    // the receipt incorrectly show "0 devoluciones".
+    local.devoluciones=saleReturns.map(r=>{
+     let itemLocal=local.items.find(i=>String(i.supabaseSaleItemId||"")===String(r.sale_item_id||""));
+     if(!itemLocal && r.product_id){
+      itemLocal=local.items.find(i=>String(i.productoSupabaseId||i.supabaseProductId||"")===String(r.product_id));
+     }
+     if(!itemLocal && r.product_id){
+      itemLocal=local.items.find(i=>{
+       const p=productos.find(pp=>String(pp.supabaseId||"")===String(r.product_id));
+       return p && String(i.productoId)===String(p.id);
+      });
+     }
+
+     return {
+      id:idLocalDesdeLegacy(null,r.id),
+      supabaseId:r.id,
+      numeroDevolucion:r.return_number,
+      ventaId:local.id,
+      productoId:itemLocal?.productoId,
+      supabaseSaleItemId:r.sale_item_id||null,
+      supabaseProductId:r.product_id||null,
+      cantidad:Number(r.quantity||0),
+      monto:Number(r.refund_amount||0),
+      reembolso:Number(r.refund_amount||0),
+      motivo:r.reason||"",
+      fecha:r.created_at
+     };
     });
+
+    local.items.forEach(i=>{
+     i.devuelto=saleReturns
+      .filter(r=>String(r.sale_item_id||"")===String(i.supabaseSaleItemId||""))
+      .reduce((t,r)=>t+Number(r.quantity||0),0);
+
+     // Fallback for older records where the item relationship was not stored
+     // locally but product_id is reliable.
+     if(!i.devuelto && i.productoId!==undefined){
+      const p=productos.find(pp=>String(pp.id)===String(i.productoId));
+      if(p){
+       i.devuelto=saleReturns
+        .filter(r=>String(r.product_id||"")===String(p.supabaseId||""))
+        .reduce((t,r)=>t+Number(r.quantity||0),0);
+      }
+     }
+    });
+
     return local
    });
+
    const maxNumero=ventas.reduce((m,v)=>Math.max(m,Number(v.numeroConsecutivo||0)),0);
    if(maxNumero>=proximoNumeroRecibo)proximoNumeroRecibo=maxNumero+1;
+   ventas.forEach(normalizarCuentaVenta);
    guardarVentas();
   }catch(e){console.error("Ventas",e);fallos.push("Ventas: "+(e.message||e))}
 
@@ -6499,8 +6538,7 @@ async function cargarHistorialSupabase(){
  if(navigator.onLine&&!flkSesionActiva)return false;
 
  const {data,error}=await flkSupabase.from("stock_movements")
-  .select("id,product_id,movement_type,quantity,stock_after,note,created_at")
-  .order("created_at",{ascending:false});
+  .select("*").order("created_at",{ascending:false});
  if(error){
   console.error("Supabase historial:",error);
   if(!flkSilenciarSiEsConexion(error))flkRegistrarFalloCargaNube("Historial",error);
@@ -6509,10 +6547,9 @@ async function cargarHistorialSupabase(){
 
  const movimientos=(data||[]).map(movimientoDesdeSupabase);
 
- // Las devoluciones se registran en sale_returns. Si la función RPC no creó
- // además un stock_movement, las incorporamos al historial como ENTRADA de
- // inventario. Nunca duplicamos una devolución ya representada por un
- // movimiento con la misma referencia.
+ // A return is a stock increase but its authoritative record lives in
+ // sale_returns. Add it to the inventory history when stock_movements does
+ // not already represent it.
  let devolucionesHistorial=[];
  try{
   const {data:returns,error:returnError}=await flkSupabase.from("sale_returns")
@@ -6533,11 +6570,8 @@ async function cargarHistorialSupabase(){
     const cliente=sale?.cliente||"Cliente general";
     const cantidad=Number(r.quantity||0);
 
-    // Si ya existe un movimiento de inventario que identifica esta devolución,
-    // no añadimos un segundo movimiento.
     const yaExiste=movimientos.some(m=>
      String(m.productoId)===String(p.id) &&
-     Number(m.cantidad||0)===cantidad &&
      /devoluci[oó]n/i.test(String(m.detalle||"")) &&
      Math.abs(new Date(m.fecha||0)-new Date(r.created_at||0))<60000
     );
@@ -6547,6 +6581,7 @@ async function cargarHistorialSupabase(){
      id:idLocalDesdeLegacy(null,"sale_return_history_"+String(r.id)),
      supabaseId:null,
      devolucionSupabaseId:r.id,
+     ventaSupabaseId:r.sale_id||null,
      productoId:p.id,
      nombre:p.nombre,
      sku:p.sku,
@@ -6559,12 +6594,13 @@ async function cargarHistorialSupabase(){
       (r.reason?" · Motivo: "+String(r.reason):""),
      esSistema:true,
      esDevolucion:true,
-     ventaId:sale?.id||null
+     ventaId:sale?.id||null,
+     numeroDevolucion:r.return_number||""
     };
    }).filter(Boolean);
   }
  }catch(e){
-  console.warn("Historial de devoluciones:",e);
+  console.warn("Historial devoluciones:",e);
  }
 
  historial=[...devolucionesHistorial,...movimientos];
