@@ -11297,6 +11297,30 @@ cancelarLecturaQRPendiente=function(){
 };
 </script>
 
+<script id="flk-qr-offline-jsqr-priority-fix">
+// v61.73: En OFFLINE priorizar jsQR + cámara trasera.
+async function flkIniciarQRJsQROfflineDirecto(){
+ const estado=document.getElementById("flkQrEstado");
+ if(!flkQrModo){if(estado)estado.textContent="Primero selecciona Compra / Entrada, Venta o Devolución.";return;}
+ if(typeof jsQR!=="function"){if(estado)estado.textContent="El lector QR offline no está disponible todavía. Conéctate y prepara QR offline.";return;}
+ if(!navigator.mediaDevices?.getUserMedia){if(estado)estado.textContent="Este navegador no permite usar la cámara.";return;}
+ try{
+  detenerEscanerQR(false);
+  if(typeof flkDetenerLoopJsQR==="function")flkDetenerLoopJsQR();
+  flkQrStream=await flkAbrirCamaraTraseraPreferida();
+  const video=document.getElementById("flkQrVideo");
+  if(!video)throw new Error("No se encontró la vista de cámara QR");
+  video.style.display="block";video.srcObject=flkQrStream;await video.play();
+  flkQrActivo=true;flkQrDetector=null;
+  if(estado)estado.textContent="📴 Cámara trasera activa · lector QR offline.";
+  flkQrLeerConJsQR();
+ }catch(err){
+  console.error("QR offline jsQR:",err);
+  if(estado)estado.textContent="No se pudo abrir la cámara trasera. Revisa el permiso de cámara.";
+ }
+}
+</script>
+
 <script id="flk-qr-offline-integration">
 function actualizarEstadoQROfflineVisual(){
  const el=document.getElementById("flkQrOfflineEstado");
@@ -11325,6 +11349,10 @@ if(typeof abrirModoQRDesdePrincipalConCamara==="function"){
    }
   }catch(_){}
   actualizarEstadoQROfflineVisual();
+  if(!navigator.onLine && typeof jsQR==="function"){
+   cerrarSelectorQRPrincipal();abrirEscanerQR();seleccionarModoQR(modo);
+   return flkIniciarQRJsQROfflineDirecto();
+  }
   return flkAbrirModoQrOfflineOriginal(modo);
  };
 }
@@ -11339,6 +11367,7 @@ if(typeof iniciarEscanerQRCamaraTrasera==="function"){
    }
   }catch(_){}
   actualizarEstadoQROfflineVisual();
+  if(!navigator.onLine && typeof jsQR==="function" && typeof flkIniciarQRJsQROfflineDirecto==="function")return flkIniciarQRJsQROfflineDirecto();
   return flkInicioCamaraOfflineOriginal.apply(this,arguments);
  };
 }
