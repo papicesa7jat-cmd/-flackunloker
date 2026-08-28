@@ -4107,6 +4107,10 @@ async function flkRecuperacionEmergenciaNube(){
      i.devuelto=retornos.filter(r=>r.sale_item_id===i.supabaseSaleItemId)
       .reduce((t,r)=>t+Number(r.quantity||0),0);
     });
+    // Recalcular cantidades y costo después de cargar devoluciones.
+    local.cantidad=unidadesNetasVenta(local);
+    local.costoTotal=costoNetoVenta(local);
+    local.ganancia=Number(local.ingreso||0)-Number(local.costoTotal||0);
     return local
    });
    const maxNumero=ventas.reduce((m,v)=>Math.max(m,Number(v.numeroConsecutivo||0)),0);
@@ -8840,8 +8844,8 @@ function ventasBrutasMesArrendamiento(mes){
   if(Number.isNaN(d.getTime()))return total;
   const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   if(vm!==mes)return total;
-  const dev=Array.isArray(v.devoluciones)?v.devoluciones.reduce((t,r)=>t+Number(r.monto??r.reembolso??0),0):0;
-  return total+Number(v.ingreso||0)+dev;
+  // v.ingreso ya representa el total neto después de devoluciones.
+  return total+Number(v.ingreso||0);
  },0)
 }
 function costoVentasMesArrendamiento(mes){
@@ -8851,8 +8855,7 @@ function costoVentasMesArrendamiento(mes){
   if(Number.isNaN(d.getTime()))return total;
   const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   if(vm!==mes)return total;
-  const costoDevuelto=itemsDeVenta(v).reduce((t,i)=>t+Math.max(0,Number(i.devuelto||0))*Number(i.costoUnitario||0),0);
-  return total+Number(v.costoTotal||0)+costoDevuelto;
+  return total+costoNetoVenta(v);
  },0)
 }
 function cargarConfiguracionArrendamientoMes(){
@@ -8929,7 +8932,8 @@ function datosFinanzas(){
  const vv=ventas.filter(v=>enRango(v.fecha));
  const gg=gastos.filter(g=>enRango(g.fecha||g.fechaLocal));
  const ventasTotal=vv.reduce((t,v)=>t+Number(v.ingreso||0),0);
- const costo=vv.reduce((t,v)=>t+Number(v.costoTotal||0),0);
+ // Costo neto: descuenta mercancía que fue devuelta.
+ const costo=vv.reduce((t,v)=>t+costoNetoVenta(v),0);
  const bruta=ventasTotal-costo;
  const gastosTotal=gg.reduce((t,g)=>t+Number(g.cantidad||0),0);
  const neta=bruta-gastosTotal;
