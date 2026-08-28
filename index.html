@@ -3546,9 +3546,10 @@ async function flkSincronizarSeguro(){
  if(flkOrquestandoSync||!navigator.onLine)return false;
  flkOrquestandoSync=true;
  try{
-  const disponible=await flkSupabaseDisponible();
+  const disponible=await flkSupabaseDisponible(1800);
   if(!disponible){
-   flkActualizarEstadoConexion("error");
+   // Supabase no alcanzable: conservar pendientes, sin marcar la operación como error.
+   flkActualizarEstadoConexion();
    return false;
   }
 
@@ -6438,7 +6439,13 @@ async function guardarProductoSupabase(p,esNuevo=false,stockInicial=0){
 }
 async function ajustarStockSupabase(p,delta,tipo,nota=""){
  if(!p.supabaseId&&!p.offlineCreateOperationId)throw new Error("Producto sin referencia de sincronización.");
- if(!navigator.onLine||!p.supabaseId){
+ // v61.76: ONLINE del navegador no siempre significa que Supabase sea alcanzable.
+ // Comprobamos conectividad real antes del RPC para que Entrada/Salida nunca se quede esperando.
+ let usarLocal=!navigator.onLine||!p.supabaseId;
+ if(!usarLocal){
+  try{usarLocal=!(await flkSupabaseDisponible(1200));}catch(_){usarLocal=true}
+ }
+ if(usarLocal){
   const nuevo=Number(p.cantidad||0)+Number(delta);
   if(nuevo<0)throw new Error("Inventario insuficiente para "+p.nombre);
   flkEncolarOperacion("stock_adjustment",{
