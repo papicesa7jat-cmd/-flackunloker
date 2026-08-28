@@ -6857,6 +6857,8 @@ function flkDescripcionOperacionOffline(tipo){
 }
 function flkAvisoOperacionOffline(tipo){
  if(navigator.onLine)return;
+ // Los movimientos de inventario reciben un aviso descriptivo desde el formulario.
+ if(tipo==="stock_adjustment")return;
  flkAvisoMovimientoOffline(`✅ ${flkDescripcionOperacionOffline(tipo)} localmente · pendiente de sincronizar`);
 }
 
@@ -6921,6 +6923,9 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
    guardarDatos();
    guardarHistorial();
    cerrarMovimiento();
+
+   // Aviso descriptivo del movimiento realizado. No modifica la cola ni la sincronización.
+   flkAvisoMovimientoOffline(`✅ ${tipoGuardado==="entrada"?"Entrada agregada":"Salida realizada"}: ${p.nombre} · SKU: ${p.sku} · Cantidad: ${cantidad} · Existencia: ${p.cantidad} · Pendiente de sincronizar`);
 
    // La confirmación offline general ya fue emitida desde la cola central.
    // Safari puede conservar el scroll del modal al cerrarlo. Volvemos suavemente al inventario.
