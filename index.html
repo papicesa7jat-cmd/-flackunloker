@@ -7019,6 +7019,11 @@ function flkAjustarClienteVentaDesdeCache(){
 document.getElementById("clienteVenta").addEventListener("change",flkAjustarClienteVentaDesdeCache);
 document.getElementById("clienteVenta").addEventListener("blur",flkAjustarClienteVentaDesdeCache);
 function abrirVenta(id=null){
+ const selectorVentaNormal=document.getElementById("productoRecibo");
+ const campoSelectorVentaNormal=selectorVentaNormal?.closest(".campo");
+ if(campoSelectorVentaNormal)campoSelectorVentaNormal.style.display="";
+ const botonAgregarVentaNormal=document.querySelector(".boton-agregar-carrito");
+ if(botonAgregarVentaNormal)botonAgregarVentaNormal.style.display="";
  carritoVenta=[];document.getElementById("formularioVenta").reset();document.getElementById("cantidadVenta").value="1";document.getElementById("abonoInicialVenta").value="0";document.getElementById("fechaVencimientoVenta").value="";
  actualizarCamposCredito();cargarSelectorProductosRecibo(id);flkActualizarCacheClientesVenta();renderCarritoVenta();
  document.getElementById("textoVenta").textContent="Agrega uno o varios productos al mismo recibo del cliente.";
@@ -10636,13 +10641,32 @@ function procesarCodigoQR(codigo,desdeCamara=false){
  }
 }
 function agregarProductoVentaQR(p){
+ const maxDisponible=Number(p.cantidad||0);
+ if(maxDisponible<=0){
+  flkQrAviso('<strong>⚠️ Sin disponibilidad</strong><br>No hay unidades disponibles de '+flkQrEsc(p.nombre)+'.');return;
+ }
+ const respuesta=prompt("¿Cuántas unidades de "+p.nombre+" deseas vender?\n\nDisponibles: "+maxDisponible,"1");
+ if(respuesta===null)return;
+ const cantidad=Math.floor(Number(String(respuesta).replace(",", ".")));
+ if(!Number.isInteger(cantidad)||cantidad<=0){
+  flkQrAviso('<strong>⚠️ Cantidad no válida</strong><br>Introduce un número entero mayor que 0.');return;
+ }
+ if(cantidad>maxDisponible){
+  flkQrAviso('<strong>⚠️ Sin disponibilidad</strong><br>Solo hay '+maxDisponible+' unidad(es) disponibles de '+flkQrEsc(p.nombre)+'.');return;
+ }
  const existente=flkQrVentaItems.find(i=>String(i.productoId)===String(p.id));
- const ya=existente?Number(existente.cantidad):0;
- if(ya+1>Number(p.cantidad||0)){flkQrAviso('<strong>⚠️ Sin disponibilidad</strong><br>No puedes agregar más unidades de '+flkQrEsc(p.nombre)+'.');return}
- if(existente)existente.cantidad+=1;
- else flkQrVentaItems.push({productoId:p.id,nombre:p.nombre,sku:p.sku,cantidad:1,precioUnitario:Number(p.precio||0),costoUnitario:Number(p.costo||0)});
+ if(existente){
+  const nuevaCantidad=Number(existente.cantidad||0)+cantidad;
+  if(nuevaCantidad>maxDisponible){
+   flkQrAviso('<strong>⚠️ Sin disponibilidad</strong><br>Ya tienes '+Number(existente.cantidad||0)+' unidad(es) de '+flkQrEsc(p.nombre)+' en la venta.');return;
+  }
+  existente.cantidad=nuevaCantidad;
+ }else{
+  flkQrVentaItems.push({productoId:p.id,nombre:p.nombre,sku:p.sku,cantidad,precioUnitario:Number(p.precio||0),costoUnitario:Number(p.costo||0)});
+ }
  renderVentaQR();
- const e=document.getElementById("flkQrEstado");if(e)e.textContent="✅ "+p.nombre+" agregado. Continúa escaneando.";
+ const e=document.getElementById("flkQrEstado");
+ if(e)e.textContent="✅ "+p.nombre+" · "+cantidad+" unidad"+(cantidad===1?"":"es")+" agregada(s).";
 }
 function quitarUnidadVentaQR(id){
  const i=flkQrVentaItems.find(x=>String(x.productoId)===String(id));if(!i)return;
@@ -10665,6 +10689,11 @@ function continuarVentaQR(){
  abrirVenta();
  carritoVenta=copia;
  renderCarritoVenta();
+ const selectorQRVenta=document.getElementById("productoRecibo");
+ const campoSelectorQRVenta=selectorQRVenta?.closest(".campo");
+ if(campoSelectorQRVenta)campoSelectorQRVenta.style.display="none";
+ const botonAgregarQRVenta=document.querySelector(".boton-agregar-carrito");
+ if(botonAgregarQRVenta)botonAgregarQRVenta.style.display="none";
  document.getElementById("textoVenta").textContent="Productos agregados por QR. Revisa el recibo, completa cliente y forma de pago, y confirma la venta.";
 }
 window.addEventListener("pagehide",function(){detenerEscanerQR(false)});
