@@ -6437,15 +6437,19 @@ async function guardarProductoSupabase(p,esNuevo=false,stockInicial=0){
  const {error}=await flkSupabase.from("products").update(payload).eq("id",p.supabaseId);
  if(error)throw error;
 }
+let flkUltimoAjusteStockLocal=false;
+
 async function ajustarStockSupabase(p,delta,tipo,nota=""){
+ flkUltimoAjusteStockLocal=false;
  if(!p.supabaseId&&!p.offlineCreateOperationId)throw new Error("Producto sin referencia de sincronización.");
- // v61.76: ONLINE del navegador no siempre significa que Supabase sea alcanzable.
- // Comprobamos conectividad real antes del RPC para que Entrada/Salida nunca se quede esperando.
+ // v61.77: ONLINE del navegador no siempre significa que Supabase sea alcanzable.
+ // Si Supabase no responde, la Entrada/Salida se trata como operación local.
  let usarLocal=!navigator.onLine||!p.supabaseId;
  if(!usarLocal){
   try{usarLocal=!(await flkSupabaseDisponible(1200));}catch(_){usarLocal=true}
  }
  if(usarLocal){
+  flkUltimoAjusteStockLocal=true;
   const nuevo=Number(p.cantidad||0)+Number(delta);
   if(nuevo<0)throw new Error("Inventario insuficiente para "+p.nombre);
   flkEncolarOperacion("stock_adjustment",{
@@ -6457,6 +6461,8 @@ async function ajustarStockSupabase(p,delta,tipo,nota=""){
    note:nota||"Movimiento manual offline",
    local_applied:true
   });
+  // El guardado fue local aunque navigator.onLine siga diciendo ONLINE.
+  flkAvisoOperacionOffline("stock_adjustment");
   return nuevo
  }
  const {data,error}=await flkSupabase.rpc("adjust_product_stock",{p_product_id:p.supabaseId,p_delta:Number(delta),p_type:tipo,p_note:nota||null});
@@ -6897,7 +6903,7 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
 
   p.cantidad=await ajustarStockSupabase(p,delta,tipoGuardado,"Movimiento manual desde Flackunloker");
 
-  if(navigator.onLine){
+  if(navigator.onLine && !flkUltimoAjusteStockLocal){
    await cargarHistorialSupabase();
    guardarDatos();
    mostrarProductos();
