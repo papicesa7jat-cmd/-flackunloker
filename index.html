@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
 <meta name="flackunloker-offline-version" content="2026-08-28-v61.56-pin-devolucion-por-centro">
-<title>Flackunloker</title>
+<title>Flackunloker · v61.71</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}
@@ -6552,19 +6552,29 @@ function gastoDesdeSupabase(r){
 }
 async function cargarGastosSupabase(){
  if(flkModoRecuperacionPassword)return false;
- if(navigator.onLine&&!flkSesionActiva)return false;
  if(!navigator.onLine){
   flkAplicarPendientesSobreDatos();
   actualizarGastos();
   actualizarResumen();
   return true
  }
+ // Nunca intentes consultar/migrar gastos en Supabase si no existe una sesión real.
+ // Esto evita regresiones al arrancar con una sesión local caducada o después de cerrar sesión.
+ let sesionReal=null;
+ try{
+  const r=await flkSupabase.auth.getSession();
+  sesionReal=r?.data?.session||null;
+ }catch(e){
+  console.warn("No se pudo comprobar la sesión para gastos:",e);
+  return false;
+ }
+ if(!sesionReal || !flkSesionActiva)return false;
+
  const locales=Array.isArray(gastos)?[...gastos]:[];
  let {data:cloud,error}=await flkSupabase.from("expenses").select("*").order("expense_date",{ascending:false}).order("created_at",{ascending:false});
- if(!flkSesionActiva)return false;
  if(error){
   console.error("Supabase gastos:",error);
-  if(flkDebeMostrarErrorNube(error))alert("No se pudieron cargar los gastos de Supabase.");
+  if(flkDebeMostrarErrorNube(error))console.warn("No se pudieron cargar los gastos de Supabase.",error);
   return false;
  }
 
@@ -6585,9 +6595,24 @@ async function cargarGastosSupabase(){
     p_note:g.nota||null
    });
    if(impErr){
-    console.error("Migración gasto:",g.concepto,impErr);
-    alert("No se pudo migrar el gasto “"+(g.concepto||"Gasto")+"”: "+impErr.message);
-    return false;
+    // Una migración fallida jamás debe abrir alertas repetitivas.
+    // Dejamos la operación en la cola offline para reintentar cuando la sesión/permisos estén correctos.
+    console.error("Migración gasto pendiente:",g.concepto,impErr);
+    const cola=flkColaOffline();
+    const yaPendiente=cola.some(op=>op.tipo==="expense_save" && String(op.payload?.legacy_id||"")===legacy && op.estado!=="sincronizado");
+    if(!yaPendiente){
+     flkEncolarOperacion("expense_save",{
+      expense_id:g.supabaseId||null,
+      legacy_id:legacy,
+      concept:g.concepto||"Gasto",
+      category:g.categoria||"Otro",
+      amount:Number(g.cantidad||0),
+      payment_method:g.metodo||"Efectivo",
+      expense_date:fechaLocal,
+      note:g.nota||null
+     });
+    }
+    continue;
    }
    existentes.add(legacy);
   }
