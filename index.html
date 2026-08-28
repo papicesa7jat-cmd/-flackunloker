@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-28-v61.55-abono-offline-persistencia-real">
+<meta name="flackunloker-offline-version" content="2026-08-28-v61.56-pin-devolucion-por-centro">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2413,6 +2413,11 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
  <div class="adminsw-panel adminsw-seguridad-compacta">
   <h3 style="margin:0 0 8px">🔐 Seguridad</h3>
   <p style="margin:0 0 10px;color:#667085;font-size:12px;line-height:1.45">Controles administrativos del sistema.</p>
+  <div class="adminsw-pin-centro" id="adminswPinCentroBox">
+   <label for="adminswPinCentro">Centro para administrar el PIN de devolución</label>
+   <select id="adminswPinCentro"><option value="">Selecciona un centro</option></select>
+   <small>El propietario puede administrar el PIN de cualquier centro. Un administrador solo puede administrar el PIN de su centro.</small>
+  </div>
   <div class="adminsw-seguridad-botones">
    <button type="button" class="adminsw-seguridad-btn adminsw-pin-btn" onclick="abrirCambioPinDevolucion()">🔑 Cambiar PIN devolución</button>
    <button type="button" class="adminsw-seguridad-btn adminsw-reset-btn" onclick="abrirRestablecimientoTotal()">⚠️ Reseteo de fábrica</button>
@@ -2523,7 +2528,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="modal" id="modalCambioPinDevolucion">
  <form class="formulario" id="formularioCambioPinDevolucion">
   <h2>🔑 Cambiar PIN de devolución</h2>
-  <p class="mensaje-movimiento">Solo el Administrador o Propietario puede cambiar este PIN. Funciona también sin Internet en este dispositivo.</p>
+  <p class="mensaje-movimiento">Solo el Administrador o Propietario puede cambiar este PIN. El PIN queda asociado al centro seleccionado y funciona también sin Internet en este dispositivo.</p>
   <div class="campo"><label>PIN actual</label><input id="pinDevolucionActual" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="off" required></div>
   <div class="campo"><label>Nuevo PIN de 6 dígitos</label><input id="pinDevolucionNuevo" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="off" required></div>
   <div class="campo"><label>Confirmar nuevo PIN</label><input id="pinDevolucionConfirmar" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="off" required></div>
@@ -4240,6 +4245,7 @@ async function mostrarAppConSesion(session){
    const centroAnterior=FLK_BUSINESS_ID;
    await flkCargarCentroActual();
    flkCambiarContextoLocalCentro(FLK_BUSINESS_ID);
+   if(typeof flkSincronizarPinDevolucionLocal==="function") await flkSincronizarPinDevolucionLocal(FLK_BUSINESS_ID);
    if(centroAnterior!==FLK_BUSINESS_ID){
     console.info("Centro local cambiado:",centroAnterior,"→",FLK_BUSINESS_ID);
    }
@@ -5417,6 +5423,8 @@ async function cargarAdminSoftware(){
   const opcionesCentros='<option value="">Selecciona</option>'+flkAdminSoftwareCentros.map(c=>`<option value="${flkEscAttr(c.business_id)}">${flkAdminSwEsc(c.name)} · ${flkAdminSwEsc(c.code||"")}</option>`).join("");
   const sel=document.getElementById("adminswUsuarioCentro");if(sel)sel.innerHTML=opcionesCentros;
   const selNuevo=document.getElementById("adminswNuevoCentro");if(selNuevo)selNuevo.innerHTML=opcionesCentros;
+  flkCargarSelectPinCentro();
+  if(navigator.onLine && flkUuidValido(FLK_BUSINESS_ID)) flkSincronizarPinDevolucionLocal(FLK_BUSINESS_ID);
   if(!flkAdminSoftwareCentros.length){lista.innerHTML='<div class="sin-productos">No hay centros registrados.</div>';return}
   lista.innerHTML=flkAdminSoftwareCentros.map(c=>`<div class="adminsw-centro" id="adminsw-centro-${flkEscAttr(c.business_id)}"><div class="adminsw-centro-top"><div><h3>${flkAdminSwEsc(c.name)}</h3><p>Código: ${flkAdminSwEsc(c.code||"—")}<br>ID: ${flkAdminSwEsc(c.business_id)}</p></div><span class="adminsw-badge ${String(c.status)==="active"?"active":"inactive"}">${String(c.status)==="active"?"ACTIVO":"INACTIVO"}</span></div><div class="adminsw-acciones"><button class="adminsw-btn azul" onclick="cargarMiembrosCentroAdminSoftware('${flkEscAttr(c.business_id)}')">👥 Ver usuarios</button><button class="adminsw-btn ${String(c.status)==="active"?"rojo":"verde"}" onclick="cambiarEstadoCentroAdminSoftware('${flkEscAttr(c.business_id)}','${String(c.status)==="active"?"inactive":"active"}')">${String(c.status)==="active"?"⛔ Desactivar":"✅ Activar"}</button></div><div class="adminsw-miembros" id="adminsw-miembros-${flkEscAttr(c.business_id)}" style="display:none"></div></div>`).join("");
   await flkEnriquecerCentrosConLicencias();
@@ -7378,20 +7386,72 @@ function generarReciboVenta(id){
 let ventaPendienteAutorizacionDevolucion=null;
 const FLK_DEVOLUCION_PIN_LOCAL_HASH_PREDETERMINADO="79485da01c4d04f805a8eac1b3c0c168d493e4c7a927772774775ceb37a9ece0";
 const FLK_DEVOLUCION_PIN_LOCAL_KEY="flackunloker_devolucion_pin_hash";
-function flkPinDevolucionHashActual(){
- return localStorage.getItem(FLK_DEVOLUCION_PIN_LOCAL_KEY)||FLK_DEVOLUCION_PIN_LOCAL_HASH_PREDETERMINADO;
+
+function flkPinCentroSeleccionado(){
+ const sel=document.getElementById("adminswPinCentro");
+ if(flkEsPropietarioSoftware && sel?.value && flkUuidValido(sel.value))return sel.value;
+ return flkBusinessIdLocalSeguro()||FLK_BUSINESS_ID||null;
+}
+function flkPinDevolucionLocalKey(businessId=null){
+ const bid=businessId||flkPinCentroSeleccionado();
+ return bid?flkLocalKey(FLK_DEVOLUCION_PIN_LOCAL_KEY,bid):`${FLK_DEVOLUCION_PIN_LOCAL_KEY}::sin-centro`;
+}
+function flkPinDevolucionHashActual(businessId=null){
+ const bid=businessId||flkPinCentroSeleccionado();
+ const key=flkPinDevolucionLocalKey(bid);
+ const actual=localStorage.getItem(key);
+ if(actual)return actual;
+ const legacy=localStorage.getItem(FLK_DEVOLUCION_PIN_LOCAL_KEY);
+ if(legacy && bid){localStorage.setItem(key,legacy);return legacy}
+ return FLK_DEVOLUCION_PIN_LOCAL_HASH_PREDETERMINADO;
 }
 async function flkHashPinLocal(pin){
  const data=new TextEncoder().encode(String(pin||""));
  const hash=await crypto.subtle.digest("SHA-256",data);
  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,"0")).join("");
 }
-async function flkValidarPinDevolucionLocal(pin){
- try{return (await flkHashPinLocal(pin))===flkPinDevolucionHashActual()}catch(e){return false}
+async function flkValidarPinDevolucionLocal(pin,businessId=null){
+ try{return (await flkHashPinLocal(pin))===flkPinDevolucionHashActual(businessId)}catch(e){return false}
 }
-function abrirCambioPinDevolucion(){
+function flkCargarSelectPinCentro(){
+ const box=document.getElementById("adminswPinCentroBox"),sel=document.getElementById("adminswPinCentro");
+ if(!box||!sel)return;
+ if(!flkEsPropietarioSoftware){box.style.display="none";return}
+ box.style.display="grid";
+ const centros=Array.isArray(flkAdminSoftwareCentros)?flkAdminSoftwareCentros.filter(c=>String(c.status||"active").toLowerCase()==="active"):[];
+ const anterior=sel.value;
+ sel.innerHTML='<option value="">Selecciona un centro</option>'+centros.map(c=>`<option value="${flkEscAttr(c.business_id)}">${flkAdminSwEsc(c.name)}${c.code?" · "+flkAdminSwEsc(c.code):""}</option>`).join("");
+ if(anterior && centros.some(c=>String(c.business_id)===anterior))sel.value=anterior;
+ else if(flkUuidValido(FLK_BUSINESS_ID)&&centros.some(c=>String(c.business_id)===String(FLK_BUSINESS_ID)))sel.value=FLK_BUSINESS_ID;
+}
+async function flkSincronizarPinDevolucionLocal(businessId=null){
+ const bid=businessId||flkBusinessIdLocalSeguro()||FLK_BUSINESS_ID||null;
+ if(!navigator.onLine||!flkUuidValido(bid)||!flkSesionActiva)return false;
+ try{
+  const {data,error}=await flkSupabase.rpc("flk_get_return_pin_verifier",{p_business_id:bid});
+  if(error)throw error;
+  const hash=typeof data==="string"?data:(data?.pin_hash||data?.hash||null);
+  if(typeof hash==="string" && /^[0-9a-f]{64}$/i.test(hash)){
+   localStorage.setItem(flkPinDevolucionLocalKey(bid),hash);
+   return true;
+  }
+ }catch(err){console.warn("No se pudo actualizar el PIN local del centro:",err)}
+ return false;
+}
+
+async function abrirCambioPinDevolucion(){
  if(!(rolSesion==="admin"||flkEsPropietarioSoftware))return alert("Solo el Administrador o Propietario puede cambiar el PIN de devolución.");
+ if(flkEsPropietarioSoftware){
+  flkCargarSelectPinCentro();
+  const sel=document.getElementById("adminswPinCentro");
+  if(!sel?.value && navigator.onLine){try{await cargarAdminSoftware();flkCargarSelectPinCentro()}catch(_e){}}
+  if(!document.getElementById("adminswPinCentro")?.value)return alert("Selecciona primero el centro cuyo PIN de devolución deseas administrar.");
+ }
  ["pinDevolucionActual","pinDevolucionNuevo","pinDevolucionConfirmar"].forEach(id=>{const e=document.getElementById(id);if(e)e.value=""});
+ const centro=flkPinCentroSeleccionado();
+ const nombre=(flkAdminSoftwareCentros||[]).find(c=>String(c.business_id)===String(centro))?.name||"Centro actual";
+ const titulo=document.querySelector("#modalCambioPinDevolucion h2");
+ if(titulo)titulo.textContent=`🔑 Cambiar PIN de devolución · ${nombre}`;
  document.getElementById("modalCambioPinDevolucion")?.classList.add("visible");
  setTimeout(()=>document.getElementById("pinDevolucionActual")?.focus(),50);
 }
@@ -7402,16 +7462,29 @@ function cerrarCambioPinDevolucion(){
 document.getElementById("formularioCambioPinDevolucion")?.addEventListener("submit",async e=>{
  e.preventDefault();
  if(!(rolSesion==="admin"||flkEsPropietarioSoftware))return cerrarCambioPinDevolucion();
+ const centro=flkPinCentroSeleccionado();
+ if(!flkUuidValido(centro))return alert("No se pudo determinar el centro del PIN de devolución.");
  const actual=document.getElementById("pinDevolucionActual").value.trim();
  const nuevo=document.getElementById("pinDevolucionNuevo").value.trim();
  const confirmar=document.getElementById("pinDevolucionConfirmar").value.trim();
  if(!/^\d{6}$/.test(actual)||!/^\d{6}$/.test(nuevo)||!/^\d{6}$/.test(confirmar))return alert("Todos los PIN deben tener exactamente 6 dígitos.");
- if(!(await flkValidarPinDevolucionLocal(actual)))return alert("El PIN actual es incorrecto.");
+ if(!(await flkValidarPinDevolucionLocal(actual,centro))){
+  if(navigator.onLine){
+   try{const {data,error}=await flkSupabase.rpc("flk_authorize_return_pin",{p_pin:actual,p_business_id:centro});if(error)throw error;const ok=data===true||data?.authorized===true||data?.autorizado===true;if(!ok)return alert("El PIN actual es incorrecto.")}catch(err){return alert("No se pudo validar el PIN actual: "+(err?.message||"Error desconocido"))}
+  }else return alert("El PIN actual es incorrecto.");
+ }
  if(nuevo!==confirmar)return alert("El nuevo PIN y la confirmación no coinciden.");
  if(nuevo===actual)return alert("El nuevo PIN debe ser diferente al PIN actual.");
- localStorage.setItem(FLK_DEVOLUCION_PIN_LOCAL_KEY,await flkHashPinLocal(nuevo));
+ const hash=await flkHashPinLocal(nuevo);
+ let guardadoNube=false;
+ if(navigator.onLine){
+  try{const {error}=await flkSupabase.rpc("flk_set_return_pin",{p_business_id:centro,p_pin:nuevo});if(error)throw error;guardadoNube=true}
+  catch(err){console.error("Guardar PIN Supabase:",err);return alert("No se pudo guardar el PIN del centro en Supabase. No se cambió el PIN.")}
+ }
+ localStorage.setItem(flkPinDevolucionLocalKey(centro),hash);
+ localStorage.removeItem(FLK_DEVOLUCION_PIN_LOCAL_KEY);
  cerrarCambioPinDevolucion();
- alert("✅ PIN de devolución cambiado correctamente en este dispositivo.");
+ alert(guardadoNube?"✅ PIN de devolución cambiado correctamente para el centro seleccionado.":"✅ PIN de devolución cambiado correctamente para este centro en este dispositivo. Se usará al trabajar offline.");
 });
 
 function abrirDevolucion(id){
@@ -7434,13 +7507,14 @@ document.getElementById("formularioAutorizacionDevolucion").addEventListener("su
  const id=ventaPendienteAutorizacionDevolucion;
  if(id==null)return cerrarAutorizacionDevolucion();
  let autorizado=false;
+ const centroAutorizacion=flkBusinessIdLocalSeguro()||FLK_BUSINESS_ID||null;
  if(navigator.onLine){
   try{
-   const {data,error}=await flkSupabase.rpc("flk_authorize_return_pin",{p_pin:pin});
+   const {data,error}=await flkSupabase.rpc("flk_authorize_return_pin",{p_pin:pin,p_business_id:centroAutorizacion});
    if(!error)autorizado=data===true||data?.authorized===true||data?.autorizado===true;
   }catch(err){console.warn("Validación Supabase no disponible; usando PIN local.",err)}
  }
- if(!autorizado)autorizado=await flkValidarPinDevolucionLocal(pin);
+ if(!autorizado)autorizado=await flkValidarPinDevolucionLocal(pin,centroAutorizacion);
  if(!autorizado){
   document.getElementById("pinAutorizacionDevolucion").value="";
   return alert("PIN incorrecto. La devolución no fue autorizada.");
