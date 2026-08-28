@@ -2734,8 +2734,25 @@ function flkSilenciarSiEsConexion(err){
  return true;
 }
 
+let flkUltimoFalloCargaNube={clave:"",cuando:0};
+function flkRegistrarFalloCargaNube(modulo,err){
+ const msg=String(err?.message||err||"Error desconocido");
+ const clave=String(modulo)+"|"+msg;
+ const ahora=Date.now();
+ if(flkUltimoFalloCargaNube.clave===clave && ahora-flkUltimoFalloCargaNube.cuando<10000)return false;
+ flkUltimoFalloCargaNube={clave,cuando:ahora};
+ console.warn("Flackunloker: no se pudo cargar "+modulo+" desde Supabase. Se conserva la copia local.",err);
+ flkActualizarEstadoConexion("error");
+ return false;
+}
+
 function flkAvisarErrorSupabase(err,mensaje){
  if(flkSilenciarSiEsConexion(err))return false;
+ const msg=String(err?.message||err||"").toLowerCase();
+ if(/permission denied|jwt|unauthorized|not authenticated|invalid.*token|session|load failed|failed to fetch|network|timeout/.test(msg)){
+  flkRegistrarFalloCargaNube("Supabase",err);
+  return false;
+ }
  alert(mensaje+(err?.message||err||""));
  return true;
 }
@@ -5479,7 +5496,7 @@ async function cargarAdminSoftware(){
   if(!flkAdminSoftwareCentros.length){lista.innerHTML='<div class="sin-productos">No hay centros registrados.</div>';return}
   lista.innerHTML=flkAdminSoftwareCentros.map(c=>`<div class="adminsw-centro" id="adminsw-centro-${flkEscAttr(c.business_id)}"><div class="adminsw-centro-top"><div><h3>${flkAdminSwEsc(c.name)}</h3><p>Código: ${flkAdminSwEsc(c.code||"—")}<br>ID: ${flkAdminSwEsc(c.business_id)}</p></div><span class="adminsw-badge ${String(c.status)==="active"?"active":"inactive"}">${String(c.status)==="active"?"ACTIVO":"INACTIVO"}</span></div><div class="adminsw-acciones"><button class="adminsw-btn azul" onclick="cargarMiembrosCentroAdminSoftware('${flkEscAttr(c.business_id)}')">👥 Ver usuarios</button><button class="adminsw-btn ${String(c.status)==="active"?"rojo":"verde"}" onclick="cambiarEstadoCentroAdminSoftware('${flkEscAttr(c.business_id)}','${String(c.status)==="active"?"inactive":"active"}')">${String(c.status)==="active"?"⛔ Desactivar":"✅ Activar"}</button></div><div class="adminsw-miembros" id="adminsw-miembros-${flkEscAttr(c.business_id)}" style="display:none"></div></div>`).join("");
   await flkEnriquecerCentrosConLicencias();
- }catch(err){console.error("Administración software:",err);lista.innerHTML='<div class="sin-productos">No se pudo cargar la administración de centros.</div>';alert("Falta instalar o actualizar las funciones de Administración del Software en Supabase.\n\nDetalle: "+(err?.message||"Error desconocido"))}
+ }catch(err){console.error("Administración software:",err);lista.innerHTML='<div class="sin-productos">No se pudo cargar la administración de centros.</div>';flkRegistrarFalloCargaNube("Administración del Software",err)}
 }
 
 async function crearCentroAdminSoftware(){
@@ -5889,7 +5906,7 @@ async function cargarListaLicencias(){
  }catch(err){
   console.error("Lista de licencias:",err);
   lista.innerHTML='<div class="sin-productos">No se pudieron cargar las licencias de clientes.</div>';
-  alert("No se pudo cargar la lista de licencias: "+(err?.message||"Error desconocido"));
+  flkRegistrarFalloCargaNube("Licencias",err);
  }
 }
 
@@ -6311,7 +6328,7 @@ async function cargarInventarioSupabase(){
  const {data:cloud,error}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
  if(error){
   console.error("Supabase inventario:",error);
-  if(!flkSilenciarSiEsConexion(error))alert("No se pudo cargar el inventario de Supabase.");
+  if(!flkSilenciarSiEsConexion(error))flkRegistrarFalloCargaNube("Inventario",error);
   return false
  }
 
@@ -6523,7 +6540,7 @@ async function cargarHistorialSupabase(){
   .order("created_at",{ascending:false});
  if(error){
   console.error("Supabase historial:",error);
-  if(!flkSilenciarSiEsConexion(error))alert("No se pudo cargar el historial desde Supabase.");
+  if(!flkSilenciarSiEsConexion(error))flkRegistrarFalloCargaNube("Historial",error);
   return false;
  }
  historial=(data||[]).map(movimientoDesdeSupabase);
@@ -7092,7 +7109,7 @@ async function cargarVentasSupabase(){
 
  let {data:cloud,error}=await consulta();
  if(!flkSesionActiva)return false;
- if(error){console.error("Supabase ventas:",error);if(flkDebeMostrarErrorNube(error))alert("No se pudieron cargar las ventas de Supabase.");return false}
+ if(error){console.error("Supabase ventas:",error);flkRegistrarFalloCargaNube("Ventas",error);return false}
 
  if(rolSesion==="admin" && locales.length){
   const existentesLegacy=new Set((cloud||[]).map(v=>String(v.legacy_id||"")).filter(Boolean));
@@ -8624,7 +8641,7 @@ async function cargarMovimientosCajaSupabase(){
   .order("occurred_at",{ascending:true});
  if(error){
   console.error("Supabase flujo caja:",error);
-  if(!flkSilenciarSiEsConexion(error))alert("No se pudo cargar el flujo de caja desde Supabase.");
+  if(!flkSilenciarSiEsConexion(error))flkRegistrarFalloCargaNube("Flujo de caja",error);
   return false;
  }
  movimientosCajaSupabase=(data||[]).map(m=>({
@@ -9063,7 +9080,7 @@ async function sincronizarYActualizarFinanzas(){
   actualizarEstadoContribucionArrendamiento();
  }catch(err){
   console.error("Sincronización Finanzas:",err);
-  if(navigator.onLine&&flkSesionActiva)alert("No se pudieron actualizar todos los datos financieros desde Supabase.")
+  flkRegistrarFalloCargaNube("Finanzas",err)
  }
 }
 function actualizarFinanzas(){
@@ -9439,7 +9456,7 @@ async function sincronizarYActualizarAlertas(){
   actualizarCentroAlertas();
  }catch(err){
   console.error("Sincronización Alertas:",err);
-  if(flkSesionActiva)alert("No se pudieron actualizar todas las alertas desde Supabase.")
+  flkRegistrarFalloCargaNube("Alertas",err)
  }
 }
 function actualizarCentroAlertas(){
@@ -9483,7 +9500,7 @@ async function sincronizarYActualizarEstadisticas(){
   actualizarEstadisticas();
  }catch(err){
   console.error("Sincronización Estadísticas:",err);
-  if(navigator.onLine&&flkSesionActiva)alert("No se pudieron actualizar todos los datos desde Supabase.")
+  flkRegistrarFalloCargaNube("Estadísticas",err)
  }
 }
 function actualizarEstadisticas(){
