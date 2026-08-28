@@ -6914,6 +6914,11 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
   }else{
    // Safari/iPhone: persistir primero y liberar inmediatamente el modal.
    // La operación ya está en la cola offline; NO se cambia la lógica de sincronización.
+   // v61.81: confirmación descriptiva después de obtener el stock local definitivo.
+   try{
+    const accion=tipoGuardado==="entrada"?"Entrada agregada":"Salida registrada";
+    flkAvisoMovimientoOffline(`✅ ${accion}: ${p.nombre} · SKU: ${p.sku||"—"} · Cantidad: ${cantidad} · Existencia: ${Number(p.cantidad||0)} · Pendiente de sincronizar`);
+   }catch(_){ }
    historial.unshift({
     id:Date.now()+Math.floor(Math.random()*100000),
     productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:tipoGuardado,
