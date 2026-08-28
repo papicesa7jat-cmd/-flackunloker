@@ -7532,71 +7532,37 @@ document.getElementById("formularioAbono").addEventListener("submit",async e=>{
  const cantidad=Number(document.getElementById("cantidadAbono").value),metodo=document.getElementById("metodoAbono").value,nota=document.getElementById("notaAbono").value.trim();
  if(!Number.isFinite(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
  if(cantidad>Number(v.saldo)+0.009)return alert(`El abono no puede superar el saldo de $${Number(v.saldo).toFixed(2)}.`);
+ if(!v.supabaseId&&!v.offlineOperationId)return alert("Este recibo no tiene una referencia segura para sincronizar el abono.");
 
- if(!navigator.onLine){
-  if(!v.supabaseId&&!v.offlineOperationId)return alert("Este recibo no tiene una referencia segura para sincronizar el abono.");
-  procesandoGuardado=true;
-  try{
-   const op=flkEncolarOperacion("sale_payment",{
-    sale_id:v.supabaseId||null,
-    sale_operation_id:v.offlineOperationId||null,
-    local_sale_id:v.id,
-    local_payment_id:Date.now()+Math.floor(Math.random()*100000),
-    amount:cantidad,
-    payment_method:metodo,
-    note:nota||null
-   });
-   flkAplicarAbonoLocal(op);
-   guardarVentas();actualizarVentas();actualizarClientes();actualizarFlujoCaja();actualizarFinanzas();
-   const saldoAhora=Number(v.saldo||0);
-   cerrarAbono();
-   alert(saldoAhora<=0.009?"✅ Abono guardado localmente. La cuenta quedó pagada y se sincronizará al volver Internet.":`Abono guardado localmente.\n\nSaldo pendiente: $${saldoAhora.toFixed(2)}\nSe sincronizará automáticamente cuando regrese Internet.`);
-  }catch(err){console.error(err);alert("No se pudo guardar el abono local: "+(err.message||err))}
-  finally{procesandoGuardado=false}
-  return
- }
-
- if(!v.supabaseId)return alert("Este recibo todavía no está vinculado con Supabase.");
+ // v61.52: los abonos son LOCAL-FIRST siempre. No dependemos de navigator.onLine,
+ // que en iPhone puede seguir en true aunque no exista salida real a Internet.
+ // La interfaz y el saldo cambian de inmediato; la cola idempotente sincroniza después.
  procesandoGuardado=true;
  try{
-  const {error}=await flkSupabase.rpc("flk_add_sale_payment",{p_sale_id:v.supabaseId,p_amount:cantidad,p_payment_method:metodo,p_note:nota||null});
-  if(error)throw error;
-  await cargarVentasSupabase();
-  const actualizado=ventas.find(x=>x.supabaseId===v.supabaseId);
+  const op=flkEncolarOperacion("sale_payment",{
+   sale_id:v.supabaseId||null,
+   sale_operation_id:v.offlineOperationId||null,
+   local_sale_id:v.id,
+   local_payment_id:Date.now()+Math.floor(Math.random()*100000),
+   amount:cantidad,
+   payment_method:metodo,
+   note:nota||null
+  });
+  const aplicado=flkAplicarAbonoLocal(op);
+  if(!aplicado)throw new Error("No se pudo aplicar el abono a la copia local del recibo.");
+  guardarVentas();actualizarVentas();actualizarClientes();actualizarFlujoCaja();actualizarFinanzas();
+  const saldoAhora=Number(v.saldo||0);
   cerrarAbono();
-  alert(actualizado&&actualizado.saldo<=0?"✅ Cuenta pagada completamente.":`Abono guardado en Supabase.\n\nSaldo pendiente: $${Number(actualizado?.saldo||0).toFixed(2)}`);
+  alert(saldoAhora<=0.009
+   ?"✅ Abono registrado. La cuenta quedó pagada."
+   :`✅ Abono registrado.\n\nSaldo pendiente: $${saldoAhora.toFixed(2)}`);
+  // Si hay conexión real, intentamos sincronizar enseguida. Si no la hay,
+  // la operación permanece en la cola sin bloquear ni revertir el abono local.
+  if(navigator.onLine)setTimeout(()=>{flkSincronizarSeguro().catch(()=>{})},0);
  }catch(err){
   console.error(err);
-  // v61.51: si el navegador cree estar online pero la llamada a Supabase falla
-  // por conexión, conservar el abono localmente y sincronizarlo después.
-  if(flkEsErrorConexion(err)){
-   try{
-    const op=flkEncolarOperacion("sale_payment",{
-     sale_id:v.supabaseId||null,
-     sale_operation_id:v.offlineOperationId||null,
-     local_sale_id:v.id,
-     local_payment_id:Date.now()+Math.floor(Math.random()*100000),
-     amount:cantidad,
-     payment_method:metodo,
-     note:nota||null
-    });
-    flkAplicarAbonoLocal(op);
-    guardarVentas();actualizarVentas();actualizarClientes();actualizarFlujoCaja();actualizarFinanzas();
-    const saldoAhora=Number(v.saldo||0);
-    cerrarAbono();
-    flkActualizarEstadoConexion();
-    alert(saldoAhora<=0.009
-     ?"✅ Abono guardado localmente. La cuenta quedó pagada y se sincronizará automáticamente."
-     :`✅ Abono guardado localmente.\n\nSaldo pendiente: $${saldoAhora.toFixed(2)}\nSe sincronizará automáticamente cuando mejore la conexión.`);
-   }catch(localErr){
-    console.error(localErr);
-    alert("No se pudo conservar el abono localmente: "+(localErr.message||localErr));
-   }
-  }else{
-   alert("Supabase rechazó el abono: "+(err.message||err));
-  }
- }
- finally{procesandoGuardado=false}
+  alert("No se pudo registrar el abono: "+(err.message||err));
+ }finally{procesandoGuardado=false}
 });
 function verHistorialAbonos(id){const v=ventas.find(x=>x.id===id);if(!v)return;normalizarCuentaVenta(v);const pagos=[...pagosDeVenta(v)].sort((a,b)=>new Date(b.fecha||0)-new Date(a.fecha||0)||Number(b.id||0)-Number(a.id||0)),numero=v.numero||String(v.id).slice(-8);document.getElementById("textoHistorialAbonos").textContent=`Recibo #${numero} · ${v.cliente||"Cliente general"} · ${pagos.length} abono(s)`;const lista=document.getElementById("listaHistorialAbonos");lista.innerHTML=pagos.length?pagos.map((p,n)=>{const f=new Date(p.fecha);return `<div class="abono-card"><div class="abono-superior"><strong>Abono #${pagos.length-n}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}<br>Método: <strong>${escapeHtml(normalizarMetodoFlujo(p.metodo||"MLC"))}</strong><br>Saldo anterior: <strong>$${Number(p.saldoAnterior??0).toFixed(2)}</strong><br>Saldo restante: <strong>$${Number(p.saldoRestante??0).toFixed(2)}</strong>${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><button type="button" class="boton-comprobante" onclick="generarComprobanteAbono(${v.id},${p.id})">🧾 Ver comprobante</button></div>`}).join(""):'<div class="sin-productos">Este recibo todavía no tiene abonos registrados.</div>';document.getElementById("modalHistorialAbonos").classList.add("visible")}
 function cerrarHistorialAbonos(){document.getElementById("modalHistorialAbonos").classList.remove("visible")}
