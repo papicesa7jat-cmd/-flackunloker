@@ -7973,11 +7973,56 @@ function actualizarResumenHistorial(){
  document.getElementById("totalMovimientos").textContent=historial.length;document.getElementById("totalEntradas").textContent=entradas;document.getElementById("totalSalidas").textContent=salidas
 }
 function imprimirComprobanteMovimiento(id){
- const m=historial.find(x=>String(x.id)===String(id)||String(x.supabaseId||"")===String(id));if(!m)return alert("Movimiento no encontrado.");
- const f=new Date(m.fecha),entrada=m.tipo==="entrada",color=entrada?"#138a43":"#0a67d1",pref=entrada?"EN":"SA",numero=flkNumeroComprobanteConsecutivo(pref,m.supabaseId||m.id||m.fecha);
+ const m=historial.find(x=>String(x.id)===String(id)||String(x.supabaseId||"")===String(id));
+ if(!m)return alert("Movimiento no encontrado.");
+
+ const f=new Date(m.fecha);
+ const esEntrada=m.tipo==="entrada";
+
+ // Una venta genera una salida de inventario. El comprobante debe recuperar
+ // la venta relacionada para mostrar recibo, cliente y forma de pago.
+ let ventaRelacionada=null;
+
+ if(m.ventaId){
+  ventaRelacionada=(Array.isArray(ventas)?ventas:[]).find(v=>String(v.id)===String(m.ventaId));
+ }
+
+ // Compatibilidad con movimientos recargados desde Supabase, donde puede no
+ // venir ventaId: recuperamos el número de recibo desde la nota.
+ if(!ventaRelacionada){
+  const nota=String(m.detalle||"");
+  const match=nota.match(/Recibo(?:\s+local)?\s*#?\s*([0-9]+)/i);
+  if(match){
+   const rec=String(match[1]).replace(/^0+/,"")||"0";
+   ventaRelacionada=(Array.isArray(ventas)?ventas:[]).find(v=>{
+    const n=String(v.numero||"").replace(/^0+/,"")||"0";
+    return n===rec;
+   })||null;
+  }
+ }
+
+ const esVenta=!!ventaRelacionada;
+ const color=esVenta?"#168044":(esEntrada?"#138a43":"#0a67d1");
+ const pref=esVenta?"VE":(esEntrada?"EN":"SA");
+ const referencia=esVenta
+  ?(ventaRelacionada.supabaseId||ventaRelacionada.offlineOperationId||ventaRelacionada.id)
+  :(m.supabaseId||m.id||m.fecha);
+ const numero=esVenta
+  ?(ventaRelacionada.numero||String(ventaRelacionada.numeroConsecutivo||""))
+  :flkNumeroComprobanteConsecutivo(pref,referencia);
+
  const saldo=m.saldo!==undefined&&m.saldo!==null?Number(m.saldo):null;
- const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${entrada?"Entrada":"Salida"} de inventario</title><style>${flkCssComprobanteProfesional(color)}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">${entrada?"↓ Entrada de inventario":"↑ Salida de inventario"}</span><span class="numero">N.º ${pref}-${numero}</span></div></header><section class="meta"><div>Fecha y hora<strong>${f.toLocaleDateString("es-PR")} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Tipo de movimiento<strong>${entrada?"Entrada":"Salida"}</strong></div><div>Origen / detalle<strong>${escapeHtml(m.detalle||"Movimiento de inventario")}</strong></div><div>Saldo posterior<strong>${saldo===null?"No disponible":saldo+" unidades"}</strong></div></section><section class="seccion"><h3>Detalle del movimiento</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cantidad</th><th class="num">Saldo posterior</th></tr></thead><tbody><tr><td>${escapeHtml(m.nombre||"Producto")}</td><td>${escapeHtml(m.sku||"—")}</td><td class="num"><strong>${Number(m.cantidad||0)}</strong></td><td class="num">${saldo===null?"—":saldo}</td></tr></tbody></table></section><section class="seccion"><div class="firma"><div>Registrado por</div><div>Revisión / conformidad</div></div></section><div class="pie">Documento de control de inventario · Generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div></body></html>`;
- flkAbrirDocumentoComprobante(html)
+ const cliente=esVenta?(ventaRelacionada.cliente||"Cliente general"):"";
+ const metodo=esVenta?(ventaRelacionada.metodoPago||"Efectivo"):"";
+ const recibo=esVenta?(ventaRelacionada.numero||""):"";
+ const titulo=esVenta?"Venta":(esEntrada?"Entrada":"Salida");
+ const tipoTexto=esVenta?"Venta":(esEntrada?"Entrada":"Salida");
+ const detalle=esVenta
+  ?`Venta · Recibo ${escapeHtml(String(recibo))}`
+  :(m.detalle||"Movimiento de inventario");
+
+ const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${titulo}</title><style>${flkCssComprobanteProfesional(color)}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">${esVenta?"💰 Venta":(esEntrada?"↓ Entrada de inventario":"↑ Salida de inventario")}</span><span class="numero">N.º ${escapeHtml(String(recibo||numero))}</span></div></header><section class="meta"><div>Fecha y hora<strong>${f.toLocaleDateString("es-PR")} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Tipo de movimiento<strong>${tipoTexto}</strong></div>${esVenta?`<div>Cliente<strong>${escapeHtml(cliente)}</strong></div><div>Método de pago<strong>${escapeHtml(metodo)}</strong></div><div>Recibo<strong>#${escapeHtml(String(recibo))}</strong></div>`:""}<div>Origen / detalle<strong>${detalle}</strong></div><div>Saldo posterior<strong>${saldo===null?"No disponible":saldo+" unidades"}</strong></div></section><section class="seccion"><h3>${esVenta?"Detalle de la venta":"Detalle del movimiento"}</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cantidad</th><th class="num">Saldo posterior</th></tr></thead><tbody><tr><td>${escapeHtml(m.nombre||"Producto")}</td><td>${escapeHtml(m.sku||"—")}</td><td class="num"><strong>${Number(m.cantidad||0)}</strong></td><td class="num">${saldo===null?"—":saldo}</td></tr></tbody></table></section>${esVenta?`<section class="seccion"><div style="font-size:12px;color:#555">Este documento corresponde al movimiento de inventario asociado a la venta. La existencia se descuenta como salida de inventario.</div></section>`:""}<section class="seccion"><div class="firma"><div>Registrado por</div><div>Revisión / conformidad</div></div></section><div class="pie">Documento de control de inventario · Generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div></body></html>`;
+ flkAbrirDocumentoComprobante(html);
 }
 function mostrarListaHistorial(){
  const lista=document.getElementById("listaHistorial"),q=document.getElementById("busquedaHistorial").value.toLowerCase().trim();
@@ -10552,9 +10597,31 @@ async function flkQrLeer(){
  if(flkQrActivo)requestAnimationFrame(flkQrLeer);
 }
 function flkQrValor(c){
- const raw=String(c||"").trim(),p=raw.split("|");
- if(p.length>=3&&String(p[0]).toUpperCase()==="FLK")return{tipo:String(p[1]).toUpperCase(),valor:p.slice(2).join("|")};
- return{tipo:"AUTO",valor:raw};
+ const raw=String(c||"").trim();
+
+ // Formato estructurado original: FLK|SKU|CHA-001
+ const partes=raw.split("|");
+ if(partes.length>=3 && String(partes[0]).trim().toUpperCase()==="FLK"){
+  return {
+   tipo:String(partes[1]).trim().toUpperCase(),
+   valor:partes.slice(2).join("|").trim()
+  };
+ }
+
+ // Formato que realmente está entregando la etiqueta/cámara:
+ // "FLK SKU CHA-001" o "FLK SKU: CHA-001".
+ const pref=raw.match(/^FLK\s+SKU\s*:?\s*(.+)$/i);
+ if(pref){
+  return {tipo:"SKU",valor:String(pref[1]).trim()};
+ }
+
+ // También acepta "SKU CHA-001" / "SKU: CHA-001".
+ const sku=raw.match(/^SKU\s*:?\s*(.+)$/i);
+ if(sku){
+  return {tipo:"SKU",valor:String(sku[1]).trim()};
+ }
+
+ return {tipo:"AUTO",valor:raw};
 }
 function flkQrBuscarProducto(codigo){
  const original=String(codigo||"").trim();
