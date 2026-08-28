@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-28-v61.64-recibo-neto-devolucion">
+<meta name="flackunloker-offline-version" content="2026-08-28-v61.56-pin-devolucion-por-centro">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -4107,10 +4107,6 @@ async function flkRecuperacionEmergenciaNube(){
      i.devuelto=retornos.filter(r=>r.sale_item_id===i.supabaseSaleItemId)
       .reduce((t,r)=>t+Number(r.quantity||0),0);
     });
-    // Recalcular cantidades y costo después de cargar devoluciones.
-    local.cantidad=unidadesNetasVenta(local);
-    local.costoTotal=costoNetoVenta(local);
-    local.ganancia=Number(local.ingreso||0)-Number(local.costoTotal||0);
     return local
    });
    const maxNumero=ventas.reduce((m,v)=>Math.max(m,Number(v.numeroConsecutivo||0)),0);
@@ -4257,7 +4253,22 @@ async function mostrarAppConSesion(session){
    setTimeout(()=>flkSincronizarSeguro(),220);
    setTimeout(()=>flkRestaurarVistaActual(),120);
   }else{
-   // Sesión válida pero sin conexión: conservar la vista local actual.
+   // v61.68: al iniciar directamente OFFLINE, restaurar también el estado
+   // de propietario/licencia antes de restaurar la vista. Esto evita que
+   // el propietario sea mostrado por error como "gracia offline".
+   try{
+    const esOwnerOffline=await flkComprobarPropietarioSoftware();
+    if(esOwnerOffline){
+     const cacheLic=flkLeerCacheLicencia();
+     if(cacheLic?.info){
+      const infoOwner={...cacheLic.info,software_owner:true};
+      flkGuardarCacheLicencia(infoOwner);
+     }
+    }
+    await flkValidarLicencia();
+   }catch(err){
+    console.warn("Restauración propietario/licencia OFFLINE:",err);
+   }
    setTimeout(()=>flkRestaurarVistaActual(),120);
   }
  }else{
@@ -6616,14 +6627,12 @@ async function cargarComprasSupabase(){
   actualizarOpcionesOrganizacion();actualizarProveedores();actualizarOrdenesCompra();actualizarCuentasPagar();
   return true
  }
- const businessId=await flkExigirCentroActual();
- if(!flkUuidValido(businessId))return false;
  const [rs,ro,rp]=await Promise.all([
-  flkSupabase.from("suppliers").select("*").eq("business_id",businessId).order("name"),
-  flkSupabase.from("purchase_orders").select("*").eq("business_id",businessId).order("created_at",{ascending:false}),
-  flkSupabase.from("supplier_payments").select("*").eq("business_id",businessId).order("created_at",{ascending:true})
+  flkSupabase.from("suppliers").select("*").order("name"),
+  flkSupabase.from("purchase_orders").select("*").order("created_at",{ascending:false}),
+  flkSupabase.from("supplier_payments").select("*").order("created_at",{ascending:true})
  ]);
- if(rs.error||ro.error||rp.error){console.error("Carga Proveedores/Supabase:",rs.error||ro.error||rp.error);return false}
+ if(rs.error||ro.error||rp.error){console.error(rs.error||ro.error||rp.error);return false}
  const pagos=rp.data||[];
  proveedores=(rs.data||[]).map(x=>({id:idLocalDesdeLegacy(x.legacy_id,x.id),supabaseId:x.id,nombre:x.name||"",contacto:x.contact_name||"",telefono:x.phone||"",email:x.email||"",direccion:x.address||"",nota:x.notes||"",creado:x.created_at}));
  ordenesCompra=(ro.data||[]).map(o=>{
@@ -7480,10 +7489,9 @@ async function generarReciboVenta(id){
     v.items=itemsCloud;
     v.devoluciones=retornos.map(r=>({id:idLocalDesdeLegacy(null,r.id),supabaseId:r.id,numeroDevolucion:r.return_number,ventaId:v.id,productoId:(itemsCloud.find(i=>String(i.supabaseSaleItemId)===String(r.sale_item_id||""))||{}).productoId||idLocalDesdeLegacy(null,r.product_id),cantidad:Number(r.quantity||0),monto:Number(r.refund_amount||0),reembolso:Number(r.refund_amount||0),motivo:r.reason||"",fecha:r.created_at}));
     v.cantidad=itemsCloud.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0);
-    // El total del recibo debe reflejar las unidades netas después de devoluciones.
-    // No usamos sale.total directamente porque ese campo conserva el importe bruto original.
-    v.ingreso=itemsCloud.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0))*Number(i.precioUnitario||0),0);
-    v.costoTotal=itemsCloud.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0))*Number(i.costoUnitario||0),0);
+    // El total neto contable viene de Supabase; no se vuelve a sumar el total bruto de los artículos.
+    v.ingreso=Math.max(0,Number(sale.total||0));
+    v.costoTotal=itemsCloud.reduce((t,i)=>t+Number(i.costo||0),0);
     v.ganancia=v.ingreso-v.costoTotal;
     if(pagosCloud.length)v.pagos=pagosCloud.map(p=>({id:idLocalDesdeLegacy(null,p.id),supabaseId:p.id,cantidad:Number(p.amount||0),fecha:p.created_at,metodo:p.payment_method||"cash",nota:p.note||"",saldoAnterior:Number(p.balance_before??0),saldoRestante:Number(p.balance_after??0)}));
     guardarVentas();
@@ -8844,8 +8852,8 @@ function ventasBrutasMesArrendamiento(mes){
   if(Number.isNaN(d.getTime()))return total;
   const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   if(vm!==mes)return total;
-  // v.ingreso ya representa el total neto después de devoluciones.
-  return total+Number(v.ingreso||0);
+  const dev=Array.isArray(v.devoluciones)?v.devoluciones.reduce((t,r)=>t+Number(r.monto??r.reembolso??0),0):0;
+  return total+Number(v.ingreso||0)+dev;
  },0)
 }
 function costoVentasMesArrendamiento(mes){
@@ -8855,7 +8863,8 @@ function costoVentasMesArrendamiento(mes){
   if(Number.isNaN(d.getTime()))return total;
   const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   if(vm!==mes)return total;
-  return total+costoNetoVenta(v);
+  const costoDevuelto=itemsDeVenta(v).reduce((t,i)=>t+Math.max(0,Number(i.devuelto||0))*Number(i.costoUnitario||0),0);
+  return total+Number(v.costoTotal||0)+costoDevuelto;
  },0)
 }
 function cargarConfiguracionArrendamientoMes(){
@@ -8932,8 +8941,7 @@ function datosFinanzas(){
  const vv=ventas.filter(v=>enRango(v.fecha));
  const gg=gastos.filter(g=>enRango(g.fecha||g.fechaLocal));
  const ventasTotal=vv.reduce((t,v)=>t+Number(v.ingreso||0),0);
- // Costo neto: descuenta mercancía que fue devuelta.
- const costo=vv.reduce((t,v)=>t+costoNetoVenta(v),0);
+ const costo=vv.reduce((t,v)=>t+Number(v.costoTotal||0),0);
  const bruta=ventasTotal-costo;
  const gastosTotal=gg.reduce((t,g)=>t+Number(g.cantidad||0),0);
  const neta=bruta-gastosTotal;
