@@ -6875,7 +6875,7 @@ function flkAvisoMovimientoOffline(texto){
  void el.offsetWidth;
  el.classList.add("visible");
  clearTimeout(flkAvisoMovimientoOffline._timer);
- flkAvisoMovimientoOffline._timer=setTimeout(()=>el.classList.remove("visible"),3200);
+ flkAvisoMovimientoOffline._timer=setTimeout(()=>el.classList.remove("visible"),5000);
 }
 
 document.getElementById("formularioMovimiento").addEventListener("submit",async e=>{
@@ -6925,7 +6925,9 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
    cerrarMovimiento();
 
    // Aviso descriptivo del movimiento realizado. No modifica la cola ni la sincronización.
-   flkAvisoMovimientoOffline(`✅ ${tipoGuardado==="entrada"?"Entrada agregada":"Salida realizada"}: ${p.nombre} · SKU: ${p.sku} · Cantidad: ${cantidad} · Existencia: ${p.cantidad} · Pendiente de sincronizar`);
+   const avisoMovimientoQR=`✅ ${tipoGuardado==="entrada"?"Entrada agregada":"Salida realizada"}: ${p.nombre} · SKU: ${p.sku} · Cantidad: ${cantidad} · Existencia: ${p.cantidad} · Pendiente de sincronizar`;
+   // Se muestra después de cerrar el modal para evitar que el repintado de Safari lo oculte.
+   setTimeout(()=>{try{flkAvisoMovimientoOffline(avisoMovimientoQR)}catch(_){ }},80);
 
    // La confirmación offline general ya fue emitida desde la cola central.
    // Safari puede conservar el scroll del modal al cerrarlo. Volvemos suavemente al inventario.
