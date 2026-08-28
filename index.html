@@ -10556,9 +10556,54 @@ function flkQrValor(c){
  if(p.length>=3&&String(p[0]).toUpperCase()==="FLK")return{tipo:String(p[1]).toUpperCase(),valor:p.slice(2).join("|")};
  return{tipo:"AUTO",valor:raw};
 }
-function flkQrBuscarProducto(x){
- const valor=String(x.valor||"").trim().toLowerCase();
- return productos.find(z=>String(z.sku||"").trim().toLowerCase()===valor||String(z.id)===String(x.valor))||null;
+function flkQrBuscarProducto(codigo){
+ const original=String(codigo||"").trim();
+ if(!original)return null;
+
+ // Las etiquetas de Flackunloker pueden devolver:
+ //   CHA-001
+ //   FLK SKU CHA-001
+ //   FLK SKU: CHA-001
+ // El QR sigue identificando al producto; normalizamos antes de buscar.
+ const candidatos=[];
+ const agregar=(v)=>{
+  const x=String(v||"").trim();
+  if(x && !candidatos.some(c=>c.toLowerCase()===x.toLowerCase()))candidatos.push(x);
+ };
+ agregar(original);
+
+ const mFlk=original.match(/(?:FLK\s*)?SKU\s*[:#-]?\s*([A-Za-z0-9._/-]+)/i);
+ if(mFlk)agregar(mFlk[1]);
+
+ // Si viene texto adicional alrededor del SKU, intenta también extraer
+ // el último bloque con formato de código.
+ const mSku=original.match(/\bSKU\s*[:#-]?\s*([A-Za-z0-9._/-]+)/i);
+ if(mSku)agregar(mSku[1]);
+
+ const normal=(v)=>String(v||"").trim().toLowerCase();
+
+ for(const c of candidatos){
+  const p=(Array.isArray(productos)?productos:[]).find(p=>
+   normal(p.sku)===normal(c) ||
+   normal(p.codigo)===normal(c) ||
+   normal(p.codigoManual)===normal(c) ||
+   normal(p.id)===normal(c)
+  );
+  if(p)return p;
+ }
+
+ // Compatibilidad adicional: algunos códigos pueden venir con espacios.
+ const compact=v=>normal(v).replace(/\s+/g,"");
+ for(const c of candidatos){
+  const p=(Array.isArray(productos)?productos:[]).find(p=>
+   compact(p.sku)===compact(c) ||
+   compact(p.codigo)===compact(c) ||
+   compact(p.codigoManual)===compact(c)
+  );
+  if(p)return p;
+ }
+
+ return null;
 }
 function flkQrBuscarVenta(x){
  const valor=String(x.valor||"").trim().toLowerCase();
@@ -10573,10 +10618,68 @@ function procesarCodigoQR(codigo,desdeCamara=false){
  const x=flkQrValor(codigo);
  if(!String(x.valor||"").trim())return alert("Escribe o escanea un código.");
  if(flkQrModo==="devolucion"){
-  const v=flkQrBuscarVenta(x);
-  if(!v)return flkQrAviso('<strong>⚠️ Recibo no encontrado</strong><br>'+flkQrEsc(codigo));
-  flkQrAviso('<strong>🧾 Recibo #'+flkQrEsc(v.numero||v.id)+'</strong><br>Listo para devolución. Se mantendrá la autorización por PIN cuando corresponda.');
-  detenerEscanerQR(false);cerrarEscanerQR();abrirDevolucion(v.id);return;
+  // En devolución, el QR identifica EL PRODUCTO, no el recibo.
+  // Buscamos las ventas que contienen ese producto y que aún tienen unidades
+  // disponibles para devolver. El usuario elige el comprobante correcto.
+  const p=flkQrBuscarProducto(x);
+  if(!p)return flkQrAviso('<strong>⚠️ Producto no encontrado</strong><br>'+flkQrEsc(codigo));
+
+  const ventasCompatibles=(Array.isArray(ventas)?ventas:[]).map(v=>{
+   const items=itemsDeVenta(v);
+   const indice=items.findIndex(i=>String(i.productoId)===String(p.id));
+   if(indice<0)return null;
+   const item=items[indice];
+   const disponible=Math.max(0,Number(item.cantidad||0)-Number(item.devuelto||0));
+   return disponible>0?{v,indice,item,disponible}:null;
+  }).filter(Boolean).sort((a,b)=>new Date(b.v.fecha||0)-new Date(a.v.fecha||0));
+
+  if(!ventasCompatibles.length){
+   return flkQrAviso(
+    '<strong>⚠️ No hay una venta disponible para devolver</strong><br>'+
+    flkQrEsc(p.nombre)+' · SKU: '+flkQrEsc(p.sku||"—")
+   );
+  }
+
+  const abrirVentaDevolucionQR=(idx)=>{
+   const op=ventasCompatibles[idx];
+   if(!op)return;
+   detenerEscanerQR(false);
+   cerrarEscanerQR();
+   // abrirDevolucion mantiene la autorización por PIN para empleados.
+   abrirDevolucion(op.v.id);
+  };
+
+  if(ventasCompatibles.length===1){
+   const op=ventasCompatibles[0];
+   flkQrAviso(
+    '<strong>↩️ Producto identificado</strong><br>'+
+    '<b>'+flkQrEsc(p.nombre)+'</b> · '+Number(op.disponible)+' disponible(s)<br>'+
+    '🧾 Comprobante: <b>#'+flkQrEsc(op.v.numero||op.v.id)+'</b><br>'+
+    '👤 Cliente: <b>'+flkQrEsc(op.v.cliente||"Cliente general")+'</b><br>'+
+    '<button type="button" class="boton-agregar" style="margin-top:10px;width:100%" onclick="flkAbrirDevolucionQRSeleccion(0)">Continuar devolución</button>'
+   );
+   window.flkDevolucionQRSeleccionActual=ventasCompatibles;
+   window.flkAbrirDevolucionQRSeleccion=abrirVentaDevolucionQR;
+   return;
+  }
+
+  window.flkDevolucionQRSeleccionActual=ventasCompatibles;
+  window.flkAbrirDevolucionQRSeleccion=abrirVentaDevolucionQR;
+
+  const opciones=ventasCompatibles.map((op,i)=>
+   '<div style="padding:10px 0;border-bottom:1px solid #dbe5ef">'+
+   '<strong>🧾 Recibo #'+flkQrEsc(op.v.numero||op.v.id)+'</strong><br>'+
+   '👤 '+flkQrEsc(op.v.cliente||"Cliente general")+
+   ' · '+Number(op.disponible)+' disponible(s)'+
+   '<button type="button" class="boton-agregar" style="margin-top:7px;width:100%" onclick="flkAbrirDevolucionQRSeleccion('+i+')">Seleccionar este comprobante</button>'+
+   '</div>'
+  ).join("");
+
+  flkQrAviso(
+   '<strong>↩️ '+flkQrEsc(p.nombre)+'</strong><br>'+
+   'Selecciona el comprobante que corresponde a la devolución:<br>'+opciones
+  );
+  return;
  }
  const p=flkQrBuscarProducto(x);
  if(!p)return flkQrAviso('<strong>⚠️ Producto no encontrado</strong><br>'+flkQrEsc(codigo));
