@@ -8014,7 +8014,14 @@ function imprimirComprobanteMovimiento(id){
  const m=historial.find(x=>String(x.id)===String(id)||String(x.supabaseId||"")===String(id));
  if(!m)return alert("Movimiento no encontrado.");
  const f=new Date(m.fecha),esEntrada=m.tipo==="entrada";
- const ventaRelacionada=m.ventaId?ventas.find(v=>String(v.id)===String(m.ventaId)):null;
+ // La salida de una venta puede perder ventaId al recargar desde Supabase.
+ // Por eso también se identifica por el número de recibo guardado en la nota.
+ const reciboDesdeNota=(String(m.detalle||"").match(/Recibo(?:\s+local)?\s*#?\s*([0-9]+)/i)||[])[1]||"";
+ const ventaRelacionada=m.ventaId
+   ? ventas.find(v=>String(v.id)===String(m.ventaId))
+   : (reciboDesdeNota
+      ? ventas.find(v=>String(v.numero||"").replace(/^0+/,"")===String(reciboDesdeNota).replace(/^0+/,"")||String(v.numero||"")===String(reciboDesdeNota))
+      : null);
  const esVenta=!!ventaRelacionada;
  const color=esVenta?"#168044":(esEntrada?"#138a43":"#0a67d1");
  const pref=esVenta?"VE":(esEntrada?"EN":"SA");
@@ -8023,10 +8030,10 @@ function imprimirComprobanteMovimiento(id){
  const saldo=m.saldo!==undefined&&m.saldo!==null?Number(m.saldo):null;
  const cliente=esVenta?(ventaRelacionada.cliente||"Cliente general"):"";
  const metodo=esVenta?(ventaRelacionada.metodoPago||"Efectivo"):"";
- const recibo=esVenta?(ventaRelacionada.numero||""):"";
+ const recibo=esVenta?(ventaRelacionada.numero||reciboDesdeNota):"";
  const titulo=esVenta?"Venta":(esEntrada?"Entrada":"Salida");
  const tipoTexto=esVenta?"Venta":(esEntrada?"Entrada":"Salida");
- const detalle=esVenta?`Venta · Recibo ${escapeHtml(recibo)}`:(m.detalle||"Movimiento de inventario");
+ const detalle=esVenta?`Venta · Recibo ${escapeHtml(String(recibo))}`:(m.detalle||"Movimiento de inventario");
 
  const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${titulo}</title><style>${flkCssComprobanteProfesional(color)}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">${esVenta?"💰 Venta":(esEntrada?"↓ Entrada de inventario":"↑ Salida de inventario")}</span><span class="numero">N.º ${escapeHtml(String(recibo||numero))}</span></div></header><section class="meta"><div>Fecha y hora<strong>${f.toLocaleDateString("es-PR")} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Tipo de movimiento<strong>${tipoTexto}</strong></div>${esVenta?`<div>Cliente<strong>${escapeHtml(cliente)}</strong></div><div>Método de pago<strong>${escapeHtml(metodo)}</strong></div><div>Recibo<strong>#${escapeHtml(String(recibo))}</strong></div>`:""}<div>Origen / detalle<strong>${detalle}</strong></div><div>Saldo posterior<strong>${saldo===null?"No disponible":saldo+" unidades"}</strong></div></section><section class="seccion"><h3>${esVenta?"Detalle de la venta":"Detalle del movimiento"}</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cantidad</th><th class="num">Saldo posterior</th></tr></thead><tbody><tr><td>${escapeHtml(m.nombre||"Producto")}</td><td>${escapeHtml(m.sku||"—")}</td><td class="num"><strong>${Number(m.cantidad||0)}</strong></td><td class="num">${saldo===null?"—":saldo}</td></tr></tbody></table></section>${esVenta?`<section class="seccion"><div style="font-size:12px;color:#555">Movimiento de inventario asociado al recibo de venta. La existencia se descuenta como salida de inventario.</div></section>`:""}<section class="seccion"><div class="firma"><div>Registrado por</div><div>Revisión / conformidad</div></div></section><div class="pie">Documento de control de inventario · Generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div></body></html>`;
  flkAbrirDocumentoComprobante(html);
