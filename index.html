@@ -2173,6 +2173,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <form class="formulario" id="formularioMovimiento">
 <h2 id="tituloMovimiento">Movimiento</h2><p class="mensaje-movimiento" id="textoMovimiento">Movimiento de inventario</p>
 <div class="campo"><label for="cantidadMovimiento">Cantidad</label><input id="cantidadMovimiento" type="number" min="1" step="1" required></div>
+<div class="campo"><label for="notaMovimiento">Nota / descripción del comprobante</label><textarea id="notaMovimiento" rows="3" placeholder="Ejemplo: Traslado a tienda, mercancía dañada, entrega a empleado..."></textarea></div>
 <div id="estadoMovimientoOffline" style="display:none;margin:8px 0 0;font-size:12px;font-weight:700;color:#a15c00">Guardando movimiento local...</div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarMovimiento()">Cancelar</button><button id="botonConfirmarMovimiento" type="submit" class="boton-guardar">Confirmar</button></div>
 </form>
@@ -6825,6 +6826,8 @@ function cerrarMovimiento(){
  if(btn){btn.disabled=false;btn.textContent="Confirmar"}
  const est=document.getElementById("estadoMovimientoOffline");
  if(est)est.style.display="none";
+ const nota=document.getElementById("notaMovimiento");
+ if(nota)nota.value="";
  productoMovimiento=null;tipoMovimiento=null
 }
 
@@ -6887,8 +6890,11 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
 
   const delta=tipoMovimiento==="entrada"?cantidad:-cantidad;
   const tipoGuardado=tipoMovimiento;
+  const notaEl=document.getElementById("notaMovimiento");
+  const notaMovimiento=notaEl?notaEl.value.trim():"";
+  const detalleMovimiento=notaMovimiento||"Movimiento manual desde Flackunloker";
 
-  p.cantidad=await ajustarStockSupabase(p,delta,tipoGuardado,"Movimiento manual desde Flackunloker");
+  p.cantidad=await ajustarStockSupabase(p,delta,tipoGuardado,detalleMovimiento);
 
   if(navigator.onLine){
    await cargarHistorialSupabase();
@@ -6903,7 +6909,7 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
     id:Date.now()+Math.floor(Math.random()*100000),
     productoId:p.id,nombre:p.nombre,sku:p.sku,tipo:tipoGuardado,
     cantidad,saldo:p.cantidad,fecha:new Date().toISOString(),
-    detalle:"🟠 Pendiente de sincronización"
+    detalle:(notaMovimiento?notaMovimiento+" · ":"")+"🟠 Pendiente de sincronización"
    });
    guardarDatos();
    guardarHistorial();
@@ -10981,7 +10987,7 @@ function cancelarLecturaQRPendiente(){
 }
 
 // Preserve original business logic and replace scanner-facing entry point.
-let flkProcesarCodigoQRNegocio=procesarCodigoQR;
+const flkProcesarCodigoQRNegocio=procesarCodigoQR;
 procesarCodigoQR=function(codigo,desdeCamara=false){
  if(desdeCamara){
   flkPresentarLecturaParaConfirmar(codigo);
@@ -11790,69 +11796,6 @@ async function flkDeepStorageCopy(){
  try{await navigator.clipboard.writeText(t);alert("Resumen copiado.")}catch(_){alert(t)}
 }
 
-</script>
-
-<script id="flk-qr-operacion-segura-final">
-/* v61.83: la operación elegida por el usuario queda bloqueada durante la lectura.
-   Evita que Venta termine ejecutándose como Entrada/Salida por otra capa del lector. */
-let flkQrModoSeguroSeleccionado="";
-let flkQrModoSeguroPendiente="";
-
-const flkSeleccionarModoQR_Seguro=seleccionarModoQR;
-seleccionarModoQR=function(modo){
-  const permitido=["entrada","salida","venta","devolucion"];
-  if(!permitido.includes(String(modo)))return;
-  flkQrModoSeguroSeleccionado=String(modo);
-  return flkSeleccionarModoQR_Seguro(modo);
-};
-
-const flkAbrirEscanerQR_Seguro=abrirEscanerQR;
-abrirEscanerQR=function(){
-  flkQrModoSeguroSeleccionado="";
-  flkQrModoSeguroPendiente="";
-  return flkAbrirEscanerQR_Seguro.apply(this,arguments);
-};
-
-const flkPresentarLecturaQR_Seguro=flkPresentarLecturaParaConfirmar;
-flkPresentarLecturaParaConfirmar=function(codigo){
-  const modo=flkQrModoSeguroSeleccionado||flkQrModo;
-  if(!modo)return alert("Primero selecciona la operación.");
-  flkQrModoSeguroPendiente=modo;
-  const modoAnterior=flkQrModo;
-  try{
-    flkQrModo=modo;
-    return flkPresentarLecturaQR_Seguro(codigo);
-  }finally{
-    flkQrModo=modoAnterior;
-  }
-};
-
-const flkConfirmarLecturaQR_Seguro=confirmarLecturaQRPendiente;
-confirmarLecturaQRPendiente=function(){
-  const modo=flkQrModoSeguroPendiente||flkQrModoSeguroSeleccionado||flkQrModo;
-  const modoAnterior=flkQrModo;
-  try{
-    flkQrModo=modo;
-    return flkConfirmarLecturaQR_Seguro.apply(this,arguments);
-  }finally{
-    flkQrModo=modoAnterior;
-    flkQrModoSeguroPendiente="";
-  }
-};
-
-/* La ruta de Venta queda explícitamente separada de Entrada/Salida. */
-const flkProcesarNegocioSeguroFinal=flkProcesarCodigoQRNegocio;
-flkProcesarCodigoQRNegocio=function(codigo,desdeCamara){
-  const modo=flkQrModoSeguroPendiente||flkQrModoSeguroSeleccionado||flkQrModo;
-  if(!modo)return;
-  const modoAnterior=flkQrModo;
-  try{
-    flkQrModo=modo;
-    return flkProcesarNegocioSeguroFinal(codigo,desdeCamara);
-  }finally{
-    flkQrModo=modoAnterior;
-  }
-};
 </script>
 </body>
 </html>
