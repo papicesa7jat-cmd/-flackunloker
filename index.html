@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-29-v61.83-compra-fuera-de-caja">
-<title>Flackunloker · v61.78</title>
+<meta name="flackunloker-offline-version" content="2026-08-29-v61.84-respaldo-local-fase1">
+<title>Flackunloker · v61.84</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}
@@ -3767,9 +3767,35 @@ async function ejecutarRestablecimientoTotal(){
 }
 
 
+// ===== v61.84 · SUPABASE PRINCIPAL + PREPARACIÓN DE RESPALDO LOCAL =====
+// El principal continúa siendo el único backend activo en esta fase.
+// El respaldo local se declara por separado para no alterar todavía la cola offline.
 const FLK_SUPABASE_URL='https://eviwhrqhinhnyccizkfq.supabase.co';
 const FLK_SUPABASE_KEY='sb_publishable_KgcL58HbkZ66Cguhs5JT0A_V2xAoL7h';
-const flkSupabase=window.supabase.createClient(FLK_SUPABASE_URL,FLK_SUPABASE_KEY);
+
+const FLK_SUPABASE_LOCAL_URL='https://192.168.10.162';
+// IMPORTANTE: no pegar service_role aquí. Solo ANON_KEY/publishable del Supabase local.
+const FLK_SUPABASE_LOCAL_KEY='';
+
+const flkSupabasePrincipal=window.supabase.createClient(FLK_SUPABASE_URL,FLK_SUPABASE_KEY);
+const flkSupabaseLocal=FLK_SUPABASE_LOCAL_KEY
+ ? window.supabase.createClient(FLK_SUPABASE_LOCAL_URL,FLK_SUPABASE_LOCAL_KEY,{
+     auth:{
+       storageKey:'flackunloker-auth-local-v1',
+       persistSession:true,
+       autoRefreshToken:true,
+       detectSessionInUrl:false
+     }
+   })
+ : null;
+
+// Compatibilidad total con el código actual:
+// TODAS las operaciones siguen usando el principal hasta completar la fase 2.
+const flkSupabase=flkSupabasePrincipal;
+
+function flkRespaldoLocalConfigurado(){
+ return !!flkSupabaseLocal;
+}
 let modoAuth="login";
 let rolSesion="employee";
 let flkSesionActiva=false;
