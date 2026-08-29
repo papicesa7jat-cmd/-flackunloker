@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-28-v61.77-arrendamiento-ganancia-neta-corregido">
-<title>Flackunloker · v61.77</title>
+<meta name="flackunloker-offline-version" content="2026-08-28-v61.78-software-admin-centro-restringido">
+<title>Flackunloker · v61.78</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}
@@ -759,6 +759,7 @@ button.menu-toggle{
   color:#000 !important;
 }
 
+/* v61.78 · Software para Administrador de centro: respaldo propio + PIN devolución + reset propio. */
 /* v61.77 · Estado por Contribución: usa la misma base financiera real del mes y descuenta gastos + arrendamiento.
    Conserva la corrección v61.76 de Venta por QR: el SKU ya identifica el producto.
    Ocultar de forma obligatoria los controles de selección manual solo en ese flujo. */
@@ -1578,6 +1579,15 @@ textarea::placeholder{
 .flk-qr-offline-box div{min-width:0}.flk-qr-offline-box strong{display:block;font-size:12px}.flk-qr-offline-box small{display:block;margin-top:3px;font-size:10.5px;color:#607486;line-height:1.3}
 .flk-qr-offline-box button{flex:0 0 auto;border:0;border-radius:9px;padding:8px 9px;background:#e4f1ff;color:#0965bd;font-weight:850;font-size:11px;cursor:pointer}
 </style>
+
+<style id="flk-admin-software-centro-restringido-style">
+#botonAdminSoftware{display:none!important}
+body.rol-admin #botonAdminSoftware,body.es-propietario #botonAdminSoftware{display:flex!important}
+body:not(.es-propietario).rol-admin #vistaAdminSoftware .adminsw-owner-only{display:none!important}
+body.es-propietario #vistaAdminSoftware .adminsw-admin-centro-only{display:none!important}
+body:not(.es-propietario).rol-admin #vistaAdminSoftware .adminsw-admin-centro-only{display:block!important}
+body:not(.es-propietario).rol-admin #adminswPanelRespaldo .botones-respaldo{grid-template-columns:1fr!important}
+</style>
 </head>
 <body>
 
@@ -2373,15 +2383,16 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div id="vistaAdminSoftware" style="display:none">
  <div class="seccion-titulo">
   <h2>⚙️ Administración del Software</h2>
-  <button class="boton-agregar" type="button" onclick="cargarAdminSoftware()">↻ Actualizar</button>
+  <button class="boton-agregar adminsw-owner-only" type="button" onclick="cargarAdminSoftware()">↻ Actualizar</button>
  </div>
- <div class="reporte-controles"><p class="reporte-periodo">Panel exclusivo del propietario de Flackunloker. Administra centros y asigna cuentas existentes sin entrar al SQL.</p></div>
- <div class="adminsw-grid">
+ <div class="reporte-controles adminsw-owner-only"><p class="reporte-periodo">Panel exclusivo del propietario de Flackunloker. Administra centros y asigna cuentas existentes sin entrar al SQL.</p></div>
+ <div class="reporte-controles adminsw-admin-centro-only" style="display:none"><p class="reporte-periodo" id="adminswTextoCentroRestringido">Panel administrativo de este centro. Solo permite respaldo, cambio de PIN de devolución y restablecimiento de fábrica de los datos de este centro.</p></div>
+ <div class="adminsw-grid adminsw-owner-only">
   <div class="adminsw-card"><span>Centros</span><strong id="adminswTotalCentros">0</strong></div>
   <div class="adminsw-card"><span>Activos</span><strong id="adminswCentrosActivos">0</strong></div>
   <div class="adminsw-card"><span>Usuarios asignados</span><strong id="adminswTotalMiembros">0</strong></div>
  </div>
- <div class="adminsw-panel">
+ <div class="adminsw-panel adminsw-owner-only">
   <h3 style="margin:0 0 14px">🏢 Crear centro</h3>
   <div class="adminsw-form">
    <div class="campo"><label>Nombre del centro</label><input id="adminswCentroNombre" maxlength="120" placeholder="Ej. Flackunloker - Sucursal Norte"></div>
@@ -2389,7 +2400,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
    <button class="boton-agregar" type="button" onclick="crearCentroAdminSoftware()">➕ Crear</button>
   </div>
  </div>
- <div class="adminsw-panel">
+ <div class="adminsw-panel adminsw-owner-only">
   <h3 style="margin:0 0 14px">➕ Crear usuario y asignar</h3>
   <div class="adminsw-form" style="grid-template-columns:1.25fr 1.1fr 1fr 1fr auto">
    <div class="campo"><label>Correo del nuevo usuario</label><input id="adminswNuevoEmail" type="email" autocomplete="off" placeholder="usuario@correo.com"></div>
@@ -2400,7 +2411,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   </div>
   <small class="ayuda-campo">La contraseña se envía únicamente a una función segura de Supabase. La clave administrativa nunca se guarda en este index.html.</small>
  </div>
- <div class="adminsw-panel">
+ <div class="adminsw-panel adminsw-owner-only">
   <h3 style="margin:0 0 14px">👤 Asignar usuario existente</h3>
   <div class="adminsw-form" style="grid-template-columns:1.3fr 1fr 1fr auto">
    <div class="campo"><label for="adminswUsuarioEmail">Usuario existente</label><select id="adminswUsuarioEmail"><option value="">Cargando usuarios...</option></select></div>
@@ -2410,14 +2421,14 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   </div>
   <small class="ayuda-campo">En esta primera etapa el usuario debe existir previamente en Authentication. La creación de cuentas desde este panel se añadirá después mediante un servicio seguro, sin exponer claves administrativas en el navegador.</small>
  </div>
- <div class="adminsw-panel">
-  <h3 style="margin:0 0 8px">💾 Respaldo y restauración</h3>
+ <div class="adminsw-panel" id="adminswPanelRespaldo">
+  <h3 style="margin:0 0 8px" id="adminswTituloRespaldo">💾 Respaldo y restauración</h3>
   <p style="margin:0 0 14px;color:#667085;font-size:13px;line-height:1.55">Guarda una copia de los datos de Flackunloker o restaura un respaldo anterior.</p>
   <div class="botones-respaldo">
    <button class="boton-respaldo boton-crear-respaldo" type="button" onclick="crearRespaldo()">💾 Crear respaldo</button>
-   <button class="boton-respaldo boton-restaurar-respaldo" type="button" onclick="seleccionarRespaldo()">📥 Restaurar respaldo</button>
+   <button class="boton-respaldo boton-restaurar-respaldo adminsw-owner-only" type="button" onclick="seleccionarRespaldo()">📥 Restaurar respaldo</button>
   </div>
-  <button type="button" onclick="flkDeepStorageOpen()" style="width:100%;margin-top:10px;border:0;border-radius:12px;padding:13px 10px;background:#e9f4ff;color:#075aa8;font-size:14px;font-weight:900;cursor:pointer">🧪 Revisar IndexedDB / caché offline</button>
+  <button type="button" class="adminsw-owner-only" onclick="flkDeepStorageOpen()" style="width:100%;margin-top:10px;border:0;border-radius:12px;padding:13px 10px;background:#e9f4ff;color:#075aa8;font-size:14px;font-weight:900;cursor:pointer">🧪 Revisar IndexedDB / caché offline</button>
   <input id="archivoRespaldo" type="file" accept=".json,application/json" style="display:none" onchange="restaurarRespaldo(event)">
   <div id="estadoRespaldo" class="estado-respaldo"></div>
  </div>
@@ -2434,7 +2445,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
    <button type="button" class="adminsw-seguridad-btn adminsw-reset-btn" onclick="abrirRestablecimientoTotal()">⚠️ Reseteo de fábrica</button>
   </div>
  </div>
- <div id="adminswListaCentros"><div class="sin-productos">Pulsa Actualizar para cargar los centros.</div></div>
+ <div id="adminswListaCentros" class="adminsw-owner-only"><div class="sin-productos">Pulsa Actualizar para cargar los centros.</div></div>
 </div>
 
 <div id="vistaLicencias" style="display:none">
@@ -2553,7 +2564,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div id="menuPrincipalFondo" class="menu-panel-fondo" onclick="cerrarMenuPrincipal(event)">
  <div class="menu-panel" onclick="event.stopPropagation()">
   <div class="menu-panel-cabecera"><h2>☰ Menú principal</h2><button class="cerrar-menu" onclick="cerrarMenuPrincipal()">✕</button></div>
-  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button class="solo-admin" onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button class="solo-admin" id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button class="solo-admin" id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button class="solo-admin" id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button class="solo-admin" id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button class="solo-admin" id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button class="solo-admin" id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button class="solo-admin" id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button class="solo-admin" id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button class="solo-admin" id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button class="solo-propietario" id="botonAdminSoftware" onclick="mostrarAdminSoftware()">⚙️ Software</button><button class="solo-propietario" id="botonLicencias" onclick="mostrarLicencias()">🔐 Licencias</button></div>
+  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button class="solo-admin" onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button class="solo-admin" id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button class="solo-admin" id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button class="solo-admin" id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button class="solo-admin" id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button class="solo-admin" id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button class="solo-admin" id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button class="solo-admin" id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button class="solo-admin" id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button class="solo-admin" id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button id="botonAdminSoftware" onclick="mostrarAdminSoftware()">⚙️ Software</button><button class="solo-propietario" id="botonLicencias" onclick="mostrarLicencias()">🔐 Licencias</button></div>
  </div>
 </div>
 
@@ -2563,7 +2574,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
  <div class="modal-contenido" style="width:min(94vw,560px);padding:26px">
   <div class="modal-cabecera"><h3 style="font-size:24px">⚠️ Restablecimiento total</h3><button class="cerrar" type="button" onclick="cerrarRestablecimientoTotal()">×</button></div>
   <div id="bloqueConfigurarPin">
-   <p style="line-height:1.55">Primero establece un PIN secreto de <strong>6 dígitos</strong>. No se guarda de forma visible.</p>
+   <p style="line-height:1.55">Primero establece un PIN secreto de <strong>6 dígitos</strong> para este centro. No se guarda de forma visible.</p>
    <label>Nuevo PIN de 6 dígitos</label>
    <input id="nuevoPinReset" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
    <label>Repetir PIN</label>
@@ -2579,7 +2590,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
    <input id="pinEjecutarReset" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
    <label>Escribe RESTABLECER para confirmar</label>
    <input id="textoConfirmarReset" type="text" autocomplete="off" placeholder="RESTABLECER">
-   <button type="button" onclick="ejecutarRestablecimientoTotal()" style="width:100%;min-height:58px;margin-top:20px;border:0;border-radius:14px;background:#d93025;color:white;font-size:18px;font-weight:900">🗑️ Borrar todos los datos operativos</button>
+   <button type="button" onclick="ejecutarRestablecimientoTotal()" style="width:100%;min-height:58px;margin-top:20px;border:0;border-radius:14px;background:#d93025;color:white;font-size:18px;font-weight:900">🗑️ Borrar datos operativos de este centro</button>
    <button type="button" onclick="mostrarCambioPinReset()" style="width:100%;margin-top:12px;background:none;border:0;color:#0a84ff;font-weight:700">Cambiar PIN de seguridad</button>
   </div>
  </div>
@@ -3692,14 +3703,14 @@ async function guardarPinReset(){
  if(error){if(flkSilenciarSiEsConexion(error))return;return alert("Supabase rechazó el PIN: "+error.message)};
  document.getElementById("nuevoPinReset").value="";document.getElementById("confirmarPinReset").value="";
  document.getElementById("bloqueConfigurarPin").style.display="none";document.getElementById("bloqueEjecutarReset").style.display="block";
- alert("PIN de restablecimiento configurado correctamente.");
+ alert("PIN de restablecimiento configurado correctamente para este centro.");
 }
 async function ejecutarRestablecimientoTotal(){
  const pin=document.getElementById("pinEjecutarReset").value;
  const texto=document.getElementById("textoConfirmarReset").value.trim().toUpperCase();
  if(!/^\d{6}$/.test(pin))return alert("Introduce tu PIN de 6 dígitos.");
  if(texto!=="RESTABLECER")return alert("Para confirmar debes escribir exactamente RESTABLECER.");
- if(!confirm("ÚLTIMA CONFIRMACIÓN: se borrarán permanentemente todos los datos operativos. ¿Continuar?"))return;
+ if(!confirm("ÚLTIMA CONFIRMACIÓN: se borrarán permanentemente los datos operativos de ESTE CENTRO. Los demás centros no serán afectados. ¿Continuar?"))return;
  const {error}=await flkSupabase.rpc("flk_full_system_reset",{p_pin:pin,p_confirmation:"RESTABLECER"});
  if(error){if(flkSilenciarSiEsConexion(error))return;return alert("No se pudo restablecer el sistema: "+error.message)};
  localStorage.removeItem(flkLocalKey("flackunloker_productos"));
@@ -3708,7 +3719,7 @@ async function ejecutarRestablecimientoTotal(){
  localStorage.removeItem(flkLocalKey("flackunloker_clientes"));
  localStorage.removeItem(flkLocalKey("flackunloker_gastos"));
  localStorage.removeItem(flkLocalKey("flackunloker_cierres"));
- alert("Restablecimiento completado. Flackunloker quedó sin datos operativos.");
+ alert("Restablecimiento completado. Este centro quedó sin datos operativos. Los demás centros no fueron afectados.");
  location.reload();
 }
 
@@ -4058,7 +4069,8 @@ async function cargarRolUsuario(user){
 function aplicarPermisosVisuales(){
  const admin=rolSesion==="admin";
  document.querySelectorAll(".solo-admin").forEach(el=>{el.style.setProperty("display",admin?"":"none",admin?"":"important")});
- const resetPanel=document.getElementById("panelRestablecimientoTotal");if(resetPanel)resetPanel.style.display=admin?"block":"none";
+ const resetPanel=document.getElementById("panelRestablecimientoTotal");if(resetPanel)resetPanel.style.display=(admin&&flkEsPropietarioSoftware)?"block":"none";
+ const btnSoftware=document.getElementById("botonAdminSoftware");if(btnSoftware)btnSoftware.style.setProperty("display",admin?"flex":"none","important");
  document.body.classList.toggle("rol-empleado",!admin);
  const btnArr=document.getElementById("botonGuardarArrendamiento");if(btnArr)btnArr.style.display=admin?"":"none";
  document.body.classList.toggle("rol-admin",admin);
@@ -5156,7 +5168,11 @@ function flkPintarPropietarioSoftware(esOwner){
  const botonLic=document.getElementById("botonLicencias");
  const botonAdmin=document.getElementById("botonAdminSoftware");
  if(botonLic)botonLic.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
- if(botonAdmin)botonAdmin.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
+ const puedeSoftware=flkEsPropietarioSoftware||rolSesion==="admin";
+ if(botonAdmin)botonAdmin.style.setProperty("display",puedeSoftware?"flex":"none","important");
+ const resetPanel=document.getElementById("panelRestablecimientoTotal");
+ if(resetPanel)resetPanel.style.setProperty("display",flkEsPropietarioSoftware&&rolSesion==="admin"?"block":"none","important");
+ if(typeof flkConfigurarAdminSoftwareSegunCuenta==="function")flkConfigurarAdminSoftwareSegunCuenta();
 }
 
 async function flkComprobarPropietarioSoftware(){
@@ -5226,13 +5242,37 @@ function flkAdminSwEsc(v){
  }[c]));
 }
 
+function flkConfigurarAdminSoftwareSegunCuenta(){
+ const admin=rolSesion==="admin";
+ const owner=!!flkEsPropietarioSoftware;
+ document.querySelectorAll("#vistaAdminSoftware .adminsw-owner-only").forEach(el=>{el.style.setProperty("display",owner?"":"none",owner?"":"important")});
+ document.querySelectorAll("#vistaAdminSoftware .adminsw-admin-centro-only").forEach(el=>{el.style.setProperty("display",admin&&!owner?"block":"none","important")});
+ const titulo=document.getElementById("adminswTituloRespaldo");
+ if(titulo)titulo.textContent=owner?"💾 Respaldo y restauración":"💾 Respaldo de este centro";
+ const p=document.querySelector("#adminswPanelRespaldo p");
+ if(p)p.textContent=owner?"Guarda una copia de los datos de Flackunloker o restaura un respaldo anterior.":"Crea una copia de seguridad únicamente de los datos del centro actualmente asignado a esta cuenta.";
+}
+
+async function flkPintarNombreCentroSoftwareRestringido(){
+ if(flkEsPropietarioSoftware||rolSesion!=="admin")return;
+ const texto=document.getElementById("adminswTextoCentroRestringido");
+ if(!texto)return;
+ try{
+  const centro=await flkResolverCentroBackup();
+  texto.innerHTML=`Panel administrativo de <strong>${flkAdminSwEsc(centro.nombre)}</strong>. Solo permite respaldo, cambio de PIN de devolución y restablecimiento de fábrica de los datos de este centro.`;
+ }catch(_){
+  texto.textContent="Panel administrativo de este centro. Solo permite respaldo, cambio de PIN de devolución y restablecimiento de fábrica de los datos de este centro.";
+ }
+}
+
 function mostrarAdminSoftware(){flkGuardarVistaActual("software");flkOcultarTodasLasVistas();
- if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
+ if(!(rolSesion==="admin"||flkEsPropietarioSoftware))return alert("Solo una cuenta Administrador puede abrir Software.");
  const vistas=["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaLicencias"];
  vistas.forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  const v=document.getElementById("vistaAdminSoftware");if(v)v.style.display="block";
  document.querySelectorAll("#menuPrincipalFondo .menu-cuadricula button").forEach(b=>b.classList.remove("activo"));
  document.getElementById("botonAdminSoftware")?.classList.add("activo");
+ flkConfigurarAdminSoftwareSegunCuenta();
  cargarAdminSoftware();scrollTop();
 }
 
@@ -5440,7 +5480,13 @@ async function flkCargarUsuariosExistentesAdminSoftware(){
 }
 
 async function cargarAdminSoftware(){
- if(!flkEsPropietarioSoftware)return;
+ if(!(flkEsPropietarioSoftware||rolSesion==="admin"))return;
+ flkConfigurarAdminSoftwareSegunCuenta();
+ if(!flkEsPropietarioSoftware){
+  flkCargarSelectPinCentro();
+  await flkPintarNombreCentroSoftwareRestringido();
+  return;
+ }
  const lista=document.getElementById("adminswListaCentros");
  const seguridad=document.querySelector("#vistaAdminSoftware .adminsw-seguridad-compacta");
  if(seguridad)seguridad.style.display="block";
@@ -10039,7 +10085,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.77",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.78",{updateViaCache:"none"});
    if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
