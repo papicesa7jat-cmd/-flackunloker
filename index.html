@@ -9024,6 +9024,7 @@ function datosFlujoCaja(){
  const mov=movimientosFlujoCaja().filter(m=>{const f=fechaMovimientoFlujo(m.fecha);return f&&f>=lim.desde&&f<lim.hasta});
  const suma=(tipo,grupo)=>mov.filter(m=>(!tipo||m.tipo===tipo)&&(!grupo||m.grupo===grupo)).reduce((t,m)=>t+m.cantidad,0);
  const entradas=suma("entrada"),salidas=suma("salida"),metodos={};
+ const comprasFueraCaja=mov.filter(m=>m.grupo==="proveedor_fuera_caja").reduce((t,m)=>t+Number(m.cantidad||0),0);
  const aportesPropietario=mov.filter(m=>m.grupo==="propietario"&&m.tipo==="entrada").reduce((t,m)=>t+Number(m.cantidad||0),0);
  const retirosPropietario=mov.filter(m=>m.grupo==="propietario"&&m.tipo==="salida").reduce((t,m)=>t+Number(m.cantidad||0),0);
  ["Efectivo CUP","Efectivo USD","Tarjeta CUP","Tarjeta USD","Zelle","MLC"].forEach(k=>metodos[k]=mov.filter(m=>m.metodo===k).reduce((t,m)=>t+(m.tipo==="entrada"?m.cantidad:-m.cantidad),0));
