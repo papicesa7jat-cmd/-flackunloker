@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-28-v61.81-cierre-flotante-reset-tv">
+<meta name="flackunloker-offline-version" content="2026-08-29-v61.83-compra-fuera-de-caja">
 <title>Flackunloker · v61.78</title>
 <style>
 *{box-sizing:border-box}
@@ -2352,14 +2352,14 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="modal" id="modalRecepcionOrden">
 <form class="formulario" id="formularioRecepcionOrden">
 <h2>✅ Recibir orden</h2><p class="mensaje-movimiento" id="textoRecepcionOrden">Confirma la recepción y cómo se pagó la compra.</p>
-<div class="campo"><label for="condicionPagoProveedor">Condición de pago</label><select id="condicionPagoProveedor" onchange="actualizarCamposCreditoProveedor()"><option value="pagado">✅ Pagada</option><option value="credito">💳 A crédito</option></select></div>
-<div class="campo"><label for="metodoPagoProveedor">Método de pago / abono inicial</label><select id="metodoPagoProveedor"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Tarjeta CUP">Tarjeta CUP</option><option value="Tarjeta USD">Tarjeta USD</option><option value="Zelle">Zelle</option><option value="MLC">MLC</option></select></div>
+<div class="campo"><label for="condicionPagoProveedor">Condición de pago</label><select id="condicionPagoProveedor" onchange="actualizarCamposCreditoProveedor()"><option value="pagado">💵 Pagada desde caja / fondos del negocio</option><option value="pagado_fuera_caja">📦 Ya pagada / fuera de caja</option><option value="credito">💳 A crédito</option></select><small class="ayuda-campo">“Ya pagada / fuera de caja” registra el costo y la mercancía, pero no descuenta dinero de la caja física ni del flujo de caja.</small></div>
+<div class="campo" id="campoMetodoPagoProveedor"><label for="metodoPagoProveedor">Método de pago / abono inicial</label><select id="metodoPagoProveedor"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Tarjeta CUP">Tarjeta CUP</option><option value="Tarjeta USD">Tarjeta USD</option><option value="Zelle">Zelle</option><option value="MLC">MLC</option></select></div>
 <div class="campo campo-credito" id="campoAbonoProveedor"><label for="abonoInicialProveedor">Abono inicial</label><input id="abonoInicialProveedor" type="number" min="0" step="0.01" value="0"></div>
 <div class="campo campo-credito" id="campoVencimientoProveedor"><label for="fechaVencimientoProveedor">Fecha de vencimiento</label><input id="fechaVencimientoProveedor" type="date"></div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarRecepcionOrden()">Cancelar</button><button type="submit" class="boton-guardar">Recibir mercancía</button></div>
 </form></div>
 
-<div class="modal" id="modalPagoProveedor"><form class="formulario" id="formularioPagoProveedor"><h2>💵 Registrar pago</h2><p class="mensaje-movimiento" id="textoPagoProveedor">Cuenta por pagar</p><div class="campo"><label for="cantidadPagoProveedor">Cantidad</label><input id="cantidadPagoProveedor" type="number" min="0.01" step="0.01" required><small id="ayudaPagoProveedor" class="ayuda-campo"></small></div><div class="campo"><label for="metodoPagoCuentaProveedor">Método de pago</label><select id="metodoPagoCuentaProveedor"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Tarjeta CUP">Tarjeta CUP</option><option value="Tarjeta USD">Tarjeta USD</option><option value="Zelle">Zelle</option><option value="MLC">MLC</option></select></div><div class="campo"><label for="notaPagoProveedor">Nota</label><input id="notaPagoProveedor" type="text" placeholder="Opcional"></div><div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarPagoProveedor()">Cancelar</button><button type="submit" class="boton-guardar">Registrar pago</button></div></form></div>
+<div class="modal" id="modalPagoProveedor"><form class="formulario" id="formularioPagoProveedor"><h2>💵 Registrar pago</h2><p class="mensaje-movimiento" id="textoPagoProveedor">Cuenta por pagar</p><div class="campo"><label for="cantidadPagoProveedor">Cantidad</label><input id="cantidadPagoProveedor" type="number" min="0.01" step="0.01" required><small id="ayudaPagoProveedor" class="ayuda-campo"></small></div><div class="campo"><label for="metodoPagoCuentaProveedor">Método de pago</label><select id="metodoPagoCuentaProveedor"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Tarjeta CUP">Tarjeta CUP</option><option value="Tarjeta USD">Tarjeta USD</option><option value="Zelle">Zelle</option><option value="MLC">MLC</option><option value="Fuera de caja">📦 Ya pagada / fuera de caja</option></select><small class="ayuda-campo">Fuera de caja cancela la deuda del proveedor sin descontar la caja física ni registrar una salida en el flujo del negocio.</small></div><div class="campo"><label for="notaPagoProveedor">Nota</label><input id="notaPagoProveedor" type="text" placeholder="Opcional"></div><div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarPagoProveedor()">Cancelar</button><button type="submit" class="boton-guardar">Registrar pago</button></div></form></div>
 
 <div class="modal" id="modalHistorialPagosProveedor"><div class="formulario"><h2>📋 Historial de pagos</h2><p class="mensaje-movimiento" id="textoHistorialPagosProveedor"></p><div id="listaHistorialPagosProveedor"></div><div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarHistorialPagosProveedor()">Cerrar</button></div></div></div>
 
@@ -8728,7 +8728,15 @@ async function marcarOrdenada(id){
  actualizarProveedores();
  if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
 }
-function actualizarCamposCreditoProveedor(){const credito=document.getElementById("condicionPagoProveedor").value==="credito";document.getElementById("campoAbonoProveedor").classList.toggle("visible",credito);document.getElementById("campoVencimientoProveedor").classList.toggle("visible",credito);if(credito&&!document.getElementById("fechaVencimientoProveedor").value){const d=new Date();d.setDate(d.getDate()+30);document.getElementById("fechaVencimientoProveedor").value=fechaLocalISO(d)}if(!credito){document.getElementById("abonoInicialProveedor").value="0";document.getElementById("fechaVencimientoProveedor").value=""}}
+function actualizarCamposCreditoProveedor(){
+ const condicion=document.getElementById("condicionPagoProveedor").value;
+ const credito=condicion==="credito",fueraCaja=condicion==="pagado_fuera_caja";
+ document.getElementById("campoAbonoProveedor").classList.toggle("visible",credito);
+ document.getElementById("campoVencimientoProveedor").classList.toggle("visible",credito);
+ const campoMetodo=document.getElementById("campoMetodoPagoProveedor");if(campoMetodo)campoMetodo.style.display=fueraCaja?"none":"block";
+ if(credito&&!document.getElementById("fechaVencimientoProveedor").value){const d=new Date();d.setDate(d.getDate()+30);document.getElementById("fechaVencimientoProveedor").value=fechaLocalISO(d)}
+ if(!credito){document.getElementById("abonoInicialProveedor").value="0";document.getElementById("fechaVencimientoProveedor").value=""}
+}
 function recibirOrden(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;const p=productos.find(x=>x.id===o.productoId);if(!p)return alert("El producto de esta orden ya no existe en el inventario.");ordenRecepcionId=id;document.getElementById("formularioRecepcionOrden").reset();document.getElementById("condicionPagoProveedor").value="pagado";document.getElementById("textoRecepcionOrden").textContent=`${numeroOrdenCompra(o)} · ${o.proveedor} · Total $${Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)).toFixed(2)}`;actualizarCamposCreditoProveedor();document.getElementById("modalRecepcionOrden").classList.add("visible")}
 function cerrarRecepcionOrden(){document.getElementById("modalRecepcionOrden").classList.remove("visible");document.getElementById("formularioRecepcionOrden").reset();ordenRecepcionId=null}
 document.getElementById("formularioRecepcionOrden").addEventListener("submit",async e=>{
@@ -8738,13 +8746,14 @@ document.getElementById("formularioRecepcionOrden").addEventListener("submit",as
 
  const total=Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),
        condicion=document.getElementById("condicionPagoProveedor").value,
-       metodo=document.getElementById("metodoPagoProveedor").value,
+       fueraCaja=condicion==="pagado_fuera_caja",
+       metodo=fueraCaja?"Fuera de caja":document.getElementById("metodoPagoProveedor").value,
        abono=condicion==="credito"?Number(document.getElementById("abonoInicialProveedor").value||0):total,
        vencimiento=condicion==="credito"?document.getElementById("fechaVencimientoProveedor").value:"";
 
  if(!Number.isFinite(abono)||abono<0||abono>total)return alert("Revisa el abono inicial.");
  if(condicion==="credito"&&!vencimiento)return alert("Selecciona la fecha de vencimiento.");
- if(abono>0&&!flkValidarSalidaEfectivoCUP(abono,metodo,condicion==="credito"?"El abono inicial al proveedor":"El pago de la compra"))return;
+ if(abono>0&&!fueraCaja&&!flkValidarSalidaEfectivoCUP(abono,metodo,condicion==="credito"?"El abono inicial al proveedor":"El pago de la compra"))return;
  if(!o.supabaseId&&!o.offlineOperationId)return alert("Esta orden no tiene una referencia segura para sincronizar.");
 
  const prod=productos.find(x=>x.id===o.productoId);
@@ -8755,6 +8764,7 @@ document.getElementById("formularioRecepcionOrden").addEventListener("submit",as
   product_id:prod?.supabaseId||null,
   payment_condition:condicion==="credito"?"credit":"paid",
   payment_method:metodo,
+  outside_cash:fueraCaja,
   initial_payment:abono,
   due_date:vencimiento||null,
   local_payment_id:Date.now()+Math.floor(Math.random()*100000)
@@ -8812,7 +8822,7 @@ document.getElementById("formularioPagoProveedor").addEventListener("submit",asy
  if(!Number.isFinite(cantidad)||cantidad<=0||cantidad>saldoAnterior+0.009){
   return alert("El pago no puede ser mayor que el saldo pendiente.");
  }
- if(!flkValidarSalidaEfectivoCUP(cantidad,metodo,"El pago al proveedor"))return;
+ if(metodo!=="Fuera de caja"&&!flkValidarSalidaEfectivoCUP(cantidad,metodo,"El pago al proveedor"))return;
  if(!o.supabaseId&&!o.offlineOperationId)return alert("Esta cuenta no tiene una referencia segura para sincronizar.");
 
  const op=flkEncolarOperacion("supplier_payment",{
@@ -8822,6 +8832,7 @@ document.getElementById("formularioPagoProveedor").addEventListener("submit",asy
   local_payment_id:Date.now()+Math.floor(Math.random()*100000),
   amount:cantidad,
   payment_method:metodo,
+  outside_cash:metodo==="Fuera de caja",
   note:nota||null
  });
 
@@ -8963,24 +8974,30 @@ function movimientosFlujoCaja(){
   })
  });
 
- // Pagos a proveedores.
+ // Pagos a proveedores. Las compras marcadas “Fuera de caja” conservan su costo
+ // y estado pagado, pero no representan una salida de dinero de la caja del negocio.
  ordenesCompra.filter(o=>o.estado==="recibida").forEach(o=>{
   const pagos=Array.isArray(o.pagosProveedor)?o.pagosProveedor:[];
   if(pagos.length){
-   pagos.forEach((p,idx)=>mov.push({
-    id:"proveedor-"+String(p.supabaseId||p.offlineOperationId||p.offlineReceiveOperationId||p.id||idx),
-    tipo:"salida",cantidad:Number(p.cantidad||0),
-    concepto:"Pago proveedor · "+String(o.proveedor||"Proveedor"),
-    metodo:normalizarMetodoFlujo(p.metodo||o.metodoPagoProveedor||"Otro"),
-    fecha:p.fecha||o.fechaRecibida||o.fechaOrden||new Date().toISOString(),
-    grupo:"proveedor"
-   }))
+   pagos.forEach((p,idx)=>{
+    const metodoPago=normalizarMetodoFlujo(p.metodo||o.metodoPagoProveedor||"Otro");
+    if(metodoPago==="Fuera de caja")return;
+    mov.push({
+     id:"proveedor-"+String(p.supabaseId||p.offlineOperationId||p.offlineReceiveOperationId||p.id||idx),
+     tipo:"salida",cantidad:Number(p.cantidad||0),
+     concepto:"Pago proveedor · "+String(o.proveedor||"Proveedor"),
+     metodo:metodoPago,
+     fecha:p.fecha||o.fechaRecibida||o.fechaOrden||new Date().toISOString(),
+     grupo:"proveedor"
+    })
+   })
   }else if(Number(o.totalPagadoProveedor||0)>0){
-   mov.push({
+   const metodoPago=normalizarMetodoFlujo(o.metodoPagoProveedor||"Otro");
+   if(metodoPago!=="Fuera de caja")mov.push({
     id:"proveedor-fallback-"+String(o.supabaseId||o.offlineOperationId||o.id),
     tipo:"salida",cantidad:Number(o.totalPagadoProveedor||0),
     concepto:"Pago proveedor · "+String(o.proveedor||"Proveedor"),
-    metodo:normalizarMetodoFlujo(o.metodoPagoProveedor||"Otro"),
+    metodo:metodoPago,
     fecha:o.fechaRecibida||o.fechaOrden||new Date().toISOString(),
     grupo:"proveedor"
    })
