@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-28-v61.76-qr-venta-producto-identificado">
-<title>Flackunloker · v61.76</title>
+<meta name="flackunloker-offline-version" content="2026-08-28-v61.77-arrendamiento-ganancia-neta-corregido">
+<title>Flackunloker · v61.77</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}
@@ -759,7 +759,8 @@ button.menu-toggle{
   color:#000 !important;
 }
 
-/* v61.76 · Venta por QR: el SKU ya identifica el producto.
+/* v61.77 · Estado por Contribución: usa la misma base financiera real del mes y descuenta gastos + arrendamiento.
+   Conserva la corrección v61.76 de Venta por QR: el SKU ya identifica el producto.
    Ocultar de forma obligatoria los controles de selección manual solo en ese flujo. */
 #formularioVenta[data-venta-desde-qr="1"] #bloqueProductoVentaManual,
 #formularioVenta[data-venta-desde-qr="1"] #bloquePrecioCantidadVentaManual,
@@ -1852,12 +1853,14 @@ textarea::placeholder{
   </div>
  </div>
  <div style="margin-top:15px">
-  <div class="fila-estadistica"><span>Ventas brutas del mes</span><strong id="repArrVentas">$0.00</strong></div>
+  <div class="fila-estadistica"><span>Ventas del mes</span><strong id="repArrVentas">$0.00</strong></div>
+  <div class="fila-estadistica"><span>Ganancia bruta del mes</span><strong id="repArrGanancia">$0.00</strong></div>
+  <div class="fila-estadistica"><span>Gastos del mes</span><strong id="repArrGastos">$0.00</strong></div>
+  <div class="fila-estadistica"><span>Ganancia neta antes de arrendamiento</span><strong id="repArrNetaAntes">$0.00</strong></div>
   <div class="fila-estadistica"><span>Modalidad</span><strong id="repArrModalidad">—</strong></div>
   <div class="fila-estadistica"><span>Valor configurado</span><strong id="repArrValor">—</strong></div>
   <div class="fila-estadistica"><span>Arrendamiento calculado</span><strong id="repArrMonto">$0.00</strong></div>
-  <div class="fila-estadistica"><span>Ganancia bruta del mes</span><strong id="repArrGanancia">$0.00</strong></div>
-  <div class="fila-estadistica"><span>Ganancia bruta después del arrendamiento</span><strong id="repArrResultado">$0.00</strong></div>
+  <div class="fila-estadistica"><span>Ganancia neta después del arrendamiento</span><strong id="repArrResultado">$0.00</strong></div>
  </div>
 </div>
 </div>
@@ -2017,7 +2020,7 @@ textarea::placeholder{
 <div class="lista-estadisticas" id="estadoContribucionArrendamiento">
 <h3>🏢 Estado por Contribución · Arrendamiento mensual</h3>
 <p style="margin:0 0 14px;color:#667085;font-size:13px;line-height:1.55">
-Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje de las ventas brutas del mes o como una renta fija mensual. Este cálculo no registra por sí solo una salida de caja.
+Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje de las ventas del mes o como una renta fija mensual. Este cálculo no registra por sí solo una salida de caja.
 </p>
 
 <div class="reporte-controles-grid">
@@ -2028,7 +2031,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
  <div class="campo" style="margin:0">
   <label for="modoArrendamiento">Modalidad</label>
   <select id="modoArrendamiento" onchange="actualizarEstadoContribucionArrendamiento()">
-   <option value="percent">% sobre ventas brutas</option>
+   <option value="percent">% sobre ventas del mes</option>
    <option value="fixed">Pago fijo mensual</option>
   </select>
  </div>
@@ -2045,10 +2048,12 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 </div>
 
 <div style="margin-top:16px">
- <div class="fila-estadistica"><span>Ventas brutas del mes</span><strong id="contribVentasBrutas">$0.00</strong></div>
- <div class="fila-estadistica"><span id="contribDetalleArrendamiento">Arrendamiento calculado</span><strong id="contribArrendamiento">$0.00</strong></div>
+ <div class="fila-estadistica"><span>Ventas del mes</span><strong id="contribVentasBrutas">$0.00</strong></div>
  <div class="fila-estadistica"><span>Ganancia bruta del mes</span><strong id="contribGananciaBruta">$0.00</strong></div>
- <div class="fila-estadistica"><span>Ganancia bruta después de arrendamiento</span><strong id="contribResultado">$0.00</strong></div>
+ <div class="fila-estadistica"><span>Gastos del mes</span><strong id="contribGastos">$0.00</strong></div>
+ <div class="fila-estadistica"><span>Ganancia neta antes de arrendamiento</span><strong id="contribNetaAntes">$0.00</strong></div>
+ <div class="fila-estadistica"><span id="contribDetalleArrendamiento">Arrendamiento calculado</span><strong id="contribArrendamiento">$0.00</strong></div>
+ <div class="fila-estadistica"><span>Ganancia neta después del arrendamiento</span><strong id="contribResultado">$0.00</strong></div>
 </div>
 </div>
 
@@ -8407,9 +8412,11 @@ function datosInformeArrendamiento(mes){
  const ventasBrutas=ventasBrutasMesArrendamiento(mes);
  const costo=costoVentasMesArrendamiento(mes);
  const gananciaBruta=ventasBrutas-costo;
+ const gastosMes=gastosMesArrendamiento(mes);
+ const gananciaNetaAntes=gananciaBruta-gastosMes;
  const arrendamiento=modo==="percent"?ventasBrutas*(valor/100):valor;
- const resultado=gananciaBruta-arrendamiento;
- return {mes,modo,valor,ventasBrutas,costo,gananciaBruta,arrendamiento,resultado}
+ const resultado=gananciaNetaAntes-arrendamiento;
+ return {mes,modo,valor,ventasBrutas,costo,gananciaBruta,gastosMes,gananciaNetaAntes,arrendamiento,resultado}
 }
 function textoMesInforme(mes){
  if(!mes)return "";
@@ -8424,10 +8431,12 @@ function actualizarInformeArrendamiento(){
  const money=n=>"$"+Number(n||0).toFixed(2);
  const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val};
  set("repArrVentas",money(d.ventasBrutas));
- set("repArrModalidad",d.modo==="percent"?"% sobre ventas brutas":"Pago fijo mensual");
+ set("repArrGanancia",money(d.gananciaBruta));
+ set("repArrGastos",money(d.gastosMes));
+ set("repArrNetaAntes",money(d.gananciaNetaAntes));
+ set("repArrModalidad",d.modo==="percent"?"% sobre ventas del mes":"Pago fijo mensual");
  set("repArrValor",d.modo==="percent"?d.valor.toFixed(2)+"%":money(d.valor));
  set("repArrMonto",money(d.arrendamiento));
- set("repArrGanancia",money(d.gananciaBruta));
  set("repArrResultado",money(d.resultado));
  const res=document.getElementById("repArrResultado");
  if(res)res.style.color=d.resultado<0?"#d93025":"#168044";
@@ -8436,7 +8445,7 @@ function imprimirInformeArrendamiento(){
  const input=document.getElementById("mesInformeArrendamiento");
  if(!input?.value)return alert("Selecciona un mes.");
  const d=datosInformeArrendamiento(input.value),money=n=>"$"+Number(n||0).toFixed(2);
- const modalidad=d.modo==="percent"?"Porcentaje sobre ventas brutas":"Pago fijo mensual";
+ const modalidad=d.modo==="percent"?"Porcentaje sobre ventas del mes":"Pago fijo mensual";
  const valor=d.modo==="percent"?d.valor.toFixed(2)+"%":money(d.valor);
  const mesTxt=textoMesInforme(d.mes);
  const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Informe Arrendamiento ${mesTxt}</title><style>
@@ -8448,13 +8457,15 @@ function imprimirInformeArrendamiento(){
  @media print{body{background:#fff}.hoja{margin:0;max-width:none}.imprimir{display:none}}
  </style></head><body><div class="hoja">
  <h1>Flackunloker</h1><h2>Informe mensual de arrendamiento por contribución · ${mesTxt}</h2>
- <div class="fila"><span>Ventas brutas del mes</span><strong>${money(d.ventasBrutas)}</strong></div>
+ <div class="fila"><span>Ventas del mes</span><strong>${money(d.ventasBrutas)}</strong></div>
  <div class="fila"><span>Costo de mercancía vendida</span><strong>${money(d.costo)}</strong></div>
  <div class="fila"><span>Ganancia bruta</span><strong>${money(d.gananciaBruta)}</strong></div>
+ <div class="fila"><span>Gastos del mes</span><strong>${money(d.gastosMes)}</strong></div>
+ <div class="fila"><span>Ganancia neta antes de arrendamiento</span><strong>${money(d.gananciaNetaAntes)}</strong></div>
  <div class="fila"><span>Modalidad de arrendamiento</span><strong>${modalidad}</strong></div>
  <div class="fila"><span>Valor configurado</span><strong>${valor}</strong></div>
  <div class="fila"><span>Arrendamiento calculado</span><strong>${money(d.arrendamiento)}</strong></div>
- <div class="fila resultado"><span>Ganancia bruta después del arrendamiento</span><strong>${money(d.resultado)}</strong></div>
+ <div class="fila resultado"><span>Ganancia neta después del arrendamiento</span><strong>${money(d.resultado)}</strong></div>
  <div class="nota">Este informe calcula el arrendamiento según la configuración mensual guardada en Supabase. El cálculo es informativo y no registra por sí solo una salida de caja.</div>
  <button class="imprimir" onclick="window.print()">🖨️ Imprimir informe</button>
  </div></body></html>`;
@@ -9042,25 +9053,35 @@ function configuracionArrendamientoMes(mes){
  return configuracionesArrendamientoMensual.find(x=>x.month_start===fecha)||null
 }
 function ventasBrutasMesArrendamiento(mes){
+ // Misma base que "Resultados del período": ingreso de la venta ya neto de devoluciones.
  if(!mes)return 0;
  return ventas.reduce((total,v)=>{
   const d=new Date(v.fecha);
   if(Number.isNaN(d.getTime()))return total;
   const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   if(vm!==mes)return total;
-  const dev=Array.isArray(v.devoluciones)?v.devoluciones.reduce((t,r)=>t+Number(r.monto??r.reembolso??0),0):0;
-  return total+Number(v.ingreso||0)+dev;
+  return total+Number(v.ingreso||0);
  },0)
 }
 function costoVentasMesArrendamiento(mes){
+ // Misma base que Finanzas: costoTotal ya refleja el costo neto vigente de cada venta.
  if(!mes)return 0;
  return ventas.reduce((total,v)=>{
   const d=new Date(v.fecha);
   if(Number.isNaN(d.getTime()))return total;
   const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   if(vm!==mes)return total;
-  const costoDevuelto=itemsDeVenta(v).reduce((t,i)=>t+Math.max(0,Number(i.devuelto||0))*Number(i.costoUnitario||0),0);
-  return total+Number(v.costoTotal||0)+costoDevuelto;
+  return total+Number(v.costoTotal||0);
+ },0)
+}
+function gastosMesArrendamiento(mes){
+ if(!mes)return 0;
+ return gastos.reduce((total,g)=>{
+  const d=new Date(g.fecha||g.fechaLocal);
+  if(Number.isNaN(d.getTime()))return total;
+  const gm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+  if(gm!==mes)return total;
+  return total+Number(g.cantidad||0);
  },0)
 }
 function cargarConfiguracionArrendamientoMes(){
@@ -9078,20 +9099,24 @@ function actualizarEstadoContribucionArrendamiento(){
  const ventasBrutas=ventasBrutasMesArrendamiento(mes);
  const costo=costoVentasMesArrendamiento(mes);
  const gananciaBruta=ventasBrutas-costo;
+ const gastosMes=gastosMesArrendamiento(mes);
+ const gananciaNetaAntes=gananciaBruta-gastosMes;
  const arrendamiento=modo==="percent"?ventasBrutas*(valor/100):valor;
- const resultado=gananciaBruta-arrendamiento;
+ const resultado=gananciaNetaAntes-arrendamiento;
  const money=n=>"$"+Number(n||0).toFixed(2);
  const v1=document.getElementById("contribVentasBrutas");if(v1)v1.textContent=money(ventasBrutas);
  const v2=document.getElementById("contribArrendamiento");if(v2)v2.textContent=money(arrendamiento);
  const v3=document.getElementById("contribGananciaBruta");if(v3)v3.textContent=money(gananciaBruta);
+ const vg=document.getElementById("contribGastos");if(vg)vg.textContent=money(gastosMes);
+ const vn=document.getElementById("contribNetaAntes");if(vn)vn.textContent=money(gananciaNetaAntes);
  const v4=document.getElementById("contribResultado");
  if(v4){v4.textContent=money(resultado);v4.style.color=resultado<0?"#d93025":"#168044"}
  const label=document.getElementById("labelValorArrendamiento");
  const detalle=document.getElementById("contribDetalleArrendamiento");
  const input=document.getElementById("valorArrendamiento");
  if(modo==="percent"){
-  if(label)label.textContent="Porcentaje sobre ventas brutas (%)";
-  if(detalle)detalle.textContent=`Arrendamiento (${valor.toFixed(2)}% de ventas brutas)`;
+  if(label)label.textContent="Porcentaje sobre ventas del mes (%)";
+  if(detalle)detalle.textContent=`Arrendamiento (${valor.toFixed(2)}% de ventas del mes)`;
   if(input){input.max="100";input.step="0.01"}
  }else{
   if(label)label.textContent="Pago fijo mensual ($)";
@@ -10014,7 +10039,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.76",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.77",{updateViaCache:"none"});
    if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
