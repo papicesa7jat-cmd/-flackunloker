@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-28-v61.78-software-admin-centro-restringido">
+<meta name="flackunloker-offline-version" content="2026-08-28-v61.79-software-admin-centro-backup-restaurar">
 <title>Flackunloker · v61.78</title>
 <style>
 *{box-sizing:border-box}
@@ -759,7 +759,7 @@ button.menu-toggle{
   color:#000 !important;
 }
 
-/* v61.78 · Software para Administrador de centro: respaldo propio + PIN devolución + reset propio. */
+/* v61.79 · Software para Administrador de centro: respaldo/restauración propios + PIN devolución + reset propio. */
 /* v61.77 · Estado por Contribución: usa la misma base financiera real del mes y descuenta gastos + arrendamiento.
    Conserva la corrección v61.76 de Venta por QR: el SKU ya identifica el producto.
    Ocultar de forma obligatoria los controles de selección manual solo en ese flujo. */
@@ -2386,7 +2386,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   <button class="boton-agregar adminsw-owner-only" type="button" onclick="cargarAdminSoftware()">↻ Actualizar</button>
  </div>
  <div class="reporte-controles adminsw-owner-only"><p class="reporte-periodo">Panel exclusivo del propietario de Flackunloker. Administra centros y asigna cuentas existentes sin entrar al SQL.</p></div>
- <div class="reporte-controles adminsw-admin-centro-only" style="display:none"><p class="reporte-periodo" id="adminswTextoCentroRestringido">Panel administrativo de este centro. Solo permite respaldo, cambio de PIN de devolución y restablecimiento de fábrica de los datos de este centro.</p></div>
+ <div class="reporte-controles adminsw-admin-centro-only" style="display:none"><p class="reporte-periodo" id="adminswTextoCentroRestringido">Panel administrativo de este centro. Solo permite respaldo y restauración de este centro, cambio de PIN de devolución y restablecimiento de fábrica de los datos de este centro.</p></div>
  <div class="adminsw-grid adminsw-owner-only">
   <div class="adminsw-card"><span>Centros</span><strong id="adminswTotalCentros">0</strong></div>
   <div class="adminsw-card"><span>Activos</span><strong id="adminswCentrosActivos">0</strong></div>
@@ -2426,7 +2426,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   <p style="margin:0 0 14px;color:#667085;font-size:13px;line-height:1.55">Guarda una copia de los datos de Flackunloker o restaura un respaldo anterior.</p>
   <div class="botones-respaldo">
    <button class="boton-respaldo boton-crear-respaldo" type="button" onclick="crearRespaldo()">💾 Crear respaldo</button>
-   <button class="boton-respaldo boton-restaurar-respaldo adminsw-owner-only" type="button" onclick="seleccionarRespaldo()">📥 Restaurar respaldo</button>
+   <button class="boton-respaldo boton-restaurar-respaldo" type="button" onclick="seleccionarRespaldo()">📥 Restaurar respaldo</button>
   </div>
   <button type="button" class="adminsw-owner-only" onclick="flkDeepStorageOpen()" style="width:100%;margin-top:10px;border:0;border-radius:12px;padding:13px 10px;background:#e9f4ff;color:#075aa8;font-size:14px;font-weight:900;cursor:pointer">🧪 Revisar IndexedDB / caché offline</button>
   <input id="archivoRespaldo" type="file" accept=".json,application/json" style="display:none" onchange="restaurarRespaldo(event)">
@@ -5248,9 +5248,9 @@ function flkConfigurarAdminSoftwareSegunCuenta(){
  document.querySelectorAll("#vistaAdminSoftware .adminsw-owner-only").forEach(el=>{el.style.setProperty("display",owner?"":"none",owner?"":"important")});
  document.querySelectorAll("#vistaAdminSoftware .adminsw-admin-centro-only").forEach(el=>{el.style.setProperty("display",admin&&!owner?"block":"none","important")});
  const titulo=document.getElementById("adminswTituloRespaldo");
- if(titulo)titulo.textContent=owner?"💾 Respaldo y restauración":"💾 Respaldo de este centro";
+ if(titulo)titulo.textContent=owner?"💾 Respaldo y restauración":"💾 Respaldo y restauración de este centro";
  const p=document.querySelector("#adminswPanelRespaldo p");
- if(p)p.textContent=owner?"Guarda una copia de los datos de Flackunloker o restaura un respaldo anterior.":"Crea una copia de seguridad únicamente de los datos del centro actualmente asignado a esta cuenta.";
+ if(p)p.textContent=owner?"Guarda una copia de los datos de Flackunloker o restaura un respaldo anterior.":"Crea o restaura una copia de seguridad únicamente de los datos del centro actualmente asignado a esta cuenta. Los respaldos de otros centros se bloquean automáticamente.";
 }
 
 async function flkPintarNombreCentroSoftwareRestringido(){
@@ -5259,9 +5259,9 @@ async function flkPintarNombreCentroSoftwareRestringido(){
  if(!texto)return;
  try{
   const centro=await flkResolverCentroBackup();
-  texto.innerHTML=`Panel administrativo de <strong>${flkAdminSwEsc(centro.nombre)}</strong>. Solo permite respaldo, cambio de PIN de devolución y restablecimiento de fábrica de los datos de este centro.`;
+  texto.innerHTML=`Panel administrativo de <strong>${flkAdminSwEsc(centro.nombre)}</strong>. Solo permite respaldo y restauración de este centro, cambio de PIN de devolución y restablecimiento de fábrica de los datos de este centro.`;
  }catch(_){
-  texto.textContent="Panel administrativo de este centro. Solo permite respaldo, cambio de PIN de devolución y restablecimiento de fábrica de los datos de este centro.";
+  texto.textContent="Panel administrativo de este centro. Solo permite respaldo y restauración de este centro, cambio de PIN de devolución y restablecimiento de fábrica de los datos de este centro.";
  }
 }
 
@@ -9912,6 +9912,7 @@ async function flkSincronizarRespaldoRestaurado(){
 }
 
 async function restaurarRespaldo(event){
+ if(rolSesion!=="admin") { try{event.target.value=""}catch(_){} return alert("Solo una cuenta Administrador puede restaurar respaldos."); }
  const archivo=event.target.files[0];
  if(!archivo)return;
  const lector=new FileReader();
@@ -10085,7 +10086,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.78",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.79",{updateViaCache:"none"});
    if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
