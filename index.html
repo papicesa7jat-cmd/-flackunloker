@@ -2003,6 +2003,11 @@ body:not(.es-propietario).rol-admin #adminswPanelRespaldo .botones-respaldo{grid
 <div class="fila-estadistica"><span>Pagos a proveedores</span><strong id="flujoPagosProveedores">$0.00</strong></div>
 </div>
 
+<div class="lista-estadisticas"><h3>📦 Compras fuera de caja</h3>
+<div class="fila-estadistica"><span>Mercancía ya pagada / fondos externos</span><strong id="flujoComprasFueraCaja">$0.00</strong></div>
+<p style="margin:8px 0 0;color:#dfe7ee;font-size:12px;line-height:1.45">Información del período: no reduce la caja física, no aumenta las salidas y no modifica el flujo neto.</p>
+</div>
+
 <div class="lista-estadisticas">
 <h3>👤 Movimientos del propietario</h3>
 <div class="fila-estadistica"><span>➕ Aportes al fondo de caja</span><strong id="flujoAportesPropietario">$0.00</strong></div>
@@ -8974,32 +8979,33 @@ function movimientosFlujoCaja(){
   })
  });
 
- // Pagos a proveedores. Las compras marcadas “Fuera de caja” conservan su costo
- // y estado pagado, pero no representan una salida de dinero de la caja del negocio.
+ // Pagos a proveedores. “Fuera de caja” se muestra como detalle informativo,
+ // sin alterar caja física, salidas ni flujo neto.
  ordenesCompra.filter(o=>o.estado==="recibida").forEach(o=>{
   const pagos=Array.isArray(o.pagosProveedor)?o.pagosProveedor:[];
   if(pagos.length){
    pagos.forEach((p,idx)=>{
     const metodoPago=normalizarMetodoFlujo(p.metodo||o.metodoPagoProveedor||"Otro");
-    if(metodoPago==="Fuera de caja")return;
+    const fueraCaja=metodoPago==="Fuera de caja";
     mov.push({
-     id:"proveedor-"+String(p.supabaseId||p.offlineOperationId||p.offlineReceiveOperationId||p.id||idx),
-     tipo:"salida",cantidad:Number(p.cantidad||0),
-     concepto:"Pago proveedor · "+String(o.proveedor||"Proveedor"),
+     id:(fueraCaja?"proveedor-fuera-caja-":"proveedor-")+String(p.supabaseId||p.offlineOperationId||p.offlineReceiveOperationId||p.id||idx),
+     tipo:fueraCaja?"informativo":"salida",cantidad:Number(p.cantidad||0),
+     concepto:(fueraCaja?"Compra fuera de caja · ":"Pago proveedor · ")+String(o.proveedor||"Proveedor"),
      metodo:metodoPago,
      fecha:p.fecha||o.fechaRecibida||o.fechaOrden||new Date().toISOString(),
-     grupo:"proveedor"
+     grupo:fueraCaja?"proveedor_fuera_caja":"proveedor"
     })
    })
   }else if(Number(o.totalPagadoProveedor||0)>0){
    const metodoPago=normalizarMetodoFlujo(o.metodoPagoProveedor||"Otro");
-   if(metodoPago!=="Fuera de caja")mov.push({
-    id:"proveedor-fallback-"+String(o.supabaseId||o.offlineOperationId||o.id),
-    tipo:"salida",cantidad:Number(o.totalPagadoProveedor||0),
-    concepto:"Pago proveedor · "+String(o.proveedor||"Proveedor"),
+   const fueraCaja=metodoPago==="Fuera de caja";
+   mov.push({
+    id:(fueraCaja?"proveedor-fuera-caja-fallback-":"proveedor-fallback-")+String(o.supabaseId||o.offlineOperationId||o.id),
+    tipo:fueraCaja?"informativo":"salida",cantidad:Number(o.totalPagadoProveedor||0),
+    concepto:(fueraCaja?"Compra fuera de caja · ":"Pago proveedor · ")+String(o.proveedor||"Proveedor"),
     metodo:metodoPago,
     fecha:o.fechaRecibida||o.fechaOrden||new Date().toISOString(),
-    grupo:"proveedor"
+    grupo:fueraCaja?"proveedor_fuera_caja":"proveedor"
    })
   }
  });
@@ -9024,7 +9030,7 @@ function datosFlujoCaja(){
  return {
   lim,mov,entradas,salidas,neto:entradas-salidas,
   ventas:suma("entrada","venta"),abonos:suma("entrada","abono"),
-  gastos:suma("salida","gasto"),proveedores:suma("salida","proveedor"),
+  gastos:suma("salida","gasto"),proveedores:suma("salida","proveedor"),comprasFueraCaja,
   aportesPropietario,retirosPropietario,
   netoPropietario:aportesPropietario-retirosPropietario,
   metodos
@@ -9036,7 +9042,7 @@ function cambiarPeriodoFlujo(){
  actualizarFlujoCaja()
 }
 function saldoCajaFisicaActual(){
- return movimientosFlujoCaja().filter(m=>normalizarMetodoFlujo(m.metodo)==="Efectivo CUP").reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0)
+ return movimientosFlujoCaja().filter(m=>(m.tipo==="entrada"||m.tipo==="salida")&&normalizarMetodoFlujo(m.metodo)==="Efectivo CUP").reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0)
 }
 function actualizarSaldoCajaFisica(){
  const el=document.getElementById("saldoCajaFisica");if(!el)return;
@@ -9097,6 +9103,7 @@ function actualizarFlujoCaja(){
  document.getElementById("flujoAbonosClientes").textContent="$"+d.abonos.toFixed(2);
  document.getElementById("flujoGastos").textContent="$"+d.gastos.toFixed(2);
  document.getElementById("flujoPagosProveedores").textContent="$"+d.proveedores.toFixed(2);
+ const fueraCajaEl=document.getElementById("flujoComprasFueraCaja");if(fueraCajaEl)fueraCajaEl.textContent="$"+d.comprasFueraCaja.toFixed(2);
  document.getElementById("flujoAportesPropietario").textContent="$"+d.aportesPropietario.toFixed(2);
  document.getElementById("flujoRetirosPropietario").textContent="$"+d.retirosPropietario.toFixed(2);
  const netoProp=document.getElementById("flujoNetoPropietario");
@@ -9111,7 +9118,7 @@ function actualizarFlujoCaja(){
  document.getElementById("flujoOtros").textContent="$"+d.metodos["Zelle"].toFixed(2);
  document.getElementById("flujoMLC").textContent="$"+d.metodos["MLC"].toFixed(2);
  const lista=document.getElementById("listaFlujoCaja"),arr=[...d.mov].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
- lista.innerHTML=arr.length?arr.map(m=>`<div class="fila-estadistica"><span>${m.tipo==="entrada"?"⬇️":"⬆️"} ${escapeHtml(m.concepto)}<br><small>${new Date(m.fecha).toLocaleString("es-PR")} · ${escapeHtml(m.metodo)}</small></span><strong style="color:${m.tipo==="entrada"?"#168044":"#d93025"}">${m.tipo==="entrada"?"+":"-"}$${m.cantidad.toFixed(2)}</strong></div>`).join(""):'<div class="fila-estadistica"><span>No hay movimientos de dinero en este período.</span><strong>—</strong></div>'
+ lista.innerHTML=arr.length?arr.map(m=>`<div class="fila-estadistica"><span>${m.tipo==="entrada"?"⬇️":"⬆️"} ${escapeHtml(m.concepto)}<br><small>${new Date(m.fecha).toLocaleString("es-PR")} · ${escapeHtml(m.metodo)}</small></span><strong style="color:${m.tipo==="entrada"?"#168044":"#d93025"}">${m.tipo==="informativo"?"":(m.tipo==="entrada"?"+":"-")}$${m.cantidad.toFixed(2)}</strong></div>`).join(""):'<div class="fila-estadistica"><span>No hay movimientos de dinero en este período.</span><strong>—</strong></div>'
 }
 function mostrarFlujoCaja(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;
