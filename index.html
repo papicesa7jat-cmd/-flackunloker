@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-28-v61.79-software-admin-centro-backup-restaurar">
+<meta name="flackunloker-offline-version" content="2026-08-28-v61.80-software-admin-centro-backup-restaurar">
 <title>Flackunloker · v61.78</title>
 <style>
 *{box-sizing:border-box}
@@ -759,7 +759,7 @@ button.menu-toggle{
   color:#000 !important;
 }
 
-/* v61.79 · Software para Administrador de centro: respaldo/restauración propios + PIN devolución + reset propio. */
+/* v61.80 · Software para Administrador de centro: respaldo/restauración propios + PIN devolución + reset propio. */
 /* v61.77 · Estado por Contribución: usa la misma base financiera real del mes y descuenta gastos + arrendamiento.
    Conserva la corrección v61.76 de Venta por QR: el SKU ya identifica el producto.
    Ocultar de forma obligatoria los controles de selección manual solo en ese flujo. */
@@ -9873,9 +9873,16 @@ async function crearRespaldo(){
   const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob),a=document.createElement("a");
   a.href=url;
-  a.download=nombreRespaldoFlackunloker(centro.nombre,centro.id);
+  const nombreArchivo=nombreRespaldoFlackunloker(centro.nombre,centro.id);
+  a.download=nombreArchivo;
   document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
-  mostrarEstadoRespaldo(`✅ Respaldo creado para ${centro.nombre}.`);
+
+  const esIOS=/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const ubicacion=esIOS
+   ? "Safari no permite a la web conocer la carpeta exacta. Búscalo en Archivos → Recientes o Archivos → Explorar → iCloud Drive → Descargas (también puede estar en En mi iPhone → Descargas)."
+   : "Revisa la carpeta de Descargas configurada en tu navegador.";
+  mostrarEstadoRespaldo(`✅ Respaldo creado para ${centro.nombre}.<br><strong>Archivo:</strong> ${nombreArchivo}<br><strong>Dónde buscar:</strong> ${ubicacion}`);
+  alert("✅ RESPALDO CREADO\n\nArchivo: "+nombreArchivo+"\n\nDónde buscarlo:\n"+ubicacion);
  }catch(err){
   console.error("Respaldo por centro:",err);
   alert("No se pudo crear el respaldo porque no se pudo identificar el centro activo.");
@@ -10086,7 +10093,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.79",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.80",{updateViaCache:"none"});
    if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
