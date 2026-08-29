@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-28-v61.80-software-admin-centro-backup-restaurar">
+<meta name="flackunloker-offline-version" content="2026-08-28-v61.81-cierre-flotante-reset-tv">
 <title>Flackunloker · v61.78</title>
 <style>
 *{box-sizing:border-box}
@@ -766,6 +766,41 @@ button.menu-toggle{
 #formularioVenta[data-venta-desde-qr="1"] #bloqueProductoVentaManual,
 #formularioVenta[data-venta-desde-qr="1"] #bloquePrecioCantidadVentaManual,
 #formularioVenta[data-venta-desde-qr="1"] #botonAgregarProductoVentaManual{display:none!important;}
+
+/* ===== v61.81 · CERRAR SESIÓN FLOTANTE + RESET TV ===== */
+.auth-user{
+  position:fixed !important;
+  left:auto !important;
+  right:18px !important;
+  bottom:82px !important;
+  z-index:900 !important;
+  width:auto !important;
+  max-width:none !important;
+  padding:0 !important;
+  background:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+  font-size:0 !important;
+}
+.auth-user strong,.auth-user span{display:none !important;}
+.auth-user button{
+  margin:0 !important;
+  min-height:48px !important;
+  padding:12px 16px !important;
+  border:1px solid rgba(180,35,24,.18) !important;
+  border-radius:15px !important;
+  background:#d93025 !important;
+  color:#fff !important;
+  font-size:13px !important;
+  font-weight:850 !important;
+  box-shadow:0 9px 24px rgba(180,35,24,.25) !important;
+  cursor:pointer !important;
+}
+@media(max-width:430px){
+ .auth-user{right:10px !important;bottom:72px !important;}
+ .auth-user button{min-height:44px !important;padding:10px 13px !important;font-size:12px !important;}
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="manifest" href="./manifest.webmanifest">
@@ -3681,11 +3716,14 @@ document.addEventListener("DOMContentLoaded",()=>{
 async function abrirRestablecimientoTotal(){
  if(!requiereAdmin())return;
  if(rolSesion!=="admin")return alert("Solo el Administrador puede usar el restablecimiento total.");
- document.getElementById("modalRestablecimientoTotal").classList.add("visible");
- const {data,error}=await flkSupabase.rpc("flk_reset_pin_configured");
- if(error){if(flkSilenciarSiEsConexion(error))return;return alert("No se pudo verificar la seguridad: "+error.message)};
- document.getElementById("bloqueConfigurarPin").style.display=data?"none":"block";
- document.getElementById("bloqueEjecutarReset").style.display=data?"block":"none";
+ // v61.81: el botón de Reseteo de fábrica SIEMPRE abre la ejecución.
+ // Evita que televisores/navegadores con una verificación RPC tardía muestren por error “Nuevo PIN”.
+ const modal=document.getElementById("modalRestablecimientoTotal");
+ const configurar=document.getElementById("bloqueConfigurarPin");
+ const ejecutar=document.getElementById("bloqueEjecutarReset");
+ if(configurar)configurar.style.display="none";
+ if(ejecutar)ejecutar.style.display="block";
+ if(modal)modal.classList.add("visible");
 }
 function cerrarRestablecimientoTotal(){
  document.getElementById("modalRestablecimientoTotal").classList.remove("visible");
