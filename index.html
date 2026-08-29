@@ -7055,7 +7055,13 @@ function mostrarProductos(){
   const clase=c===0?"cantidad sin-stock":c<=min?"cantidad stock-bajo":"cantidad";
   const aviso=c===0?'<div class="aviso-producto sin-stock">🔴 Sin stock</div>':c<=min?`<div class="aviso-producto">⚠️ Inventario bajo · Mínimo: ${min}</div>`:"";
   const detalles=[p.categoria?`Categoría: ${escapeHtml(p.categoria)}`:"",p.proveedor?`Proveedor: ${escapeHtml(p.proveedor)}`:"",p.ubicacion?`Ubicación: ${escapeHtml(p.ubicacion)}`:""].filter(Boolean).map(x=>`<p>${x}</p>`).join("");
-  el.innerHTML=`<div class="producto-superior"><div class="producto-info"><h3>${escapeHtml(p.nombre)}</h3><p>SKU: ${escapeHtml(p.sku)}</p>${detalles}</div><div class="${clase}">${c}</div></div><div class="producto-precio">Costo: <strong>$${Number(p.costo??0).toFixed(2)}</strong> &nbsp;·&nbsp; Venta: <strong>$${Number(p.precio).toFixed(2)}</strong><br>Ganancia/u.: <strong>$${(Number(p.precio)-Number(p.costo??0)).toFixed(2)}</strong> &nbsp;·&nbsp; Margen: <strong>${Number(p.precio)>0?(((Number(p.precio)-Number(p.costo??0))/Number(p.precio))*100).toFixed(1):"0.0"}%</strong><br>Valor a costo: <strong>$${(c*Number(p.costo??0)).toFixed(2)}</strong> &nbsp;·&nbsp; Venta potencial: <strong>$${(c*Number(p.precio)).toFixed(2)}</strong></div>${aviso}<div class="acciones"><button class="accion entrada" onclick="abrirMovimiento(${p.id},'entrada')">+ Entrada</button><button class="accion salida" onclick="abrirMovimiento(${p.id},'salida')">− Salida</button><button class="accion vender" onclick="abrirVenta(${p.id})">🧾 Recibo</button><button class="accion qr-producto" onclick="mostrarEtiquetaQRProducto(${p.id})">🏷️ QR</button><button class="accion editar" onclick="editarProducto(${p.id})">✏️ Editar</button><button class="accion eliminar" onclick="eliminarProducto(${p.id})">🗑️ Eliminar</button></div>`;
+  el.innerHTML=`<div class="producto-superior"><div class="producto-info"><h3>${escapeHtml(p.nombre)}</h3><p>SKU: ${escapeHtml(p.sku)}</p>${detalles}</div><div class="${clase}">${c}</div></div><div class="producto-precio">Costo: <strong>$${Number(p.costo??0).toFixed(2)}</strong> &nbsp;·&nbsp; Venta: <strong>$${Number(p.precio).toFixed(2)}</strong><br>Ganancia/u.: <strong>$${(Number(p.precio)-Number(p.costo??0)).toFixed(2)}</strong> &nbsp;·&nbsp; Margen: <strong>${Number(p.precio)>0?(((Number(p.precio)-Number(p.costo??0))/Number(p.precio))*100).toFixed(1):"0.0"}%</strong><br>Valor a costo: <strong>$${(c*Number(p.costo??0)).toFixed(2)}</strong> &nbsp;·&nbsp; Venta potencial: <strong>$${(c*Number(p.precio)).toFixed(2)}</strong></div>${aviso}<div class="acciones"><button class="accion entrada" onclick="abrirMovimiento(${p.id},'entrada')">+ Entrada</button><button class="accion salida" onclick="abrirMovimiento(${p.id},'salida')">− Salida</button><button class="accion vender" onclick="abrirVenta(${p.id})">🧾 Recibo</button><button class="accion qr-producto" onclick='mostrarEtiquetaQRProducto(${JSON.stringify(String(p.id))})'>🏷️ QR</button><button class="accion editar" onclick="editarProducto(${p.id})">✏️ Editar</button><button class="accion eliminar" onclick="eliminarProducto(${p.id})">🗑️ Eliminar</button></div>`;
+  el.addEventListener("click",function(ev){
+   if(ev.target.closest("button,input,select,textarea,a"))return;
+   mostrarEtiquetaQRProducto(String(p.id));
+  });
+  el.style.cursor="pointer";
+  el.title="Toca el producto para ver su código QR";
   lista.appendChild(el)
  });
  actualizarResumen();actualizarAlertasInventario()
@@ -10674,18 +10680,20 @@ let flkLectorFisicoActivo=false,flkLectorFisicoBuffer="",flkLectorFisicoUltimoTs
 function flkQrEsc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 function flkQrProductoTexto(p){return "FLK|SKU|"+String(p.sku||"").trim()}
 
-function mostrarEtiquetaQRProducto(id){
+async function mostrarEtiquetaQRProducto(id){
  const p=productos.find(x=>String(x.id)===String(id));if(!p)return alert("Producto no encontrado.");
  flkProductoEtiquetaActual=p;
  const box=document.getElementById("flkEtiquetaQRVista");
- box.innerHTML='<strong style="font-size:2.4mm">FLACKUNLOKER</strong><div class="qrbox" id="flkQrEtiquetaCodigo"></div><h3>'+flkQrEsc(p.nombre)+'</h3><p>SKU: <strong>'+flkQrEsc(p.sku)+'</strong></p><p class="flk-codigo-manual">Código manual: <strong>'+flkQrEsc(p.sku)+'</strong></p>';
+ box.innerHTML='<strong style="font-size:2.4mm">FLACKUNLOKER</strong><div class="qrbox" id="flkQrEtiquetaCodigo"><div style="padding:12px;font-size:12px">Generando QR…</div></div><h3>'+flkQrEsc(p.nombre)+'</h3><p>SKU: <strong>'+flkQrEsc(p.sku)+'</strong></p><p class="flk-codigo-manual">Código manual: <strong>'+flkQrEsc(p.sku)+'</strong></p>';
  document.getElementById("modalEtiquetaQR").classList.add("visible");
- setTimeout(function(){
-  const q=document.getElementById("flkQrEtiquetaCodigo");
-  if(typeof QRCode==="undefined"){q.innerHTML='<div style="padding:12px;font-size:12px">No se pudo cargar el generador QR.</div>';return}
-  q.innerHTML="";
-  new QRCode(q,{text:flkQrProductoTexto(p),width:150,height:150,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
- },20);
+ try{
+  if(typeof QRCode==="undefined" && typeof window.flkAsegurarMotoresQROffline==="function")await window.flkAsegurarMotoresQROffline();
+ }catch(e){console.warn("No se pudo preparar QR:",e)}
+ const q=document.getElementById("flkQrEtiquetaCodigo");
+ if(!q)return;
+ if(typeof QRCode==="undefined"){q.innerHTML='<div style="padding:12px;font-size:12px">No se pudo cargar el generador QR. Conéctate una vez y pulsa “Preparar offline” en el escáner QR.</div>';return}
+ q.innerHTML="";
+ new QRCode(q,{text:flkQrProductoTexto(p),width:150,height:150,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
 }
 function cerrarEtiquetaQR(){document.getElementById("modalEtiquetaQR")?.classList.remove("visible")}
 function imprimirEtiquetaQRProducto(){
