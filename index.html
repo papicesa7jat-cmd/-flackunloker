@@ -1947,6 +1947,7 @@ textarea::placeholder{
 <div class="lista-estadisticas"><h3>⬆️ Salidas</h3>
 <div class="fila-estadistica"><span>Gastos registrados</span><strong id="flujoGastos">$0.00</strong></div>
 <div class="fila-estadistica"><span>Pagos a proveedores</span><strong id="flujoPagosProveedores">$0.00</strong></div>
+<div class="fila-estadistica"><span>Reembolsos por devoluciones</span><strong id="flujoReembolsosDevoluciones">$0.00</strong></div>
 </div>
 
 <div class="lista-estadisticas">
@@ -8369,7 +8370,7 @@ function mostrarListaHistorial(){
   const el=document.createElement("div");el.className="movimiento";const f=new Date(m.fecha),entrada=m.tipo==="entrada";
   const saldo=m.saldo!==undefined&&m.saldo!==null?Number(m.saldo):"No disponible";
   const detalle=m.detalle?`<br>Origen: <strong>${escapeHtml(m.detalle)}</strong>`:"";
-  const etiqueta=/Venta/i.test(m.detalle||"")?"💰 Venta":/Devolución/i.test(m.detalle||"")?"↩️ Devolución":/Recepción de orden/i.test(m.detalle||"")?"📦 Compra":entrada?"＋ Entrada":"− Salida";
+  const etiqueta=/Inventario inicial/i.test(m.detalle||"")?"📦 Inventario inicial":/\bVenta\b/i.test(m.detalle||"")?"💰 Venta":/Devolución/i.test(m.detalle||"")?"↩️ Devolución":/Recepción de orden/i.test(m.detalle||"")?"📦 Compra":entrada?"＋ Entrada":"− Salida";
   const acciones=m.supabaseId?`<div class="saldo-movimiento">🔒 Registro guardado en Supabase. Para corregir inventario, registra un nuevo movimiento de Entrada o Salida.</div>`:"";
   const idComp=String(m.id||m.supabaseId||"").replace(/'/g,"\\'");
   el.innerHTML=`<div class="movimiento-superior"><div class="movimiento-info"><h3>${escapeHtml(m.nombre)}</h3><p>SKU: ${escapeHtml(m.sku)}</p></div><div class="movimiento-tipo ${entrada?"entrada":"salida"}">${etiqueta}</div></div><div class="movimiento-detalle">Cantidad: <strong>${Number(m.cantidad)}</strong> &nbsp;·&nbsp; ${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}${detalle}<div class="saldo-movimiento">Saldo después del movimiento: <strong>${saldo}</strong></div></div>${acciones}<button type="button" class="boton-comprobante" onclick="imprimirComprobanteMovimiento('${idComp}')">🧾 Ver comprobante</button>`;
@@ -9134,7 +9135,7 @@ function datosFlujoCaja(){
  return {
   lim,mov,entradas,salidas,neto:entradas-salidas,
   ventas:suma("entrada","venta"),abonos:suma("entrada","abono"),
-  gastos:suma("salida","gasto"),proveedores:suma("salida","proveedor"),
+  gastos:suma("salida","gasto"),proveedores:suma("salida","proveedor"),reembolsos:suma("salida","reembolso"),
   aportesPropietario,retirosPropietario,
   netoPropietario:aportesPropietario-retirosPropietario,
   metodos
@@ -9207,6 +9208,7 @@ function actualizarFlujoCaja(){
  document.getElementById("flujoAbonosClientes").textContent="$"+d.abonos.toFixed(2);
  document.getElementById("flujoGastos").textContent="$"+d.gastos.toFixed(2);
  document.getElementById("flujoPagosProveedores").textContent="$"+d.proveedores.toFixed(2);
+ const reembolsosEl=document.getElementById("flujoReembolsosDevoluciones");if(reembolsosEl)reembolsosEl.textContent="$"+d.reembolsos.toFixed(2);
  document.getElementById("flujoAportesPropietario").textContent="$"+d.aportesPropietario.toFixed(2);
  document.getElementById("flujoRetirosPropietario").textContent="$"+d.retirosPropietario.toFixed(2);
  const netoProp=document.getElementById("flujoNetoPropietario");
