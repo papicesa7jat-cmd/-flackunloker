@@ -7360,7 +7360,7 @@ function ventaDesdeSupabase(v){
   telefono:v.customer_phone||"",
   metodoPago:v.payment_method||"cash",
   estadoPago:Number(v.balance_due||0)>0.009?"credito":"pagado",
-  totalPagado:Number(v.paid_amount||0),
+  totalPagado:pagos.length?pagos.reduce((t,p)=>t+Math.max(0,Number(p.cantidad||0)),0):Number(v.paid_amount||0),
   saldo:Number(v.balance_due||0),
   pagos,
   fechaVencimiento:v.due_date||"",
@@ -7827,7 +7827,13 @@ async function flkRefrescarDevolucionesVentaAntesDeRecibo(v){
   const retornos=rr.data||[];
 
   // Sincronizar los datos financieros del recibo con Supabase.
-  v.totalPagado=Number(sale.paid_amount||0);
+  const rp=await flkSupabase.from("sale_payments").select("id,amount,payment_method,note,balance_before,balance_after,created_at").eq("sale_id",saleId).order("created_at",{ascending:true});
+   if(rp.error)throw rp.error;
+   const pagosCloud=rp.data||[];
+   if(pagosCloud.length){
+    v.pagos=pagosCloud.map(p=>({id:idLocalDesdeLegacy(null,p.id),supabaseId:p.id,cantidad:Number(p.amount||0),fecha:p.created_at,metodo:p.payment_method||"cash",nota:p.note||"",saldoAnterior:Number(p.balance_before??0),saldoRestante:Number(p.balance_after??0)}));
+    v.totalPagado=v.pagos.reduce((t,p)=>t+Math.max(0,Number(p.cantidad||0)),0);
+   }else v.totalPagado=pagosCloud.length?pagosCloud.reduce((t,p)=>t+Math.max(0,Number(p.amount||0)),0):Number(sale.paid_amount||0);
   v.saldo=Math.max(0,Number(sale.balance_due||0));
   v.estadoPago=v.saldo>0.009?"credito":"pagado";
   v.metodoPago=sale.payment_method||v.metodoPago||"cash";
@@ -7837,7 +7843,7 @@ async function flkRefrescarDevolucionesVentaAntesDeRecibo(v){
   v.devoluciones=retornos.map(r=>({
    id:idLocalDesdeLegacy(null,r.id),supabaseId:r.id,numeroDevolucion:r.return_number,ventaId:v.id,
    productoId:(v.items||[]).find(i=>String(i.supabaseSaleItemId)===String(r.sale_item_id))?.productoId||idLocalDesdeLegacy(null,r.product_id),
-   cantidad:Number(r.quantity||0),monto:Number(r.refund_amount||0),reembolso:Number(r.refund_amount||0),
+   cantidad:Number(r.quantity||0),monto:Number(r.quantity||0)*Number(((v.items||[]).find(i=>String(i.supabaseSaleItemId)===String(r.sale_item_id))||{}).precioUnitario||0),valorDevuelto:Number(r.quantity||0)*Number(((v.items||[]).find(i=>String(i.supabaseSaleItemId)===String(r.sale_item_id))||{}).precioUnitario||0),reembolso:Number(r.refund_amount||0),
    motivo:r.reason||"",fecha:r.created_at
   }));
 
@@ -7870,7 +7876,7 @@ async function generarReciboVenta(id){
    const numeroBuscado=String(v.numero||"").trim();
    const sr=await flkSupabase.from("sales")
     .select("id,legacy_id,receipt_number,created_at,customer_name,customer_phone,total,paid_amount,balance_due,payment_method,due_date,note,sale_items(id,product_id,quantity,unit_price,unit_cost),sale_payments(id,amount,payment_method,note,balance_before,balance_after,created_at),sale_returns(id,return_number,sale_item_id,product_id,quantity,refund_amount,reason,created_at)")
-    .eq("receipt_number",numeroBuscado).maybeSingle();
+    .eq(v.supabaseId?"id":"receipt_number",v.supabaseId||numeroBuscado).maybeSingle();
    if(sr.error)throw sr.error;
    if(sr.data){
     const sale=sr.data;
@@ -7898,7 +7904,7 @@ async function generarReciboVenta(id){
     v.fechaVencimiento=sale.due_date||"";
     v.nota=sale.note||"";
     v.items=itemsCloud;
-    v.devoluciones=retornos.map(r=>({id:idLocalDesdeLegacy(null,r.id),supabaseId:r.id,numeroDevolucion:r.return_number,ventaId:v.id,productoId:(itemsCloud.find(i=>String(i.supabaseSaleItemId)===String(r.sale_item_id||""))||{}).productoId||idLocalDesdeLegacy(null,r.product_id),cantidad:Number(r.quantity||0),monto:Number(r.refund_amount||0),reembolso:Number(r.refund_amount||0),motivo:r.reason||"",fecha:r.created_at}));
+    v.devoluciones=retornos.map(r=>{const itemRet=itemsCloud.find(i=>String(i.supabaseSaleItemId)===String(r.sale_item_id||""))||{};const valorDevuelto=Number(r.quantity||0)*Number(itemRet.precioUnitario||0);return {id:idLocalDesdeLegacy(null,r.id),supabaseId:r.id,numeroDevolucion:r.return_number,ventaId:v.id,productoId:itemRet.productoId||idLocalDesdeLegacy(null,r.product_id),cantidad:Number(r.quantity||0),monto:valorDevuelto,valorDevuelto,reembolso:Number(r.refund_amount||0),motivo:r.reason||"",fecha:r.created_at}});
     v.cantidad=itemsCloud.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0);
     // El total neto contable viene de Supabase; no se vuelve a sumar el total bruto de los artículos.
     v.ingreso=Math.max(0,Number(sale.total||0));
