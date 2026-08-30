@@ -7179,14 +7179,8 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
    guardarHistorial();
    cerrarMovimiento();
 
-   // La confirmación offline general ya fue emitida desde la cola central.
-   // Safari puede conservar el scroll del modal al cerrarlo. Volvemos suavemente al inventario.
-   requestAnimationFrame(()=>{
-    const inv=document.getElementById("vistaInventario");
-    if(inv&&inv.style.display!=="none"){
-     try{window.scrollTo({top:0,behavior:"smooth"})}catch(e){window.scrollTo(0,0)}
-    }
-   });
+   // Mantener la posición actual de pantalla después de guardar offline.
+   // No forzamos scroll al inicio: evita sacar al usuario del punto donde está trabajando.
 
    // Repintado diferido: evita que Safari parezca congelado tras tocar Confirmar.
    setTimeout(()=>{
@@ -9927,7 +9921,9 @@ function flkRestaurarVistaActual(){
 
 function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonEstadisticas","botonLicencias"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";if(sec!=="cuentasPagar")document.getElementById("vistaCuentasPagar").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",cuentasPagar:"botonCuentasPagar",flujoCaja:"botonFlujoCaja",finanzas:"botonFinanzas",estadisticas:"botonEstadisticas"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo");flkGuardarVistaActual(sec)}
 function mostrarInventario(){flkOcultarTodasLasVistas();document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";document.getElementById("vistaFlujoCaja").style.display="none";document.getElementById("vistaFinanzas").style.display="none";const vl=document.getElementById("vistaLicencias");if(vl)vl.style.display="none";const va=document.getElementById("vistaAdminSoftware");if(va)va.style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
-function scrollTop(){window.scrollTo({top:0,behavior:"auto"})}
+// Navegación estable: no forzar la pantalla al inicio al cambiar o refrescar vistas.
+// Se conserva la posición del usuario mientras registra operaciones.
+function scrollTop(){ return; }
 document.addEventListener("visibilitychange",()=>{
  if(document.visibilityState==="visible"){
   if(typeof flkSupabase!=="undefined" && flkSesionActiva && !flkModoRecuperacionPassword){
