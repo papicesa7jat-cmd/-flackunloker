@@ -2878,35 +2878,49 @@ let flkUltimaComprobacionLocal=0;
 let flkLocalDisponibleEstado=false;
 let flkLocalDisponibleOrigen="";
 
-async function flkSondearServidorLocal(url,origen,timeoutMs=2200){
- // v61.74 · Detección Local robusta.
- // Primero usamos el cliente Supabase Local con su anon key. Esto evita que un
- // /auth/v1/health navegable falle por CORS al ser consultado desde la PWA.
- const cliente=origen==="local-loopback"?flkSupabaseLocalLoopback:flkSupabaseLocalLan;
+async function flkSondearHttpServidor(url,headers={},timeoutMs=2200){
+ // v61.75 · Disponibilidad física independiente por servidor.
+ // No depende de navigator.onLine ni de una sesión guardada.
+ // Cualquier respuesta HTTP demuestra que ese servidor/ruta está vivo.
+ const ctrl=new AbortController();
+ const t=setTimeout(()=>ctrl.abort(),timeoutMs);
  try{
-  const prueba=cliente.from("products").select("id").limit(1);
-  const res=await flkPromesaConTiempo(prueba,timeoutMs,"local-server-probe-timeout");
-  // Una respuesta HTTP del REST local demuestra que Caddy/Envoy/PostgREST están vivos.
-  // Incluso un error de autorización/RLS sigue siendo evidencia de servidor accesible.
-  if(res && typeof res==="object")return {origen};
- }catch(_){/* usar respaldo /auth/v1/health */}
+  const r=await window.fetch(url,{method:"GET",cache:"no-store",signal:ctrl.signal,headers});
+  return !!r && Number(r.status)>0;
+ }catch(_){
+  return false;
+ }finally{
+  clearTimeout(t);
+ }
+}
 
- try{
-  const ctrl=new AbortController();
-  const t=setTimeout(()=>ctrl.abort(),timeoutMs);
-  try{
-   const r=await fetch(url+"/auth/v1/health",{
-    method:"GET",cache:"no-store",signal:ctrl.signal,
-    headers:{
-     "apikey":FLK_SUPABASE_LOCAL_KEY,
-     "Authorization":"Bearer "+FLK_SUPABASE_LOCAL_KEY
-    }
-   });
-   // Cualquier respuesta HTTP confirma que la ruta Local existe; 401/403 son válidas
-   // para el sondeo porque aquí no estamos intentando autenticar al usuario.
-   return r && r.status>0?{origen}:false;
-  }finally{clearTimeout(t)}
- }catch(_){return false}
+async function flkSondearPrincipalServidor(timeoutMs=2400){
+ // Sondeo directo con window.fetch para que el bloqueador de laboratorio del
+ // Principal sea respetado incluso si supabase-js conservó otra referencia a fetch.
+ return await flkSondearHttpServidor(
+  FLK_SUPABASE_URL+"/rest/v1/products?select=id&limit=1",
+  {"apikey":FLK_SUPABASE_KEY,"Authorization":"Bearer "+FLK_SUPABASE_KEY},
+  timeoutMs
+ );
+}
+
+async function flkSondearServidorLocal(url,origen,timeoutMs=2200){
+ // Local se comprueba independientemente del Principal y de Internet.
+ // Esto permite distinguir: Principal caído / Local vivo / ambos caídos.
+ const vivo=await flkSondearHttpServidor(
+  url+"/rest/v1/products?select=id&limit=1",
+  {"apikey":FLK_SUPABASE_LOCAL_KEY,"Authorization":"Bearer "+FLK_SUPABASE_LOCAL_KEY},
+  timeoutMs
+ );
+ if(vivo)return {origen};
+
+ // Respaldo: health de Auth. 401/403 también cuentan como servidor accesible.
+ const health=await flkSondearHttpServidor(
+  url+"/auth/v1/health",
+  {"apikey":FLK_SUPABASE_LOCAL_KEY,"Authorization":"Bearer "+FLK_SUPABASE_LOCAL_KEY},
+  timeoutMs
+ );
+ return health?{origen}:false;
 }
 
 async function flkValidarRutaLocal(cliente,origen,timeoutMs=2200){
@@ -2921,31 +2935,44 @@ async function flkValidarRutaLocal(cliente,origen,timeoutMs=2200){
 }
 
 async function flkComprobarLocalAutomatico(forzar=false){
- // Principal confirmado: nunca promover a Local.
- if(flkPrincipalDisponibleEstado===true)return false;
  if(flkVerificandoLocalEstado)return false;
  const ahora=Date.now();
- if(!forzar && ahora-flkUltimaComprobacionLocal<5000)return false;
+ if(!forzar && ahora-flkUltimaComprobacionLocal<4500)return !!flkLocalDisponibleEstado;
  flkUltimaComprobacionLocal=ahora;
  flkVerificandoLocalEstado=true;
  try{
-  // Primero detectar el servidor aunque todavía no exista sesión Local autenticada.
+  // Probar las dos rutas por separado. No asumir que Local está vivo porque
+  // Docker/Caddy deberían estar encendidos: se valida realmente.
   let vivo=await flkSondearServidorLocal(FLK_SUPABASE_LOCAL_LOOPBACK_URL,"local-loopback");
   if(!vivo)vivo=await flkSondearServidorLocal(FLK_SUPABASE_LOCAL_LAN_URL,"local-lan");
   flkLocalDisponibleEstado=!!vivo;
   flkLocalDisponibleOrigen=vivo?.origen||"";
 
-  // Después comprobar si ya existe una sesión Local reutilizable.
-  let ruta=await flkValidarRutaLocal(flkSupabaseLocalLoopback,"local-loopback");
-  if(!ruta)ruta=await flkValidarRutaLocal(flkSupabaseLocalLan,"local-lan");
-  if(!ruta){
-   flkActualizarEstadoConexion("principal-off");
+  if(!vivo){
    if(flkSesionDesdeLocal){
     flkSesionDesdeLocal=false;
     flkSesionLocalOrigen="";
-    flkActualizarEstadoConexion("principal-off");
    }
+   flkActualizarEstadoConexion("principal-off");
    return false;
+  }
+
+  // Servidor Local vivo. Solo promover la SESIÓN a Local si ya existe una
+  // sesión Local válida; si no, la barra muestra "Local disponible".
+  let ruta=false;
+  if(vivo.origen==="local-loopback")ruta=await flkValidarRutaLocal(flkSupabaseLocalLoopback,"local-loopback");
+  if(!ruta && vivo.origen==="local-lan")ruta=await flkValidarRutaLocal(flkSupabaseLocalLan,"local-lan");
+  if(!ruta){
+   // Por si la otra ruta tiene una sesión persistida válida.
+   if(vivo.origen!=="local-loopback")ruta=await flkValidarRutaLocal(flkSupabaseLocalLoopback,"local-loopback");
+   if(!ruta && vivo.origen!=="local-lan")ruta=await flkValidarRutaLocal(flkSupabaseLocalLan,"local-lan");
+  }
+
+  if(!ruta){
+   flkSesionDesdeLocal=false;
+   flkSesionLocalOrigen="";
+   flkActualizarEstadoConexion("principal-off");
+   return true;
   }
 
   flkSesionDesdeLocal=true;
@@ -2954,7 +2981,6 @@ async function flkComprobarLocalAutomatico(forzar=false){
   flkPintarSesionLocal(ruta.session.user);
   flkActualizarEstadoConexion();
 
-  // Refrescar lecturas desde el secundario sin tocar la cola destinada al Principal.
   try{await flkCargarCentroActual()}catch(_){}
   try{await flkRecuperacionEmergenciaNube()}catch(_){}
   return true;
@@ -2968,25 +2994,25 @@ async function flkComprobarEstadoPrincipalVisual(forzar=false){
  const ahora=Date.now();
  if(!forzar && ahora-flkUltimaComprobacionPrincipal<4000)return flkPrincipalDisponibleEstado;
  flkUltimaComprobacionPrincipal=ahora;
-
- if(!navigator.onLine){
-  flkPrincipalDisponibleEstado=false;
-  flkActualizarEstadoConexion("principal-off");
-  setTimeout(()=>flkComprobarLocalAutomatico(false),0);
-  return false;
- }
-
  flkVerificandoPrincipalEstado=true;
  try{
-  const ok=await flkSupabaseDisponible(2500);
-  flkPrincipalDisponibleEstado=!!ok;
-  flkActualizarEstadoConexion(ok?undefined:"principal-off");
-  if(!ok)setTimeout(()=>flkComprobarLocalAutomatico(false),0);
-  return !!ok;
+  // Principal y Local se evalúan como servidores independientes.
+  const principalVivo=await flkSondearPrincipalServidor(2400);
+  flkPrincipalDisponibleEstado=!!principalVivo;
+
+  if(principalVivo){
+   flkActualizarEstadoConexion();
+   return true;
+  }
+
+  // Principal realmente caído: comprobar Local aunque navigator.onLine sea false.
+  flkActualizarEstadoConexion("principal-off");
+  await flkComprobarLocalAutomatico(true);
+  return false;
  }catch(_){
   flkPrincipalDisponibleEstado=false;
   flkActualizarEstadoConexion("principal-off");
-  setTimeout(()=>flkComprobarLocalAutomatico(false),0);
+  await flkComprobarLocalAutomatico(true);
   return false;
  }finally{
   flkVerificandoPrincipalEstado=false;
