@@ -3018,6 +3018,11 @@ async function flkComprobarEstadoPrincipalVisual(forzar=false){
   flkPrincipalDisponibleEstado=!!principalVivo;
 
   if(principalVivo){
+   // Principal SIEMPRE tiene prioridad. Si Local estuvo activo durante una
+   // caída anterior, conservar su sesión persistida en Supabase pero dejar
+   // de marcar esta ejecución como "sesión desde Local".
+   flkSesionDesdeLocal=false;
+   flkSesionLocalOrigen="";
    flkActualizarEstadoConexion();
    return true;
   }
@@ -3046,6 +3051,8 @@ function flkActualizarEstadoConexion(estadoEspecial){
  box.className="";
  if(estabaExpandido)box.classList.add("flk-expandido");
  const n=flkPendientesOffline(),c=flkConflictosOffline();
+ box.style.cursor="default";
+ box.title="Estado de servidores";
  if(cambioEstado)setTimeout(flkMostrarAvisoConexionTemporal,0);
 
  if(estadoEspecial==="sync"){
@@ -3061,8 +3068,23 @@ function flkActualizarEstadoConexion(estadoEspecial){
   pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"";return
  }
 
- // Sesión autenticada por Supabase Local: mostrarlo explícitamente.
- if(flkSesionDesdeLocal){
+ // Principal tiene prioridad absoluta sobre Local. Aunque exista una sesión
+ // Local persistida de una caída anterior, si Principal está comprobado vivo
+ // la barra debe quedar verde y el flujo operativo vuelve al Principal.
+ if(flkPrincipalDisponibleEstado===true){
+  if(n){
+   box.classList.add("sync");txt.textContent="🟢 Principal disponible";
+   pen.textContent=`${n} pendiente${n===1?"":"s"} de sincronizar`;
+  }else{
+   txt.textContent="🟢 Principal sincronizado";
+   pen.textContent="";
+  }
+  return
+ }
+
+ // Sesión autenticada por Supabase Local: mostrarla solo cuando Principal
+ // realmente no está disponible.
+ if(flkSesionDesdeLocal && flkPrincipalDisponibleEstado!==true){
   box.classList.add("offline");
   txt.textContent="🟠 Supabase Local";
   pen.textContent=n?`${n} pendiente${n===1?"":"s"} para Principal`:"Principal no disponible";
@@ -3073,6 +3095,8 @@ function flkActualizarEstadoConexion(estadoEspecial){
  if(flkLocalDisponibleEstado && (estadoEspecial==="principal-off"||flkPrincipalDisponibleEstado===false||!navigator.onLine)){
   box.classList.add("offline");
   txt.textContent="🟠 Supabase Local disponible";
+  box.style.cursor="pointer";
+  box.title="Toca para autenticar Supabase Local";
   pen.textContent=n?`${n} pendiente${n===1?"":"s"} para Principal`:"Requiere acceso Local";
   return
  }
@@ -3083,18 +3107,6 @@ function flkActualizarEstadoConexion(estadoEspecial){
   box.classList.add("offline");
   txt.textContent="🟠 Offline/PWA";
   pen.textContent=n?`${n} pendiente${n===1?"":"s"} para Principal`:"Sin cambios pendientes";
-  return
- }
-
- // Verde únicamente después de comprobar realmente el Principal.
- if(flkPrincipalDisponibleEstado===true){
-  if(n){
-   box.classList.add("sync");txt.textContent="🟢 Principal disponible";
-   pen.textContent=`${n} pendiente${n===1?"":"s"} de sincronizar`;
-  }else{
-   txt.textContent="🟢 Principal sincronizado";
-   pen.textContent="";
-  }
   return
  }
 
@@ -4207,6 +4219,16 @@ function flkRecordarUsuarioLogin(email){try{const v=String(email||"").trim();if(
 function flkCargarUsuarioLogin(){try{const e=document.getElementById("authEmail");if(e&&!e.value)e.value=localStorage.getItem(FLK_LOGIN_USER_KEY)||""}catch(_){}}
 function flkLimpiarPasswordLogin(){const p=document.getElementById("authPassword");const b=document.getElementById("authPasswordToggle");if(p){p.value="";p.type="password"}if(b){b.textContent="👁️";b.title="Mostrar contraseña";b.setAttribute("aria-label","Mostrar contraseña")}}
 document.addEventListener("DOMContentLoaded",()=>{flkCargarUsuarioLogin();flkLimpiarPasswordLogin()});
+document.addEventListener("DOMContentLoaded",()=>{
+ const box=document.getElementById("estadoConexionFlk");
+ if(!box)return;
+ box.title="Estado de servidores";
+ box.addEventListener("click",()=>{
+  if(flkLocalDisponibleEstado && !flkSesionDesdeLocal && flkPrincipalDisponibleEstado===false){
+   flkAccederASupabaseLocal();
+  }
+ });
+});
 
 const FLK_SESSION_CACHE_KEY="flackunloker_session_cache_v1";
 const FLK_ROLE_CACHE_KEY="flackunloker_role_cache_v1";
@@ -4891,6 +4913,49 @@ async function flkLoginLocalConRutas(email,password){
  }
  throw ultimoError||new Error("No hay servidor Local disponible.");
 }
+async function flkAccederASupabaseLocal(){
+ if(!flkLocalDisponibleEstado){
+  alert("Supabase Local no está disponible en este momento.");
+  return false;
+ }
+ if(flkSesionDesdeLocal){
+  flkActualizarEstadoConexion();
+  return true;
+ }
+ const email=String(
+  document.getElementById("authUsuarioEmail")?.textContent ||
+  localStorage.getItem(FLK_LOGIN_USER_KEY) ||
+  document.getElementById("authEmail")?.value ||
+  ""
+ ).trim();
+ if(!email || !email.includes("@")){
+  alert("No se encontró el correo de la sesión actual. Cierra sesión e inicia una vez con tu usuario para habilitar el acceso Local.");
+  return false;
+ }
+ const password=prompt("Supabase Local está disponible.\n\nConfirma la contraseña de "+email+" para acceder al servidor Local.\n\nLa contraseña no se guardará.");
+ if(password===null)return false;
+ if(!password){alert("Escribe la contraseña para acceder al servidor Local.");return false;}
+ try{
+  const acceso=await flkLoginLocalConRutas(email,password);
+  const session=acceso?.session;
+  if(!session)throw new Error("Local no devolvió una sesión válida.");
+  flkSesionDesdeLocal=true;
+  flkSesionLocalOrigen=acceso.origen||"";
+  flkSesionActiva=true;
+  flkPintarSesionLocal(session.user);
+  flkActualizarEstadoConexion();
+  try{await flkCargarCentroActual()}catch(_){}
+  try{await flkRecuperacionEmergenciaNube()}catch(_){}
+  return true;
+ }catch(err){
+  flkSesionDesdeLocal=false;
+  flkSesionLocalOrigen="";
+  flkActualizarEstadoConexion("principal-off");
+  alert("No se pudo acceder a Supabase Local.\n\n"+(err?.message||err||"Error desconocido"));
+  return false;
+ }
+}
+
 async function flkLoginConFailover(email,password){
  // 1) Principal. 2) Local de la laptop. 3) Local por LAN.
  try{
