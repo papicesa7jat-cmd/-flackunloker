@@ -3904,6 +3904,17 @@ const flkSupabaseLocalLan=window.supabase.createClient(FLK_SUPABASE_LOCAL_LAN_UR
 const flkSupabase=flkSupabasePrincipal;
 let flkSesionDesdeLocal=false;
 let flkSesionLocalOrigen='';
+
+// v61.72 · Fuente de LECTURA de contingencia.
+// Las escrituras y la cola offline siguen usando flkSupabase (= Principal).
+// Solo cuando el login fue validado por Local, las lecturas operativas usan ese mismo Local.
+function flkSupabaseLectura(){
+ if(flkSesionDesdeLocal){
+  if(flkSesionLocalOrigen==="local-lan")return flkSupabaseLocalLan;
+  return flkSupabaseLocalLoopback;
+ }
+ return flkSupabasePrincipal;
+}
 let modoAuth="login";
 let rolSesion="employee";
 let flkSesionActiva=false;
@@ -4229,9 +4240,10 @@ async function flkActualizarNubeDespuesArranque(){
 
 async function cargarRolUsuario(user){
  rolSesion=flkRolLocal(user?.id)||"employee";
- if(navigator.onLine){
+ if(navigator.onLine||flkSesionDesdeLocal){
   try{
-   const {data,error}=await flkSupabase.from("profiles").select("role").eq("id",user.id).maybeSingle();
+   const clienteLectura=flkSupabaseLectura();
+   const {data,error}=await clienteLectura.from("profiles").select("role").eq("id",user.id).maybeSingle();
    if(!error&&data&&data.role){
     rolSesion=data.role;
     flkGuardarRolLocal(user.id,rolSesion);
@@ -4260,17 +4272,20 @@ function aplicarPermisosVisuales(){
 let flkModoRecuperacionNube=false;
 
 async function flkRecuperacionEmergenciaNube(){
- if(flkModoRecuperacionNube||!navigator.onLine||flkModoRecuperacionPassword)return false;
+ if(flkModoRecuperacionNube||(!navigator.onLine&&!flkSesionDesdeLocal)||flkModoRecuperacionPassword)return false;
  flkModoRecuperacionNube=true;
  const fallos=[];
+ // IMPORTANTE: esto cambia SOLO la fuente de lectura. La sincronización de pendientes
+ // continúa apuntando exclusivamente a flkSupabase (= Principal).
+ const clienteLectura=flkSupabaseLectura();
  try{
-  const {data:ses,error:sesErr}=await flkSupabase.auth.getSession();
+  const {data:ses,error:sesErr}=await clienteLectura.auth.getSession();
   if(sesErr)throw sesErr;
   if(!ses?.session?.user)throw new Error("Sesión no disponible.");
 
   // INVENTARIO
   try{
-   const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
+   const {data,error}=await clienteLectura.from("products").select("*").eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
    if(error)throw error;
    productos=(data||[]).map(productoDesdeSupabase);
    guardarDatos();
@@ -4278,7 +4293,7 @@ async function flkRecuperacionEmergenciaNube(){
 
   // HISTORIAL
   try{
-   const {data,error}=await flkSupabase.from("stock_movements").select("*").order("created_at",{ascending:false});
+   const {data,error}=await clienteLectura.from("stock_movements").select("*").order("created_at",{ascending:false});
    if(error)throw error;
    historial=(data||[]).map(movimientoDesdeSupabase);
    guardarHistorial();
@@ -4287,10 +4302,10 @@ async function flkRecuperacionEmergenciaNube(){
   // VENTAS: tablas planas, sin relaciones embebidas.
   try{
    const [rVentas,rItems,rPagos,rDevol]=await Promise.all([
-    flkSupabase.from("sales").select("*").order("created_at",{ascending:false}),
-    flkSupabase.from("sale_items").select("*"),
-    flkSupabase.from("sale_payments").select("*").order("created_at",{ascending:true}),
-    flkSupabase.from("sale_returns").select("*").order("created_at",{ascending:true})
+    clienteLectura.from("sales").select("*").order("created_at",{ascending:false}),
+    clienteLectura.from("sale_items").select("*"),
+    clienteLectura.from("sale_payments").select("*").order("created_at",{ascending:true}),
+    clienteLectura.from("sale_returns").select("*").order("created_at",{ascending:true})
    ]);
    if(rVentas.error)throw rVentas.error;
    if(rItems.error)throw rItems.error;
@@ -4346,7 +4361,7 @@ async function flkRecuperacionEmergenciaNube(){
 
   // GASTOS
   try{
-   const {data,error}=await flkSupabase.from("expenses").select("*").order("expense_date",{ascending:false});
+   const {data,error}=await clienteLectura.from("expenses").select("*").order("expense_date",{ascending:false});
    if(error)throw error;
    gastos=(data||[]).map(gastoDesdeSupabase);
    guardarGastos();
@@ -4355,9 +4370,9 @@ async function flkRecuperacionEmergenciaNube(){
   // COMPRAS Y PROVEEDORES
   try{
    const [rs,ro,rp]=await Promise.all([
-    flkSupabase.from("suppliers").select("*").order("name"),
-    flkSupabase.from("purchase_orders").select("*").order("created_at",{ascending:false}),
-    flkSupabase.from("supplier_payments").select("*").order("created_at",{ascending:true})
+    clienteLectura.from("suppliers").select("*").order("name"),
+    clienteLectura.from("purchase_orders").select("*").order("created_at",{ascending:false}),
+    clienteLectura.from("supplier_payments").select("*").order("created_at",{ascending:true})
    ]);
    if(rs.error)throw rs.error;
    if(ro.error)throw ro.error;
@@ -4394,7 +4409,7 @@ async function flkRecuperacionEmergenciaNube(){
 
   // CAJA
   try{
-   const {data,error}=await flkSupabase.from("cash_movements").select("*").order("occurred_at",{ascending:true});
+   const {data,error}=await clienteLectura.from("cash_movements").select("*").order("occurred_at",{ascending:true});
    if(error)throw error;
    movimientosCajaSupabase=(data||[]).map(m=>({
     id:m.id,
@@ -4415,7 +4430,7 @@ async function flkRecuperacionEmergenciaNube(){
 
   // CIERRES
   try{
-   const {data,error}=await flkSupabase.from("cash_closures").select("*").order("close_date",{ascending:false});
+   const {data,error}=await clienteLectura.from("cash_closures").select("*").order("close_date",{ascending:false});
    if(error)throw error;
    cierres=(data||[]).map(cierreDesdeSupabase);
    guardarCierres();
@@ -4484,7 +4499,16 @@ async function mostrarAppConSesion(session){
    setTimeout(()=>flkRestaurarVistaActual(),120);
   }else{
    if(flkSesionDesdeLocal){
-    console.info("🟠 Sesión de contingencia validada por Supabase Local; Principal permanece sin sincronizar.");
+    console.info("🟠 Sesión de contingencia validada por Supabase Local; cargando datos desde Local sin sincronizar pendientes.");
+    try{
+     const centroAnterior=FLK_BUSINESS_ID;
+     await flkCargarCentroActual();
+     flkCambiarContextoLocalCentro(FLK_BUSINESS_ID);
+     if(centroAnterior!==FLK_BUSINESS_ID)console.info("Centro Local cambiado:",centroAnterior,"→",FLK_BUSINESS_ID);
+     await flkRecuperacionEmergenciaNube();
+    }catch(errLocalDatos){
+     console.warn("No se pudieron refrescar datos desde Local; se conserva la copia offline del navegador.",errLocalDatos);
+    }
     try{flkActualizarEstadoConexion("principal-off")}catch(_){}
    }
    // v61.68: al iniciar directamente OFFLINE, restaurar también el estado
@@ -6520,14 +6544,16 @@ function flkBusinessGuardado(){
 let FLK_BUSINESS_ID=flkBusinessGuardado();
 
 async function flkCargarCentroActual(){
- if(!flkSupabase || !flkSesionActiva || !navigator.onLine){
+ if(!flkSesionActiva || (!navigator.onLine&&!flkSesionDesdeLocal)){
   const ses=flkSesionLocal();
   FLK_BUSINESS_ID=flkCentroAutorizadoLocal(ses?.user?.id)||flkBusinessGuardado();
   if(flkUuidValido(FLK_BUSINESS_ID))flkCambiarContextoLocalCentro(FLK_BUSINESS_ID);
   return FLK_BUSINESS_ID;
  }
 
- const {data,error}=await flkSupabase.rpc("flk_current_business_id");
+ // Con sesión de contingencia resolver el centro contra Local; con sesión normal, Principal.
+ const clienteLectura=flkSupabaseLectura();
+ const {data,error}=await clienteLectura.rpc("flk_current_business_id");
  if(error)throw error;
 
  const id=String(data||"").trim();
