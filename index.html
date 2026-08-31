@@ -2878,15 +2878,33 @@ let flkUltimaComprobacionLocal=0;
 let flkLocalDisponibleEstado=false;
 let flkLocalDisponibleOrigen="";
 
-async function flkSondearServidorLocal(url,origen,timeoutMs=1800){
+async function flkSondearServidorLocal(url,origen,timeoutMs=2200){
+ // v61.74 · Detección Local robusta.
+ // Primero usamos el cliente Supabase Local con su anon key. Esto evita que un
+ // /auth/v1/health navegable falle por CORS al ser consultado desde la PWA.
+ const cliente=origen==="local-loopback"?flkSupabaseLocalLoopback:flkSupabaseLocalLan;
+ try{
+  const prueba=cliente.from("products").select("id").limit(1);
+  const res=await flkPromesaConTiempo(prueba,timeoutMs,"local-server-probe-timeout");
+  // Una respuesta HTTP del REST local demuestra que Caddy/Envoy/PostgREST están vivos.
+  // Incluso un error de autorización/RLS sigue siendo evidencia de servidor accesible.
+  if(res && typeof res==="object")return {origen};
+ }catch(_){/* usar respaldo /auth/v1/health */}
+
  try{
   const ctrl=new AbortController();
   const t=setTimeout(()=>ctrl.abort(),timeoutMs);
   try{
-   // 200 o 401 prueban que Caddy/Auth Local están vivos. No se envían credenciales.
-   const r=await fetch(url+"/auth/v1/health",{method:"GET",cache:"no-store",signal:ctrl.signal});
-   if(r.status===200||r.status===401||r.status===403)return {origen};
-   return r.status>0?{origen}:false;
+   const r=await fetch(url+"/auth/v1/health",{
+    method:"GET",cache:"no-store",signal:ctrl.signal,
+    headers:{
+     "apikey":FLK_SUPABASE_LOCAL_KEY,
+     "Authorization":"Bearer "+FLK_SUPABASE_LOCAL_KEY
+    }
+   });
+   // Cualquier respuesta HTTP confirma que la ruta Local existe; 401/403 son válidas
+   // para el sondeo porque aquí no estamos intentando autenticar al usuario.
+   return r && r.status>0?{origen}:false;
   }finally{clearTimeout(t)}
  }catch(_){return false}
 }
