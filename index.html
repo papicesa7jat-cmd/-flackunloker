@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-31-v61.88-login-offline-reparado">
-<title>Flackunloker · v61.88</title>
+<meta name="flackunloker-offline-version" content="2026-08-31-v61.89-login-offline-reparado">
+<title>Flackunloker · v61.89</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}
@@ -5088,7 +5088,7 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
   const timeout=String(err?.code||"").includes("timeout")||msg.includes("timeout");
 
   if(timeout){
-   // v61.88: si Principal no responde aunque navigator.onLine siga true,
+   // v61.89: si Principal no responde aunque navigator.onLine siga true,
    // intentar el acceso Offline/PWA usando el verificador seguro local.
    try{
     await flkEntrarOffline(email,password);
@@ -12535,7 +12535,7 @@ async function flkDeepStorageCopy(){
 </script>
 
 <script>
-/* ===== v61.88 · Preparación inicial offline NO bloqueante ===== */
+/* ===== v61.89 · Preparación inicial offline NO bloqueante ===== */
 (function(){
   const KEY="flk_instalacion_dispositivo_v1";
 
@@ -12565,7 +12565,7 @@ async function flkDeepStorageCopy(){
 
 
 <script>
-/* ===== v61.88 Login Offline First ===== */
+/* ===== v61.89 Login Offline First ===== */
 (function(){
   window.flkIntentarEntradaOfflinePrimero = async function(email,password){
     try{
@@ -12578,6 +12578,51 @@ async function flkDeepStorageCopy(){
       }
     }catch(e){}
     return false;
+  };
+})();
+</script>
+
+
+<script>
+/* ===== v61.89 Login fallback offline ===== */
+(function(){
+  const originalSignIn = window.flkIniciarSesion;
+
+  window.flkIniciarSesion = async function(...args){
+    const email = document.getElementById("authEmail")?.value ||
+                  document.querySelector('input[type="email"]')?.value || "";
+    const pass = document.getElementById("authPassword")?.value ||
+                 document.querySelector('input[type="password"]')?.value || "";
+
+    if(!navigator.onLine){
+      if(typeof flkEntrarOffline === "function"){
+        try{
+          await flkEntrarOffline(email, pass);
+          if(typeof flkActualizarEstadoConexion==="function"){
+            flkActualizarEstadoConexion("principal-off");
+          }
+          return;
+        }catch(e){}
+      }
+    }
+
+    try{
+      if(typeof originalSignIn === "function"){
+        return await originalSignIn.apply(this,args);
+      }
+    }catch(e){
+      if((String(e).includes("fetch") || String(e).includes("Network")) &&
+         typeof flkEntrarOffline === "function"){
+        try{
+          await flkEntrarOffline(email, pass);
+          if(typeof flkActualizarEstadoConexion==="function"){
+            flkActualizarEstadoConexion("principal-off");
+          }
+          return;
+        }catch(_){}
+      }
+      throw e;
+    }
   };
 })();
 </script>
