@@ -3878,10 +3878,27 @@ window.addEventListener("online",async()=>{
    await cargarRolUsuario(data.session.user);
    setTimeout(()=>flkSincronizarSeguro(),250);
   }else{
-   flkLimpiarSesionLocal();
-   document.getElementById("authOverlay").classList.remove("oculto");
+   const cache=flkSesionLocal();
+   if(cache?.user){
+    console.warn("Principal sin sesión confirmada; se conserva la sesión Offline/PWA.");
+    flkSesionDesdeLocal=false;
+    flkSesionLocalOrigen="";
+    flkPintarSesionLocal(cache.user);
+    flkPrincipalDisponibleEstado=false;
+    flkActualizarEstadoConexion("principal-off");
+   }else{
+    document.getElementById("authOverlay").classList.remove("oculto");
+   }
   }
- }catch(err){console.error(err)}
+ }catch(err){
+  console.error(err);
+  const cache=flkSesionLocal();
+  if(cache?.user){
+   flkPintarSesionLocal(cache.user);
+   flkPrincipalDisponibleEstado=false;
+   flkActualizarEstadoConexion("principal-off");
+  }
+ }
 });
 window.addEventListener("offline",()=>{
  flkPrincipalDisponibleEstado=false;
@@ -4618,14 +4635,23 @@ async function mostrarAppConSesion(session){
    setTimeout(()=>flkRestaurarVistaActual(),120);
   }
  }else{
-  flkSesionActiva=false;
   const cache=flkSesionLocal();
-  if(!navigator.onLine&&cache?.user){
+  // Una caída de Principal/Local NO equivale a cerrar sesión.
+  if(cache?.user && !flkCierreSesionEnCurso){
+   flkSesionActiva=true;
+   flkSesionDesdeLocal=false;
+   flkSesionLocalOrigen="";
    flkPintarSesionLocal(cache.user);
-   flkActualizarEstadoConexion();
+   if(!navigator.onLine || flkPrincipalDisponibleEstado===false || window.FLK_PRINCIPAL_BLOQUEADO===true){
+    flkPrincipalDisponibleEstado=false;
+    flkActualizarEstadoConexion("principal-off");
+   }else{
+    flkActualizarEstadoConexion();
+   }
    setTimeout(()=>flkRestaurarVistaActual(),120);
    return
   }
+  flkSesionActiva=false;
   document.getElementById("authOverlay").classList.remove("oculto");
   document.getElementById("authUsuario").classList.remove("visible");
  }
@@ -5495,8 +5521,28 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
  }
  flkSesionActiva=!!session?.user;
  if(event==="SIGNED_OUT"){
+  // Solo un cierre solicitado por el usuario puede borrar la sesión Offline/PWA.
+  // Una caída/reinicio del Principal no debe expulsar al usuario.
+  const cache=flkSesionLocal();
+  if(flkCierreSesionEnCurso){
+   flkSesionActiva=false;
+   flkLimpiarSesionLocal();
+   setTimeout(()=>mostrarAppConSesion(null),0);
+   return;
+  }
+  if(cache?.user){
+   console.warn("SIGNED_OUT remoto ignorado: se conserva sesión Offline/PWA.");
+   flkSesionActiva=true;
+   flkSesionDesdeLocal=false;
+   flkSesionLocalOrigen="";
+   flkPrincipalDisponibleEstado=false;
+   setTimeout(()=>{
+    flkPintarSesionLocal(cache.user);
+    flkActualizarEstadoConexion("principal-off");
+   },0);
+   return;
+  }
   flkSesionActiva=false;
-  if(navigator.onLine)flkLimpiarSesionLocal();
  }
  setTimeout(()=>mostrarAppConSesion(session),0);
 });
