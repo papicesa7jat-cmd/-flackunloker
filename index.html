@@ -2980,6 +2980,40 @@ async function flkComprobarLocalAutomatico(forzar=false){
 async function flkActivarSesionLocalGuardada(){
  if(flkSesionDesdeLocal || flkPrincipalDisponibleEstado!==false || !flkLocalDisponibleEstado)return false;
 
+ // Recuperación explícita de la sesión persistida del Local.
+ const clavesLocal=[
+  ["flackunloker-auth-local-loopback-v1",flkSupabaseLocalLoopback,"local-loopback"],
+  ["flackunloker-auth-local-lan-v1",flkSupabaseLocalLan,"local-lan"],
+  ["flackunloker-auth-local-v1",flkSupabaseLocalLoopback,"local-loopback"]
+ ];
+ for(const [clave,cliente,origen] of clavesLocal){
+  try{
+   const raw=localStorage.getItem(clave);
+   if(!raw)continue;
+   const guardada=JSON.parse(raw);
+   if(!guardada?.access_token || !guardada?.refresh_token)continue;
+   const puesta=await cliente.auth.setSession({
+    access_token:guardada.access_token,
+    refresh_token:guardada.refresh_token
+   });
+   const sesion=puesta?.data?.session;
+   if(!puesta?.error && sesion?.user){
+    flkSesionDesdeLocal=true;
+    flkSesionLocalOrigen=origen;
+    flkSesionActiva=true;
+    try{flkGuardarSesionLocal(sesion)}catch(_){}
+    try{flkPintarSesionLocal(sesion.user)}catch(_){}
+    try{await cargarRolUsuario(sesion.user)}catch(e){console.warn("Rol Local:",e?.message||e)}
+    try{await flkCargarCentroActual()}catch(e){console.warn("Centro Local:",e?.message||e)}
+    flkActualizarEstadoConexion("principal-off");
+    try{await flkRecuperacionEmergenciaNube()}catch(e){console.warn("Carga Local:",e?.message||e)}
+    return true;
+   }
+  }catch(e){
+   console.warn("Sesión Local guardada no reutilizable:",clave,e?.message||e);
+  }
+ }
+
  const rutas=flkLocalDisponibleOrigen==="local-lan"
   ? [
      {cliente:flkSupabaseLocalLan,origen:"local-lan"},
@@ -4233,7 +4267,10 @@ document.addEventListener("DOMContentLoaded",()=>{
  box.addEventListener("click",async ()=>{
   if(flkLocalDisponibleEstado && !flkSesionDesdeLocal && flkPrincipalDisponibleEstado===false){
    const activada=await flkActivarSesionLocalGuardada();
-   if(!activada) await flkAccederASupabaseLocal();
+   if(!activada){
+    flkActualizarEstadoConexion("offline");
+    console.warn("Supabase Local disponible, pero sin sesión Local reutilizable. Se mantiene Offline/PWA.");
+   }
   }
  });
 });
