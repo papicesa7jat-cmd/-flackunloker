@@ -7025,7 +7025,7 @@ async function cargarInventarioSupabase(){
  let remotos=Array.isArray(cloud)?cloud:[];
 
  // El Administrador completa una migración parcial sin duplicar productos.
- if(rolSesion==="admin" && locales.length){
+ if(window.flkRestauracionRespaldoActiva===true && rolSesion==="admin" && locales.length){
   const porLegacy=new Map(remotos.filter(r=>r.legacy_id!==null&&r.legacy_id!==undefined).map(r=>[String(r.legacy_id),r]));
   const porSku=new Map(remotos.filter(r=>String(r.sku||"").trim()).map(r=>[String(r.sku||"").trim().toLowerCase(),r]));
 
@@ -7291,7 +7291,7 @@ async function cargarGastosSupabase(){
   return false;
  }
 
- if(rolSesion==="admin" && locales.length){
+ if(window.flkRestauracionRespaldoActiva===true && rolSesion==="admin" && locales.length){
   const existentes=new Set((cloud||[]).map(g=>String(g.legacy_id||"")).filter(Boolean));
   for(const g of locales){
    const legacy=String(g.id);
@@ -7369,7 +7369,7 @@ async function cargarCierresSupabase(){
  let {data:cloud,error}=await flkSupabase.from("cash_closures").select("*").order("close_date",{ascending:false});
  if(error){console.error("Supabase cierres:",error);return false}
 
- if(rolSesion==="admin" && locales.length){
+ if(window.flkRestauracionRespaldoActiva===true && rolSesion==="admin" && locales.length){
   const fechas=new Set((cloud||[]).map(c=>c.close_date));
   for(const c of locales){
    if(!c.fechaLocal||fechas.has(c.fechaLocal)||c.supabaseId)continue;
@@ -7808,7 +7808,7 @@ async function cargarVentasSupabase(){
  if(!flkSesionActiva)return false;
  if(error){console.error("Supabase ventas:",error);flkRegistrarFalloCargaNube("Ventas",error);return false}
 
- if(rolSesion==="admin" && locales.length){
+ if(window.flkRestauracionRespaldoActiva===true && rolSesion==="admin" && locales.length){
   const existentesLegacy=new Set((cloud||[]).map(v=>String(v.legacy_id||"")).filter(Boolean));
   const normalizarRecibo=n=>String(n??"").trim().replace(/^#/,"").padStart(6,"0");
   const existentesRecibo=new Set((cloud||[]).map(v=>normalizarRecibo(v.receipt_number)).filter(Boolean));
