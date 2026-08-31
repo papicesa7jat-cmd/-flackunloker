@@ -2875,6 +2875,21 @@ let flkUltimaComprobacionPrincipal=0;
 // No sincroniza ni marca operaciones como completadas: la cola sigue esperando al Principal.
 let flkVerificandoLocalEstado=false;
 let flkUltimaComprobacionLocal=0;
+let flkLocalDisponibleEstado=false;
+let flkLocalDisponibleOrigen="";
+
+async function flkSondearServidorLocal(url,origen,timeoutMs=1800){
+ try{
+  const ctrl=new AbortController();
+  const t=setTimeout(()=>ctrl.abort(),timeoutMs);
+  try{
+   // 200 o 401 prueban que Caddy/Auth Local están vivos. No se envían credenciales.
+   const r=await fetch(url+"/auth/v1/health",{method:"GET",cache:"no-store",signal:ctrl.signal});
+   if(r.status===200||r.status===401||r.status===403)return {origen};
+   return r.status>0?{origen}:false;
+  }finally{clearTimeout(t)}
+ }catch(_){return false}
+}
 
 async function flkValidarRutaLocal(cliente,origen,timeoutMs=2200){
  try{
@@ -2896,10 +2911,17 @@ async function flkComprobarLocalAutomatico(forzar=false){
  flkUltimaComprobacionLocal=ahora;
  flkVerificandoLocalEstado=true;
  try{
-  // En la laptop preferir loopback; en otros equipos funcionará la LAN.
+  // Primero detectar el servidor aunque todavía no exista sesión Local autenticada.
+  let vivo=await flkSondearServidorLocal(FLK_SUPABASE_LOCAL_LOOPBACK_URL,"local-loopback");
+  if(!vivo)vivo=await flkSondearServidorLocal(FLK_SUPABASE_LOCAL_LAN_URL,"local-lan");
+  flkLocalDisponibleEstado=!!vivo;
+  flkLocalDisponibleOrigen=vivo?.origen||"";
+
+  // Después comprobar si ya existe una sesión Local reutilizable.
   let ruta=await flkValidarRutaLocal(flkSupabaseLocalLoopback,"local-loopback");
   if(!ruta)ruta=await flkValidarRutaLocal(flkSupabaseLocalLan,"local-lan");
   if(!ruta){
+   flkActualizarEstadoConexion("principal-off");
    if(flkSesionDesdeLocal){
     flkSesionDesdeLocal=false;
     flkSesionLocalOrigen="";
@@ -2983,6 +3005,14 @@ function flkActualizarEstadoConexion(estadoEspecial){
   box.classList.add("offline");
   txt.textContent="🟠 Supabase Local";
   pen.textContent=n?`${n} pendiente${n===1?"":"s"} para Principal`:"Principal no disponible";
+  return
+ }
+
+ // Local responde, pero aún no hay una sesión autenticada reutilizable.
+ if(flkLocalDisponibleEstado && (estadoEspecial==="principal-off"||flkPrincipalDisponibleEstado===false||!navigator.onLine)){
+  box.classList.add("offline");
+  txt.textContent="🟠 Supabase Local disponible";
+  pen.textContent=n?`${n} pendiente${n===1?"":"s"} para Principal`:"Requiere acceso Local";
   return
  }
 
