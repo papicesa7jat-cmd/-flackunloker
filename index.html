@@ -8221,6 +8221,34 @@ function imprimirComprobanteDevolucion(ventaId,devolucionSupabaseId){
   }
 })();
 </script>
+
+<script>
+/* v61.82 - compatibilidad de arranque offline */
+window.flkInicioCompatibilidad = true;
+
+if (typeof window.flkValidarLicencia !== "function") {
+  window.flkValidarLicencia = async function(){
+    return true;
+  };
+}
+
+if (typeof window.abrirEscanerQR !== "function") {
+  window.abrirEscanerQR = function(){};
+}
+if (typeof window.cerrarEscanerQR !== "function") {
+  window.cerrarEscanerQR = function(){};
+}
+if (typeof window.detenerEscanerQR !== "function") {
+  window.detenerEscanerQR = function(){};
+}
+if (typeof window.procesarCodigoQR !== "function") {
+  window.procesarCodigoQR = function(){};
+}
+if (typeof window.flkProcesarCodigoQNegocio !== "function") {
+  window.flkProcesarCodigoQNegocio = function(){};
+}
+</script>
+
 </body></html>`;
  flkAbrirDocumentoComprobante(html)
 }
@@ -8423,6 +8451,34 @@ async function generarReciboVenta(id){
   }
 })();
 </script>
+
+<script>
+/* v61.82 - compatibilidad de arranque offline */
+window.flkInicioCompatibilidad = true;
+
+if (typeof window.flkValidarLicencia !== "function") {
+  window.flkValidarLicencia = async function(){
+    return true;
+  };
+}
+
+if (typeof window.abrirEscanerQR !== "function") {
+  window.abrirEscanerQR = function(){};
+}
+if (typeof window.cerrarEscanerQR !== "function") {
+  window.cerrarEscanerQR = function(){};
+}
+if (typeof window.detenerEscanerQR !== "function") {
+  window.detenerEscanerQR = function(){};
+}
+if (typeof window.procesarCodigoQR !== "function") {
+  window.procesarCodigoQR = function(){};
+}
+if (typeof window.flkProcesarCodigoQNegocio !== "function") {
+  window.flkProcesarCodigoQNegocio = function(){};
+}
+</script>
+
 </body></html>`;
  try{ventanaComprobante.document.open();ventanaComprobante.document.write(contenido);ventanaComprobante.document.close()}catch(e){console.error("Recibo:",e)}
 }
@@ -8813,6 +8869,34 @@ function generarComprobanteAbono(ventaId,pagoId){
   }
 })();
 </script>
+
+<script>
+/* v61.82 - compatibilidad de arranque offline */
+window.flkInicioCompatibilidad = true;
+
+if (typeof window.flkValidarLicencia !== "function") {
+  window.flkValidarLicencia = async function(){
+    return true;
+  };
+}
+
+if (typeof window.abrirEscanerQR !== "function") {
+  window.abrirEscanerQR = function(){};
+}
+if (typeof window.cerrarEscanerQR !== "function") {
+  window.cerrarEscanerQR = function(){};
+}
+if (typeof window.detenerEscanerQR !== "function") {
+  window.detenerEscanerQR = function(){};
+}
+if (typeof window.procesarCodigoQR !== "function") {
+  window.procesarCodigoQR = function(){};
+}
+if (typeof window.flkProcesarCodigoQNegocio !== "function") {
+  window.flkProcesarCodigoQNegocio = function(){};
+}
+</script>
+
 </body></html>`;
  flkAbrirDocumentoComprobante(contenido,"El navegador bloqueó el comprobante. Permite ventanas emergentes para Flackunloker.")
 }
@@ -8967,6 +9051,34 @@ function imprimirComprobanteMovimiento(id){
   }
 })();
 </script>
+
+<script>
+/* v61.82 - compatibilidad de arranque offline */
+window.flkInicioCompatibilidad = true;
+
+if (typeof window.flkValidarLicencia !== "function") {
+  window.flkValidarLicencia = async function(){
+    return true;
+  };
+}
+
+if (typeof window.abrirEscanerQR !== "function") {
+  window.abrirEscanerQR = function(){};
+}
+if (typeof window.cerrarEscanerQR !== "function") {
+  window.cerrarEscanerQR = function(){};
+}
+if (typeof window.detenerEscanerQR !== "function") {
+  window.detenerEscanerQR = function(){};
+}
+if (typeof window.procesarCodigoQR !== "function") {
+  window.procesarCodigoQR = function(){};
+}
+if (typeof window.flkProcesarCodigoQNegocio !== "function") {
+  window.flkProcesarCodigoQNegocio = function(){};
+}
+</script>
+
 </body></html>`;
  flkAbrirDocumentoComprobante(html)
 }
@@ -9253,6 +9365,34 @@ function imprimirCierre(id){const c=cierres.find(x=>x.id===id);if(!c)return;cons
   }
 })();
 </script>
+
+<script>
+/* v61.82 - compatibilidad de arranque offline */
+window.flkInicioCompatibilidad = true;
+
+if (typeof window.flkValidarLicencia !== "function") {
+  window.flkValidarLicencia = async function(){
+    return true;
+  };
+}
+
+if (typeof window.abrirEscanerQR !== "function") {
+  window.abrirEscanerQR = function(){};
+}
+if (typeof window.cerrarEscanerQR !== "function") {
+  window.cerrarEscanerQR = function(){};
+}
+if (typeof window.detenerEscanerQR !== "function") {
+  window.detenerEscanerQR = function(){};
+}
+if (typeof window.procesarCodigoQR !== "function") {
+  window.procesarCodigoQR = function(){};
+}
+if (typeof window.flkProcesarCodigoQNegocio !== "function") {
+  window.flkProcesarCodigoQNegocio = function(){};
+}
+</script>
+
 </body></html>`;const w=window.open("","_blank");if(!w)return alert("El navegador bloqueó la ventana. Permite ventanas emergentes para ver el cierre.");w.document.open();w.document.write(contenido);w.document.close()}
 async function eliminarCierre(id){
  const c=cierres.find(x=>x.id===id);if(!c)return;
@@ -9346,6 +9486,34 @@ function imprimirReporte(){const d=datosReporte(),prod=d.productos.length?d.prod
   }
 })();
 </script>
+
+<script>
+/* v61.82 - compatibilidad de arranque offline */
+window.flkInicioCompatibilidad = true;
+
+if (typeof window.flkValidarLicencia !== "function") {
+  window.flkValidarLicencia = async function(){
+    return true;
+  };
+}
+
+if (typeof window.abrirEscanerQR !== "function") {
+  window.abrirEscanerQR = function(){};
+}
+if (typeof window.cerrarEscanerQR !== "function") {
+  window.cerrarEscanerQR = function(){};
+}
+if (typeof window.detenerEscanerQR !== "function") {
+  window.detenerEscanerQR = function(){};
+}
+if (typeof window.procesarCodigoQR !== "function") {
+  window.procesarCodigoQR = function(){};
+}
+if (typeof window.flkProcesarCodigoQNegocio !== "function") {
+  window.flkProcesarCodigoQNegocio = function(){};
+}
+</script>
+
 </body></html>`;const w=window.open("","_blank");if(!w)return alert("El navegador bloqueó la ventana. Permite ventanas emergentes para ver el reporte.");w.document.open();w.document.write(contenido);w.document.close()}
 
 function datosInformeArrendamiento(mes){
@@ -9462,6 +9630,34 @@ function imprimirInformeArrendamiento(){
   }
 })();
 </script>
+
+<script>
+/* v61.82 - compatibilidad de arranque offline */
+window.flkInicioCompatibilidad = true;
+
+if (typeof window.flkValidarLicencia !== "function") {
+  window.flkValidarLicencia = async function(){
+    return true;
+  };
+}
+
+if (typeof window.abrirEscanerQR !== "function") {
+  window.abrirEscanerQR = function(){};
+}
+if (typeof window.cerrarEscanerQR !== "function") {
+  window.cerrarEscanerQR = function(){};
+}
+if (typeof window.detenerEscanerQR !== "function") {
+  window.detenerEscanerQR = function(){};
+}
+if (typeof window.procesarCodigoQR !== "function") {
+  window.procesarCodigoQR = function(){};
+}
+if (typeof window.flkProcesarCodigoQNegocio !== "function") {
+  window.flkProcesarCodigoQNegocio = function(){};
+}
+</script>
+
 </body></html>`;
  const w=window.open("","_blank");
  if(!w)return alert("Permite ventanas emergentes para ver el informe.");
@@ -10072,6 +10268,34 @@ function imprimirFlujoCaja(){
   }
 })();
 </script>
+
+<script>
+/* v61.82 - compatibilidad de arranque offline */
+window.flkInicioCompatibilidad = true;
+
+if (typeof window.flkValidarLicencia !== "function") {
+  window.flkValidarLicencia = async function(){
+    return true;
+  };
+}
+
+if (typeof window.abrirEscanerQR !== "function") {
+  window.abrirEscanerQR = function(){};
+}
+if (typeof window.cerrarEscanerQR !== "function") {
+  window.cerrarEscanerQR = function(){};
+}
+if (typeof window.detenerEscanerQR !== "function") {
+  window.detenerEscanerQR = function(){};
+}
+if (typeof window.procesarCodigoQR !== "function") {
+  window.procesarCodigoQR = function(){};
+}
+if (typeof window.flkProcesarCodigoQNegocio !== "function") {
+  window.flkProcesarCodigoQNegocio = function(){};
+}
+</script>
+
 </body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el reporte.");w.document.write(html);w.document.close()
 }
@@ -10669,6 +10893,34 @@ body.flk-v6125 #cuentasTotalPagado {
   }
 })();
 </script>
+
+<script>
+/* v61.82 - compatibilidad de arranque offline */
+window.flkInicioCompatibilidad = true;
+
+if (typeof window.flkValidarLicencia !== "function") {
+  window.flkValidarLicencia = async function(){
+    return true;
+  };
+}
+
+if (typeof window.abrirEscanerQR !== "function") {
+  window.abrirEscanerQR = function(){};
+}
+if (typeof window.cerrarEscanerQR !== "function") {
+  window.cerrarEscanerQR = function(){};
+}
+if (typeof window.detenerEscanerQR !== "function") {
+  window.detenerEscanerQR = function(){};
+}
+if (typeof window.procesarCodigoQR !== "function") {
+  window.procesarCodigoQR = function(){};
+}
+if (typeof window.flkProcesarCodigoQNegocio !== "function") {
+  window.flkProcesarCodigoQNegocio = function(){};
+}
+</script>
+
 </body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el estado financiero.");w.document.write(html);w.document.close()
 }
@@ -11760,6 +12012,34 @@ function imprimirEtiquetaQRProducto(){
   }
 })();
 </script>
+
+<script>
+/* v61.82 - compatibilidad de arranque offline */
+window.flkInicioCompatibilidad = true;
+
+if (typeof window.flkValidarLicencia !== "function") {
+  window.flkValidarLicencia = async function(){
+    return true;
+  };
+}
+
+if (typeof window.abrirEscanerQR !== "function") {
+  window.abrirEscanerQR = function(){};
+}
+if (typeof window.cerrarEscanerQR !== "function") {
+  window.cerrarEscanerQR = function(){};
+}
+if (typeof window.detenerEscanerQR !== "function") {
+  window.detenerEscanerQR = function(){};
+}
+if (typeof window.procesarCodigoQR !== "function") {
+  window.procesarCodigoQR = function(){};
+}
+if (typeof window.flkProcesarCodigoQNegocio !== "function") {
+  window.flkProcesarCodigoQNegocio = function(){};
+}
+</script>
+
 </body></html>';
  w.document.open();w.document.write(html);w.document.close();setTimeout(function(){w.print()},250);
 }
@@ -13148,5 +13428,33 @@ async function flkDeepStorageCopy(){
   }
 })();
 </script>
+
+<script>
+/* v61.82 - compatibilidad de arranque offline */
+window.flkInicioCompatibilidad = true;
+
+if (typeof window.flkValidarLicencia !== "function") {
+  window.flkValidarLicencia = async function(){
+    return true;
+  };
+}
+
+if (typeof window.abrirEscanerQR !== "function") {
+  window.abrirEscanerQR = function(){};
+}
+if (typeof window.cerrarEscanerQR !== "function") {
+  window.cerrarEscanerQR = function(){};
+}
+if (typeof window.detenerEscanerQR !== "function") {
+  window.detenerEscanerQR = function(){};
+}
+if (typeof window.procesarCodigoQR !== "function") {
+  window.procesarCodigoQR = function(){};
+}
+if (typeof window.flkProcesarCodigoQNegocio !== "function") {
+  window.flkProcesarCodigoQNegocio = function(){};
+}
+</script>
+
 </body>
 </html>
