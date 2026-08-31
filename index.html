@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-28-v61.56-pin-devolucion-por-centro">
-<title>Flackunloker · v61.71</title>
+<meta name="flackunloker-offline-version" content="2026-08-31-v61.77-pwa-principal-local-backup">
+<title>Flackunloker · v61.77</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}
@@ -2978,68 +2978,9 @@ async function flkComprobarLocalAutomatico(forzar=false){
 // Reutiliza una sesión Local ya válida sin pedir contraseña. La cola de
 // escrituras continúa dirigida exclusivamente al Principal.
 async function flkActivarSesionLocalGuardada(){
- if(flkSesionDesdeLocal || flkPrincipalDisponibleEstado!==false || !flkLocalDisponibleEstado)return false;
-
- // Recuperación explícita de la sesión persistida del Local.
- const clavesLocal=[
-  ["flackunloker-auth-local-loopback-v1",flkSupabaseLocalLoopback,"local-loopback"],
-  ["flackunloker-auth-local-lan-v1",flkSupabaseLocalLan,"local-lan"],
-  ["flackunloker-auth-local-v1",flkSupabaseLocalLoopback,"local-loopback"]
- ];
- for(const [clave,cliente,origen] of clavesLocal){
-  try{
-   const raw=localStorage.getItem(clave);
-   if(!raw)continue;
-   const guardada=JSON.parse(raw);
-   if(!guardada?.access_token || !guardada?.refresh_token)continue;
-   const puesta=await cliente.auth.setSession({
-    access_token:guardada.access_token,
-    refresh_token:guardada.refresh_token
-   });
-   const sesion=puesta?.data?.session;
-   if(!puesta?.error && sesion?.user){
-    flkSesionDesdeLocal=true;
-    flkSesionLocalOrigen=origen;
-    flkSesionActiva=true;
-    try{flkGuardarSesionLocal(sesion)}catch(_){}
-    try{flkPintarSesionLocal(sesion.user)}catch(_){}
-    try{await cargarRolUsuario(sesion.user)}catch(e){console.warn("Rol Local:",e?.message||e)}
-    try{await flkCargarCentroActual()}catch(e){console.warn("Centro Local:",e?.message||e)}
-    flkActualizarEstadoConexion("principal-off");
-    try{await flkRecuperacionEmergenciaNube()}catch(e){console.warn("Carga Local:",e?.message||e)}
-    return true;
-   }
-  }catch(e){
-   console.warn("Sesión Local guardada no reutilizable:",clave,e?.message||e);
-  }
- }
-
- const rutas=flkLocalDisponibleOrigen==="local-lan"
-  ? [
-     {cliente:flkSupabaseLocalLan,origen:"local-lan"},
-     {cliente:flkSupabaseLocalLoopback,origen:"local-loopback"}
-    ]
-  : [
-     {cliente:flkSupabaseLocalLoopback,origen:"local-loopback"},
-     {cliente:flkSupabaseLocalLan,origen:"local-lan"}
-    ];
-
- for(const ruta of rutas){
-  const acceso=await flkValidarRutaLocal(ruta.cliente,ruta.origen,2600);
-  if(!acceso)continue;
-
-  flkSesionDesdeLocal=true;
-  flkSesionLocalOrigen=ruta.origen;
-  flkSesionActiva=true;
-  try{flkGuardarSesionLocal(acceso.session)}catch(_){}
-  try{flkPintarSesionLocal(acceso.session.user)}catch(_){}
-  try{await cargarRolUsuario(acceso.session.user)}catch(e){console.warn("Rol Local:",e?.message||e)}
-  try{await flkCargarCentroActual()}catch(e){console.warn("Centro Local:",e?.message||e)}
-  flkActualizarEstadoConexion("principal-off");
-
-  try{await flkRecuperacionEmergenciaNube()}catch(e){console.warn("Carga Local:",e?.message||e)}
-  return true;
- }
+ // v61.77 · Local es respaldo de seguridad, no backend operativo.
+ flkSesionDesdeLocal=false;
+ flkSesionLocalOrigen="";
  return false;
 }
 
@@ -3160,10 +3101,10 @@ function flkActualizarEstadoConexion(estadoEspecial){
  // Local responde, pero aún no hay una sesión autenticada reutilizable.
  if(flkLocalDisponibleEstado && (estadoEspecial==="principal-off"||flkPrincipalDisponibleEstado===false||!navigator.onLine)){
   box.classList.add("offline");
-  txt.textContent="🟠 Supabase Local disponible";
-  box.style.cursor="pointer";
-  box.title="Toca para autenticar Supabase Local";
-  pen.textContent=n?`${n} pendiente${n===1?"":"s"} para Principal`:"Requiere acceso Local";
+  txt.textContent="🟠 Offline/PWA";
+  box.style.cursor="default";
+  box.title="Supabase Local disponible como respaldo";
+  pen.textContent=n?`${n} pendiente${n===1?"":"s"} para Principal · Local respaldo disponible`:"Local respaldo disponible";
   return
  }
 
@@ -3783,9 +3724,10 @@ async function flkSanearOperacionesIdempotentes(){
 }
 
 async function flkProcesarOperacionOffline(op){
+ // v61.77 · La cola se reproduce exclusivamente contra Supabase Principal.
  if(op.tipo==="product_save"){
   const p=op.payload||{};
-  const {error}=await flkSupabase.rpc("flk_save_product_offline",{
+  const {error}=await flkSupabasePrincipal.rpc("flk_save_product_offline",{
    p_operation_id:op.id,p_product_id:p.product_id||null,p_product_operation_id:p.product_operation_id||null,
    p_legacy_id:p.legacy_id||null,p_sku:p.sku||"",p_name:p.name||"Producto",p_category:p.category||null,
    p_cost:Number(p.cost||0),p_price:Number(p.price||0),p_min_stock:Number(p.min_stock||0),
@@ -3795,13 +3737,13 @@ async function flkProcesarOperacionOffline(op){
  }
  if(op.tipo==="product_delete"){
   const p=op.payload||{};
-  const {error}=await flkSupabase.rpc("flk_delete_product_offline",{
+  const {error}=await flkSupabasePrincipal.rpc("flk_delete_product_offline",{
    p_operation_id:op.id,p_product_id:p.product_id||null,p_product_operation_id:p.product_operation_id||null
   });
   if(error)throw error;return
  }
  if(op.tipo==="stock_adjustment"){
-  const {error}=await flkSupabase.rpc("flk_adjust_stock_offline",{
+  const {error}=await flkSupabasePrincipal.rpc("flk_adjust_stock_offline",{
    p_operation_id:op.id,
    p_product_id:op.payload.product_id||null,
    p_product_operation_id:op.payload.product_operation_id||null,
@@ -3814,7 +3756,7 @@ async function flkProcesarOperacionOffline(op){
  }
  if(op.tipo==="sale"){
   const p=op.payload;
-  const {error}=await flkSupabase.rpc("flk_record_sale_offline",{
+  const {error}=await flkSupabasePrincipal.rpc("flk_record_sale_offline",{
    p_operation_id:op.id,
    p_customer_name:p.customer_name||"Cliente general",
    p_customer_phone:p.customer_phone||null,
@@ -3832,7 +3774,7 @@ async function flkProcesarOperacionOffline(op){
  }
  if(op.tipo==="expense_save"){
   const p=op.payload||{};
-  const {error}=await flkSupabase.rpc("flk_save_expense_offline",{
+  const {error}=await flkSupabasePrincipal.rpc("flk_save_expense_offline",{
    p_operation_id:op.id,
    p_expense_id:p.expense_id||null,
    p_legacy_id:p.legacy_id||null,
@@ -3847,7 +3789,7 @@ async function flkProcesarOperacionOffline(op){
   return
  }
  if(op.tipo==="expense_delete"){
-  const {error}=await flkSupabase.rpc("flk_delete_expense_offline",{
+  const {error}=await flkSupabasePrincipal.rpc("flk_delete_expense_offline",{
    p_operation_id:op.id,
    p_expense_id:op.payload?.expense_id
   });
@@ -3856,7 +3798,7 @@ async function flkProcesarOperacionOffline(op){
  }
  if(op.tipo==="sale_payment"){
   const p=op.payload||{};
-  const {error}=await flkSupabase.rpc("flk_add_sale_payment_offline",{
+  const {error}=await flkSupabasePrincipal.rpc("flk_add_sale_payment_offline",{
    p_operation_id:op.id,
    p_sale_id:p.sale_id||null,
    p_sale_operation_id:p.sale_operation_id||null,
@@ -3872,7 +3814,7 @@ async function flkProcesarOperacionOffline(op){
  }
  if(op.tipo==="sale_return"){
   const p=op.payload||{};
-  const {error}=await flkSupabase.rpc("flk_return_sale_item_offline",{
+  const {error}=await flkSupabasePrincipal.rpc("flk_return_sale_item_offline",{
    p_operation_id:op.id,
    p_sale_item_id:p.sale_item_id||null,
    p_sale_operation_id:p.sale_operation_id||null,
@@ -3885,7 +3827,7 @@ async function flkProcesarOperacionOffline(op){
  }
  if(op.tipo==="supplier_save"){
   const p=op.payload||{};
-  const {error}=await flkSupabase.rpc("flk_save_supplier_offline",{
+  const {error}=await flkSupabasePrincipal.rpc("flk_save_supplier_offline",{
    p_operation_id:op.id,p_supplier_id:p.supplier_id||null,p_legacy_id:p.legacy_id||null,
    p_name:p.name||"Proveedor",p_contact_name:p.contact_name||null,p_phone:p.phone||null,
    p_email:p.email||null,p_address:p.address||null,p_notes:p.notes||null
@@ -3896,13 +3838,13 @@ async function flkProcesarOperacionOffline(op){
   const p=op.payload||{};
   // Si el proveedor nunca llegó a Supabase, no hay nada remoto que borrar.
   if(!p.supplier_id)return;
-  const {error}=await flkSupabase.from("suppliers").delete().eq("id",p.supplier_id);
+  const {error}=await flkSupabasePrincipal.from("suppliers").delete().eq("id",p.supplier_id);
   if(error)throw error;
   return
  }
  if(op.tipo==="purchase_order_save"){
   const p=op.payload||{};
-  const {error}=await flkSupabase.rpc("flk_save_purchase_order_offline",{
+  const {error}=await flkSupabasePrincipal.rpc("flk_save_purchase_order_offline",{
    p_operation_id:op.id,p_order_id:p.order_id||null,p_order_operation_id:p.order_operation_id||null,
    p_legacy_id:p.legacy_id||null,p_supplier_id:p.supplier_id||null,
    p_supplier_operation_id:p.supplier_operation_id||null,p_product_id:p.product_id||null,
@@ -3912,14 +3854,14 @@ async function flkProcesarOperacionOffline(op){
  }
  if(op.tipo==="purchase_order_ordered"){
   const p=op.payload||{};
-  const {error}=await flkSupabase.rpc("flk_mark_purchase_order_ordered_offline",{
+  const {error}=await flkSupabasePrincipal.rpc("flk_mark_purchase_order_ordered_offline",{
    p_operation_id:op.id,p_order_id:p.order_id||null,p_order_operation_id:p.order_operation_id||null
   });
   if(error)throw error;return
  }
  if(op.tipo==="purchase_order_receive"){
   const p=op.payload||{};
-  const {error}=await flkSupabase.rpc("flk_receive_purchase_order_offline",{
+  const {error}=await flkSupabasePrincipal.rpc("flk_receive_purchase_order_offline",{
    p_operation_id:op.id,p_order_id:p.order_id||null,p_order_operation_id:p.order_operation_id||null,
    p_payment_condition:p.payment_condition||"paid",p_payment_method:p.payment_method||"Efectivo",
    p_initial_payment:Number(p.initial_payment||0),p_due_date:p.due_date||null
@@ -3928,7 +3870,7 @@ async function flkProcesarOperacionOffline(op){
  }
  if(op.tipo==="supplier_payment"){
   const p=op.payload||{};
-  const {error}=await flkSupabase.rpc("flk_add_supplier_payment_offline",{
+  const {error}=await flkSupabasePrincipal.rpc("flk_add_supplier_payment_offline",{
    p_operation_id:op.id,p_order_id:p.order_id||null,p_order_operation_id:p.order_operation_id||null,
    p_amount:Number(p.amount||0),p_payment_method:p.payment_method||"Efectivo",p_note:p.note||null
   });
@@ -3936,14 +3878,14 @@ async function flkProcesarOperacionOffline(op){
  }
  if(op.tipo==="owner_cash_movement"){
   const p=op.payload||{};
-  const {error}=await flkSupabase.rpc("flk_owner_cash_movement_offline",{
+  const {error}=await flkSupabasePrincipal.rpc("flk_owner_cash_movement_offline",{
    p_operation_id:op.id,p_type:p.type,p_amount:Number(p.amount||0),p_note:p.note||null
   });
   if(error)throw error;return
  }
  if(op.tipo==="cash_closure_save"){
   const p=op.payload||{};
-  const {error}=await flkSupabase.rpc("flk_save_cash_closure_offline",{
+  const {error}=await flkSupabasePrincipal.rpc("flk_save_cash_closure_offline",{
    p_operation_id:op.id,p_close_date:p.close_date,p_receipts_count:Number(p.receipts_count||0),
    p_units_count:Number(p.units_count||0),p_sales_total:Number(p.sales_total||0),
    p_cost_total:Number(p.cost_total||0),p_gross_profit:Number(p.gross_profit||0),
@@ -3958,7 +3900,7 @@ async function flkProcesarOperacionOffline(op){
  }
  if(op.tipo==="cash_closure_delete"){
   const p=op.payload||{};
-  const {error}=await flkSupabase.rpc("flk_delete_cash_closure_offline",{
+  const {error}=await flkSupabasePrincipal.rpc("flk_delete_cash_closure_offline",{
    p_operation_id:op.id,p_closure_id:p.closure_id||null,p_close_date:p.close_date||null
   });
   if(error)throw error;return
@@ -4011,7 +3953,7 @@ async function flkSincronizarSeguro(){
   }
   flkPrincipalDisponibleEstado=true;
 
-  const {data:{session}}=await flkSupabase.auth.getSession();
+  const {data:{session}}=await flkSupabasePrincipal.auth.getSession();
   if(!session)return false;
 
   // Si una venta ya llegó al Principal pero un F5/corte dejó su operación en
@@ -4048,8 +3990,8 @@ async function flkSincronizarSeguro(){
 }
 
 async function flkProcesarColaOffline(){
- if(flkSincronizando||!navigator.onLine||typeof flkSupabase==="undefined")return;
- const {data:{session}}=await flkSupabase.auth.getSession();
+ if(flkSincronizando||!navigator.onLine||typeof flkSupabasePrincipal==="undefined")return;
+ const {data:{session}}=await flkSupabasePrincipal.auth.getSession();
  if(!session)return;
  let q=flkColaOffline(),pendientes=q.filter(x=>x.estado==="pendiente"||x.estado==="error");
  if(!pendientes.length){flkActualizarEstadoConexion();return}
@@ -4242,10 +4184,7 @@ let flkSesionLocalOrigen='';
 // Las escrituras y la cola offline siguen usando flkSupabase (= Principal).
 // Solo cuando el login fue validado por Local, las lecturas operativas usan ese mismo Local.
 function flkSupabaseLectura(){
- if(flkSesionDesdeLocal){
-  if(flkSesionLocalOrigen==="local-lan")return flkSupabaseLocalLan;
-  return flkSupabaseLocalLoopback;
- }
+ // v61.77 · Local es respaldo; la operación visible es PWA/Principal.
  return flkSupabasePrincipal;
 }
 let modoAuth="login";
@@ -4290,13 +4229,7 @@ document.addEventListener("DOMContentLoaded",()=>{
  if(!box)return;
  box.title="Estado de servidores";
  box.addEventListener("click",async ()=>{
-  if(flkLocalDisponibleEstado && !flkSesionDesdeLocal && flkPrincipalDisponibleEstado===false){
-   const activada=await flkActivarSesionLocalGuardada();
-   if(!activada){
-    flkActualizarEstadoConexion("offline");
-    console.warn("Supabase Local disponible, pero sin sesión Local reutilizable. Se mantiene Offline/PWA.");
-   }
-  }
+  flkActualizarEstadoConexion(flkPrincipalDisponibleEstado===false?"principal-off":undefined);
  });
 });
 
@@ -5027,25 +4960,17 @@ async function flkAccederASupabaseLocal(){
 }
 
 async function flkLoginConFailover(email,password){
- // 1) Principal. 2) Local de la laptop. 3) Local por LAN.
- try{
-  const r=await flkPromesaConTiempo(
-   flkSupabasePrincipal.auth.signInWithPassword({email,password}),
-   6500,
-   "login-principal-timeout"
-  );
-  if(r?.error)throw r.error;
-  if(!r?.data?.session)throw new Error("No se recibió una sesión válida del Principal.");
-  flkSesionDesdeLocal=false;
-  flkSesionLocalOrigen='';
-  return {session:r.data.session,origen:"principal"};
- }catch(errPrincipal){
-  const m=String(errPrincipal?.message||errPrincipal||"").toLowerCase();
-  if(m.includes("invalid login credentials")||m.includes("invalid credentials")||m.includes("email not confirmed"))throw errPrincipal;
-  if(!flkEsFalloConexionPrincipalLogin(errPrincipal))throw errPrincipal;
-  console.warn("Principal no disponible para login; intentando servidor Local.",errPrincipal?.message||errPrincipal);
-  return flkLoginLocalConRutas(email,password);
- }
+ // v61.77 · El navegador autentica contra Principal; sin red usa PWA/Offline.
+ const r=await flkPromesaConTiempo(
+  flkSupabasePrincipal.auth.signInWithPassword({email,password}),
+  6500,
+  "login-principal-timeout"
+ );
+ if(r?.error)throw r.error;
+ if(!r?.data?.session)throw new Error("No se recibió una sesión válida del Principal.");
+ flkSesionDesdeLocal=false;
+ flkSesionLocalOrigen='';
+ return {session:r.data.session,origen:"principal"};
 }
 function flkRestaurarBotonAuth(){
  const b=document.getElementById("authSubmit");
@@ -5076,29 +5001,8 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
  if(!navigator.onLine){
   flkAuthProcesando=true;
   flkBloquearBotonAuth();
-  mostrarMensajeAuth("Comprobando acceso…","ok");
+  mostrarMensajeAuth("Comprobando acceso offline…","ok");
   try{
-   try{
-    // Sin Internet: primero aprovechar el servidor secundario si esta laptop/LAN lo tiene disponible.
-    const accesoLocal=await flkLoginLocalConRutas(email,password);
-    const localSession=accesoLocal.session;
-    flkRecordarUsuarioLogin(email);
-    document.getElementById("authOverlay")?.classList.add("oculto");
-    await flkPromesaConTiempo(mostrarAppConSesion(localSession),9000,"app-local-timeout").catch(()=>{});
-    await flkGuardarVerificadorOffline(localSession.user,password);
-    flkLimpiarPasswordLogin();
-    mostrarMensajeAuth("","");
-    return;
-   }catch(errLocal){
-    const m=String(errLocal?.message||errLocal||"").toLowerCase();
-    if(m.includes("invalid login credentials")||m.includes("invalid credentials")){
-     flkEliminarVerificadorOffline(email);
-     throw new Error("Usuario o contraseña incorrectos.");
-    }
-    // Si tampoco existe servidor secundario accesible, conservar el OFFLINE/PWA autónomo.
-    if(!flkEsFalloConexionPrincipalLogin(errLocal))throw errLocal;
-   }
-
    flkSesionDesdeLocal=false;
    flkSesionLocalOrigen='';
    await flkEntrarOffline(email,password);
