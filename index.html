@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-31-v61.90-login-offline-reparado">
-<title>Flackunloker · v61.90</title>
+<meta name="flackunloker-offline-version" content="2026-08-31-v61.92-login-offline-real">
+<title>Flackunloker · v61.92</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}
@@ -4969,17 +4969,38 @@ async function flkAccederASupabaseLocal(){
 }
 
 async function flkLoginConFailover(email,password){
- // v61.77 · El navegador autentica contra Principal; sin red usa PWA/Offline.
- const r=await flkPromesaConTiempo(
-  flkSupabasePrincipal.auth.signInWithPassword({email,password}),
-  6500,
-  "login-principal-timeout"
- );
- if(r?.error)throw r.error;
- if(!r?.data?.session)throw new Error("No se recibió una sesión válida del Principal.");
- flkSesionDesdeLocal=false;
- flkSesionLocalOrigen='';
- return {session:r.data.session,origen:"principal"};
+ // v61.92 · Primero intenta sesión local si no existe red.
+ if(!navigator.onLine){
+  const local=await flkLoginLocalConRutas(email,password);
+  if(local?.session){
+   return {session:local.session,origen:"local"};
+  }
+ }
+
+ try{
+  const r=await flkPromesaConTiempo(
+   flkSupabasePrincipal.auth.signInWithPassword({email,password}),
+   6500,
+   "login-principal-timeout"
+  );
+
+  if(r?.error)throw r.error;
+  if(!r?.data?.session)throw new Error("No se recibió una sesión válida del Principal.");
+
+  flkSesionDesdeLocal=false;
+  flkSesionLocalOrigen='';
+  return {session:r.data.session,origen:"principal"};
+
+ }catch(err){
+  // Si Principal falla por red, usar la sesión local disponible.
+  if(flkEsFalloConexionPrincipalLogin(err)){
+   const local=await flkLoginLocalConRutas(email,password);
+   if(local?.session){
+    return {session:local.session,origen:"local"};
+   }
+  }
+  throw err;
+ }
 }
 function flkRestaurarBotonAuth(){
  const b=document.getElementById("authSubmit");
@@ -5088,7 +5109,7 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
   const timeout=String(err?.code||"").includes("timeout")||msg.includes("timeout");
 
   if(timeout){
-   // v61.90: si Principal no responde aunque navigator.onLine siga true,
+   // v61.87: si Principal no responde aunque navigator.onLine siga true,
    // intentar el acceso Offline/PWA usando el verificador seguro local.
    try{
     await flkEntrarOffline(email,password);
@@ -12535,7 +12556,7 @@ async function flkDeepStorageCopy(){
 </script>
 
 <script>
-/* ===== v61.90 · Preparación inicial offline NO bloqueante ===== */
+/* ===== v61.87 · Preparación inicial offline NO bloqueante ===== */
 (function(){
   const KEY="flk_instalacion_dispositivo_v1";
 
@@ -12560,116 +12581,6 @@ async function flkDeepStorageCopy(){
       window.flkPrepararDispositivoOfflineNoBloqueante?.();
     },1200);
   },{once:true});
-})();
-</script>
-
-
-<script>
-/* ===== v61.90 Login Offline First ===== */
-(function(){
-  window.flkIntentarEntradaOfflinePrimero = async function(email,password){
-    try{
-      if(typeof flkEntrarOffline === "function"){
-        await flkEntrarOffline(email,password);
-        if(typeof flkActualizarEstadoConexion==="function"){
-          flkActualizarEstadoConexion("principal-off");
-        }
-        return true;
-      }
-    }catch(e){}
-    return false;
-  };
-})();
-</script>
-
-
-<script>
-/* ===== v61.90 Login fallback offline ===== */
-(function(){
-  const originalSignIn = window.flkIniciarSesion;
-
-  window.flkIniciarSesion = async function(...args){
-    const email = document.getElementById("authEmail")?.value ||
-                  document.querySelector('input[type="email"]')?.value || "";
-    const pass = document.getElementById("authPassword")?.value ||
-                 document.querySelector('input[type="password"]')?.value || "";
-
-    if(!navigator.onLine){
-      if(typeof flkEntrarOffline === "function"){
-        try{
-          await flkEntrarOffline(email, pass);
-          if(typeof flkActualizarEstadoConexion==="function"){
-            flkActualizarEstadoConexion("principal-off");
-          }
-          return;
-        }catch(e){}
-      }
-    }
-
-    try{
-      if(typeof originalSignIn === "function"){
-        return await originalSignIn.apply(this,args);
-      }
-    }catch(e){
-      if((String(e).includes("fetch") || String(e).includes("Network")) &&
-         typeof flkEntrarOffline === "function"){
-        try{
-          await flkEntrarOffline(email, pass);
-          if(typeof flkActualizarEstadoConexion==="function"){
-            flkActualizarEstadoConexion("principal-off");
-          }
-          return;
-        }catch(_){}
-      }
-      throw e;
-    }
-  };
-})();
-</script>
-
-
-<script>
-/* ===== v61.90 Persistencia de sesión offline ===== */
-(function(){
-
-window.flkGuardarSesionOffline = function(datos){
-  try{
-    localStorage.setItem("flk_offline_session", JSON.stringify({
-      user: datos.user || datos,
-      email: datos.email || "",
-      business_id: datos.business_id || "",
-      role: datos.role || "",
-      licencia: datos.licencia || null,
-      fecha: new Date().toISOString()
-    }));
-    return true;
-  }catch(e){ return false; }
-};
-
-window.flkRecuperarSesionOffline = function(){
-  try{
-    return JSON.parse(localStorage.getItem("flk_offline_session") || "null");
-  }catch(e){ return null; }
-};
-
-window.flkEntrarConSesionOfflinePersistente = async function(){
-  const sesion = window.flkRecuperarSesionOffline();
-  if(!sesion) return false;
-
-  try{
-    if(typeof flkPintarSesionLocal === "function"){
-      flkPintarSesionLocal(sesion.user);
-    }
-    if(typeof flkActualizarEstadoConexion === "function"){
-      flkActualizarEstadoConexion("principal-off");
-    }
-    document.getElementById("authOverlay")?.classList.add("oculto");
-    return true;
-  }catch(e){
-    return false;
-  }
-};
-
 })();
 </script>
 
