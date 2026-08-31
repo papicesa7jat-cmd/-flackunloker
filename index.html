@@ -2868,6 +2868,36 @@ function flkDescartarConflicto(id){
  if(flkConflictosOffline()>0)flkAbrirVisorConflictos();
 }
 
+let flkVerificandoPrincipalEstado=false;
+let flkUltimaComprobacionPrincipal=0;
+
+async function flkComprobarEstadoPrincipalVisual(forzar=false){
+ if(flkVerificandoPrincipalEstado)return flkPrincipalDisponibleEstado;
+ const ahora=Date.now();
+ if(!forzar && ahora-flkUltimaComprobacionPrincipal<4000)return flkPrincipalDisponibleEstado;
+ flkUltimaComprobacionPrincipal=ahora;
+
+ if(!navigator.onLine){
+  flkPrincipalDisponibleEstado=false;
+  flkActualizarEstadoConexion("principal-off");
+  return false;
+ }
+
+ flkVerificandoPrincipalEstado=true;
+ try{
+  const ok=await flkSupabaseDisponible(2500);
+  flkPrincipalDisponibleEstado=!!ok;
+  flkActualizarEstadoConexion(ok?undefined:"principal-off");
+  return !!ok;
+ }catch(_){
+  flkPrincipalDisponibleEstado=false;
+  flkActualizarEstadoConexion("principal-off");
+  return false;
+ }finally{
+  flkVerificandoPrincipalEstado=false;
+ }
+}
+
 function flkActualizarEstadoConexion(estadoEspecial){
  const box=document.getElementById("estadoConexionFlk"),txt=document.getElementById("textoConexionFlk"),pen=document.getElementById("pendientesConexionFlk");
  if(!box||!txt||!pen)return;
@@ -3853,18 +3883,32 @@ window.addEventListener("online",async()=>{
   }
  }catch(err){console.error(err)}
 });
-window.addEventListener("offline",()=>flkActualizarEstadoConexion());
+window.addEventListener("offline",()=>{
+ flkPrincipalDisponibleEstado=false;
+ flkActualizarEstadoConexion("principal-off");
+});
 
 function flkActualizarModoRendimiento(){
  document.documentElement.classList.toggle("flk-offline",!navigator.onLine);
 }
+window.addEventListener("online",()=>{
+ flkPrincipalDisponibleEstado=null;
+ flkActualizarEstadoConexion();
+ setTimeout(()=>flkComprobarEstadoPrincipalVisual(true),150);
+});
 window.addEventListener("online",flkActualizarModoRendimiento);
 window.addEventListener("offline",flkActualizarModoRendimiento);
 window.addEventListener("online",()=>setTimeout(()=>flkComprobarPropietarioSoftware(),0));
 window.addEventListener("offline",()=>setTimeout(()=>flkComprobarPropietarioSoftware(),0));
 document.addEventListener("DOMContentLoaded",flkActualizarModoRendimiento);
 
-document.addEventListener("DOMContentLoaded",()=>{flkDeviceId();flkActualizarEstadoConexion()});
+document.addEventListener("DOMContentLoaded",()=>{
+ flkDeviceId();
+ flkPrincipalDisponibleEstado=null;
+ flkActualizarEstadoConexion();
+ setTimeout(()=>flkComprobarEstadoPrincipalVisual(true),250);
+ setInterval(()=>flkComprobarEstadoPrincipalVisual(false),6000);
+});
 document.addEventListener("DOMContentLoaded",()=>{if(navigator.onLine)setTimeout(()=>{try{flkSincronizarSeguro()}catch(_e){}},900)});
 document.addEventListener("DOMContentLoaded",()=>{
  const box=document.getElementById("estadoConexionFlk");
