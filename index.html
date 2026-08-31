@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-31-v61.87-login-offline-reparado">
-<title>Flackunloker · v61.87</title>
+<meta name="flackunloker-offline-version" content="2026-08-31-v61.88-login-offline-reparado">
+<title>Flackunloker · v61.88</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}
@@ -5088,7 +5088,7 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
   const timeout=String(err?.code||"").includes("timeout")||msg.includes("timeout");
 
   if(timeout){
-   // v61.87: si Principal no responde aunque navigator.onLine siga true,
+   // v61.88: si Principal no responde aunque navigator.onLine siga true,
    // intentar el acceso Offline/PWA usando el verificador seguro local.
    try{
     await flkEntrarOffline(email,password);
@@ -12535,7 +12535,7 @@ async function flkDeepStorageCopy(){
 </script>
 
 <script>
-/* ===== v61.87 · Preparación inicial offline NO bloqueante ===== */
+/* ===== v61.88 · Preparación inicial offline NO bloqueante ===== */
 (function(){
   const KEY="flk_instalacion_dispositivo_v1";
 
@@ -12560,6 +12560,25 @@ async function flkDeepStorageCopy(){
       window.flkPrepararDispositivoOfflineNoBloqueante?.();
     },1200);
   },{once:true});
+})();
+</script>
+
+
+<script>
+/* ===== v61.88 Login Offline First ===== */
+(function(){
+  window.flkIntentarEntradaOfflinePrimero = async function(email,password){
+    try{
+      if(typeof flkEntrarOffline === "function"){
+        await flkEntrarOffline(email,password);
+        if(typeof flkActualizarEstadoConexion==="function"){
+          flkActualizarEstadoConexion("principal-off");
+        }
+        return true;
+      }
+    }catch(e){}
+    return false;
+  };
 })();
 </script>
 
