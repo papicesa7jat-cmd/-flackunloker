@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-31-v61.77-pwa-principal-local-backup">
-<title>Flackunloker · v61.77</title>
+<meta name="flackunloker-offline-version" content="2026-08-31-v61.78-estabilidad-licencias-centros">
+<title>Flackunloker · v61.78</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}
@@ -2984,16 +2984,25 @@ async function flkActivarSesionLocalGuardada(){
  return false;
 }
 
+let flkFallosConsecutivosPrincipal=0;
 async function flkComprobarEstadoPrincipalVisual(forzar=false){
  if(flkVerificandoPrincipalEstado)return flkPrincipalDisponibleEstado;
  const ahora=Date.now();
- if(!forzar && ahora-flkUltimaComprobacionPrincipal<4000)return flkPrincipalDisponibleEstado;
+ if(!forzar && ahora-flkUltimaComprobacionPrincipal<60000)return flkPrincipalDisponibleEstado;
  flkUltimaComprobacionPrincipal=ahora;
  flkVerificandoPrincipalEstado=true;
  try{
   // Principal y Local se evalúan como servidores independientes.
-  const principalVivo=await flkSondearPrincipalServidor(2400);
-  flkPrincipalDisponibleEstado=!!principalVivo;
+  const principalVivo=await flkSondearPrincipalServidor(5000);
+  if(principalVivo){
+   flkFallosConsecutivosPrincipal=0;
+   flkPrincipalDisponibleEstado=true;
+  }else{
+   flkFallosConsecutivosPrincipal++;
+   // No declarar caída por una respuesta lenta aislada.
+   if(flkFallosConsecutivosPrincipal<3 && flkPrincipalDisponibleEstado===true)return true;
+   flkPrincipalDisponibleEstado=false;
+  }
 
   if(principalVivo){
    // v61.76 · FAILBACK AUTOMÁTICO Y SEGURO LOCAL -> PRINCIPAL.
@@ -4091,7 +4100,7 @@ document.addEventListener("DOMContentLoaded",()=>{
  flkPrincipalDisponibleEstado=null;
  flkActualizarEstadoConexion();
  setTimeout(()=>flkComprobarEstadoPrincipalVisual(true),250);
- setInterval(()=>flkComprobarEstadoPrincipalVisual(false),6000);
+ setInterval(()=>flkComprobarEstadoPrincipalVisual(false),30000);
  setInterval(()=>{
   if(flkPrincipalDisponibleEstado!==true)flkComprobarLocalAutomatico(false);
  },6500);
@@ -5079,10 +5088,20 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
   const timeout=String(err?.code||"").includes("timeout")||msg.includes("timeout");
 
   if(timeout){
+   // v61.79: si existe sesión/caché PWA válida, no bloquear por caída temporal.
+   const cacheOffline=flkSesionLocal();
+   if(cacheOffline?.user){
+    try{
+     flkPintarSesionLocal(cacheOffline.user);
+     document.getElementById("authOverlay")?.classList.add("oculto");
+     flkActualizarEstadoConexion("principal-off");
+     return;
+    }catch(_){ }
+   }
    await flkCancelarSesionTardia();
    document.getElementById("authOverlay")?.classList.remove("oculto");
    mostrarMensajeAuth(
-    "⚠️ La conexión está inestable y el inicio tardó demasiado. No quedó bloqueado: espera a que mejore Internet y pulsa Entrar una sola vez.",
+    "⚠️ No se pudo validar el primer acceso. Si ya usaste este dispositivo, intenta nuevamente para entrar con la sesión offline.",
     "error"
    );
   }else if(msg.includes("invalid login credentials")||msg.includes("invalid credentials")){
@@ -5913,7 +5932,10 @@ async function flkEnriquecerCentrosConLicencias(){
    card.setAttribute("data-business-id",bid);
 
    const delCentro=licencias.filter(x=>String(x.business_id||"").trim()===bid);
-   const lic=delCentro.find(x=>String(x.status||"").toLowerCase()==="active") || delCentro[0] || null;
+   const ahora=Date.now();
+   const ordenarVenc=(a,b)=>new Date(b?.expires_at||0).getTime()-new Date(a?.expires_at||0).getTime();
+   const vigentes=delCentro.filter(x=>String(x.status||"").toLowerCase()==="active" && new Date(x.expires_at||0).getTime()>ahora).sort(ordenarVenc);
+   const lic=vigentes[0] || delCentro.slice().sort(ordenarVenc)[0] || null;
 
    let box=card.querySelector(".adminsw-licencia-centro");
    if(!box){
@@ -6113,7 +6135,19 @@ async function cargarAdminSoftware(){
   if(!flkAdminSoftwareCentros.length){lista.innerHTML='<div class="sin-productos">No hay centros registrados.</div>';return}
   lista.innerHTML=flkAdminSoftwareCentros.map(c=>`<div class="adminsw-centro" id="adminsw-centro-${flkEscAttr(c.business_id)}"><div class="adminsw-centro-top"><div><h3>${flkAdminSwEsc(c.name)}</h3><p>Código: ${flkAdminSwEsc(c.code||"—")}<br>ID: ${flkAdminSwEsc(c.business_id)}</p></div><span class="adminsw-badge ${String(c.status)==="active"?"active":"inactive"}">${String(c.status)==="active"?"ACTIVO":"INACTIVO"}</span></div><div class="adminsw-acciones"><button class="adminsw-btn azul" onclick="cargarMiembrosCentroAdminSoftware('${flkEscAttr(c.business_id)}')">👥 Ver usuarios</button><button class="adminsw-btn ${String(c.status)==="active"?"rojo":"verde"}" onclick="cambiarEstadoCentroAdminSoftware('${flkEscAttr(c.business_id)}','${String(c.status)==="active"?"inactive":"active"}')">${String(c.status)==="active"?"⛔ Desactivar":"✅ Activar"}</button></div><div class="adminsw-miembros" id="adminsw-miembros-${flkEscAttr(c.business_id)}" style="display:none"></div></div>`).join("");
   await flkEnriquecerCentrosConLicencias();
- }catch(err){console.error("Administración software:",err);lista.innerHTML='<div class="sin-productos">No se pudo cargar la administración de centros.</div>';flkRegistrarFalloCargaNube("Administración del Software",err)}
+ }catch(err){
+  console.error("Administración software:",err);
+  // Mantener los centros visibles ante una falla temporal del Principal.
+  const cacheCentros=flkLeerCacheAdminSoftwareCentros();
+  if(cacheCentros.length){
+   flkAdminSoftwareCentros=cacheCentros;
+   flkPintarResumenAdminSoftwareOffline();
+   flkPintarCentrosAdminSoftwareOffline();
+  }else{
+   lista.innerHTML='<div class="sin-productos">No se pudieron cargar los centros. Reintenta cuando Principal esté disponible.</div>';
+  }
+  flkRegistrarFalloCargaNube("Administración del Software",err)
+ }
 }
 
 async function crearCentroAdminSoftware(){
