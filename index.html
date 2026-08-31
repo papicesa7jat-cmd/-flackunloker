@@ -2952,55 +2952,23 @@ async function flkValidarRutaLocal(cliente,origen,timeoutMs=2200){
 }
 
 async function flkComprobarLocalAutomatico(forzar=false){
+ // v61.74 · SONDEO PURO DE LOCAL.
+ // IMPORTANTE: esta función SOLO comprueba disponibilidad. Nunca cambia la
+ // fuente de datos activa, nunca monta la base Local y nunca recarga datos.
+ // La fuente se fija al iniciar/autenticar la sesión y permanece estable
+ // durante toda la ejecución para evitar alternar Principal <-> Local.
  if(flkVerificandoLocalEstado)return false;
  const ahora=Date.now();
  if(!forzar && ahora-flkUltimaComprobacionLocal<4500)return !!flkLocalDisponibleEstado;
  flkUltimaComprobacionLocal=ahora;
  flkVerificandoLocalEstado=true;
  try{
-  // Probar las dos rutas por separado. No asumir que Local está vivo porque
-  // Docker/Caddy deberían estar encendidos: se valida realmente.
   let vivo=await flkSondearServidorLocal(FLK_SUPABASE_LOCAL_LOOPBACK_URL,"local-loopback");
   if(!vivo)vivo=await flkSondearServidorLocal(FLK_SUPABASE_LOCAL_LAN_URL,"local-lan");
   flkLocalDisponibleEstado=!!vivo;
   flkLocalDisponibleOrigen=vivo?.origen||"";
-
-  if(!vivo){
-   if(flkSesionDesdeLocal){
-    flkSesionDesdeLocal=false;
-    flkSesionLocalOrigen="";
-   }
-   flkActualizarEstadoConexion("principal-off");
-   return false;
-  }
-
-  // Servidor Local vivo. Solo promover la SESIÓN a Local si ya existe una
-  // sesión Local válida; si no, la barra muestra "Local disponible".
-  let ruta=false;
-  if(vivo.origen==="local-loopback")ruta=await flkValidarRutaLocal(flkSupabaseLocalLoopback,"local-loopback");
-  if(!ruta && vivo.origen==="local-lan")ruta=await flkValidarRutaLocal(flkSupabaseLocalLan,"local-lan");
-  if(!ruta){
-   // Por si la otra ruta tiene una sesión persistida válida.
-   if(vivo.origen!=="local-loopback")ruta=await flkValidarRutaLocal(flkSupabaseLocalLoopback,"local-loopback");
-   if(!ruta && vivo.origen!=="local-lan")ruta=await flkValidarRutaLocal(flkSupabaseLocalLan,"local-lan");
-  }
-
-  if(!ruta){
-   flkSesionDesdeLocal=false;
-   flkSesionLocalOrigen="";
-   flkActualizarEstadoConexion("principal-off");
-   return true;
-  }
-
-  flkSesionDesdeLocal=true;
-  flkSesionLocalOrigen=ruta.origen;
-  flkSesionActiva=true;
-  flkPintarSesionLocal(ruta.session.user);
-  flkActualizarEstadoConexion();
-
-  try{await flkCargarCentroActual()}catch(_){}
-  try{await flkRecuperacionEmergenciaNube()}catch(_){}
-  return true;
+  flkActualizarEstadoConexion(flkPrincipalDisponibleEstado===false?"principal-off":undefined);
+  return !!vivo;
  }finally{
   flkVerificandoLocalEstado=false;
  }
@@ -3018,11 +2986,10 @@ async function flkComprobarEstadoPrincipalVisual(forzar=false){
   flkPrincipalDisponibleEstado=!!principalVivo;
 
   if(principalVivo){
-   // Principal SIEMPRE tiene prioridad. Si Local estuvo activo durante una
-   // caída anterior, conservar su sesión persistida en Supabase pero dejar
-   // de marcar esta ejecución como "sesión desde Local".
-   flkSesionDesdeLocal=false;
-   flkSesionLocalOrigen="";
+   // v61.74 · No cambiar la fuente de datos a mitad de una ejecución.
+   // Si esta sesión arrancó en Local, Principal puede volver a estar vivo,
+   // pero la base mostrada permanece Local hasta una recarga controlada.
+   // Así evitamos mezclar dos snapshots o reemplazar la pantalla varias veces.
    flkActualizarEstadoConexion();
    return true;
   }
@@ -3068,9 +3035,21 @@ function flkActualizarEstadoConexion(estadoEspecial){
   pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"";return
  }
 
- // Principal tiene prioridad absoluta sobre Local. Aunque exista una sesión
- // Local persistida de una caída anterior, si Principal está comprobado vivo
- // la barra debe quedar verde y el flujo operativo vuelve al Principal.
+ // v61.74 · La barra refleja la FUENTE ACTIVA, no solo qué servidor responde.
+ // Si la ejecución está fijada a Local, no alternar la base cuando Principal
+ // reaparece. Se informa que Principal volvió, pero la pantalla no cambia.
+ if(flkSesionDesdeLocal){
+  box.classList.add("offline");
+  txt.textContent="🟠 Supabase Local";
+  if(flkPrincipalDisponibleEstado===true){
+   pen.textContent=n?`${n} pendiente${n===1?"":"s"} para Principal · Principal disponible`:"Principal disponible · recarga para volver";
+  }else{
+   pen.textContent=n?`${n} pendiente${n===1?"":"s"} para Principal`:"Principal no disponible";
+  }
+  return
+ }
+
+ // Si la ejecución arrancó con Principal, mantener Principal como fuente.
  if(flkPrincipalDisponibleEstado===true){
   if(n){
    box.classList.add("sync");txt.textContent="🟢 Principal disponible";
@@ -3079,15 +3058,6 @@ function flkActualizarEstadoConexion(estadoEspecial){
    txt.textContent="🟢 Principal sincronizado";
    pen.textContent="";
   }
-  return
- }
-
- // Sesión autenticada por Supabase Local: mostrarla solo cuando Principal
- // realmente no está disponible.
- if(flkSesionDesdeLocal && flkPrincipalDisponibleEstado!==true){
-  box.classList.add("offline");
-  txt.textContent="🟠 Supabase Local";
-  pen.textContent=n?`${n} pendiente${n===1?"":"s"} para Principal`:"Principal no disponible";
   return
  }
 
