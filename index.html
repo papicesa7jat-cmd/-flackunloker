@@ -4230,9 +4230,10 @@ document.addEventListener("DOMContentLoaded",()=>{
  const box=document.getElementById("estadoConexionFlk");
  if(!box)return;
  box.title="Estado de servidores";
- box.addEventListener("click",()=>{
+ box.addEventListener("click",async ()=>{
   if(flkLocalDisponibleEstado && !flkSesionDesdeLocal && flkPrincipalDisponibleEstado===false){
-   flkAccederASupabaseLocal();
+   const activada=await flkActivarSesionLocalGuardada();
+   if(!activada) await flkAccederASupabaseLocal();
   }
  });
 });
