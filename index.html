@@ -2871,6 +2871,58 @@ function flkDescartarConflicto(id){
 let flkVerificandoPrincipalEstado=false;
 let flkUltimaComprobacionPrincipal=0;
 
+// v61.73 · Promoción automática Offline/PWA -> Supabase Local.
+// No sincroniza ni marca operaciones como completadas: la cola sigue esperando al Principal.
+let flkVerificandoLocalEstado=false;
+let flkUltimaComprobacionLocal=0;
+
+async function flkValidarRutaLocal(cliente,origen,timeoutMs=2200){
+ try{
+  const ses=await flkPromesaConTiempo(cliente.auth.getSession(),timeoutMs,"local-session-timeout");
+  if(!ses?.data?.session)return false;
+  const prueba=cliente.from("products").select("id").limit(1);
+  const res=await flkPromesaConTiempo(prueba,timeoutMs,"local-probe-timeout");
+  if(res?.error)throw res.error;
+  return {cliente,origen,session:ses.data.session};
+ }catch(_){return false}
+}
+
+async function flkComprobarLocalAutomatico(forzar=false){
+ // Principal confirmado: nunca promover a Local.
+ if(flkPrincipalDisponibleEstado===true)return false;
+ if(flkVerificandoLocalEstado)return false;
+ const ahora=Date.now();
+ if(!forzar && ahora-flkUltimaComprobacionLocal<5000)return false;
+ flkUltimaComprobacionLocal=ahora;
+ flkVerificandoLocalEstado=true;
+ try{
+  // En la laptop preferir loopback; en otros equipos funcionará la LAN.
+  let ruta=await flkValidarRutaLocal(flkSupabaseLocalLoopback,"local-loopback");
+  if(!ruta)ruta=await flkValidarRutaLocal(flkSupabaseLocalLan,"local-lan");
+  if(!ruta){
+   if(flkSesionDesdeLocal){
+    flkSesionDesdeLocal=false;
+    flkSesionLocalOrigen="";
+    flkActualizarEstadoConexion("principal-off");
+   }
+   return false;
+  }
+
+  flkSesionDesdeLocal=true;
+  flkSesionLocalOrigen=ruta.origen;
+  flkSesionActiva=true;
+  flkPintarSesionLocal(ruta.session.user);
+  flkActualizarEstadoConexion();
+
+  // Refrescar lecturas desde el secundario sin tocar la cola destinada al Principal.
+  try{await flkCargarCentroActual()}catch(_){}
+  try{await flkRecuperacionEmergenciaNube()}catch(_){}
+  return true;
+ }finally{
+  flkVerificandoLocalEstado=false;
+ }
+}
+
 async function flkComprobarEstadoPrincipalVisual(forzar=false){
  if(flkVerificandoPrincipalEstado)return flkPrincipalDisponibleEstado;
  const ahora=Date.now();
@@ -2880,6 +2932,7 @@ async function flkComprobarEstadoPrincipalVisual(forzar=false){
  if(!navigator.onLine){
   flkPrincipalDisponibleEstado=false;
   flkActualizarEstadoConexion("principal-off");
+  setTimeout(()=>flkComprobarLocalAutomatico(false),0);
   return false;
  }
 
@@ -2888,10 +2941,12 @@ async function flkComprobarEstadoPrincipalVisual(forzar=false){
   const ok=await flkSupabaseDisponible(2500);
   flkPrincipalDisponibleEstado=!!ok;
   flkActualizarEstadoConexion(ok?undefined:"principal-off");
+  if(!ok)setTimeout(()=>flkComprobarLocalAutomatico(false),0);
   return !!ok;
  }catch(_){
   flkPrincipalDisponibleEstado=false;
   flkActualizarEstadoConexion("principal-off");
+  setTimeout(()=>flkComprobarLocalAutomatico(false),0);
   return false;
  }finally{
   flkVerificandoPrincipalEstado=false;
@@ -3903,6 +3958,7 @@ window.addEventListener("online",async()=>{
 window.addEventListener("offline",()=>{
  flkPrincipalDisponibleEstado=false;
  flkActualizarEstadoConexion("principal-off");
+ setTimeout(()=>flkComprobarLocalAutomatico(true),100);
 });
 
 function flkActualizarModoRendimiento(){
@@ -3925,6 +3981,9 @@ document.addEventListener("DOMContentLoaded",()=>{
  flkActualizarEstadoConexion();
  setTimeout(()=>flkComprobarEstadoPrincipalVisual(true),250);
  setInterval(()=>flkComprobarEstadoPrincipalVisual(false),6000);
+ setInterval(()=>{
+  if(flkPrincipalDisponibleEstado!==true)flkComprobarLocalAutomatico(false);
+ },6500);
 });
 document.addEventListener("DOMContentLoaded",()=>{if(navigator.onLine)setTimeout(()=>{try{flkSincronizarSeguro()}catch(_e){}},900)});
 document.addEventListener("DOMContentLoaded",()=>{
