@@ -3055,10 +3055,35 @@ async function flkComprobarEstadoPrincipalVisual(forzar=false){
   flkPrincipalDisponibleEstado=!!principalVivo;
 
   if(principalVivo){
-   // v61.74 · No cambiar la fuente de datos a mitad de una ejecución.
-   // Si esta sesión arrancó en Local, Principal puede volver a estar vivo,
-   // pero la base mostrada permanece Local hasta una recarga controlada.
-   // Así evitamos mezclar dos snapshots o reemplazar la pantalla varias veces.
+   // v61.76 · FAILBACK AUTOMÁTICO Y SEGURO LOCAL -> PRINCIPAL.
+   // Si Principal está realmente disponible y conserva una sesión válida,
+   // vuelve a Principal y reconstruye la copia visible desde la nube oficial.
+   // No procesa ni marca como sincronizada la cola offline aquí.
+   if(flkSesionDesdeLocal){
+    try{
+     const {data:principalSesion,error:principalSesionError}=await flkPromesaConTiempo(
+      flkSupabasePrincipal.auth.getSession(),2600,"principal-session-failback-timeout"
+     );
+     if(!principalSesionError && principalSesion?.session?.user){
+      flkSesionDesdeLocal=false;
+      flkSesionLocalOrigen="";
+      flkSesionActiva=true;
+      flkGuardarSesionLocal(principalSesion.session);
+      flkPintarSesionLocal(principalSesion.session.user);
+      try{await cargarRolUsuario(principalSesion.session.user)}catch(e){console.warn("Rol Principal:",e?.message||e)}
+      try{
+       await flkCargarCentroActual();
+       flkCambiarContextoLocalCentro(FLK_BUSINESS_ID);
+      }catch(e){console.warn("Centro Principal:",e?.message||e)}
+      flkActualizarEstadoConexion();
+      try{await flkRecuperacionEmergenciaNube()}catch(e){console.warn("Carga Principal:",e?.message||e)}
+      console.info("🟢 Failback automático completado: Supabase Principal activo.");
+      return true;
+     }
+    }catch(e){
+     console.warn("Principal disponible, pero todavía sin sesión reutilizable para failback:",e?.message||e);
+    }
+   }
    flkActualizarEstadoConexion();
    return true;
   }
