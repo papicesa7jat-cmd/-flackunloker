@@ -2974,6 +2974,41 @@ async function flkComprobarLocalAutomatico(forzar=false){
  }
 }
 
+// v61.75 · Failover controlado: Principal -> Local autenticado -> Offline/PWA.
+// Reutiliza una sesión Local ya válida sin pedir contraseña. La cola de
+// escrituras continúa dirigida exclusivamente al Principal.
+async function flkActivarSesionLocalGuardada(){
+ if(flkSesionDesdeLocal || flkPrincipalDisponibleEstado!==false || !flkLocalDisponibleEstado)return false;
+
+ const rutas=flkLocalDisponibleOrigen==="local-lan"
+  ? [
+     {cliente:flkSupabaseLocalLan,origen:"local-lan"},
+     {cliente:flkSupabaseLocalLoopback,origen:"local-loopback"}
+    ]
+  : [
+     {cliente:flkSupabaseLocalLoopback,origen:"local-loopback"},
+     {cliente:flkSupabaseLocalLan,origen:"local-lan"}
+    ];
+
+ for(const ruta of rutas){
+  const acceso=await flkValidarRutaLocal(ruta.cliente,ruta.origen,2600);
+  if(!acceso)continue;
+
+  flkSesionDesdeLocal=true;
+  flkSesionLocalOrigen=ruta.origen;
+  flkSesionActiva=true;
+  try{flkGuardarSesionLocal(acceso.session)}catch(_){}
+  try{flkPintarSesionLocal(acceso.session.user)}catch(_){}
+  try{await cargarRolUsuario(acceso.session.user)}catch(e){console.warn("Rol Local:",e?.message||e)}
+  try{await flkCargarCentroActual()}catch(e){console.warn("Centro Local:",e?.message||e)}
+  flkActualizarEstadoConexion("principal-off");
+
+  try{await flkRecuperacionEmergenciaNube()}catch(e){console.warn("Carga Local:",e?.message||e)}
+  return true;
+ }
+ return false;
+}
+
 async function flkComprobarEstadoPrincipalVisual(forzar=false){
  if(flkVerificandoPrincipalEstado)return flkPrincipalDisponibleEstado;
  const ahora=Date.now();
@@ -2997,11 +3032,13 @@ async function flkComprobarEstadoPrincipalVisual(forzar=false){
   // Principal realmente caído: comprobar Local aunque navigator.onLine sea false.
   flkActualizarEstadoConexion("principal-off");
   await flkComprobarLocalAutomatico(true);
+  await flkActivarSesionLocalGuardada();
   return false;
  }catch(_){
   flkPrincipalDisponibleEstado=false;
   flkActualizarEstadoConexion("principal-off");
   await flkComprobarLocalAutomatico(true);
+  await flkActivarSesionLocalGuardada();
   return false;
  }finally{
   flkVerificandoPrincipalEstado=false;
