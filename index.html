@@ -6820,9 +6820,15 @@ async function guardarProductoSupabase(p,esNuevo=false,stockInicial=0){
  const {error}=await flkSupabase.from("products").update(payload).eq("id",p.supabaseId);
  if(error)throw error;
 }
+function flkModoOfflineOperativo(){
+ return !navigator.onLine ||
+  window.FLK_PRINCIPAL_BLOQUEADO===true ||
+  flkPrincipalDisponibleEstado===false ||
+  flkSesionDesdeLocal===true;
+}
 async function ajustarStockSupabase(p,delta,tipo,nota=""){
  if(!p.supabaseId&&!p.offlineCreateOperationId)throw new Error("Producto sin referencia de sincronización.");
- if(!navigator.onLine||!p.supabaseId){
+ if(flkModoOfflineOperativo()||!p.supabaseId){
   const nuevo=Number(p.cantidad||0)+Number(delta);
   if(nuevo<0)throw new Error("Inventario insuficiente para "+p.nombre);
   flkEncolarOperacion("stock_adjustment",{
@@ -7255,8 +7261,9 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
 
  const btn=document.getElementById("botonConfirmarMovimiento");
  const est=document.getElementById("estadoMovimientoOffline");
- if(btn){btn.disabled=true;btn.textContent=navigator.onLine?"Guardando...":"Guardando local..."}
- if(est)est.style.display=navigator.onLine?"none":"block";
+ const modoOfflineOperacion=flkModoOfflineOperativo();
+ if(btn){btn.disabled=true;btn.textContent=modoOfflineOperacion?"Guardando local...":"Guardando..."}
+ if(est)est.style.display=modoOfflineOperacion?"block":"none";
 
  try{
   const cantidad=Number(document.getElementById("cantidadMovimiento").value);
@@ -7274,7 +7281,7 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
 
   p.cantidad=await ajustarStockSupabase(p,delta,tipoGuardado,"Movimiento manual desde Flackunloker");
 
-  if(navigator.onLine){
+  if(!modoOfflineOperacion){
    await cargarHistorialSupabase();
    guardarDatos();
    mostrarProductos();
