@@ -2905,22 +2905,39 @@ async function flkSondearPrincipalServidor(timeoutMs=2400){
 }
 
 async function flkSondearServidorLocal(url,origen,timeoutMs=2200){
- // Local se comprueba independientemente del Principal y de Internet.
- // Esto permite distinguir: Principal caído / Local vivo / ambos caídos.
- const vivo=await flkSondearHttpServidor(
-  url+"/rest/v1/products?select=id&limit=1",
-  {"apikey":FLK_SUPABASE_LOCAL_KEY,"Authorization":"Bearer "+FLK_SUPABASE_LOCAL_KEY},
-  timeoutMs
- );
- if(vivo)return {origen};
-
- // Respaldo: health de Auth. 401/403 también cuentan como servidor accesible.
- const health=await flkSondearHttpServidor(
-  url+"/auth/v1/health",
-  {"apikey":FLK_SUPABASE_LOCAL_KEY,"Authorization":"Bearer "+FLK_SUPABASE_LOCAL_KEY},
-  timeoutMs
- );
- return health?{origen}:false;
+ // v61.76 · Sondeo Local compatible con navegador/PWA.
+ // IMPORTANTE: no usar apikey/Authorization para detectar vida del servidor.
+ // Esos headers fuerzan CORS preflight y Chrome puede bloquear la comprobación
+ // desde una web pública hacia localhost/LAN aunque Caddy esté perfectamente vivo.
+ // Con mode:no-cors una respuesta opaca (incluido 401 de /auth/v1/health)
+ // demuestra que la ruta Local respondió. Esto SOLO detecta disponibilidad;
+ // no autentica, no sincroniza y no toca la cola pendiente del Principal.
+ const ctrl=new AbortController();
+ const t=setTimeout(()=>ctrl.abort(),timeoutMs);
+ try{
+  await window.fetch(url+"/auth/v1/health",{
+   method:"GET",
+   mode:"no-cors",
+   cache:"no-store",
+   credentials:"omit",
+   signal:ctrl.signal
+  });
+  return {origen};
+ }catch(_){
+  // Si Chrome no permite el sondeo opaco, intentar REST normal como respaldo.
+  try{
+   const vivo=await flkSondearHttpServidor(
+    url+"/rest/v1/products?select=id&limit=1",
+    {"apikey":FLK_SUPABASE_LOCAL_KEY,"Authorization":"Bearer "+FLK_SUPABASE_LOCAL_KEY},
+    Math.max(900,Math.floor(timeoutMs/2))
+   );
+   return vivo?{origen}:false;
+  }catch(__){
+   return false;
+  }
+ }finally{
+  clearTimeout(t);
+ }
 }
 
 async function flkValidarRutaLocal(cliente,origen,timeoutMs=2200){
