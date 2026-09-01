@@ -2297,7 +2297,15 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="modal" id="modalRecepcionOrden">
 <form class="formulario" id="formularioRecepcionOrden">
 <h2>✅ Recibir orden</h2><p class="mensaje-movimiento" id="textoRecepcionOrden">Confirma la recepción y cómo se pagó la compra.</p>
-<div class="campo"><label for="condicionPagoProveedor">Condición de pago</label><select id="condicionPagoProveedor" onchange="actualizarCamposCreditoProveedor()"><option value="pagado">✅ Pagada</option><option value="credito">💳 A crédito</option></select></div>
+<div class="campo">
+<label>Condición de pago</label>
+<input id="condicionPagoProveedor" type="hidden" value="pagado">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+<button id="btnCompraPagada" type="button" class="boton-guardar" onclick="flkSeleccionarCondicionProveedor('pagado')">✅ Pagada</button>
+<button id="btnCompraCredito" type="button" class="boton-cancelar" onclick="flkSeleccionarCondicionProveedor('credito')">💳 A crédito</button>
+</div>
+<small class="ayuda-campo">A crédito recibe la mercancía sin sacar dinero de caja. El saldo pasa a Cuentas por pagar.</small>
+</div>
 <div class="campo"><label for="metodoPagoProveedor">Método de pago / abono inicial</label><select id="metodoPagoProveedor"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Tarjeta CUP">Tarjeta CUP</option><option value="Tarjeta USD">Tarjeta USD</option><option value="Zelle">Zelle</option><option value="MLC">MLC</option></select></div>
 <div class="campo campo-credito" id="campoAbonoProveedor"><label for="abonoInicialProveedor">Abono inicial</label><input id="abonoInicialProveedor" type="number" min="0" step="0.01" value="0"></div>
 <div class="campo campo-credito" id="campoVencimientoProveedor"><label for="fechaVencimientoProveedor">Fecha de vencimiento</label><input id="fechaVencimientoProveedor" type="date"></div>
@@ -9292,8 +9300,32 @@ async function marcarOrdenada(id){
  actualizarProveedores();
  if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
 }
-function actualizarCamposCreditoProveedor(){const credito=document.getElementById("condicionPagoProveedor").value==="credito";document.getElementById("campoAbonoProveedor").classList.toggle("visible",credito);document.getElementById("campoVencimientoProveedor").classList.toggle("visible",credito);if(credito&&!document.getElementById("fechaVencimientoProveedor").value){const d=new Date();d.setDate(d.getDate()+30);document.getElementById("fechaVencimientoProveedor").value=fechaLocalISO(d)}if(!credito){document.getElementById("abonoInicialProveedor").value="0";document.getElementById("fechaVencimientoProveedor").value=""}}
-function recibirOrden(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;const p=productos.find(x=>x.id===o.productoId);if(!p)return alert("El producto de esta orden ya no existe en el inventario.");ordenRecepcionId=id;document.getElementById("formularioRecepcionOrden").reset();document.getElementById("condicionPagoProveedor").value="pagado";document.getElementById("textoRecepcionOrden").textContent=`${numeroOrdenCompra(o)} · ${o.proveedor} · Total $${Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)).toFixed(2)}`;actualizarCamposCreditoProveedor();document.getElementById("modalRecepcionOrden").classList.add("visible")}
+function flkSeleccionarCondicionProveedor(valor){
+ const credito=valor==="credito";
+ const condicion=document.getElementById("condicionPagoProveedor");
+ if(condicion)condicion.value=credito?"credito":"pagado";
+ const btnPagada=document.getElementById("btnCompraPagada");
+ const btnCredito=document.getElementById("btnCompraCredito");
+ if(btnPagada)btnPagada.className=credito?"boton-cancelar":"boton-guardar";
+ if(btnCredito)btnCredito.className=credito?"boton-guardar":"boton-cancelar";
+ actualizarCamposCreditoProveedor();
+}
+function actualizarCamposCreditoProveedor(){
+ const credito=document.getElementById("condicionPagoProveedor").value==="credito";
+ document.getElementById("campoAbonoProveedor").classList.toggle("visible",credito);
+ document.getElementById("campoVencimientoProveedor").classList.toggle("visible",credito);
+ if(credito){
+  document.getElementById("abonoInicialProveedor").value="0";
+  if(!document.getElementById("fechaVencimientoProveedor").value){
+   const d=new Date();d.setDate(d.getDate()+30);
+   document.getElementById("fechaVencimientoProveedor").value=fechaLocalISO(d);
+  }
+ }else{
+  document.getElementById("abonoInicialProveedor").value="0";
+  document.getElementById("fechaVencimientoProveedor").value="";
+ }
+}
+function recibirOrden(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;const p=productos.find(x=>x.id===o.productoId);if(!p)return alert("El producto de esta orden ya no existe en el inventario.");ordenRecepcionId=id;document.getElementById("formularioRecepcionOrden").reset();flkSeleccionarCondicionProveedor("pagado");document.getElementById("textoRecepcionOrden").textContent=`${numeroOrdenCompra(o)} · ${o.proveedor} · Total $${Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)).toFixed(2)}`;actualizarCamposCreditoProveedor();document.getElementById("modalRecepcionOrden").classList.add("visible")}
 function cerrarRecepcionOrden(){document.getElementById("modalRecepcionOrden").classList.remove("visible");document.getElementById("formularioRecepcionOrden").reset();ordenRecepcionId=null}
 document.getElementById("formularioRecepcionOrden").addEventListener("submit",async e=>{
  e.preventDefault();e.stopPropagation();
