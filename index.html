@@ -11996,7 +11996,7 @@ flkPresentarLecturaParaConfirmar=function(codigo){
 };
 
 // Preserve original business processor. Deliberate manual/HID inputs share the same lock.
-const flkProcesarNegocioGlobal=flkProcesarCodigoQRNegocio;
+let flkProcesarNegocioGlobal=flkProcesarCodigoQRNegocio;
 flkProcesarCodigoQRNegocio=function(codigo,desdeCamara){
  if(desdeCamara){
   return flkProcesarNegocioGlobal(codigo,desdeCamara);
