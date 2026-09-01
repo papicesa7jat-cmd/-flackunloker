@@ -2297,7 +2297,15 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="modal" id="modalRecepcionOrden">
 <form class="formulario" id="formularioRecepcionOrden">
 <h2>✅ Recibir orden</h2><p class="mensaje-movimiento" id="textoRecepcionOrden">Confirma la recepción y cómo se pagó la compra.</p>
-<div class="campo"><label for="condicionPagoProveedor">Condición de pago</label><select id="condicionPagoProveedor" onchange="actualizarCamposCreditoProveedor()"><option value="pagado">✅ Pagada</option><option value="credito">💳 A crédito</option></select></div>
+<div class="campo">
+<label>Condición de pago</label>
+<input id="condicionPagoProveedor" type="hidden" value="pagado">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+<button id="btnCompraPagada" type="button" class="boton-guardar" onclick="flkSeleccionarCondicionProveedor('pagado')">✅ Pagada</button>
+<button id="btnCompraCredito" type="button" class="boton-cancelar" onclick="flkSeleccionarCondicionProveedor('credito')">💳 A crédito</button>
+</div>
+<small class="ayuda-campo">A crédito recibe la mercancía sin sacar dinero de caja. El saldo pasa a Cuentas por pagar.</small>
+</div>
 <div class="campo"><label for="metodoPagoProveedor">Método de pago / abono inicial</label><select id="metodoPagoProveedor"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Tarjeta CUP">Tarjeta CUP</option><option value="Tarjeta USD">Tarjeta USD</option><option value="Zelle">Zelle</option><option value="MLC">MLC</option></select></div>
 <div class="campo campo-credito" id="campoAbonoProveedor"><label for="abonoInicialProveedor">Abono inicial</label><input id="abonoInicialProveedor" type="number" min="0" step="0.01" value="0"></div>
 <div class="campo campo-credito" id="campoVencimientoProveedor"><label for="fechaVencimientoProveedor">Fecha de vencimiento</label><input id="fechaVencimientoProveedor" type="date"></div>
@@ -2895,11 +2903,11 @@ async function flkSondearHttpServidor(url,headers={},timeoutMs=2200){
 }
 
 async function flkSondearPrincipalServidor(timeoutMs=2400){
- // Sondeo directo con window.fetch para que el bloqueador de laboratorio del
- // Principal sea respetado incluso si supabase-js conservó otra referencia a fetch.
+ // v61.78-fix401b · Comprobar disponibilidad del Principal sin consultar
+ // una tabla protegida con el rol anon. /auth/v1/health solo confirma vida.
  return await flkSondearHttpServidor(
-  FLK_SUPABASE_URL+"/rest/v1/products?select=id&limit=1",
-  {"apikey":FLK_SUPABASE_KEY,"Authorization":"Bearer "+FLK_SUPABASE_KEY},
+  FLK_SUPABASE_URL+"/auth/v1/health",
+  {"apikey":FLK_SUPABASE_KEY},
   timeoutMs
  );
 }
@@ -4053,25 +4061,26 @@ window.addEventListener("online",async()=>{
    await cargarRolUsuario(data.session.user);
    setTimeout(()=>flkSincronizarSeguro(),250);
   }else{
-   const cache=flkSesionLocal();
-   if(cache?.user){
-    console.warn("Principal sin sesión confirmada; se conserva la sesión Offline/PWA.");
-    flkSesionDesdeLocal=false;
-    flkSesionLocalOrigen="";
-    flkPintarSesionLocal(cache.user);
-    flkPrincipalDisponibleEstado=false;
-    flkActualizarEstadoConexion("principal-off");
-   }else{
-    document.getElementById("authOverlay").classList.remove("oculto");
-   }
+   // v61.78-fix401b · Si hay Internet pero Supabase no tiene JWT, no presentar
+   // la caché Offline como una sesión online. Pedir login real al Principal.
+   flkSesionActiva=false;
+   flkSesionDesdeLocal=false;
+   flkSesionLocalOrigen="";
+   document.getElementById("authOverlay")?.classList.remove("oculto");
+   mostrarMensajeAuth("Inicia sesión para reconectar con Supabase.","ok");
   }
  }catch(err){
   console.error(err);
-  const cache=flkSesionLocal();
-  if(cache?.user){
-   flkPintarSesionLocal(cache.user);
-   flkPrincipalDisponibleEstado=false;
-   flkActualizarEstadoConexion("principal-off");
+  // Solo una caída real de red permite conservar la sesión Offline/PWA.
+  if(!navigator.onLine){
+   const cache=flkSesionLocal();
+   if(cache?.user){
+    flkPintarSesionLocal(cache.user);
+    flkPrincipalDisponibleEstado=false;
+    flkActualizarEstadoConexion("principal-off");
+   }
+  }else{
+   document.getElementById("authOverlay")?.classList.remove("oculto");
   }
  }
 });
@@ -4177,7 +4186,9 @@ const FLK_SUPABASE_KEY='sb_publishable_KgcL58HbkZ66Cguhs5JT0A_V2xAoL7h';
 const FLK_SUPABASE_LOCAL_LOOPBACK_URL='https://localhost';
 const FLK_SUPABASE_LOCAL_LAN_URL='https://192.168.10.162';
 const FLK_SUPABASE_LOCAL_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzg4MDIzMTI4LCJleHAiOjE5NDU3MDMxMjh9.GktnQjYCGWzDCz21bON2HedztFqznDg0-0sEuhEoEL4';
-const flkSupabasePrincipal=window.supabase.createClient(FLK_SUPABASE_URL,FLK_SUPABASE_KEY);
+const flkSupabasePrincipal=window.supabase.createClient(FLK_SUPABASE_URL,FLK_SUPABASE_KEY,{
+ auth:{storageKey:'flackunloker-auth-principal-v1',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+});
 const flkSupabaseLocalLoopback=window.supabase.createClient(FLK_SUPABASE_LOCAL_LOOPBACK_URL,FLK_SUPABASE_LOCAL_KEY,{
  auth:{storageKey:'flackunloker-auth-local-loopback-v1',persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}
 });
@@ -5088,20 +5099,37 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
   const timeout=String(err?.code||"").includes("timeout")||msg.includes("timeout");
 
   if(timeout){
-   // v61.79: si existe sesión/caché PWA válida, no bloquear por caída temporal.
+   // v61.78-fix401: un timeout de cargas secundarias NO debe cerrar una sesión
+   // que Supabase ya autenticó correctamente. Primero confirmar la sesión real.
+   try{
+    const {data:sesionActual}=await flkSupabasePrincipal.auth.getSession();
+    if(sesionActual?.session?.user){
+     flkSesionActiva=true;
+     flkSesionDesdeLocal=false;
+     flkSesionLocalOrigen='';
+     flkGuardarSesionLocal(sesionActual.session);
+     flkPintarSesionLocal(sesionActual.session.user);
+     document.getElementById("authOverlay")?.classList.add("oculto");
+     flkActualizarEstadoConexion();
+     console.warn("Carga secundaria demorada; se conserva la sesión Supabase autenticada.");
+     return;
+    }
+   }catch(_){ }
+
+   // Solo usar la copia PWA si realmente no existe sesión Supabase.
    const cacheOffline=flkSesionLocal();
    if(cacheOffline?.user){
     try{
+     flkSesionActiva=true;
      flkPintarSesionLocal(cacheOffline.user);
      document.getElementById("authOverlay")?.classList.add("oculto");
      flkActualizarEstadoConexion("principal-off");
      return;
     }catch(_){ }
    }
-   await flkCancelarSesionTardia();
    document.getElementById("authOverlay")?.classList.remove("oculto");
    mostrarMensajeAuth(
-    "⚠️ No se pudo validar el primer acceso. Si ya usaste este dispositivo, intenta nuevamente para entrar con la sesión offline.",
+    "⚠️ No se pudo validar el acceso con Supabase. Intenta nuevamente.",
     "error"
    );
   }else if(msg.includes("invalid login credentials")||msg.includes("invalid credentials")){
@@ -5766,10 +5794,21 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
  }
  setTimeout(async()=>{
   try{
-   const {data}=await flkSupabase.auth.getSession();
-   window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});
+   const {data}=await flkSupabasePrincipal.auth.getSession();
+   if(data?.session?.user){
+    window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});
+   }else{
+    window.addEventListener("load",()=>{
+     flkSesionActiva=false;
+     document.getElementById("authOverlay")?.classList.remove("oculto");
+     mostrarMensajeAuth("Inicia sesión para conectar con Supabase.","ok");
+    },{once:true});
+   }
   }catch(err){
-   if(cache?.user)window.addEventListener("load",()=>flkPintarSesionLocal(cache.user),{once:true});
+   window.addEventListener("load",()=>{
+    if(!navigator.onLine && cache?.user)flkPintarSesionLocal(cache.user);
+    else document.getElementById("authOverlay")?.classList.remove("oculto");
+   },{once:true});
   }
  },0);
 })();
@@ -8166,39 +8205,7 @@ function imprimirComprobanteDevolucion(ventaId,devolucionSupabaseId){
  const fecha=new Date(d.fecha),valorDevuelto=Number(d.valorDevuelto??d.monto??d.reembolso??0),reembolso=Number(d.reembolso??0),saldoCancelado=Number(d.saldoCancelado??Math.max(0,valorDevuelto-reembolso)),cantidad=Number(d.cantidad||0),unitario=cantidad>0?valorDevuelto/cantidad:0;
  const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="flackunloker-version" content="61.59"><title>Devolución ${numero}</title><style>${flkCssComprobanteProfesional("#f25b18")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">↩ Devolución de cliente</span><span class="numero">N.º DV-${numero}</span></div></header><section class="meta"><div>Recibo original<strong>#${escapeHtml(v.numero||"")}</strong></div><div>Fecha y hora<strong>${fecha.toLocaleDateString("es-PR")} · ${fecha.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${escapeHtml(v.cliente||"Cliente general")}</strong></div><div>Teléfono<strong>${escapeHtml(v.telefono||"—")}</strong></div></section><section class="seccion"><h3>Detalle de devolución</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cant.</th><th class="num">Precio unit.</th><th class="num">Valor devuelto</th></tr></thead><tbody><tr><td>${escapeHtml(item.nombre||d.nombre||"Producto")}</td><td>${escapeHtml(item.sku||d.sku||"—")}</td><td class="num">${cantidad}</td><td class="num">$${unitario.toFixed(2)}</td><td class="num"><strong>$${valorDevuelto.toFixed(2)}</strong></td></tr></tbody></table></section><section class="seccion"><div class="resumen"><div class="r"><span>Cantidad devuelta</span><strong>${cantidad}</strong></div><div class="r"><span>Valor de mercancía devuelta</span><strong>$${valorDevuelto.toFixed(2)}</strong></div><div class="r"><span>Saldo cancelado por devolución</span><strong>$${saldoCancelado.toFixed(2)}</strong></div><div class="r"><span>Reembolso efectivo al cliente</span><strong>$${reembolso.toFixed(2)}</strong></div><div class="r total"><span>TOTAL DEVOLUCIÓN</span><strong>$${valorDevuelto.toFixed(2)}</strong></div></div></section><section class="seccion"><h3>Motivo / observaciones</h3><div class="nota">${escapeHtml(d.motivo||"No especificado")}</div><div class="firma"><div>Cliente / recibe devolución</div><div>Autorización administrativa</div></div></section><div class="pie">Comprobante generado por Flackunloker · Documento de control interno</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div>
-<script>
-/* ===== FLACKUNLOKER · Preparación inicial offline del dispositivo ===== */
-(function(){
-  const KEY="flk_instalacion_dispositivo_v1";
-  async function flkPrepararDispositivo(){
-    try{
-      localStorage.setItem("flk_cache_preparando","1");
-      if("serviceWorker" in navigator){
-        try{
-          await navigator.serviceWorker.register("./sw.js");
-        }catch(e){}
-      }
-      const estado={
-        completado:true,
-        fecha:new Date().toISOString(),
-        version:document.querySelector('meta[name="flackunloker-offline-version"]')?.content||""
-      };
-      localStorage.setItem(KEY,JSON.stringify(estado));
-      localStorage.removeItem("flk_cache_preparando");
-    }catch(e){
-      localStorage.removeItem("flk_cache_preparando");
-    }
-  }
 
-  window.flkDispositivoPreparado=function(){
-    return localStorage.getItem(KEY)!==null;
-  };
-
-  if(!flkDispositivoPreparado()){
-    window.addEventListener("load",()=>flkPrepararDispositivo(),{once:true});
-  }
-})();
-</script>
 
 </body></html>`;
  flkAbrirDocumentoComprobante(html)
@@ -8347,39 +8354,7 @@ async function generarReciboVenta(id){
  const pagosTxt=pagos.length?`${pagos.length} abono(s) registrado(s)`:"Sin abonos";
  const pagosDetalleHtml=pagos.length?`<section class="seccion"><h3>Historial de abonos</h3><table><thead><tr><th>Fecha</th><th>Método</th><th class="num">Abono</th><th class="num">Saldo</th></tr></thead><tbody>${[...pagos].sort((a,b)=>new Date(a.fecha||0)-new Date(b.fecha||0)).map(p=>{const fp=new Date(p.fecha);return `<tr><td>${fp.toLocaleDateString("es-PR")}<div class="muted">${fp.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div></td><td><strong>${escapeHtml(normalizarMetodoFlujo(p.metodo||"MLC"))}</strong></td><td class="num"><strong>$${Number(p.cantidad||0).toFixed(2)}</strong></td><td class="num">$${Number(p.saldoRestante??0).toFixed(2)}</td></tr>`}).join("")}</tbody></table></section>`:"";
  const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recibo ${escapeHtml(numero)}</title><style>${flkCssComprobanteProfesional("#0a67d1")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">🧾 Recibo de venta</span><span class="numero">N.º SA-${escapeHtml(numero)}</span></div></header><section class="meta"><div>Fecha y hora<strong>${f.toLocaleDateString("es-PR")} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${cliente}</strong></div><div>Teléfono<strong>${telefono||"—"}</strong></div><div>Estado de pago<strong>${escapeHtml(estadoVencimientoVenta(v).texto)}</strong></div></section><section class="seccion"><h3>Productos</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cant.</th><th class="num">Precio unit.</th><th class="num">Total</th></tr></thead><tbody>${filas}</tbody></table></section><section class="seccion"><div class="resumen"><div class="r"><span>Método inicial</span><strong>${escapeHtml(normalizarMetodoFlujo(v.metodoPago||"MLC"))}</strong></div><div class="r"><span>Pagado</span><strong>$${Number(v.totalPagado||0).toFixed(2)}</strong></div><div class="r"><span>Saldo pendiente</span><strong>$${Number(v.saldo||0).toFixed(2)}</strong></div><div class="r"><span>Devoluciones</span><strong>${devolucionesTxt}</strong></div><div class="r"><span>Abonos</span><strong>${pagosTxt}</strong></div><div class="r total"><span>TOTAL NETO</span><strong>$${Number(v.ingreso??0).toFixed(2)}</strong></div></div></section>${pagosDetalleHtml}${nota?`<section class="seccion"><h3>Observaciones</h3><div class="nota">${nota}</div></section>`:""}<section class="seccion"><div class="firma"><div>Vendido / entregado por</div><div>Cliente / recibido por</div></div></section>${qrReciboData?`<div style="text-align:center;margin:2mm 0"><img src="${qrReciboData}" style="width:24mm;height:24mm"><div style="font-size:1.8mm;margin-top:.8mm">QR del recibo</div></div>`:""}<div class="pie">Gracias por su compra · Comprobante generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div>
-<script>
-/* ===== FLACKUNLOKER · Preparación inicial offline del dispositivo ===== */
-(function(){
-  const KEY="flk_instalacion_dispositivo_v1";
-  async function flkPrepararDispositivo(){
-    try{
-      localStorage.setItem("flk_cache_preparando","1");
-      if("serviceWorker" in navigator){
-        try{
-          await navigator.serviceWorker.register("./sw.js");
-        }catch(e){}
-      }
-      const estado={
-        completado:true,
-        fecha:new Date().toISOString(),
-        version:document.querySelector('meta[name="flackunloker-offline-version"]')?.content||""
-      };
-      localStorage.setItem(KEY,JSON.stringify(estado));
-      localStorage.removeItem("flk_cache_preparando");
-    }catch(e){
-      localStorage.removeItem("flk_cache_preparando");
-    }
-  }
 
-  window.flkDispositivoPreparado=function(){
-    return localStorage.getItem(KEY)!==null;
-  };
-
-  if(!flkDispositivoPreparado()){
-    window.addEventListener("load",()=>flkPrepararDispositivo(),{once:true});
-  }
-})();
-</script>
 
 </body></html>`;
  try{ventanaComprobante.document.open();ventanaComprobante.document.write(contenido);ventanaComprobante.document.close()}catch(e){console.error("Recibo:",e)}
@@ -8716,39 +8691,7 @@ function generarComprobanteAbono(ventaId,pagoId){
  const v=ventas.find(x=>x.id===ventaId);if(!v)return;normalizarCuentaVenta(v);const pagos=pagosDeVenta(v),p=pagos.find(x=>x.id===pagoId);if(!p)return alert("No encontramos ese abono.");
  const numero=v.numero||String(v.id).slice(-8),indice=pagos.findIndex(x=>x.id===pagoId)+1,f=new Date(p.fecha),cliente=escapeHtml(v.cliente||"Cliente general"),telefono=escapeHtml(v.telefono||""),nota=escapeHtml(p.nota||"");
  const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comprobante de abono</title><style>${flkCssComprobanteProfesional("#168044")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">💵 Abono recibido</span><span class="numero">Recibo #${escapeHtml(numero)} · AB-${String(indice).padStart(3,"0")}</span></div></header><section class="meta"><div>Fecha y hora<strong>${f.toLocaleDateString("es-PR")} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${cliente}</strong></div><div>Teléfono<strong>${telefono||"—"}</strong></div><div>Método<strong>${escapeHtml(normalizarMetodoFlujo(p.metodo||"MLC"))}</strong></div></section><section class="seccion"><h3>Detalle del pago</h3><div class="resumen"><div class="r"><span>Saldo anterior</span><strong>$${Number(p.saldoAnterior??0).toFixed(2)}</strong></div><div class="r total"><span>ABONO RECIBIDO</span><strong>$${Number(p.cantidad||0).toFixed(2)}</strong></div><div class="r"><span>Saldo restante</span><strong>$${Number(p.saldoRestante??0).toFixed(2)}</strong></div></div></section>${nota?`<section class="seccion"><h3>Observaciones</h3><div class="nota">${nota}</div></section>`:""}<section class="seccion"><div class="firma"><div>Recibido por</div><div>Cliente / pagador</div></div></section><div class="pie">Gracias por su pago · Comprobante generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div>
-<script>
-/* ===== FLACKUNLOKER · Preparación inicial offline del dispositivo ===== */
-(function(){
-  const KEY="flk_instalacion_dispositivo_v1";
-  async function flkPrepararDispositivo(){
-    try{
-      localStorage.setItem("flk_cache_preparando","1");
-      if("serviceWorker" in navigator){
-        try{
-          await navigator.serviceWorker.register("./sw.js");
-        }catch(e){}
-      }
-      const estado={
-        completado:true,
-        fecha:new Date().toISOString(),
-        version:document.querySelector('meta[name="flackunloker-offline-version"]')?.content||""
-      };
-      localStorage.setItem(KEY,JSON.stringify(estado));
-      localStorage.removeItem("flk_cache_preparando");
-    }catch(e){
-      localStorage.removeItem("flk_cache_preparando");
-    }
-  }
 
-  window.flkDispositivoPreparado=function(){
-    return localStorage.getItem(KEY)!==null;
-  };
-
-  if(!flkDispositivoPreparado()){
-    window.addEventListener("load",()=>flkPrepararDispositivo(),{once:true});
-  }
-})();
-</script>
 
 </body></html>`;
  flkAbrirDocumentoComprobante(contenido,"El navegador bloqueó el comprobante. Permite ventanas emergentes para Flackunloker.")
@@ -8849,39 +8792,7 @@ function imprimirComprobanteMovimiento(id){
  const f=new Date(m.fecha),entrada=m.tipo==="entrada",color=entrada?"#138a43":"#0a67d1",pref=entrada?"EN":"SA",numero=flkNumeroComprobanteConsecutivo(pref,m.supabaseId||m.id||m.fecha);
  const saldo=m.saldo!==undefined&&m.saldo!==null?Number(m.saldo):null;
  const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${entrada?"Entrada":"Salida"} de inventario</title><style>${flkCssComprobanteProfesional(color)}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">${entrada?"↓ Entrada de inventario":"↑ Salida de inventario"}</span><span class="numero">N.º ${pref}-${numero}</span></div></header><section class="meta"><div>Fecha y hora<strong>${f.toLocaleDateString("es-PR")} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Tipo de movimiento<strong>${entrada?"Entrada":"Salida"}</strong></div><div>Origen / detalle<strong>${escapeHtml(m.detalle||"Movimiento de inventario")}</strong></div><div>Saldo posterior<strong>${saldo===null?"No disponible":saldo+" unidades"}</strong></div></section><section class="seccion"><h3>Detalle del movimiento</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cantidad</th><th class="num">Saldo posterior</th></tr></thead><tbody><tr><td>${escapeHtml(m.nombre||"Producto")}</td><td>${escapeHtml(m.sku||"—")}</td><td class="num"><strong>${Number(m.cantidad||0)}</strong></td><td class="num">${saldo===null?"—":saldo}</td></tr></tbody></table></section><section class="seccion"><div class="firma"><div>Registrado por</div><div>Revisión / conformidad</div></div></section><div class="pie">Documento de control de inventario · Generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div>
-<script>
-/* ===== FLACKUNLOKER · Preparación inicial offline del dispositivo ===== */
-(function(){
-  const KEY="flk_instalacion_dispositivo_v1";
-  async function flkPrepararDispositivo(){
-    try{
-      localStorage.setItem("flk_cache_preparando","1");
-      if("serviceWorker" in navigator){
-        try{
-          await navigator.serviceWorker.register("./sw.js");
-        }catch(e){}
-      }
-      const estado={
-        completado:true,
-        fecha:new Date().toISOString(),
-        version:document.querySelector('meta[name="flackunloker-offline-version"]')?.content||""
-      };
-      localStorage.setItem(KEY,JSON.stringify(estado));
-      localStorage.removeItem("flk_cache_preparando");
-    }catch(e){
-      localStorage.removeItem("flk_cache_preparando");
-    }
-  }
 
-  window.flkDispositivoPreparado=function(){
-    return localStorage.getItem(KEY)!==null;
-  };
-
-  if(!flkDispositivoPreparado()){
-    window.addEventListener("load",()=>flkPrepararDispositivo(),{once:true});
-  }
-})();
-</script>
 
 </body></html>`;
  flkAbrirDocumentoComprobante(html)
@@ -9114,39 +9025,7 @@ function mostrarListaCierres(){const lista=document.getElementById("listaCierres
 function imprimirCierre(id){const c=cierres.find(x=>x.id===id);if(!c)return;const f=new Date(c.fechaLocal+"T12:00:00"),contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cierre ${c.fechaLocal}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#f4f7fb;color:#111;margin:0}.hoja{max-width:460px;margin:24px auto;background:#fff;padding:28px;border-radius:18px}.fila{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid #eee}.total{font-size:20px;font-weight:800}.btn{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700}@media print{body{background:#fff}.hoja{margin:0;max-width:none}.btn{display:none}}
 .cuenta-proveedor-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px;border-left:5px solid #f5a623}.cuenta-proveedor-card.vencida{border-left-color:#d93025}.cuenta-proveedor-card.pagada{border-left-color:#168044}.cuenta-proveedor-superior{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.cuenta-proveedor-superior h3{margin:0 0 5px;font-size:16px}.cuenta-proveedor-superior p{margin:0;color:#777;font-size:13px}.cuenta-proveedor-saldo{font-weight:800;color:#d93025;white-space:nowrap}.cuenta-proveedor-detalle{margin-top:12px;font-size:13px;line-height:1.75;color:#555}.acciones-cuenta-proveedor{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-cuenta-proveedor{border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.boton-pagar-proveedor{background:#e9f8ef;color:#168044}.boton-historial-proveedor{background:#eaf4ff;color:#0a84ff}.estado-cuenta{display:inline-block;margin-top:8px;padding:7px 10px;border-radius:10px;font-size:12px;font-weight:800}.estado-cuenta.pendiente{background:#fff7e8;color:#a15c00}.estado-cuenta.vencida{background:#ffecec;color:#d93025}.estado-cuenta.pagada{background:#e9f8ef;color:#168044}
 </style></head><body><div class="hoja"><h1>Flackunloker</h1><h2>Cierre de caja · ${f.toLocaleDateString("es-PR")}</h2><div class="fila"><span>Recibos / Unidades</span><strong>${c.recibos} / ${c.unidades}</strong></div><div class="fila"><span>Ventas</span><strong>${formatoDineroCierre(c.ventasTotal)}</strong></div><div class="fila"><span>Costo mercancía</span><strong>${formatoDineroCierre(c.costo)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>${formatoDineroCierre(c.gananciaBruta)}</strong></div><div class="fila"><span>Gastos</span><strong>${formatoDineroCierre(c.gastosTotal)}</strong></div><div class="fila total"><span>Ganancia neta</span><strong>${formatoDineroCierre(c.gananciaNeta)}</strong></div><div class="fila"><span>Total cobrado</span><strong>${formatoDineroCierre(c.cobrado)}</strong></div><div class="fila"><span>Efectivo CUP</span><strong>${formatoDineroCierre(c.efectivo)}</strong></div><div class="fila"><span>Efectivo USD</span><strong>${formatoDineroCierre(c.ath)}</strong></div><div class="fila"><span>Tarjetas CUP / USD</span><strong>${formatoDineroCierre(c.tarjeta)}</strong></div><div class="fila"><span>Zelle / MLC</span><strong>${formatoDineroCierre(c.otros)}</strong></div><div class="fila"><span>Ventas a crédito</span><strong>${formatoDineroCierre(c.credito)}</strong></div><div class="fila"><span>Saldo pendiente</span><strong>${formatoDineroCierre(c.saldoCredito)}</strong></div><div class="fila total"><span>Efectivo neto caja</span><strong>${formatoDineroCierre(c.efectivoNeto)}</strong></div><button class="btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div>
-<script>
-/* ===== FLACKUNLOKER · Preparación inicial offline del dispositivo ===== */
-(function(){
-  const KEY="flk_instalacion_dispositivo_v1";
-  async function flkPrepararDispositivo(){
-    try{
-      localStorage.setItem("flk_cache_preparando","1");
-      if("serviceWorker" in navigator){
-        try{
-          await navigator.serviceWorker.register("./sw.js");
-        }catch(e){}
-      }
-      const estado={
-        completado:true,
-        fecha:new Date().toISOString(),
-        version:document.querySelector('meta[name="flackunloker-offline-version"]')?.content||""
-      };
-      localStorage.setItem(KEY,JSON.stringify(estado));
-      localStorage.removeItem("flk_cache_preparando");
-    }catch(e){
-      localStorage.removeItem("flk_cache_preparando");
-    }
-  }
 
-  window.flkDispositivoPreparado=function(){
-    return localStorage.getItem(KEY)!==null;
-  };
-
-  if(!flkDispositivoPreparado()){
-    window.addEventListener("load",()=>flkPrepararDispositivo(),{once:true});
-  }
-})();
-</script>
 
 </body></html>`;const w=window.open("","_blank");if(!w)return alert("El navegador bloqueó la ventana. Permite ventanas emergentes para ver el cierre.");w.document.open();w.document.write(contenido);w.document.close()}
 async function eliminarCierre(id){
@@ -9186,39 +9065,7 @@ function actualizarReporte(){
 function imprimirReporte(){const d=datosReporte(),prod=d.productos.length?d.productos.map(x=>`<div class="fila"><span>${escapeHtml(x.nombre)} · ${x.unidades} u.</span><strong>${formatoDineroCierre(x.ingresos)}</strong></div>`).join(""):'<div class="fila"><span>Sin ventas</span><strong>—</strong></div>',cats=d.categorias.length?d.categorias.map(([n,v])=>`<div class="fila"><span>${escapeHtml(n)}</span><strong>${formatoDineroCierre(v)}</strong></div>`).join(""):'<div class="fila"><span>Sin gastos</span><strong>—</strong></div>',contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reporte Flackunloker</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#f4f7fb;color:#111;margin:0}.hoja{max-width:520px;margin:24px auto;background:#fff;padding:28px;border-radius:18px}.fila{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid #eee}.total{font-size:20px;font-weight:800}.btn{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700}@media print{body{background:#fff}.hoja{margin:0;max-width:none}.btn{display:none}}
 .cuenta-proveedor-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px;border-left:5px solid #f5a623}.cuenta-proveedor-card.vencida{border-left-color:#d93025}.cuenta-proveedor-card.pagada{border-left-color:#168044}.cuenta-proveedor-superior{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.cuenta-proveedor-superior h3{margin:0 0 5px;font-size:16px}.cuenta-proveedor-superior p{margin:0;color:#777;font-size:13px}.cuenta-proveedor-saldo{font-weight:800;color:#d93025;white-space:nowrap}.cuenta-proveedor-detalle{margin-top:12px;font-size:13px;line-height:1.75;color:#555}.acciones-cuenta-proveedor{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-cuenta-proveedor{border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.boton-pagar-proveedor{background:#e9f8ef;color:#168044}.boton-historial-proveedor{background:#eaf4ff;color:#0a84ff}.estado-cuenta{display:inline-block;margin-top:8px;padding:7px 10px;border-radius:10px;font-size:12px;font-weight:800}.estado-cuenta.pendiente{background:#fff7e8;color:#a15c00}.estado-cuenta.vencida{background:#ffecec;color:#d93025}.estado-cuenta.pagada{background:#e9f8ef;color:#168044}
 </style></head><body><div class="hoja"><h1>Flackunloker</h1><h2>Reporte · ${escapeHtml(d.texto)}</h2><div class="fila"><span>Recibos / Unidades</span><strong>${d.recibos} / ${d.unidades}</strong></div><div class="fila"><span>Ingresos por ventas</span><strong>${formatoDineroCierre(d.ingresos)}</strong></div><div class="fila"><span>Costo mercancía</span><strong>${formatoDineroCierre(d.costo)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>${formatoDineroCierre(d.gananciaBruta)}</strong></div><div class="fila"><span>Gastos</span><strong>${formatoDineroCierre(d.gastosTotal)}</strong></div><div class="fila total"><span>Ganancia neta</span><strong>${formatoDineroCierre(d.gananciaNeta)}</strong></div><div class="fila"><span>Total cobrado</span><strong>${formatoDineroCierre(d.cobrado)}</strong></div><div class="fila"><span>Efectivo / ATH</span><strong>${formatoDineroCierre(d.efectivo)} / ${formatoDineroCierre(d.ath)}</strong></div><div class="fila"><span>Tarjeta / Otros</span><strong>${formatoDineroCierre(d.tarjeta)} / ${formatoDineroCierre(d.otros)}</strong></div><div class="fila"><span>Saldo pendiente créditos</span><strong>${formatoDineroCierre(d.saldoCredito)}</strong></div><h3>Productos vendidos</h3>${prod}<h3>Gastos por categoría</h3>${cats}<button class="btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div>
-<script>
-/* ===== FLACKUNLOKER · Preparación inicial offline del dispositivo ===== */
-(function(){
-  const KEY="flk_instalacion_dispositivo_v1";
-  async function flkPrepararDispositivo(){
-    try{
-      localStorage.setItem("flk_cache_preparando","1");
-      if("serviceWorker" in navigator){
-        try{
-          await navigator.serviceWorker.register("./sw.js");
-        }catch(e){}
-      }
-      const estado={
-        completado:true,
-        fecha:new Date().toISOString(),
-        version:document.querySelector('meta[name="flackunloker-offline-version"]')?.content||""
-      };
-      localStorage.setItem(KEY,JSON.stringify(estado));
-      localStorage.removeItem("flk_cache_preparando");
-    }catch(e){
-      localStorage.removeItem("flk_cache_preparando");
-    }
-  }
 
-  window.flkDispositivoPreparado=function(){
-    return localStorage.getItem(KEY)!==null;
-  };
-
-  if(!flkDispositivoPreparado()){
-    window.addEventListener("load",()=>flkPrepararDispositivo(),{once:true});
-  }
-})();
-</script>
 
 </body></html>`;const w=window.open("","_blank");if(!w)return alert("El navegador bloqueó la ventana. Permite ventanas emergentes para ver el reporte.");w.document.open();w.document.write(contenido);w.document.close()}
 
@@ -9281,39 +9128,7 @@ function imprimirInformeArrendamiento(){
  <div class="nota">Este informe calcula el arrendamiento según la configuración mensual guardada en Supabase. El cálculo es informativo y no registra por sí solo una salida de caja.</div>
  <button class="imprimir" onclick="window.print()">🖨️ Imprimir informe</button>
  </div>
-<script>
-/* ===== FLACKUNLOKER · Preparación inicial offline del dispositivo ===== */
-(function(){
-  const KEY="flk_instalacion_dispositivo_v1";
-  async function flkPrepararDispositivo(){
-    try{
-      localStorage.setItem("flk_cache_preparando","1");
-      if("serviceWorker" in navigator){
-        try{
-          await navigator.serviceWorker.register("./sw.js");
-        }catch(e){}
-      }
-      const estado={
-        completado:true,
-        fecha:new Date().toISOString(),
-        version:document.querySelector('meta[name="flackunloker-offline-version"]')?.content||""
-      };
-      localStorage.setItem(KEY,JSON.stringify(estado));
-      localStorage.removeItem("flk_cache_preparando");
-    }catch(e){
-      localStorage.removeItem("flk_cache_preparando");
-    }
-  }
 
-  window.flkDispositivoPreparado=function(){
-    return localStorage.getItem(KEY)!==null;
-  };
-
-  if(!flkDispositivoPreparado()){
-    window.addEventListener("load",()=>flkPrepararDispositivo(),{once:true});
-  }
-})();
-</script>
 
 </body></html>`;
  const w=window.open("","_blank");
@@ -9485,8 +9300,32 @@ async function marcarOrdenada(id){
  actualizarProveedores();
  if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
 }
-function actualizarCamposCreditoProveedor(){const credito=document.getElementById("condicionPagoProveedor").value==="credito";document.getElementById("campoAbonoProveedor").classList.toggle("visible",credito);document.getElementById("campoVencimientoProveedor").classList.toggle("visible",credito);if(credito&&!document.getElementById("fechaVencimientoProveedor").value){const d=new Date();d.setDate(d.getDate()+30);document.getElementById("fechaVencimientoProveedor").value=fechaLocalISO(d)}if(!credito){document.getElementById("abonoInicialProveedor").value="0";document.getElementById("fechaVencimientoProveedor").value=""}}
-function recibirOrden(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;const p=productos.find(x=>x.id===o.productoId);if(!p)return alert("El producto de esta orden ya no existe en el inventario.");ordenRecepcionId=id;document.getElementById("formularioRecepcionOrden").reset();document.getElementById("condicionPagoProveedor").value="pagado";document.getElementById("textoRecepcionOrden").textContent=`${numeroOrdenCompra(o)} · ${o.proveedor} · Total $${Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)).toFixed(2)}`;actualizarCamposCreditoProveedor();document.getElementById("modalRecepcionOrden").classList.add("visible")}
+function flkSeleccionarCondicionProveedor(valor){
+ const credito=valor==="credito";
+ const condicion=document.getElementById("condicionPagoProveedor");
+ if(condicion)condicion.value=credito?"credito":"pagado";
+ const btnPagada=document.getElementById("btnCompraPagada");
+ const btnCredito=document.getElementById("btnCompraCredito");
+ if(btnPagada)btnPagada.className=credito?"boton-cancelar":"boton-guardar";
+ if(btnCredito)btnCredito.className=credito?"boton-guardar":"boton-cancelar";
+ actualizarCamposCreditoProveedor();
+}
+function actualizarCamposCreditoProveedor(){
+ const credito=document.getElementById("condicionPagoProveedor").value==="credito";
+ document.getElementById("campoAbonoProveedor").classList.toggle("visible",credito);
+ document.getElementById("campoVencimientoProveedor").classList.toggle("visible",credito);
+ if(credito){
+  document.getElementById("abonoInicialProveedor").value="0";
+  if(!document.getElementById("fechaVencimientoProveedor").value){
+   const d=new Date();d.setDate(d.getDate()+30);
+   document.getElementById("fechaVencimientoProveedor").value=fechaLocalISO(d);
+  }
+ }else{
+  document.getElementById("abonoInicialProveedor").value="0";
+  document.getElementById("fechaVencimientoProveedor").value="";
+ }
+}
+function recibirOrden(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;const p=productos.find(x=>x.id===o.productoId);if(!p)return alert("El producto de esta orden ya no existe en el inventario.");ordenRecepcionId=id;document.getElementById("formularioRecepcionOrden").reset();flkSeleccionarCondicionProveedor("pagado");document.getElementById("textoRecepcionOrden").textContent=`${numeroOrdenCompra(o)} · ${o.proveedor} · Total $${Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)).toFixed(2)}`;actualizarCamposCreditoProveedor();document.getElementById("modalRecepcionOrden").classList.add("visible")}
 function cerrarRecepcionOrden(){document.getElementById("modalRecepcionOrden").classList.remove("visible");document.getElementById("formularioRecepcionOrden").reset();ordenRecepcionId=null}
 document.getElementById("formularioRecepcionOrden").addEventListener("submit",async e=>{
  e.preventDefault();e.stopPropagation();
@@ -9591,7 +9430,24 @@ document.getElementById("formularioPagoProveedor").addEventListener("submit",asy
  cerrarPagoProveedor();
  if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
 });
-function verHistorialPagosProveedor(id){const o=ordenesCompra.find(x=>x.id===id);if(!o)return;document.getElementById("textoHistorialPagosProveedor").textContent=`${o.proveedor} · ${numeroOrdenCompra(o)} · Total $${Number(o.costoTotal||0).toFixed(2)}`;const pagos=Array.isArray(o.pagosProveedor)?[...o.pagosProveedor].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)):[];document.getElementById("listaHistorialPagosProveedor").innerHTML=pagos.length?pagos.map(p=>`<div class="abono-card"><div class="abono-superior"><strong>${new Date(p.fecha).toLocaleString("es-PR")}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">Método: <strong>${escapeHtml(normalizarMetodoFlujo(p.metodo||"MLC"))}</strong><br>Saldo anterior: $${Number(p.saldoAnterior||0).toFixed(2)} · Restante: $${Number(p.saldoRestante||0).toFixed(2)}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div></div>`).join(""):'<div class="sin-productos">No hay pagos registrados.</div>';document.getElementById("modalHistorialPagosProveedor").classList.add("visible")}
+function verHistorialPagosProveedor(id){
+ const o=ordenesCompra.find(x=>x.id===id);if(!o)return;
+ const total=Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0));
+ document.getElementById("textoHistorialPagosProveedor").textContent=`${o.proveedor} · ${numeroOrdenCompra(o)} · Total $${total.toFixed(2)}`;
+ const originales=Array.isArray(o.pagosProveedor)?[...o.pagosProveedor]:[];
+ // Reconstruye los saldos desde el total real de la orden para que el historial
+ // sea correcto incluso si un pago antiguo llegó sin saldoAnterior/saldoRestante.
+ let saldo=total;
+ const cronologicos=originales.sort((a,b)=>new Date(a.fecha||0)-new Date(b.fecha||0)).map(p=>{
+  const cantidad=Number(p.cantidad||0);
+  const anterior=saldo;
+  saldo=Math.max(0,saldo-cantidad);
+  return {...p,saldoAnterior:anterior,saldoRestante:saldo};
+ });
+ const pagos=cronologicos.reverse();
+ document.getElementById("listaHistorialPagosProveedor").innerHTML=pagos.length?pagos.map(p=>`<div class="abono-card"><div class="abono-superior"><strong>${new Date(p.fecha).toLocaleString("es-PR")}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">Método: <strong>${escapeHtml(normalizarMetodoFlujo(p.metodo||"MLC"))}</strong><br>Saldo anterior: $${Number(p.saldoAnterior||0).toFixed(2)} · Restante: $${Number(p.saldoRestante||0).toFixed(2)}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div></div>`).join(""):'<div class="sin-productos">No hay pagos registrados.</div>';
+ document.getElementById("modalHistorialPagosProveedor").classList.add("visible")
+}
 function cerrarHistorialPagosProveedor(){document.getElementById("modalHistorialPagosProveedor").classList.remove("visible")}
 function actualizarFiltroProveedorCuentas(){const sel=document.getElementById("filtroProveedorCuentas");if(!sel)return;const prev=sel.value,nombres=[...new Set(ordenesCompra.filter(o=>o.estado==="recibida").map(o=>String(o.proveedor||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"}));sel.innerHTML='<option value="">Todos los proveedores</option>'+nombres.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");if(nombres.includes(prev))sel.value=prev}
 function mostrarListaCuentasPagar(){actualizarFiltroProveedorCuentas();const lista=document.getElementById("listaCuentasPagar");if(!lista)return;const q=document.getElementById("busquedaCuentasPagar").value.toLowerCase().trim(),filtro=document.getElementById("filtroCuentasPagar").value,prov=document.getElementById("filtroProveedorCuentas").value;let arr=ordenesCompra.filter(o=>o.estado==="recibida"&&(!prov||o.proveedor===prov)&&[o.proveedor,o.nombre,o.sku,numeroOrdenCompra(o)].some(v=>String(v||"").toLowerCase().includes(q)));arr=arr.filter(o=>{const e=estadoCuentaProveedor(o);return filtro==="todas"||(filtro==="pendientes"&&e.clave!=="pagada")||(filtro==="vencidas"&&e.clave==="vencida")||(filtro==="pagadas"&&e.clave==="pagada")});arr.sort((a,b)=>Number(b.saldoProveedor||0)-Number(a.saldoProveedor||0));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay cuentas con esos filtros.</div>';return}lista.innerHTML=arr.map(o=>{const e=estadoCuentaProveedor(o),total=Number(o.costoTotal||0),pagado=Number(o.totalPagadoProveedor||0),saldo=Number(o.saldoProveedor||0);return `<div class="cuenta-proveedor-card ${e.clave}"><div class="cuenta-proveedor-superior"><div><h3>${escapeHtml(o.proveedor||"Proveedor")}</h3><p>${numeroOrdenCompra(o)} · ${escapeHtml(o.nombre)}</p></div><div class="cuenta-proveedor-saldo">$${saldo.toFixed(2)}</div></div><span class="estado-cuenta ${e.clave}">${e.texto}</span><div class="cuenta-proveedor-detalle">Compra total: <strong>$${total.toFixed(2)}</strong><br>Total pagado: <strong>$${pagado.toFixed(2)}</strong><br>Saldo pendiente: <strong>$${saldo.toFixed(2)}</strong>${o.fechaVencimientoProveedor?`<br>Vencimiento: <strong>${new Date(o.fechaVencimientoProveedor+"T00:00:00").toLocaleDateString("es-PR")}</strong>`:""}</div><div class="acciones-cuenta-proveedor">${saldo>0.009?`<button class="boton-cuenta-proveedor boton-pagar-proveedor" onclick="abrirPagoProveedor(${o.id})">💵 Registrar pago</button>`:""}<button class="boton-cuenta-proveedor boton-historial-proveedor" onclick="verHistorialPagosProveedor(${o.id})">📋 Historial</button></div></div>`}).join("")}
@@ -9870,39 +9726,7 @@ function imprimirFlujoCaja(){
  const d=datosFlujoCaja();if(!d)return alert("Selecciona un período válido.");
  const filas=[...d.mov].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).map(m=>`<tr><td>${new Date(m.fecha).toLocaleString("es-PR")}</td><td>${escapeHtml(m.concepto)}</td><td>${escapeHtml(m.metodo)}</td><td style="text-align:right">${m.tipo==="entrada"?"+":"-"}$${m.cantidad.toFixed(2)}</td></tr>`).join("");
  const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Flujo de caja</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{margin-bottom:4px}p{color:#666}.res{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0}.c{border:1px solid #ddd;border-radius:12px;padding:14px}.c strong{display:block;font-size:22px;margin-top:6px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:9px;border-bottom:1px solid #ddd;text-align:left}.print{margin-top:20px;padding:12px 18px}@media print{.print{display:none}}</style></head><body><h1>Flackunloker · Flujo de caja</h1><p>${escapeHtml(d.lim.texto)}</p><div class="res"><div class="c">Entradas<strong>$${d.entradas.toFixed(2)}</strong></div><div class="c">Salidas<strong>$${d.salidas.toFixed(2)}</strong></div><div class="c">Flujo neto<strong>$${d.neto.toFixed(2)}</strong></div></div><table><thead><tr><th>Fecha</th><th>Movimiento</th><th>Método</th><th style="text-align:right">Importe</th></tr></thead><tbody>${filas||'<tr><td colspan="4">Sin movimientos.</td></tr>'}</tbody></table><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button>
-<script>
-/* ===== FLACKUNLOKER · Preparación inicial offline del dispositivo ===== */
-(function(){
-  const KEY="flk_instalacion_dispositivo_v1";
-  async function flkPrepararDispositivo(){
-    try{
-      localStorage.setItem("flk_cache_preparando","1");
-      if("serviceWorker" in navigator){
-        try{
-          await navigator.serviceWorker.register("./sw.js");
-        }catch(e){}
-      }
-      const estado={
-        completado:true,
-        fecha:new Date().toISOString(),
-        version:document.querySelector('meta[name="flackunloker-offline-version"]')?.content||""
-      };
-      localStorage.setItem(KEY,JSON.stringify(estado));
-      localStorage.removeItem("flk_cache_preparando");
-    }catch(e){
-      localStorage.removeItem("flk_cache_preparando");
-    }
-  }
 
-  window.flkDispositivoPreparado=function(){
-    return localStorage.getItem(KEY)!==null;
-  };
-
-  if(!flkDispositivoPreparado()){
-    window.addEventListener("load",()=>flkPrepararDispositivo(),{once:true});
-  }
-})();
-</script>
 
 </body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el reporte.");w.document.write(html);w.document.close()
@@ -9937,13 +9761,14 @@ function configuracionArrendamientoMes(mes){
 }
 function ventasBrutasMesArrendamiento(mes){
  if(!mes)return 0;
+ // Base real para contribución: ventas efectivas después de devoluciones.
+ // v.ingreso ya representa el importe neto vigente de cada venta, por lo que
+ // NO se vuelven a sumar las devoluciones canceladas.
  return ventas.reduce((total,v)=>{
   const d=new Date(v.fecha);
   if(Number.isNaN(d.getTime()))return total;
   const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-  if(vm!==mes)return total;
-  const dev=Array.isArray(v.devoluciones)?v.devoluciones.reduce((t,r)=>t+Number(r.monto??r.reembolso??0),0):0;
-  return total+Number(v.ingreso||0)+dev;
+  return vm===mes?total+Number(v.ingreso||0):total;
  },0)
 }
 function ventasNetasMesArrendamiento(mes){
@@ -10446,39 +10271,7 @@ body.flk-v6125 #cuentasTotalPagado {
 @media(max-width:430px){.flk-qr-controles,.flk-qr-acciones{grid-template-columns:1fr}}
 </style>
 </head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button>
-<script>
-/* ===== FLACKUNLOKER · Preparación inicial offline del dispositivo ===== */
-(function(){
-  const KEY="flk_instalacion_dispositivo_v1";
-  async function flkPrepararDispositivo(){
-    try{
-      localStorage.setItem("flk_cache_preparando","1");
-      if("serviceWorker" in navigator){
-        try{
-          await navigator.serviceWorker.register("./sw.js");
-        }catch(e){}
-      }
-      const estado={
-        completado:true,
-        fecha:new Date().toISOString(),
-        version:document.querySelector('meta[name="flackunloker-offline-version"]')?.content||""
-      };
-      localStorage.setItem(KEY,JSON.stringify(estado));
-      localStorage.removeItem("flk_cache_preparando");
-    }catch(e){
-      localStorage.removeItem("flk_cache_preparando");
-    }
-  }
 
-  window.flkDispositivoPreparado=function(){
-    return localStorage.getItem(KEY)!==null;
-  };
-
-  if(!flkDispositivoPreparado()){
-    window.addEventListener("load",()=>flkPrepararDispositivo(),{once:true});
-  }
-})();
-</script>
 
 </body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el estado financiero.");w.document.write(html);w.document.close()
@@ -11515,42 +11308,7 @@ function imprimirEtiquetaQRProducto(){
  const vista=document.getElementById("flkEtiquetaQRVista"),img=vista.querySelector("img"),canvas=vista.querySelector("canvas");
  const qr=canvas?canvas.toDataURL("image/png"):(img?img.src:"");
  const p=flkProductoEtiquetaActual,w=window.open("","_blank");if(!w)return alert("El navegador bloqueó la impresión.");
- const html='<!doctype html><html><head><meta charset="utf-8"><title>Etiqueta QR</title><style>@page{size:58mm auto;margin:2mm}body{margin:0;width:54mm;font-family:Arial,sans-serif}.et{width:52mm;padding:2mm;text-align:center}.et img{width:30mm;height:30mm}.et h3{font-size:4mm;margin:1mm 0}.et p{font-size:2.7mm;margin:.5mm 0}.manual{margin-top:1mm;padding-top:1mm;border-top:.25mm dashed #777;font-size:2.8mm;font-weight:700}</style></head><body><div class="et"><strong>FLACKUNLOKER</strong><br><img src="'+qr+'"><h3>'+flkQrEsc(p.nombre)+'</h3><p>SKU: <strong>'+flkQrEsc(p.sku)+'</strong></p><p class="manual">Código manual: <strong>'+flkQrEsc(p.sku)+'</strong></p></div>
-<script>
-/* ===== FLACKUNLOKER · Preparación inicial offline del dispositivo ===== */
-(function(){
-  const KEY="flk_instalacion_dispositivo_v1";
-  async function flkPrepararDispositivo(){
-    try{
-      localStorage.setItem("flk_cache_preparando","1");
-      if("serviceWorker" in navigator){
-        try{
-          await navigator.serviceWorker.register("./sw.js");
-        }catch(e){}
-      }
-      const estado={
-        completado:true,
-        fecha:new Date().toISOString(),
-        version:document.querySelector('meta[name="flackunloker-offline-version"]')?.content||""
-      };
-      localStorage.setItem(KEY,JSON.stringify(estado));
-      localStorage.removeItem("flk_cache_preparando");
-    }catch(e){
-      localStorage.removeItem("flk_cache_preparando");
-    }
-  }
-
-  window.flkDispositivoPreparado=function(){
-    return localStorage.getItem(KEY)!==null;
-  };
-
-  if(!flkDispositivoPreparado()){
-    window.addEventListener("load",()=>flkPrepararDispositivo(),{once:true});
-  }
-})();
-</script>
-
-</body></html>';
+ const html='<!doctype html><html><head><meta charset="utf-8"><title>Etiqueta QR</title><style>@page{size:58mm auto;margin:2mm}body{margin:0;width:54mm;font-family:Arial,sans-serif}.et{width:52mm;padding:2mm;text-align:center}.et img{width:30mm;height:30mm}.et h3{font-size:4mm;margin:1mm 0}.et p{font-size:2.7mm;margin:.5mm 0}.manual{margin-top:1mm;padding-top:1mm;border-top:.25mm dashed #777;font-size:2.8mm;font-weight:700}</style></head><body><div class="et"><strong>FLACKUNLOKER</strong><br><img src="'+qr+'"><h3>'+flkQrEsc(p.nombre)+'</h3><p>SKU: <strong>'+flkQrEsc(p.sku)+'</strong></p><p class="manual">Código manual: <strong>'+flkQrEsc(p.sku)+'</strong></p></div></body></html>';
  w.document.open();w.document.write(html);w.document.close();setTimeout(function(){w.print()},250);
 }
 
@@ -12072,7 +11830,7 @@ function cancelarLecturaQRPendiente(){
 }
 
 // Preserve original business logic and replace scanner-facing entry point.
-const flkProcesarCodigoQRNegocio=procesarCodigoQR;
+let flkProcesarCodigoQRNegocio=procesarCodigoQR;
 procesarCodigoQR=function(codigo,desdeCamara=false){
  if(desdeCamara){
   flkPresentarLecturaParaConfirmar(codigo);
@@ -12319,7 +12077,7 @@ flkPresentarLecturaParaConfirmar=function(codigo){
 };
 
 // Preserve original business processor. Deliberate manual/HID inputs share the same lock.
-const flkProcesarNegocioGlobal=flkProcesarCodigoQRNegocio;
+let flkProcesarNegocioGlobal=flkProcesarCodigoQRNegocio;
 flkProcesarCodigoQRNegocio=function(codigo,desdeCamara){
  if(desdeCamara){
   return flkProcesarNegocioGlobal(codigo,desdeCamara);
@@ -12883,39 +12641,7 @@ async function flkDeepStorageCopy(){
 
 </script>
 
-<script>
-/* ===== FLACKUNLOKER · Preparación inicial offline del dispositivo ===== */
-(function(){
-  const KEY="flk_instalacion_dispositivo_v1";
-  async function flkPrepararDispositivo(){
-    try{
-      localStorage.setItem("flk_cache_preparando","1");
-      if("serviceWorker" in navigator){
-        try{
-          await navigator.serviceWorker.register("./sw.js");
-        }catch(e){}
-      }
-      const estado={
-        completado:true,
-        fecha:new Date().toISOString(),
-        version:document.querySelector('meta[name="flackunloker-offline-version"]')?.content||""
-      };
-      localStorage.setItem(KEY,JSON.stringify(estado));
-      localStorage.removeItem("flk_cache_preparando");
-    }catch(e){
-      localStorage.removeItem("flk_cache_preparando");
-    }
-  }
 
-  window.flkDispositivoPreparado=function(){
-    return localStorage.getItem(KEY)!==null;
-  };
-
-  if(!flkDispositivoPreparado()){
-    window.addEventListener("load",()=>flkPrepararDispositivo(),{once:true});
-  }
-})();
-</script>
 
 </body>
 </html>
