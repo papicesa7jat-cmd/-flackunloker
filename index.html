@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-31-v61.94-login-offline-real">
-<title>Flackunloker · v61.94</title>
+<meta name="flackunloker-offline-version" content="2026-08-31-v61.95-login-offline-real">
+<title>Flackunloker · v61.95</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}
@@ -4365,6 +4365,39 @@ async function flkValidarAccesoOffline(email,password){
   validated_at:reg.validated_at
  };
 }
+
+async function flkRestaurarSesionSupabaseOffline(){
+ try{
+  const raw = localStorage.getItem("flk_offline_authorized_access");
+  if(!raw) return false;
+
+  const data = JSON.parse(raw);
+  const session = data?.session;
+  if(!session?.access_token || !session?.refresh_token) return false;
+
+  const clientes = [
+    window.flkSupabasePrincipal,
+    window.flkSupabaseLocal
+  ].filter(Boolean);
+
+  for(const cli of clientes){
+    try{
+      if(cli.auth?.setSession){
+        const r = await cli.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token
+        });
+        if(!r?.error){
+          console.log("Sesión Supabase restaurada offline");
+          return true;
+        }
+      }
+    }catch(e){}
+  }
+ }catch(e){}
+ return false;
+}
+
 async function flkEntrarOffline(email,password){
  const r=await flkValidarAccesoOffline(email,password);
  if(!r.ok){
@@ -4391,6 +4424,7 @@ async function flkEntrarOffline(email,password){
  localStorage.setItem(FLK_BUSINESS_STORAGE_KEY,r.business_id);
  flkCambiarContextoLocalCentro(r.business_id);
 
+ await flkRestaurarSesionSupabaseOffline();
  document.getElementById("authOverlay")?.classList.add("oculto");
  flkPintarSesionLocal(r.user);
  flkAplicarPendientesSobreDatos();
@@ -4480,7 +4514,7 @@ function flkRolLocal(userId){
 }
 function flkLimpiarSesionLocal(){
  try{
-  // v61.94: borrar sesión activa pero conservar autorización offline del dispositivo.
+  // v61.95: borrar sesión activa pero conservar autorización offline del dispositivo.
   localStorage.removeItem(FLK_SESSION_CACHE_KEY);
   localStorage.removeItem(FLK_ROLE_CACHE_KEY);
  }catch(e){}
@@ -4979,7 +5013,7 @@ async function flkAccederASupabaseLocal(){
 }
 
 async function flkLoginConFailover(email,password){
- // v61.94 · Revisa autorización offline persistente antes del login remoto.
+ // v61.95 · Revisa autorización offline persistente antes del login remoto.
  if(!navigator.onLine){
   const local=await flkLoginLocalConRutas(email,password);
   if(local?.session){
