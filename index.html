@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-31-v61.96-login-offline-real">
-<title>Flackunloker · v61.96</title>
+<meta name="flackunloker-offline-version" content="2026-08-31-v61.97-licencia-offline-corregida">
+<title>Flackunloker · v61.97</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}
@@ -5605,6 +5605,21 @@ function flkToggleLicenciaDetalle(){
  document.getElementById("flkLicenciaEstado")?.classList.toggle("expandido")
 }
 async function flkValidarLicencia(){
+ // v61.97: si la sesión está en contingencia/offline, usar primero la última licencia válida cacheada.
+ // Evita que navigator.onLine o una caída del servidor borren la licencia mientras se trabaja offline.
+ if(flkSesionDesdeLocal || !navigator.onLine || flkPrincipalDisponibleEstado===false){
+  try{
+   const cacheOffline=flkLeerCacheLicencia();
+   if(cacheOffline?.info){
+    flkLicenciaUltimaValidacion=cacheOffline.validated_at;
+    flkPintarLicencia(cacheOffline.info,"offline-cache");
+    return cacheOffline.info;
+   }
+  }catch(e){
+   console.warn("No se pudo leer caché de licencia offline",e);
+  }
+ }
+
  const caja=document.getElementById("flkLicenciaEstado");
  if(caja){
   caja.classList.remove("activa","gracia","vencida","suspendida","error");
