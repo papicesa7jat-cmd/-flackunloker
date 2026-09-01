@@ -2895,11 +2895,11 @@ async function flkSondearHttpServidor(url,headers={},timeoutMs=2200){
 }
 
 async function flkSondearPrincipalServidor(timeoutMs=2400){
- // Sondeo directo con window.fetch para que el bloqueador de laboratorio del
- // Principal sea respetado incluso si supabase-js conservó otra referencia a fetch.
+ // v61.78-fix401b · Comprobar disponibilidad del Principal sin consultar
+ // una tabla protegida con el rol anon. /auth/v1/health solo confirma vida.
  return await flkSondearHttpServidor(
-  FLK_SUPABASE_URL+"/rest/v1/products?select=id&limit=1",
-  {"apikey":FLK_SUPABASE_KEY,"Authorization":"Bearer "+FLK_SUPABASE_KEY},
+  FLK_SUPABASE_URL+"/auth/v1/health",
+  {"apikey":FLK_SUPABASE_KEY},
   timeoutMs
  );
 }
@@ -4053,25 +4053,26 @@ window.addEventListener("online",async()=>{
    await cargarRolUsuario(data.session.user);
    setTimeout(()=>flkSincronizarSeguro(),250);
   }else{
-   const cache=flkSesionLocal();
-   if(cache?.user){
-    console.warn("Principal sin sesión confirmada; se conserva la sesión Offline/PWA.");
-    flkSesionDesdeLocal=false;
-    flkSesionLocalOrigen="";
-    flkPintarSesionLocal(cache.user);
-    flkPrincipalDisponibleEstado=false;
-    flkActualizarEstadoConexion("principal-off");
-   }else{
-    document.getElementById("authOverlay").classList.remove("oculto");
-   }
+   // v61.78-fix401b · Si hay Internet pero Supabase no tiene JWT, no presentar
+   // la caché Offline como una sesión online. Pedir login real al Principal.
+   flkSesionActiva=false;
+   flkSesionDesdeLocal=false;
+   flkSesionLocalOrigen="";
+   document.getElementById("authOverlay")?.classList.remove("oculto");
+   mostrarMensajeAuth("Inicia sesión para reconectar con Supabase.","ok");
   }
  }catch(err){
   console.error(err);
-  const cache=flkSesionLocal();
-  if(cache?.user){
-   flkPintarSesionLocal(cache.user);
-   flkPrincipalDisponibleEstado=false;
-   flkActualizarEstadoConexion("principal-off");
+  // Solo una caída real de red permite conservar la sesión Offline/PWA.
+  if(!navigator.onLine){
+   const cache=flkSesionLocal();
+   if(cache?.user){
+    flkPintarSesionLocal(cache.user);
+    flkPrincipalDisponibleEstado=false;
+    flkActualizarEstadoConexion("principal-off");
+   }
+  }else{
+   document.getElementById("authOverlay")?.classList.remove("oculto");
   }
  }
 });
@@ -5785,10 +5786,21 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
  }
  setTimeout(async()=>{
   try{
-   const {data}=await flkSupabase.auth.getSession();
-   window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});
+   const {data}=await flkSupabasePrincipal.auth.getSession();
+   if(data?.session?.user){
+    window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});
+   }else{
+    window.addEventListener("load",()=>{
+     flkSesionActiva=false;
+     document.getElementById("authOverlay")?.classList.remove("oculto");
+     mostrarMensajeAuth("Inicia sesión para conectar con Supabase.","ok");
+    },{once:true});
+   }
   }catch(err){
-   if(cache?.user)window.addEventListener("load",()=>flkPintarSesionLocal(cache.user),{once:true});
+   window.addEventListener("load",()=>{
+    if(!navigator.onLine && cache?.user)flkPintarSesionLocal(cache.user);
+    else document.getElementById("authOverlay")?.classList.remove("oculto");
+   },{once:true});
   }
  },0);
 })();
