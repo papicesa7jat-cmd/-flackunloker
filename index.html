@@ -2903,13 +2903,21 @@ async function flkSondearHttpServidor(url,headers={},timeoutMs=2200){
 }
 
 async function flkSondearPrincipalServidor(timeoutMs=2400){
- // v61.78-fix401b · Comprobar disponibilidad del Principal sin consultar
- // una tabla protegida con el rol anon. /auth/v1/health solo confirma vida.
- return await flkSondearHttpServidor(
-  FLK_SUPABASE_URL+"/auth/v1/health",
-  {"apikey":FLK_SUPABASE_KEY},
-  timeoutMs
- );
+ // v61.78-fix401c · El estado del Principal se valida con la sesión real
+ // de supabase-js. Evita /auth/v1/health y probes REST anónimos que pueden
+ // responder 401 aunque el usuario esté correctamente autenticado.
+ if(!navigator.onLine)return false;
+ try{
+  const r=await flkPromesaConTiempo(
+   flkSupabasePrincipal.auth.getSession(),
+   timeoutMs,
+   "principal-session-probe-timeout"
+  );
+  if(r?.error)throw r.error;
+  return !!r?.data?.session?.user;
+ }catch(_){
+  return false;
+ }
 }
 
 async function flkSondearServidorLocal(url,origen,timeoutMs=2200){
