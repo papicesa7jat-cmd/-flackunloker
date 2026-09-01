@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-31-v61.93-login-offline-real">
-<title>Flackunloker · v61.93</title>
+<meta name="flackunloker-offline-version" content="2026-08-31-v61.94-login-offline-real">
+<title>Flackunloker · v61.94</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}
@@ -4480,7 +4480,7 @@ function flkRolLocal(userId){
 }
 function flkLimpiarSesionLocal(){
  try{
-  // v61.93: borrar sesión activa pero conservar autorización offline del dispositivo.
+  // v61.94: borrar sesión activa pero conservar autorización offline del dispositivo.
   localStorage.removeItem(FLK_SESSION_CACHE_KEY);
   localStorage.removeItem(FLK_ROLE_CACHE_KEY);
  }catch(e){}
@@ -4979,7 +4979,7 @@ async function flkAccederASupabaseLocal(){
 }
 
 async function flkLoginConFailover(email,password){
- // v61.93 · Revisa autorización offline persistente antes del login remoto.
+ // v61.94 · Revisa autorización offline persistente antes del login remoto.
  if(!navigator.onLine){
   const local=await flkLoginLocalConRutas(email,password);
   if(local?.session){
