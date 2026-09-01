@@ -4177,7 +4177,9 @@ const FLK_SUPABASE_KEY='sb_publishable_KgcL58HbkZ66Cguhs5JT0A_V2xAoL7h';
 const FLK_SUPABASE_LOCAL_LOOPBACK_URL='https://localhost';
 const FLK_SUPABASE_LOCAL_LAN_URL='https://192.168.10.162';
 const FLK_SUPABASE_LOCAL_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzg4MDIzMTI4LCJleHAiOjE5NDU3MDMxMjh9.GktnQjYCGWzDCz21bON2HedztFqznDg0-0sEuhEoEL4';
-const flkSupabasePrincipal=window.supabase.createClient(FLK_SUPABASE_URL,FLK_SUPABASE_KEY);
+const flkSupabasePrincipal=window.supabase.createClient(FLK_SUPABASE_URL,FLK_SUPABASE_KEY,{
+ auth:{storageKey:'flackunloker-auth-principal-v1',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+});
 const flkSupabaseLocalLoopback=window.supabase.createClient(FLK_SUPABASE_LOCAL_LOOPBACK_URL,FLK_SUPABASE_LOCAL_KEY,{
  auth:{storageKey:'flackunloker-auth-local-loopback-v1',persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}
 });
@@ -5088,20 +5090,37 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
   const timeout=String(err?.code||"").includes("timeout")||msg.includes("timeout");
 
   if(timeout){
-   // v61.79: si existe sesión/caché PWA válida, no bloquear por caída temporal.
+   // v61.78-fix401: un timeout de cargas secundarias NO debe cerrar una sesión
+   // que Supabase ya autenticó correctamente. Primero confirmar la sesión real.
+   try{
+    const {data:sesionActual}=await flkSupabasePrincipal.auth.getSession();
+    if(sesionActual?.session?.user){
+     flkSesionActiva=true;
+     flkSesionDesdeLocal=false;
+     flkSesionLocalOrigen='';
+     flkGuardarSesionLocal(sesionActual.session);
+     flkPintarSesionLocal(sesionActual.session.user);
+     document.getElementById("authOverlay")?.classList.add("oculto");
+     flkActualizarEstadoConexion();
+     console.warn("Carga secundaria demorada; se conserva la sesión Supabase autenticada.");
+     return;
+    }
+   }catch(_){ }
+
+   // Solo usar la copia PWA si realmente no existe sesión Supabase.
    const cacheOffline=flkSesionLocal();
    if(cacheOffline?.user){
     try{
+     flkSesionActiva=true;
      flkPintarSesionLocal(cacheOffline.user);
      document.getElementById("authOverlay")?.classList.add("oculto");
      flkActualizarEstadoConexion("principal-off");
      return;
     }catch(_){ }
    }
-   await flkCancelarSesionTardia();
    document.getElementById("authOverlay")?.classList.remove("oculto");
    mostrarMensajeAuth(
-    "⚠️ No se pudo validar el primer acceso. Si ya usaste este dispositivo, intenta nuevamente para entrar con la sesión offline.",
+    "⚠️ No se pudo validar el acceso con Supabase. Intenta nuevamente.",
     "error"
    );
   }else if(msg.includes("invalid login credentials")||msg.includes("invalid credentials")){
