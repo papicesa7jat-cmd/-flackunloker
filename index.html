@@ -9712,13 +9712,14 @@ function configuracionArrendamientoMes(mes){
 }
 function ventasBrutasMesArrendamiento(mes){
  if(!mes)return 0;
+ // Base real para contribución: ventas efectivas después de devoluciones.
+ // v.ingreso ya representa el importe neto vigente de cada venta, por lo que
+ // NO se vuelven a sumar las devoluciones canceladas.
  return ventas.reduce((total,v)=>{
   const d=new Date(v.fecha);
   if(Number.isNaN(d.getTime()))return total;
   const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-  if(vm!==mes)return total;
-  const dev=Array.isArray(v.devoluciones)?v.devoluciones.reduce((t,r)=>t+Number(r.monto??r.reembolso??0),0):0;
-  return total+Number(v.ingreso||0)+dev;
+  return vm===mes?total+Number(v.ingreso||0):total;
  },0)
 }
 function ventasNetasMesArrendamiento(mes){
