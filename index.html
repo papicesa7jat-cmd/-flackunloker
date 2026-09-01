@@ -11515,42 +11515,7 @@ function imprimirEtiquetaQRProducto(){
  const vista=document.getElementById("flkEtiquetaQRVista"),img=vista.querySelector("img"),canvas=vista.querySelector("canvas");
  const qr=canvas?canvas.toDataURL("image/png"):(img?img.src:"");
  const p=flkProductoEtiquetaActual,w=window.open("","_blank");if(!w)return alert("El navegador bloqueó la impresión.");
- const html='<!doctype html><html><head><meta charset="utf-8"><title>Etiqueta QR</title><style>@page{size:58mm auto;margin:2mm}body{margin:0;width:54mm;font-family:Arial,sans-serif}.et{width:52mm;padding:2mm;text-align:center}.et img{width:30mm;height:30mm}.et h3{font-size:4mm;margin:1mm 0}.et p{font-size:2.7mm;margin:.5mm 0}.manual{margin-top:1mm;padding-top:1mm;border-top:.25mm dashed #777;font-size:2.8mm;font-weight:700}</style></head><body><div class="et"><strong>FLACKUNLOKER</strong><br><img src="'+qr+'"><h3>'+flkQrEsc(p.nombre)+'</h3><p>SKU: <strong>'+flkQrEsc(p.sku)+'</strong></p><p class="manual">Código manual: <strong>'+flkQrEsc(p.sku)+'</strong></p></div>
-<script>
-/* ===== FLACKUNLOKER · Preparación inicial offline del dispositivo ===== */
-(function(){
-  const KEY="flk_instalacion_dispositivo_v1";
-  async function flkPrepararDispositivo(){
-    try{
-      localStorage.setItem("flk_cache_preparando","1");
-      if("serviceWorker" in navigator){
-        try{
-          await navigator.serviceWorker.register("./sw.js");
-        }catch(e){}
-      }
-      const estado={
-        completado:true,
-        fecha:new Date().toISOString(),
-        version:document.querySelector('meta[name="flackunloker-offline-version"]')?.content||""
-      };
-      localStorage.setItem(KEY,JSON.stringify(estado));
-      localStorage.removeItem("flk_cache_preparando");
-    }catch(e){
-      localStorage.removeItem("flk_cache_preparando");
-    }
-  }
-
-  window.flkDispositivoPreparado=function(){
-    return localStorage.getItem(KEY)!==null;
-  };
-
-  if(!flkDispositivoPreparado()){
-    window.addEventListener("load",()=>flkPrepararDispositivo(),{once:true});
-  }
-})();
-</script>
-
-</body></html>';
+ const html='<!doctype html><html><head><meta charset="utf-8"><title>Etiqueta QR</title><style>@page{size:58mm auto;margin:2mm}body{margin:0;width:54mm;font-family:Arial,sans-serif}.et{width:52mm;padding:2mm;text-align:center}.et img{width:30mm;height:30mm}.et h3{font-size:4mm;margin:1mm 0}.et p{font-size:2.7mm;margin:.5mm 0}.manual{margin-top:1mm;padding-top:1mm;border-top:.25mm dashed #777;font-size:2.8mm;font-weight:700}</style></head><body><div class="et"><strong>FLACKUNLOKER</strong><br><img src="'+qr+'"><h3>'+flkQrEsc(p.nombre)+'</h3><p>SKU: <strong>'+flkQrEsc(p.sku)+'</strong></p><p class="manual">Código manual: <strong>'+flkQrEsc(p.sku)+'</strong></p></div></body></html>';
  w.document.open();w.document.write(html);w.document.close();setTimeout(function(){w.print()},250);
 }
 
