@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-31-v61.78-estabilidad-licencias-centros">
+<meta name="flackunloker-offline-version" content="2026-09-01-v61.78-login-offline-iphone">
 <title>Flackunloker · v61.78</title>
 <style>
 *{box-sizing:border-box}
@@ -4061,32 +4061,60 @@ async function flkProcesarColaOffline(){
  }
 }
 window.addEventListener("online",async()=>{
+ // Safari/iPhone puede disparar `online` por tener Wi‑Fi/datos activos aunque
+ // Supabase siga inaccesible. Nunca expulsar una sesión Offline/PWA por ese evento.
  flkActualizarEstadoConexion();
+ const cache=flkSesionLocal();
  try{
+  const principalVivo=await flkSondearPrincipalServidor(4500);
+  if(!principalVivo){
+   if(cache?.user){
+    flkSesionActiva=true;
+    flkSesionDesdeLocal=false;
+    flkSesionLocalOrigen="";
+    flkPrincipalDisponibleEstado=false;
+    flkPintarSesionLocal(cache.user);
+    document.getElementById("authOverlay")?.classList.add("oculto");
+    flkActualizarEstadoConexion("principal-off");
+   }
+   return;
+  }
+
   const {data}=await flkSupabase.auth.getSession();
   if(data?.session?.user){
+   flkPrincipalDisponibleEstado=true;
+   flkSesionActiva=true;
    flkGuardarSesionLocal(data.session);
    await cargarRolUsuario(data.session.user);
    setTimeout(()=>flkSincronizarSeguro(),250);
-  }else{
-   // v61.78-fix401b · Si hay Internet pero Supabase no tiene JWT, no presentar
-   // la caché Offline como una sesión online. Pedir login real al Principal.
-   flkSesionActiva=false;
+   return;
+  }
+
+  // Principal sí responde, pero todavía no existe JWT. Si el usuario entró
+  // offline, conservar esa sesión y dejar que el login online se solicite
+  // solamente cuando el usuario cierre sesión o recargue voluntariamente.
+  if(cache?.user && !flkCierreSesionEnCurso){
+   flkSesionActiva=true;
    flkSesionDesdeLocal=false;
    flkSesionLocalOrigen="";
-   document.getElementById("authOverlay")?.classList.remove("oculto");
-   mostrarMensajeAuth("Inicia sesión para reconectar con Supabase.","ok");
+   flkPintarSesionLocal(cache.user);
+   document.getElementById("authOverlay")?.classList.add("oculto");
+   flkActualizarEstadoConexion("principal-off");
+   return;
   }
+
+  flkSesionActiva=false;
+  document.getElementById("authOverlay")?.classList.remove("oculto");
+  mostrarMensajeAuth("Inicia sesión para reconectar con Supabase.","ok");
  }catch(err){
   console.error(err);
-  // Solo una caída real de red permite conservar la sesión Offline/PWA.
-  if(!navigator.onLine){
-   const cache=flkSesionLocal();
-   if(cache?.user){
-    flkPintarSesionLocal(cache.user);
-    flkPrincipalDisponibleEstado=false;
-    flkActualizarEstadoConexion("principal-off");
-   }
+  if(cache?.user && !flkCierreSesionEnCurso){
+   flkSesionActiva=true;
+   flkPrincipalDisponibleEstado=false;
+   flkPintarSesionLocal(cache.user);
+   document.getElementById("authOverlay")?.classList.add("oculto");
+   flkActualizarEstadoConexion("principal-off");
+   return;
   }else{
    document.getElementById("authOverlay")?.classList.remove("oculto");
   }
@@ -5106,7 +5134,40 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
   const msg=String(err?.message||err||"").toLowerCase();
   const timeout=String(err?.code||"").includes("timeout")||msg.includes("timeout");
 
-  if(timeout){
+  if(flkEsFalloConexionPrincipalLogin(err)){
+   // iPhone/Safari puede conservar navigator.onLine=true aunque no haya Internet.
+   // Si Principal falla por red (por ejemplo "Load failed"), usar el acceso Offline/PWA
+   // preparado previamente en este mismo dispositivo.
+   try{
+    const {data:sesionActual}=await flkSupabasePrincipal.auth.getSession();
+    if(sesionActual?.session?.user){
+     flkSesionActiva=true;
+     flkSesionDesdeLocal=false;
+     flkSesionLocalOrigen='';
+     flkGuardarSesionLocal(sesionActual.session);
+     flkPintarSesionLocal(sesionActual.session.user);
+     document.getElementById("authOverlay")?.classList.add("oculto");
+     flkPrincipalDisponibleEstado=false;
+     flkActualizarEstadoConexion("principal-off");
+     flkLimpiarPasswordLogin();
+     return;
+    }
+   }catch(_){ }
+   try{
+    flkSesionDesdeLocal=false;
+    flkSesionLocalOrigen='';
+    await flkEntrarOffline(email,password);
+    flkRecordarUsuarioLogin(email);
+    flkLimpiarPasswordLogin();
+    flkPrincipalDisponibleEstado=false;
+    flkActualizarEstadoConexion("principal-off");
+    mostrarMensajeAuth("","");
+    return;
+   }catch(errOffline){
+    document.getElementById("authOverlay")?.classList.remove("oculto");
+    mostrarMensajeAuth("❌ "+(errOffline?.message||"No se pudo iniciar offline."),"error");
+   }
+  }else if(timeout){
    // v61.78-fix401: un timeout de cargas secundarias NO debe cerrar una sesión
    // que Supabase ya autenticó correctamente. Primero confirmar la sesión real.
    try{
@@ -5807,6 +5868,17 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
     window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});
    }else{
     window.addEventListener("load",()=>{
+     const cacheActual=flkSesionLocal();
+     if(cacheActual?.user && !flkCierreSesionEnCurso){
+      flkSesionActiva=true;
+      flkSesionDesdeLocal=false;
+      flkSesionLocalOrigen="";
+      flkPrincipalDisponibleEstado=false;
+      flkPintarSesionLocal(cacheActual.user);
+      document.getElementById("authOverlay")?.classList.add("oculto");
+      flkActualizarEstadoConexion("principal-off");
+      return;
+     }
      flkSesionActiva=false;
      document.getElementById("authOverlay")?.classList.remove("oculto");
      mostrarMensajeAuth("Inicia sesión para conectar con Supabase.","ok");
