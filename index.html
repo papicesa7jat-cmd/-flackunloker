@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-08-31-v61.95-login-offline-real">
-<title>Flackunloker · v61.95</title>
+<meta name="flackunloker-offline-version" content="2026-08-31-v61.96-login-offline-real">
+<title>Flackunloker · v61.96</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}
@@ -4514,7 +4514,7 @@ function flkRolLocal(userId){
 }
 function flkLimpiarSesionLocal(){
  try{
-  // v61.95: borrar sesión activa pero conservar autorización offline del dispositivo.
+  // v61.96: borrar sesión activa pero conservar autorización offline del dispositivo.
   localStorage.removeItem(FLK_SESSION_CACHE_KEY);
   localStorage.removeItem(FLK_ROLE_CACHE_KEY);
  }catch(e){}
@@ -5013,7 +5013,7 @@ async function flkAccederASupabaseLocal(){
 }
 
 async function flkLoginConFailover(email,password){
- // v61.95 · Revisa autorización offline persistente antes del login remoto.
+ // v61.96 · Revisa autorización offline persistente antes del login remoto.
  if(!navigator.onLine){
   const local=await flkLoginLocalConRutas(email,password);
   if(local?.session){
@@ -12625,6 +12625,45 @@ async function flkDeepStorageCopy(){
       window.flkPrepararDispositivoOfflineNoBloqueante?.();
     },1200);
   },{once:true});
+})();
+</script>
+
+
+<script>
+/* ===== v61.96 Cache de licencias offline ===== */
+(function(){
+
+window.flkGuardarLicenciasOffline = function(licencias){
+ try{
+   localStorage.setItem("flk_offline_licencias_cache", JSON.stringify({
+     licencias: licencias || [],
+     fecha: new Date().toISOString()
+   }));
+   console.log("Licencias guardadas en caché offline");
+   return true;
+ }catch(e){
+   return false;
+ }
+};
+
+window.flkLeerLicenciasOffline = function(){
+ try{
+   const data = JSON.parse(localStorage.getItem("flk_offline_licencias_cache") || "null");
+   return data?.licencias || [];
+ }catch(e){
+   return [];
+ }
+};
+
+window.flkUsarLicenciasOffline = function(){
+ const licencias = window.flkLeerLicenciasOffline();
+ if(licencias.length){
+   console.log("Licencias cargadas desde caché offline");
+   return licencias;
+ }
+ return null;
+};
+
 })();
 </script>
 
