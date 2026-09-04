@@ -10663,7 +10663,7 @@ function pCrearVista(){
  fecha.value=pFechaISO(new Date());
  var bEst=document.getElementById('botonEstadisticas');
  if(bEst&&!document.getElementById('botonPrestacionesServicio')){
-  var b=document.createElement('button');b.id='botonPrestacionesServicio';b.className='solo-admin';b.innerHTML='🛠️ Prestaciones';b.addEventListener('click',mostrarPrestacionesServicio);bEst.parentNode.insertBefore(b,bEst);
+  var b=document.createElement('button');b.id='botonPrestacionesServicio';b.className='solo-admin';b.innerHTML='🛠️ Prestaciones';b.addEventListener('click',function(ev){if(ev){ev.preventDefault();ev.stopPropagation();}window.mostrarPrestacionesServicio();var mf=document.getElementById('menuPrincipalFondo');if(mf)mf.classList.remove('visible');});bEst.parentNode.insertBefore(b,bEst);
  }
 }
 function pGuardar(){
@@ -10697,7 +10697,8 @@ window.flkEliminarPrestacionServicio=pEliminar;
 window.mostrarPrestacionesServicio=function(){
  if(typeof requiereAdmin==='function'&&!requiereAdmin('Prestaciones de servicio'))return;
  if(typeof flkOcultarTodasLasVistas==='function')flkOcultarTodasLasVistas();
- var v=document.getElementById('vistaPrestacionesServicio');if(v)v.style.display='block';
+ var ids=['vistaInventario','vistaHistorial','vistaVentas','vistaClientes','vistaGastos','vistaCierre','vistaReportes','vistaAlertas','vistaOrdenes','vistaProveedores','vistaCuentasPagar','vistaFlujoCaja','vistaFinanzas','vistaEstadisticas','vistaAdminSoftware','vistaLicencias','vistaUsuarios'];ids.forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='none';});
+ var v=document.getElementById('vistaPrestacionesServicio');if(v)v.style.setProperty('display','block','important');
  document.querySelectorAll('.menu-panel button.activo').forEach(function(b){b.classList.remove('activo')});var btn=document.getElementById('botonPrestacionesServicio');if(btn)btn.classList.add('activo');
  pActualizar();if(typeof scrollTop==='function')scrollTop();
 };
