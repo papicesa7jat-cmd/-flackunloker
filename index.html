@@ -2531,7 +2531,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div id="menuPrincipalFondo" class="menu-panel-fondo" onclick="cerrarMenuPrincipal(event)">
  <div class="menu-panel" onclick="event.stopPropagation()">
   <div class="menu-panel-cabecera"><h2>☰ Menú principal</h2><button class="cerrar-menu" onclick="cerrarMenuPrincipal()">✕</button></div>
-  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button class="solo-admin" onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button class="solo-admin" id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button class="solo-admin" id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button class="solo-admin" id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button class="solo-admin" id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button class="solo-admin" id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button class="solo-admin" id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button class="solo-admin" id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button class="solo-admin" id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button class="solo-admin" id="botonPrestacionesServicio" onclick="flkOcultarTodasLasVistas();var _vp=document.getElementById('vistaPrestacionesServicio');if(_vp)_vp.style.display='block';if(typeof actualizarMenu==='function')actualizarMenu('prestaciones');if(typeof cerrarMenuPrincipal==='function')cerrarMenuPrincipal();if(typeof actualizarPrestacionesServicio==='function')actualizarPrestacionesServicio();">🛠️ Prestaciones</button><button class="solo-admin" id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button class="solo-propietario" id="botonAdminSoftware" onclick="mostrarAdminSoftware()">⚙️ Software</button><button class="solo-propietario" id="botonLicencias" onclick="mostrarLicencias()">🔐 Licencias</button></div>
+  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button class="solo-admin" onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button class="solo-admin" id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button class="solo-admin" id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button class="solo-admin" id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button class="solo-admin" id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button class="solo-admin" id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button class="solo-admin" id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button class="solo-admin" id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button class="solo-admin" id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button id="botonPrestacionesServicio" onclick="mostrarPrestacionesServicio()">🛠️ Prestaciones</button><button class="solo-admin" id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button class="solo-propietario" id="botonAdminSoftware" onclick="mostrarAdminSoftware()">⚙️ Software</button><button class="solo-propietario" id="botonLicencias" onclick="mostrarLicencias()">🔐 Licencias</button></div>
  </div>
 </div>
 
@@ -3478,10 +3478,15 @@ window.addEventListener("online",async()=>{
    await cargarRolUsuario(data.session.user);
    setTimeout(()=>flkSincronizarSeguro(),250);
   }else{
-   flkLimpiarSesionLocal();
-   document.getElementById("authOverlay").classList.remove("oculto");
+   const cache=flkSesionLocal();
+   if(cache?.user){flkPintarSesionLocal(cache.user);flkActualizarEstadoConexion();}
+   else document.getElementById("authOverlay").classList.remove("oculto");
   }
- }catch(err){console.error(err)}
+ }catch(err){
+  console.error(err);
+  const cache=flkSesionLocal();
+  if(cache?.user)flkPintarSesionLocal(cache.user);
+ }
 });
 window.addEventListener("offline",()=>flkActualizarEstadoConexion());
 
@@ -3941,29 +3946,43 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
  mostrarMensajeAuth("Procesando...","ok");
  if(modoAuth==="registro"){
   const nombre=document.getElementById("authNombre").value.trim();
-  const {data,error}=await flkSupabase.auth.signUp({email,password,options:{data:{full_name:nombre}}});
-  if(error){mostrarMensajeAuth(error.message,"error");return}
-  flkRecordarUsuarioLogin(email);flkLimpiarPasswordLogin();
-  if(data.session){window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});mostrarMensajeAuth("","");}
-  else mostrarMensajeAuth("Cuenta creada. Revisa tu correo para confirmar el registro y luego inicia sesión.","ok");
+  try{
+   const {data,error}=await flkSupabase.auth.signUp({email,password,options:{data:{full_name:nombre}}});
+   if(error){mostrarMensajeAuth(error.message,"error");return}
+   flkRecordarUsuarioLogin(email);flkLimpiarPasswordLogin();
+   if(data.session){await mostrarAppConSesion(data.session);mostrarMensajeAuth("","");}
+   else mostrarMensajeAuth("Cuenta creada. Revisa tu correo para confirmar el registro y luego inicia sesión.","ok");
+  }catch(err){mostrarMensajeAuth("❌ Registro requiere conexión a Internet.","error");}
  }else{
-  const {data,error}=await flkSupabase.auth.signInWithPassword({email,password});
-  if(error){
-   const msg=String(error.message||"").toLowerCase();
-   if(msg.includes("invalid login credentials")||msg.includes("invalid credentials")){
-    mostrarMensajeAuth("❌ Usuario o contraseña incorrectos. Revisa la contraseña.","error");
-   }else if(msg.includes("email not confirmed")){
-    mostrarMensajeAuth("❌ La cuenta todavía no está confirmada.","error");
-   }else{
-    mostrarMensajeAuth("❌ No se pudo iniciar sesión: "+error.message,"error");
+  try{
+   const {data,error}=await flkSupabase.auth.signInWithPassword({email,password});
+   if(error){
+    const cache=flkSesionLocal();
+    if(flkEsErrorConexion(error)&&cache?.user&&String(cache.user.email||"").toLowerCase()===email.toLowerCase()){
+     mostrarMensajeAuth("✅ Acceso offline con la última sesión validada.","ok");
+     flkPintarSesionLocal(cache.user);flkLimpiarPasswordLogin();return;
+    }
+    const msg=String(error.message||"").toLowerCase();
+    if(msg.includes("invalid login credentials")||msg.includes("invalid credentials"))mostrarMensajeAuth("❌ Usuario o contraseña incorrectos. Revisa la contraseña.","error");
+    else if(msg.includes("email not confirmed"))mostrarMensajeAuth("❌ La cuenta todavía no está confirmada.","error");
+    else mostrarMensajeAuth("❌ No se pudo iniciar sesión: "+error.message,"error");
+    return;
    }
-   return
+   if(!data?.session){
+    const cache=flkSesionLocal();
+    if(cache?.user&&String(cache.user.email||"").toLowerCase()===email.toLowerCase()){flkPintarSesionLocal(cache.user);flkLimpiarPasswordLogin();return;}
+    mostrarMensajeAuth("❌ No se recibió una sesión válida.","error");return;
+   }
+   flkRecordarUsuarioLogin(email);mostrarMensajeAuth("","");
+   await mostrarAppConSesion(data.session);flkLimpiarPasswordLogin();
+  }catch(err){
+   const cache=flkSesionLocal();
+   if(flkEsErrorConexion(err)&&cache?.user&&String(cache.user.email||"").toLowerCase()===email.toLowerCase()){
+    mostrarMensajeAuth("✅ Acceso offline con la última sesión validada.","ok");
+    flkPintarSesionLocal(cache.user);flkLimpiarPasswordLogin();return;
+   }
+   mostrarMensajeAuth("❌ No se pudo iniciar sesión: "+String(err?.message||err),"error");
   }
-  if(!data?.session){mostrarMensajeAuth("❌ No se recibió una sesión válida.","error");return}
-  flkRecordarUsuarioLogin(email);
-  mostrarMensajeAuth("","");
-  await mostrarAppConSesion(data.session);
-  flkLimpiarPasswordLogin();
  }
 });
 
@@ -4543,24 +4562,25 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
 });
 (()=>{
  const cache=flkSesionLocal();
- if(cache?.user)window.addEventListener("load",()=>flkPintarSesionLocal(cache.user),{once:true});
+ const pintarCache=()=>{if(cache?.user)flkPintarSesionLocal(cache.user);};
+ if(cache?.user){
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",pintarCache,{once:true});
+  else setTimeout(pintarCache,0);
+ }
  if(!navigator.onLine){
-  if(!cache?.user){
-   document.getElementById("authOverlay").classList.remove("oculto");
-  }
+  if(!cache?.user)document.getElementById("authOverlay").classList.remove("oculto");
   flkActualizarEstadoConexion();
-  return
+  return;
  }
  setTimeout(async()=>{
   try{
    const {data}=await flkSupabase.auth.getSession();
-   window.addEventListener("load",()=>{
-    if(data?.session?.user)mostrarAppConSesion(data.session);
-    else if(cache?.user)flkPintarSesionLocal(cache.user);
-    else mostrarAppConSesion(null);
-   },{once:true});
+   if(data?.session?.user)mostrarAppConSesion(data.session);
+   else if(cache?.user)pintarCache();
+   else mostrarAppConSesion(null);
   }catch(err){
-   if(cache?.user)window.addEventListener("load",()=>flkPintarSesionLocal(cache.user),{once:true});
+   if(cache?.user)pintarCache();
+   else document.getElementById("authOverlay").classList.remove("oculto");
   }
  },0);
 })();
@@ -8768,7 +8788,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.44",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.45",{updateViaCache:"none"});
    if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
@@ -10669,7 +10689,7 @@ function pintar(){load();var h=hoy(),m=mes();set('prestIngresosHoy',money(h.ingr
 window.flkCambiarTipoPrestacion=function(){var t=document.getElementById('prestTipo'),c=document.getElementById('prestCosto');if(!t||!c)return;c.disabled=t.value!=='ingreso_costo';if(c.disabled)c.value='0';};
 window.flkGuardarPrestacionServicio=function(){if(typeof requiereAdmin==='function'&&!requiereAdmin('Registrar prestaciones de servicio'))return;var de=document.getElementById('prestDescripcion'),ti=document.getElementById('prestTipo'),ing=document.getElementById('prestIngreso'),co=document.getElementById('prestCosto'),fe=document.getElementById('prestFecha');var descripcion=String(de?de.value:'').trim(),tipo=ti?ti.value:'ingreso',ingreso=Number(ing?ing.value:0),costo=tipo==='ingreso_costo'?Number(co?co.value:0):0,fecha=fe?fe.value:'';if(!descripcion)return alert('Escribe la descripción de la prestación.');if(!fecha)return alert('Selecciona la fecha.');if(ingreso<0||costo<0)return alert('Los importes no pueden ser negativos.');prestacionesServicio.push({id:Date.now(),descripcion:descripcion,tipo:tipo,ingreso:ingreso,costo:costo,fecha:fecha,created_at:new Date().toISOString()});save();if(de)de.value='';if(ing)ing.value='0';if(co)co.value='0';pintar();};
 window.flkEliminarPrestacionServicio=function(id){if(typeof requiereAdmin==='function'&&!requiereAdmin('Eliminar prestaciones de servicio'))return;if(!confirm('¿Eliminar esta prestación?'))return;load();prestacionesServicio=prestacionesServicio.filter(function(p){return Number(p.id)!==Number(id);});save();pintar();};
-window.mostrarPrestacionesServicio=function(){if(typeof requiereAdmin==='function'&&!requiereAdmin('Prestaciones de servicio'))return;if(typeof flkOcultarTodasLasVistas==='function')flkOcultarTodasLasVistas();var v=document.getElementById('vistaPrestacionesServicio');if(!v)return alert('No se pudo abrir Prestaciones de servicio.');v.style.display='block';document.querySelectorAll('.menu-cuadricula button').forEach(function(b){b.classList.remove('activo');});var btn=document.getElementById('botonPrestacionesServicio');if(btn)btn.classList.add('activo');if(typeof cerrarMenuPrincipal==='function')cerrarMenuPrincipal();var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();};
+window.mostrarPrestacionesServicio=function(){if(typeof flkOcultarTodasLasVistas==='function')flkOcultarTodasLasVistas();var v=document.getElementById('vistaPrestacionesServicio');if(!v)return alert('No se pudo abrir Prestaciones de servicio.');v.style.display='block';document.querySelectorAll('.menu-cuadricula button').forEach(function(b){b.classList.remove('activo');});var btn=document.getElementById('botonPrestacionesServicio');if(btn)btn.classList.add('activo');if(typeof cerrarMenuPrincipal==='function')cerrarMenuPrincipal();var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();};
 function init(){var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
