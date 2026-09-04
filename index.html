@@ -1548,14 +1548,12 @@ textarea::placeholder{
 .flk-qr-offline-box button{flex:0 0 auto;border:0;border-radius:9px;padding:8px 9px;background:#e4f1ff;color:#0965bd;font-weight:850;font-size:11px;cursor:pointer}
 </style>
 
-<style id="flk-prestaciones-v6138">
+<style id="flk-prestaciones-v6142">
 #vistaPrestacionesServicio{display:none}
 .prestacion-resumen{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
-.prestacion-card{background:#fff;border:1px solid #dde8f2;border-radius:16px;padding:14px;box-shadow:0 6px 18px rgba(20,42,80,.05)}
-.prestacion-card span{display:block;color:#667085;font-size:12px;font-weight:700;margin-bottom:5px}.prestacion-card strong{font-size:21px}
-.prestacion-form{background:#fff;border:1px solid #dde8f2;border-radius:18px;padding:16px;margin-bottom:14px}
-.prestacion-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px}.prestacion-grid .campo{margin:0}
-.prestacion-item{background:#fff;border:1px solid #e3ebf3;border-radius:16px;padding:14px;margin-bottom:10px}.prestacion-item-top{display:flex;justify-content:space-between;gap:10px}.prestacion-item h3{margin:0 0 4px;font-size:16px}.prestacion-item p{margin:3px 0;color:#667085;font-size:12px}.prestacion-importes{font-weight:800;text-align:right;white-space:nowrap}
+.prestacion-card,.prestacion-form,.prestacion-item{background:#fff;border:1px solid #dde8f2;border-radius:16px;padding:14px}
+.prestacion-form{margin-bottom:14px}.prestacion-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px}.prestacion-grid .campo{margin:0}
+.prestacion-item{margin-bottom:10px}.prestacion-item-top{display:flex;justify-content:space-between;gap:10px}.prestacion-importes{font-weight:800;text-align:right;white-space:nowrap}
 @media(max-width:700px){.prestacion-resumen,.prestacion-grid{grid-template-columns:1fr}.prestacion-item-top{flex-direction:column}.prestacion-importes{text-align:left}}
 </style>
 </head>
@@ -1752,11 +1750,6 @@ textarea::placeholder{
 <div class="fila-estadistica"><span>Gastos del día</span><strong id="cierreGastosHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>Ganancia neta</span><strong id="cierreGananciaNetaHoy">$0.00</strong></div>
 </div>
-<div class="lista-estadisticas"><h3>🛠️ Prestaciones de servicio · Hoy</h3>
-<div class="fila-estadistica"><span>Ingresos por prestaciones</span><strong id="cierrePrestIngresos">$0.00</strong></div>
-<div class="fila-estadistica"><span>Costos externos</span><strong id="cierrePrestCostos">$0.00</strong></div>
-<div class="fila-estadistica"><span>Resultado de prestaciones</span><strong id="cierrePrestNeto">$0.00</strong></div>
-</div>
 <div class="lista-estadisticas"><h3>💵 Dinero realmente cobrado hoy</h3>
 <div class="fila-estadistica"><span>Total cobrado</span><strong id="cierreCobradoHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>💵 Efectivo</span><strong id="cierreEfectivoHoy">$0.00</strong></div>
@@ -1774,6 +1767,7 @@ textarea::placeholder{
 <div id="listaCierres"></div>
 </div>
 
+<div class="lista-estadisticas" id="resumenPrestacionesCierre"><h3>🛠️ Prestaciones de servicio · Hoy</h3><div class="fila-estadistica"><span>Ingresos</span><strong id="cierrePrestIngresos">$0.00</strong></div><div class="fila-estadistica"><span>Costos externos</span><strong id="cierrePrestCostos">$0.00</strong></div><div class="fila-estadistica"><span>Resultado</span><strong id="cierrePrestNeto">$0.00</strong></div></div>
 <div id="vistaReportes" style="display:none">
 <div class="seccion-titulo"><h2>📈 Reportes</h2></div>
 <div class="reporte-controles">
@@ -2037,17 +2031,14 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <p style="margin:8px 0 0;color:#dfe7ee;font-size:12px;line-height:1.45">Los aportes y retiros se muestran por control de efectivo. No forman parte de Ventas, Gastos, Ganancia bruta ni Ganancia neta.</p>
 </div>
 
-<div class="lista-estadisticas"><h3>🛠️ Prestaciones de servicio · Período seleccionado</h3>
-<div class="fila-estadistica"><span>Ingresos</span><strong id="finPrestIngresos">$0.00</strong></div>
-<div class="fila-estadistica"><span>Costos externos</span><strong id="finPrestCostos">$0.00</strong></div>
-<div class="fila-estadistica"><span>Resultado</span><strong id="finPrestNeto">$0.00</strong></div>
-</div>
 <div class="lista-estadisticas"><h3>📌 Indicadores</h3>
 <div class="fila-estadistica"><span>Margen bruto sobre ventas</span><strong id="finMargenBruto">0.0%</strong></div>
 <div class="fila-estadistica"><span>Margen neto sobre ventas</span><strong id="finMargenNeto">0.0%</strong></div>
 <div class="fila-estadistica"><span>Relación por cobrar / por pagar</span><strong id="finRelacion">—</strong></div>
 </div>
 </div>
+
+<div class="lista-estadisticas" id="resumenPrestacionesFinanzas"><h3>🛠️ Prestaciones de servicio · Mes actual</h3><div class="fila-estadistica"><span>Ingresos</span><strong id="finPrestIngresos">$0.00</strong></div><div class="fila-estadistica"><span>Costos externos</span><strong id="finPrestCostos">$0.00</strong></div><div class="fila-estadistica"><span>Resultado</span><strong id="finPrestNeto">$0.00</strong></div></div>
 
 <div id="vistaPrestacionesServicio" style="display:none">
 <div class="seccion-titulo"><h2>🛠️ Prestaciones de servicio</h2></div>
@@ -2059,22 +2050,16 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="prestacion-card"><span>Costos externos del mes</span><strong id="prestCostosMes">$0.00</strong></div>
 <div class="prestacion-card"><span>Resultado del mes</span><strong id="prestNetoMes">$0.00</strong></div>
 </div>
-<div class="prestacion-form">
-<div class="prestacion-grid">
+<div class="prestacion-form"><div class="prestacion-grid">
 <div class="campo"><label>Descripción de la prestación</label><input id="prestDescripcion" type="text" placeholder="Ej. Instalación / reparación / configuración"></div>
 <div class="campo"><label>Tipo</label><select id="prestTipo" onchange="flkCambiarTipoPrestacion()"><option value="ingreso">Solo ingreso</option><option value="ingreso_costo">Ingreso + costo externo</option></select></div>
 <div class="campo"><label>Ingreso</label><input id="prestIngreso" type="number" min="0" step="0.01" value="0"></div>
 <div class="campo"><label>Costo externo</label><input id="prestCosto" type="number" min="0" step="0.01" value="0" disabled></div>
-</div>
-<div class="prestacion-grid" style="grid-template-columns:1fr auto;margin-top:10px">
-<div class="campo"><label>Fecha</label><input id="prestFecha" type="date"></div>
-<button class="boton-agregar" type="button" onclick="flkGuardarPrestacionServicio()">💾 Registrar prestación</button>
-</div>
-<p style="margin:10px 0 0;color:#667085;font-size:12px">El costo externo reduce el resultado, pero no crea una salida en Flujo de caja.</p>
-</div>
+</div><div class="prestacion-grid" style="grid-template-columns:1fr auto;margin-top:10px">
+<div class="campo"><label>Fecha</label><input id="prestFecha" type="date"></div><button class="boton-agregar" type="button" onclick="flkGuardarPrestacionServicio()">💾 Registrar prestación</button></div>
+<p style="margin:10px 0 0;color:#667085;font-size:12px">El costo externo reduce la ganancia, pero no crea salida en Flujo de caja.</p></div>
 <div class="lista-estadisticas"><h3>📋 Prestaciones registradas</h3><div id="listaPrestacionesServicio"></div></div>
 </div>
-
 <div id="vistaEstadisticas" style="display:none">
 <div class="seccion-titulo"><h2>📊 Estadísticas</h2></div>
 <div class="estadisticas-grid">
@@ -2085,12 +2070,6 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="estadistica-card ancha"><span>Valor del inventario a costo</span><strong id="estadisticaValor">$0.00</strong></div>
 <div class="estadistica-card ancha azul"><span>Venta potencial del inventario</span><strong id="estadisticaVentaPotencial">$0.00</strong></div>
 <div class="estadistica-card ancha positiva"><span>Ganancia potencial</span><strong id="estadisticaGananciaPotencial">$0.00</strong></div>
-</div>
-<div class="lista-estadisticas"><h3>🛠️ Prestaciones de servicio</h3>
-<div class="fila-estadistica"><span>Ingresos de hoy</span><strong id="estadPrestHoy">$0.00</strong></div>
-<div class="fila-estadistica"><span>Ingresos del mes</span><strong id="estadPrestMes">$0.00</strong></div>
-<div class="fila-estadistica"><span>Costos del mes</span><strong id="estadPrestCostosMes">$0.00</strong></div>
-<div class="fila-estadistica"><span>Resultado del mes</span><strong id="estadPrestNetoMes">$0.00</strong></div>
 </div>
 <div class="lista-estadisticas"><h3>📦 Productos con mayor existencia</h3><div id="rankingProductos"></div></div>
 <div class="lista-estadisticas"><h3>🔄 Productos con más movimientos</h3><div id="rankingMovimientos"></div></div>
@@ -2373,6 +2352,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 
 
 
+<div class="lista-estadisticas" id="resumenPrestacionesEstadisticas"><h3>🛠️ Prestaciones de servicio</h3><div class="fila-estadistica"><span>Ingresos de hoy</span><strong id="estadPrestHoy">$0.00</strong></div><div class="fila-estadistica"><span>Ingresos del mes</span><strong id="estadPrestMes">$0.00</strong></div><div class="fila-estadistica"><span>Costos del mes</span><strong id="estadPrestCostosMes">$0.00</strong></div><div class="fila-estadistica"><span>Resultado del mes</span><strong id="estadPrestNetoMes">$0.00</strong></div></div>
 <div id="vistaAdminSoftware" style="display:none">
  <div class="seccion-titulo">
   <h2>⚙️ Administración del Software</h2>
@@ -3901,42 +3881,6 @@ async function flkRecuperacionEmergenciaNube(){
  }
 }
 
-// v61.39: detección de conexión REAL para conservar el acceso offline tras un refresh.
-async function flkAuthConexionReal(timeoutMs=2500){
- if(!navigator.onLine)return false;
- const ctrl=typeof AbortController!=="undefined"?new AbortController():null;
- const timer=ctrl?setTimeout(()=>ctrl.abort(),timeoutMs):null;
- try{
-  const r=await fetch(FLK_SUPABASE_URL+"/auth/v1/health",{
-   method:"GET",
-   cache:"no-store",
-   headers:{apikey:FLK_SUPABASE_KEY},
-   signal:ctrl?ctrl.signal:undefined
-  });
-  return !!r&&r.ok;
- }catch(_){
-  return false;
- }finally{
-  if(timer)clearTimeout(timer);
- }
-}
-function flkAuthEsErrorRed(err){
- const s=String(err?.message||err||"").toLowerCase();
- return !navigator.onLine||["fetch","network","offline","internet","connection","load failed","timeout","timed out","abort"].some(x=>s.includes(x));
-}
-async function flkEntrarOfflineDesdeCache(emailEsperado=""){
- const cache=flkSesionLocal();
- if(!cache?.user?.id)return false;
- const esperado=String(emailEsperado||"").trim().toLowerCase();
- const guardado=String(cache.user.email||"").trim().toLowerCase();
- if(esperado&&guardado&&esperado!==guardado)return false;
- flkPintarSesionLocal(cache.user);
- flkActualizarEstadoConexion();
- mostrarMensajeAuth("","");
- flkLimpiarPasswordLogin();
- return true;
-}
-
 async function mostrarAppConSesion(session){
  if(flkModoRecuperacionPassword){
   flkSesionActiva=!!session?.user;
@@ -3967,11 +3911,9 @@ async function mostrarAppConSesion(session){
  }else{
   flkSesionActiva=false;
   const cache=flkSesionLocal();
-  // No confiar solo en navigator.onLine: iPhone/Safari puede indicar “online”
-  // aunque Supabase no sea alcanzable. En ese caso conservar la sesión local.
-  const conexionReal=await flkAuthConexionReal();
-  if(!conexionReal&&cache?.user){
-   await flkEntrarOfflineDesdeCache(cache.user.email||"");
+  if(!navigator.onLine&&cache?.user){
+   flkPintarSesionLocal(cache.user);
+   flkActualizarEstadoConexion();
    return
   }
   document.getElementById("authOverlay").classList.remove("oculto");
@@ -4003,39 +3945,23 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
   if(data.session){window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});mostrarMensajeAuth("","");}
   else mostrarMensajeAuth("Cuenta creada. Revisa tu correo para confirmar el registro y luego inicia sesión.","ok");
  }else{
-  try{
-   const {data,error}=await flkSupabase.auth.signInWithPassword({email,password});
-   if(error){
-    const msg=String(error.message||"").toLowerCase();
-    if(msg.includes("invalid login credentials")||msg.includes("invalid credentials")){
-     mostrarMensajeAuth("❌ Usuario o contraseña incorrectos. Revisa la contraseña.","error");
-    }else if(msg.includes("email not confirmed")){
-     mostrarMensajeAuth("❌ La cuenta todavía no está confirmada.","error");
-    }else if(flkAuthEsErrorRed(error)||!(await flkAuthConexionReal())){
-     if(await flkEntrarOfflineDesdeCache(email))return;
-     mostrarMensajeAuth("Sin conexión. Debes haber iniciado sesión antes en este dispositivo para entrar offline.","error");
-    }else{
-     mostrarMensajeAuth("❌ No se pudo iniciar sesión: "+error.message,"error");
-    }
-    return
+  const {data,error}=await flkSupabase.auth.signInWithPassword({email,password});
+  if(error){
+   const msg=String(error.message||"").toLowerCase();
+   if(msg.includes("invalid login credentials")||msg.includes("invalid credentials")){
+    mostrarMensajeAuth("❌ Usuario o contraseña incorrectos. Revisa la contraseña.","error");
+   }else if(msg.includes("email not confirmed")){
+    mostrarMensajeAuth("❌ La cuenta todavía no está confirmada.","error");
+   }else{
+    mostrarMensajeAuth("❌ No se pudo iniciar sesión: "+error.message,"error");
    }
-   if(!data?.session){
-    if(!(await flkAuthConexionReal())&&await flkEntrarOfflineDesdeCache(email))return;
-    mostrarMensajeAuth("❌ No se recibió una sesión válida.","error");return
-   }
-   flkRecordarUsuarioLogin(email);
-   mostrarMensajeAuth("","");
-   await mostrarAppConSesion(data.session);
-   flkLimpiarPasswordLogin();
-  }catch(err){
-   if(flkAuthEsErrorRed(err)||!(await flkAuthConexionReal())){
-    if(await flkEntrarOfflineDesdeCache(email))return;
-    mostrarMensajeAuth("Sin conexión. Debes haber iniciado sesión antes en este dispositivo para entrar offline.","error");
-    return
-   }
-   console.error("Inicio de sesión:",err);
-   mostrarMensajeAuth("❌ No se pudo iniciar sesión.","error");
+   return
   }
+  if(!data?.session){mostrarMensajeAuth("❌ No se recibió una sesión válida.","error");return}
+  flkRecordarUsuarioLogin(email);
+  mostrarMensajeAuth("","");
+  await mostrarAppConSesion(data.session);
+  flkLimpiarPasswordLogin();
  }
 });
 
@@ -4613,35 +4539,20 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
 });
 (()=>{
  const cache=flkSesionLocal();
- const alCargar=(fn)=>{
-  if(document.readyState==="complete")setTimeout(fn,0);
-  else window.addEventListener("load",fn,{once:true});
- };
- if(cache?.user)alCargar(()=>flkPintarSesionLocal(cache.user));
+ if(cache?.user)window.addEventListener("load",()=>flkPintarSesionLocal(cache.user),{once:true});
  if(!navigator.onLine){
-  if(!cache?.user)document.getElementById("authOverlay").classList.remove("oculto");
+  if(!cache?.user){
+   document.getElementById("authOverlay").classList.remove("oculto");
+  }
   flkActualizarEstadoConexion();
   return
  }
  setTimeout(async()=>{
   try{
-   const {data,error}=await flkSupabase.auth.getSession();
-   if(error)throw error;
-   if(data?.session){
-    alCargar(()=>mostrarAppConSesion(data.session));
-    return;
-   }
-   // Si no hay sesión de Supabase, comprobar Internet real antes de expulsar
-   // al usuario que ya estaba autorizado localmente en este dispositivo.
-   const conexionReal=await flkAuthConexionReal();
-   if(!conexionReal&&cache?.user){
-    alCargar(()=>flkEntrarOfflineDesdeCache(cache.user.email||""));
-   }else{
-    alCargar(()=>mostrarAppConSesion(null));
-   }
+   const {data}=await flkSupabase.auth.getSession();
+   window.addEventListener("load",()=>mostrarAppConSesion(data.session),{once:true});
   }catch(err){
-   if(cache?.user)alCargar(()=>flkEntrarOfflineDesdeCache(cache.user.email||""));
-   else alCargar(()=>mostrarAppConSesion(null));
+   if(cache?.user)window.addEventListener("load",()=>flkPintarSesionLocal(cache.user),{once:true});
   }
  },0);
 })();
@@ -8522,7 +8433,7 @@ function actualizarEstadisticas(){
  const conteo={};historial.forEach(m=>{const id=m.productoId;if(!conteo[id])conteo[id]={nombre:m.nombre,movimientos:0};conteo[id].movimientos++});const rm=Object.values(conteo).sort((a,b)=>b.movimientos-a.movimientos).slice(0,5);document.getElementById("rankingMovimientos").innerHTML=rm.length?rm.map(x=>`<div class="fila-estadistica"><span>${escapeHtml(x.nombre)}</span><strong>${x.movimientos} movimiento(s)</strong></div>`).join(""):`<div class="fila-estadistica"><span>No hay movimientos.</span><strong>—</strong></div>`;
  const bajos=productos.filter(p=>Number(p.cantidad)<=Number(p.stockMinimo??5));document.getElementById("rankingStockBajo").innerHTML=bajos.length?bajos.map(p=>`<div class="fila-estadistica"><span>${escapeHtml(p.nombre)}</span><strong>${p.cantidad} / ${Number(p.stockMinimo??5)}</strong></div>`).join(""):`<div class="fila-estadistica"><span>Todo el inventario está por encima del mínimo.</span><strong>✓ OK</strong></div>`
 }
-function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonPrestacionesServicio","botonEstadisticas","botonLicencias"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";if(sec!=="cuentasPagar")document.getElementById("vistaCuentasPagar").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",cuentasPagar:"botonCuentasPagar",flujoCaja:"botonFlujoCaja",finanzas:"botonFinanzas",prestaciones:"botonPrestacionesServicio",estadisticas:"botonEstadisticas"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo")}
+function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonEstadisticas","botonLicencias"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";if(sec!=="cuentasPagar")document.getElementById("vistaCuentasPagar").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",cuentasPagar:"botonCuentasPagar",flujoCaja:"botonFlujoCaja",finanzas:"botonFinanzas",estadisticas:"botonEstadisticas"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo")}
 function mostrarInventario(){flkOcultarTodasLasVistas();document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";document.getElementById("vistaFlujoCaja").style.display="none";document.getElementById("vistaFinanzas").style.display="none";const vl=document.getElementById("vistaLicencias");if(vl)vl.style.display="none";const va=document.getElementById("vistaAdminSoftware");if(va)va.style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
 function scrollTop(){window.scrollTo({top:0,behavior:"auto"})}
 document.addEventListener("visibilitychange",()=>{
@@ -8849,7 +8760,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.39",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.24",{updateViaCache:"none"});
    if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
@@ -9932,14 +9843,14 @@ function cancelarLecturaQRPendiente(){
 }
 
 // Preserve original business logic and replace scanner-facing entry point.
-const flkProcesarCodigoQRNegocioBase=procesarCodigoQR;
+const flkProcesarCodigoQRNegocio=procesarCodigoQR;
 procesarCodigoQR=function(codigo,desdeCamara=false){
  if(desdeCamara){
   flkPresentarLecturaParaConfirmar(codigo);
   return;
  }
  // Manual code and physical reader remain immediate, because they are deliberate inputs.
- return flkProcesarCodigoQRConBloqueo(codigo,false);
+ return flkProcesarCodigoQRNegocio(codigo,false);
 };
 
 // Override jsQR loop with throttled frame analysis. This reduces CPU use on iPhone
@@ -10179,20 +10090,21 @@ flkPresentarLecturaParaConfirmar=function(codigo){
 };
 
 // Preserve original business processor. Deliberate manual/HID inputs share the same lock.
-function flkProcesarCodigoQRConBloqueo(codigo,desdeCamara){
+const flkProcesarNegocioGlobal=flkProcesarCodigoQRNegocio;
+flkProcesarCodigoQRNegocio=function(codigo,desdeCamara){
  if(desdeCamara){
-  return flkProcesarCodigoQRNegocioBase(codigo,desdeCamara);
+  return flkProcesarNegocioGlobal(codigo,desdeCamara);
  }
  const fuente=(flkLectorFisicoActivo?"lector-fisico":"manual");
  if(!flkQrAceptarLecturaGlobal(codigo,fuente))return;
  flkQrOperacionEnCurso=true;
  try{
-  return flkProcesarCodigoQRNegocioBase(codigo,desdeCamara);
+  return flkProcesarNegocioGlobal(codigo,desdeCamara);
  }finally{
   // Manual/HID calls are intentional and synchronous at this layer.
   setTimeout(function(){flkQrOperacionEnCurso=false},FLK_QR_BLOQUEO_MS);
  }
-}
+};
 
 // When camera starts, disable HID capture to prevent the same physical code
 // being injected by two active sources.
@@ -10730,31 +10642,28 @@ async function flkDeepStorageCopy(){
 }
 
 </script>
-
-<script id="flk-prestaciones-v6138-script">
-/* v61.39 Prestaciones: módulo estático + navegación corregida */
+\n<script id="flk-prestaciones-v6142-script">
 (function(){
 'use strict';
 var prestacionesServicio=[];
 function money(n){n=Number(n||0);return (n<0?'-$':'$')+Math.abs(n).toFixed(2);}
-function fechaISO(d){if(typeof fechaLocalISO==='function')return fechaLocalISO(d);var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day;}
-function key(){var bid='global';try{if(typeof FLK_BUSINESS_ID!=='undefined'&&FLK_BUSINESS_ID)bid=String(FLK_BUSINESS_ID);else if(typeof flkBusinessGuardado==='function')bid=String(flkBusinessGuardado()||'global');}catch(e){}return 'flackunloker_prestaciones_servicio_v1::'+bid;}
+function fechaISO(d){var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+dd;}
+function businessId(){try{if(typeof flkBusinessGuardado==='function')return String(flkBusinessGuardado()||'global');}catch(e){}try{if(typeof FLK_BUSINESS_ID!=='undefined'&&FLK_BUSINESS_ID)return String(FLK_BUSINESS_ID);}catch(e){}return 'global';}
+function key(){return 'flackunloker_prestaciones_servicio_v1::'+businessId();}
 function load(){try{var x=JSON.parse(localStorage.getItem(key())||'[]');prestacionesServicio=Array.isArray(x)?x:[];}catch(e){prestacionesServicio=[];}}
 function save(){try{localStorage.setItem(key(),JSON.stringify(prestacionesServicio));}catch(e){console.error('Prestaciones:',e);}}
 function esc(s){if(typeof escapeHtml==='function')return escapeHtml(String(s||''));return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c];});}
-function resumen(desde,hasta){var a=prestacionesServicio.filter(function(p){var d=new Date(String(p.fecha||'')+'T12:00:00');return d>=desde&&d<hasta;});var ingresos=a.reduce(function(t,p){return t+Number(p.ingreso||0);},0),costos=a.reduce(function(t,p){return t+Number(p.costo||0);},0);return {arr:a,ingresos:ingresos,costos:costos,neto:ingresos-costos};}
+function resumen(desde,hasta){var a=prestacionesServicio.filter(function(p){var d=new Date(String(p.fecha||'')+'T12:00:00');return d>=desde&&d<hasta;});var i=a.reduce(function(t,p){return t+Number(p.ingreso||0);},0),c=a.reduce(function(t,p){return t+Number(p.costo||0);},0);return {arr:a,ingresos:i,costos:c,neto:i-c};}
 function hoy(){var d=new Date(),a=new Date(d.getFullYear(),d.getMonth(),d.getDate()),b=new Date(a);b.setDate(b.getDate()+1);return resumen(a,b);}
 function mes(){var d=new Date(),a=new Date(d.getFullYear(),d.getMonth(),1),b=new Date(d.getFullYear(),d.getMonth()+1,1);return resumen(a,b);}
 function set(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
-function rangoFinanzas(){try{if(typeof datosFinanzas==='function'){var d=datosFinanzas();if(d&&d.lim&&d.lim.desde&&d.lim.hasta){var a=new Date(d.lim.desde),b=new Date(d.lim.hasta);return resumen(a,b);}}}catch(e){}return mes();}
-function pintar(){var h=hoy(),m=mes(),f=rangoFinanzas();set('prestIngresosHoy',money(h.ingresos));set('prestCostosHoy',money(h.costos));set('prestNetoHoy',money(h.neto));set('prestIngresosMes',money(m.ingresos));set('prestCostosMes',money(m.costos));set('prestNetoMes',money(m.neto));set('cierrePrestIngresos',money(h.ingresos));set('cierrePrestCostos',money(h.costos));set('cierrePrestNeto',money(h.neto));set('estadPrestHoy',money(h.ingresos));set('estadPrestMes',money(m.ingresos));set('estadPrestCostosMes',money(m.costos));set('estadPrestNetoMes',money(m.neto));set('finPrestIngresos',money(f.ingresos));set('finPrestCostos',money(f.costos));set('finPrestNeto',money(f.neto));var lista=document.getElementById('listaPrestacionesServicio');if(!lista)return;var arr=prestacionesServicio.slice().sort(function(a,b){return String(b.fecha||'').localeCompare(String(a.fecha||''))||Number(b.id)-Number(a.id);});if(!arr.length){lista.innerHTML='<div class="sin-productos">Todavía no hay prestaciones registradas.</div>';return;}lista.innerHTML=arr.map(function(p){return '<div class="prestacion-item"><div class="prestacion-item-top"><div><h3>'+esc(p.descripcion)+'</h3><p>'+esc(p.fecha)+' · '+(p.tipo==='ingreso_costo'?'Ingreso + costo externo':'Solo ingreso')+'</p></div><div class="prestacion-importes">Ingreso '+money(p.ingreso)+'<br>'+(Number(p.costo||0)>0?'Costo '+money(p.costo)+'<br>':'')+'Resultado '+money(Number(p.ingreso||0)-Number(p.costo||0))+'</div></div><div class="acciones"><button class="accion eliminar" type="button" onclick="flkEliminarPrestacionServicio('+Number(p.id)+')">🗑️ Eliminar</button></div></div>';}).join('');}
+function pintar(){load();var h=hoy(),m=mes();set('prestIngresosHoy',money(h.ingresos));set('prestCostosHoy',money(h.costos));set('prestNetoHoy',money(h.neto));set('prestIngresosMes',money(m.ingresos));set('prestCostosMes',money(m.costos));set('prestNetoMes',money(m.neto));set('cierrePrestIngresos',money(h.ingresos));set('cierrePrestCostos',money(h.costos));set('cierrePrestNeto',money(h.neto));set('finPrestIngresos',money(m.ingresos));set('finPrestCostos',money(m.costos));set('finPrestNeto',money(m.neto));set('estadPrestHoy',money(h.ingresos));set('estadPrestMes',money(m.ingresos));set('estadPrestCostosMes',money(m.costos));set('estadPrestNetoMes',money(m.neto));var box=document.getElementById('listaPrestacionesServicio');if(box)box.innerHTML=prestacionesServicio.length?prestacionesServicio.slice().sort(function(a,b){return String(b.fecha).localeCompare(String(a.fecha))||Number(b.id)-Number(a.id);}).map(function(p){return '<div class="prestacion-item"><div class="prestacion-item-top"><div><h3>'+esc(p.descripcion)+'</h3><p>'+esc(p.fecha)+' · '+(p.tipo==='ingreso_costo'?'Ingreso + costo externo':'Solo ingreso')+'</p></div><div class="prestacion-importes">Ingreso '+money(p.ingreso)+'<br>Costo '+money(p.costo)+'<br>Neto '+money(Number(p.ingreso)-Number(p.costo))+'</div></div><button type="button" class="boton-eliminar solo-admin" onclick="flkEliminarPrestacionServicio('+Number(p.id)+')">Eliminar</button></div>';}).join(''):'<div class="sin-productos">No hay prestaciones registradas.</div>'; }
 window.flkCambiarTipoPrestacion=function(){var t=document.getElementById('prestTipo'),c=document.getElementById('prestCosto');if(!t||!c)return;c.disabled=t.value!=='ingreso_costo';if(c.disabled)c.value='0';};
 window.flkGuardarPrestacionServicio=function(){if(typeof requiereAdmin==='function'&&!requiereAdmin('Registrar prestaciones de servicio'))return;var de=document.getElementById('prestDescripcion'),ti=document.getElementById('prestTipo'),ing=document.getElementById('prestIngreso'),co=document.getElementById('prestCosto'),fe=document.getElementById('prestFecha');var descripcion=String(de?de.value:'').trim(),tipo=ti?ti.value:'ingreso',ingreso=Number(ing?ing.value:0),costo=tipo==='ingreso_costo'?Number(co?co.value:0):0,fecha=fe?fe.value:'';if(!descripcion)return alert('Escribe la descripción de la prestación.');if(!fecha)return alert('Selecciona la fecha.');if(ingreso<0||costo<0)return alert('Los importes no pueden ser negativos.');prestacionesServicio.push({id:Date.now(),descripcion:descripcion,tipo:tipo,ingreso:ingreso,costo:costo,fecha:fecha,created_at:new Date().toISOString()});save();if(de)de.value='';if(ing)ing.value='0';if(co)co.value='0';pintar();};
-window.flkEliminarPrestacionServicio=function(id){if(typeof requiereAdmin==='function'&&!requiereAdmin('Eliminar prestaciones de servicio'))return;if(!confirm('¿Eliminar esta prestación?'))return;prestacionesServicio=prestacionesServicio.filter(function(p){return Number(p.id)!==Number(id);});save();pintar();};
-window.mostrarPrestacionesServicio=function(){if(typeof requiereAdmin==='function'&&!requiereAdmin('Prestaciones de servicio'))return;if(typeof flkOcultarTodasLasVistas==='function')flkOcultarTodasLasVistas();var v=document.getElementById('vistaPrestacionesServicio');if(!v)return alert('No se pudo abrir Prestaciones de servicio.');v.style.display='block';if(typeof actualizarMenu==='function')actualizarMenu('prestaciones');if(typeof cerrarMenuPrincipal==='function')cerrarMenuPrincipal();load();pintar();if(typeof scrollTop==='function')scrollTop();};
-function init(){load();var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();}
+window.flkEliminarPrestacionServicio=function(id){if(typeof requiereAdmin==='function'&&!requiereAdmin('Eliminar prestaciones de servicio'))return;if(!confirm('¿Eliminar esta prestación?'))return;load();prestacionesServicio=prestacionesServicio.filter(function(p){return Number(p.id)!==Number(id);});save();pintar();};
+window.mostrarPrestacionesServicio=function(){if(typeof requiereAdmin==='function'&&!requiereAdmin('Prestaciones de servicio'))return;if(typeof flkOcultarTodasLasVistas==='function')flkOcultarTodasLasVistas();var v=document.getElementById('vistaPrestacionesServicio');if(!v)return alert('No se pudo abrir Prestaciones de servicio.');v.style.display='block';document.querySelectorAll('.menu-cuadricula button').forEach(function(b){b.classList.remove('activo');});var btn=document.getElementById('botonPrestacionesServicio');if(btn)btn.classList.add('activo');if(typeof cerrarMenuPrincipal==='function')cerrarMenuPrincipal();var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();};
+function init(){var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
-</script>
-</body>
+</script>\n</body>
 </html>
