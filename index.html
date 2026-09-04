@@ -9843,7 +9843,7 @@ function cancelarLecturaQRPendiente(){
 }
 
 // Preserve original business logic and replace scanner-facing entry point.
-const flkProcesarCodigoQRNegocio=procesarCodigoQR;
+let flkProcesarCodigoQRNegocio=procesarCodigoQR;
 procesarCodigoQR=function(codigo,desdeCamara=false){
  if(desdeCamara){
   flkPresentarLecturaParaConfirmar(codigo);
