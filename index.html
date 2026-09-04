@@ -9932,14 +9932,14 @@ function cancelarLecturaQRPendiente(){
 }
 
 // Preserve original business logic and replace scanner-facing entry point.
-let flkProcesarCodigoQRNegocio=procesarCodigoQR;
+const flkProcesarCodigoQRNegocioBase=procesarCodigoQR;
 procesarCodigoQR=function(codigo,desdeCamara=false){
  if(desdeCamara){
   flkPresentarLecturaParaConfirmar(codigo);
   return;
  }
  // Manual code and physical reader remain immediate, because they are deliberate inputs.
- return flkProcesarCodigoQRNegocio(codigo,false);
+ return flkProcesarCodigoQRConBloqueo(codigo,false);
 };
 
 // Override jsQR loop with throttled frame analysis. This reduces CPU use on iPhone
@@ -10179,21 +10179,20 @@ flkPresentarLecturaParaConfirmar=function(codigo){
 };
 
 // Preserve original business processor. Deliberate manual/HID inputs share the same lock.
-const flkProcesarNegocioGlobal=flkProcesarCodigoQRNegocio;
-flkProcesarCodigoQRNegocio=function(codigo,desdeCamara){
+function flkProcesarCodigoQRConBloqueo(codigo,desdeCamara){
  if(desdeCamara){
-  return flkProcesarNegocioGlobal(codigo,desdeCamara);
+  return flkProcesarCodigoQRNegocioBase(codigo,desdeCamara);
  }
  const fuente=(flkLectorFisicoActivo?"lector-fisico":"manual");
  if(!flkQrAceptarLecturaGlobal(codigo,fuente))return;
  flkQrOperacionEnCurso=true;
  try{
-  return flkProcesarNegocioGlobal(codigo,desdeCamara);
+  return flkProcesarCodigoQRNegocioBase(codigo,desdeCamara);
  }finally{
   // Manual/HID calls are intentional and synchronous at this layer.
   setTimeout(function(){flkQrOperacionEnCurso=false},FLK_QR_BLOQUEO_MS);
  }
-};
+}
 
 // When camera starts, disable HID capture to prevent the same physical code
 // being injected by two active sources.
