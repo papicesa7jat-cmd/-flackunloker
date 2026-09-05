@@ -8837,7 +8837,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.47",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.48",{updateViaCache:"none"});
    if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
@@ -10743,5 +10743,64 @@ window.mostrarPrestacionesServicio=function(){if(typeof flkOcultarTodasLasVistas
 function init(){var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
-</script>\n</body>
+</script>\n
+<script id="flk-v6148-restore-last-module">
+(function(){
+  const KEY="flackunloker_ultimo_modulo_v1";
+  const modulos={
+    botonInventario:["inventario","mostrarInventario"],
+    botonHistorial:["historial","mostrarHistorial"],
+    botonVentas:["ventas","mostrarVentas"],
+    botonClientes:["clientes","mostrarClientes"],
+    botonGastos:["gastos","mostrarGastos"],
+    botonCierre:["cierre","mostrarCierre"],
+    botonReportes:["reportes","mostrarReportes"],
+    botonAlertas:["alertas","mostrarAlertas"],
+    botonOrdenes:["ordenes","mostrarOrdenes"],
+    botonProveedores:["proveedores","mostrarProveedores"],
+    botonCuentasPagar:["cuentasPagar","mostrarCuentasPagar"],
+    botonFlujoCaja:["flujoCaja","mostrarFlujoCaja"],
+    botonFinanzas:["finanzas","mostrarFinanzas"],
+    botonPrestacionesServicio:["prestaciones","mostrarPrestacionesServicio"],
+    botonEstadisticas:["estadisticas","mostrarEstadisticas"],
+    botonAdminSoftware:["software","mostrarAdminSoftware"],
+    botonLicencias:["licencias","mostrarLicencias"]
+  };
+  const porNombre={}; Object.values(modulos).forEach(x=>porNombre[x[0]]=x[1]);
+  function guardar(nombre){ try{ if(nombre)localStorage.setItem(KEY,nombre); }catch(_){} }
+  function visibleApp(){
+    const ov=document.getElementById("authOverlay");
+    return !ov || ov.classList.contains("oculto") || getComputedStyle(ov).display==="none";
+  }
+  function restaurar(){
+    if(!visibleApp()) return false;
+    let nombre=""; try{nombre=localStorage.getItem(KEY)||""}catch(_){}
+    if(!nombre || nombre==="inventario") return false;
+    const fn=window[porNombre[nombre]];
+    if(typeof fn!=="function") return false;
+    try{ fn(); return true; }catch(e){ console.warn("No se pudo restaurar módulo",nombre,e); return false; }
+  }
+  document.addEventListener("click",function(ev){
+    const b=ev.target && ev.target.closest ? ev.target.closest("button[id]") : null;
+    if(!b || !modulos[b.id]) return;
+    guardar(modulos[b.id][0]);
+  },true);
+  // También guarda cambios hechos por funciones llamadas desde otros puntos de la app.
+  window.addEventListener("load",function(){
+    Object.entries(modulos).forEach(([id,info])=>{
+      const nombre=info[0], fnName=info[1], original=window[fnName];
+      if(typeof original!=="function" || original.__flkModuloPersistente) return;
+      const wrapped=function(){ guardar(nombre); return original.apply(this,arguments); };
+      wrapped.__flkModuloPersistente=true;
+      try{ window[fnName]=wrapped; }catch(_){}
+    });
+    let intentos=0;
+    const t=setInterval(function(){
+      intentos++;
+      if(restaurar() || intentos>=20) clearInterval(t);
+    },250);
+  });
+})();
+</script>
+</body>
 </html>
