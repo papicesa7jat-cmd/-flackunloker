@@ -1601,7 +1601,7 @@ textarea::placeholder{
 #vistaPrestacionesServicio{display:none}
 .prestacion-resumen{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .prestacion-card,.prestacion-form,.prestacion-item{background:#fff;border:1px solid #dde8f2;border-radius:16px;padding:14px}
-.prestacion-form{margin-bottom:14px}.prestacion-grid{display:grid;grid-template-columns:2fr 1.15fr 1fr 1.15fr 1fr;gap:10px}.prestacion-grid .campo{margin:0}
+.prestacion-form{margin-bottom:14px}.prestacion-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px}.prestacion-grid .campo{margin:0}
 .prestacion-item{margin-bottom:10px}.prestacion-item-top{display:flex;justify-content:space-between;gap:10px}.prestacion-importes{font-weight:800;text-align:right;white-space:nowrap}
 @media(max-width:700px){.prestacion-resumen,.prestacion-grid{grid-template-columns:1fr}.prestacion-item-top{flex-direction:column}.prestacion-importes{text-align:left}}
 </style>
@@ -1982,7 +1982,6 @@ textarea::placeholder{
 <div class="lista-estadisticas"><h3>⬇️ Entradas</h3>
 <div class="fila-estadistica"><span>Ventas cobradas al momento</span><strong id="flujoVentasContado">$0.00</strong></div>
 <div class="fila-estadistica"><span>Abonos / cobros de clientes</span><strong id="flujoAbonosClientes">$0.00</strong></div>
-<div class="fila-estadistica"><span>Prestaciones de servicio cobradas</span><strong id="flujoPrestaciones">$0.00</strong></div>
 </div>
 
 <div class="lista-estadisticas"><h3>⬆️ Salidas</h3>
@@ -2040,14 +2039,11 @@ textarea::placeholder{
 </div>
 
 <div class="lista-estadisticas"><h3>📈 Resultados del período</h3>
-<div class="fila-estadistica"><span>Ventas de mercancía</span><strong id="finVentas">$0.00</strong></div>
-<div class="fila-estadistica"><span>Ingresos por prestaciones</span><strong id="finPrestacionesPeriodo">$0.00</strong></div>
-<div class="fila-estadistica"><span>Ingresos totales</span><strong id="finIngresosTotales">$0.00</strong></div>
+<div class="fila-estadistica"><span>Ventas</span><strong id="finVentas">$0.00</strong></div>
 <div class="fila-estadistica"><span>Costo de mercancía vendida</span><strong id="finCosto">$0.00</strong></div>
-<div class="fila-estadistica"><span>Costos externos de prestaciones</span><strong id="finPrestCostosPeriodo">$0.00</strong></div>
-<div class="fila-estadistica"><span>Ganancia bruta total</span><strong id="finBruta">$0.00</strong></div>
+<div class="fila-estadistica"><span>Ganancia bruta</span><strong id="finBruta">$0.00</strong></div>
 <div class="fila-estadistica"><span>Gastos</span><strong id="finGastos">$0.00</strong></div>
-<div class="fila-estadistica"><span>💰 Ganancia neta total</span><strong id="finNeta">$0.00</strong></div>
+<div class="fila-estadistica"><span>💰 Ganancia neta</span><strong id="finNeta">$0.00</strong></div>
 </div>
 
 
@@ -2105,8 +2101,8 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 </div>
 
 <div class="lista-estadisticas"><h3>📌 Indicadores</h3>
-<div class="fila-estadistica"><span>Margen bruto sobre ingresos totales</span><strong id="finMargenBruto">0.0%</strong></div>
-<div class="fila-estadistica"><span>Margen neto sobre ingresos totales</span><strong id="finMargenNeto">0.0%</strong></div>
+<div class="fila-estadistica"><span>Margen bruto sobre ventas</span><strong id="finMargenBruto">0.0%</strong></div>
+<div class="fila-estadistica"><span>Margen neto sobre ventas</span><strong id="finMargenNeto">0.0%</strong></div>
 <div class="fila-estadistica"><span>Relación por cobrar / por pagar</span><strong id="finRelacion">—</strong></div>
 </div>
 </div>
@@ -2127,11 +2123,10 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="campo"><label>Descripción de la prestación</label><input id="prestDescripcion" type="text" placeholder="Ej. Instalación / reparación / configuración"></div>
 <div class="campo"><label>Tipo</label><select id="prestTipo" onchange="flkCambiarTipoPrestacion()"><option value="ingreso">Solo ingreso</option><option value="ingreso_costo">Ingreso + costo externo</option></select></div>
 <div class="campo"><label>Ingreso</label><input id="prestIngreso" type="number" min="0" step="0.01" value="0"></div>
-<div class="campo"><label>Método de pago</label><select id="prestMetodo"><option value="Efectivo">Efectivo</option><option value="ATH Móvil">ATH Móvil</option><option value="Tarjeta">Tarjeta</option><option value="Transferencia">Transferencia</option><option value="Otro">Otro</option></select></div>
 <div class="campo"><label>Costo externo</label><input id="prestCosto" type="number" min="0" step="0.01" value="0" disabled></div>
 </div><div class="prestacion-grid" style="grid-template-columns:1fr auto;margin-top:10px">
 <div class="campo"><label>Fecha</label><input id="prestFecha" type="date"></div><button class="boton-agregar" type="button" onclick="flkGuardarPrestacionServicio()">💾 Registrar prestación</button></div>
-<p style="margin:10px 0 0;color:#667085;font-size:12px">El ingreso cobrado entra al Flujo de caja según el método de pago. El costo externo reduce la ganancia, pero no crea salida en Flujo de caja.</p></div>
+<p style="margin:10px 0 0;color:#667085;font-size:12px">El costo externo reduce la ganancia, pero no crea salida en Flujo de caja.</p></div>
 <div class="lista-estadisticas"><h3>📋 Prestaciones registradas</h3><div id="listaPrestacionesServicio"></div></div>
 </div>
 <div id="vistaEstadisticas" style="display:none">
@@ -2706,8 +2701,7 @@ const FLK_OPERACIONES_LOCAL_FIRST=new Set([
  "product_save","product_delete","stock_adjustment","sale","sale_payment","sale_return",
  "expense_save","expense_delete","supplier_save","purchase_order_save",
  "purchase_order_ordered","purchase_order_receive","supplier_payment",
- "owner_cash_movement","cash_closure_save","cash_closure_delete",
- "service_provision_save","service_provision_delete"
+ "owner_cash_movement","cash_closure_save","cash_closure_delete"
 ]);
 
 function flkColaOffline(){
@@ -3441,18 +3435,6 @@ async function flkProcesarOperacionOffline(op){
   });
   if(error)throw error;return
  }
- if(op.tipo==="service_provision_save"){
-  const p=op.payload||{},bid=await flkExigirCentroActual();
-  const mm={"Efectivo":"efectivo","ATH Móvil":"ath_movil","ATH Movil":"ath_movil","Tarjeta":"tarjeta","Transferencia":"transferencia","Otro":"otro"};
-  const row={business_id:bid,description:String(p.description||"Prestación"),service_type:p.service_type==="ingreso_costo"?"ingreso_costo":"ingreso",income:Number(p.income||0),payment_method:mm[p.payment_method]||"efectivo",external_cost:Number(p.external_cost||0),service_date:p.service_date||fechaLocalISO(new Date()),operation_id:op.id};
-  const {error}=await flkSupabase.from("service_provisions").upsert(row,{onConflict:"operation_id"});
-  if(error)throw error;return
- }
- if(op.tipo==="service_provision_delete"){
-  const p=op.payload||{};let q=flkSupabase.from("service_provisions").delete().eq("business_id",await flkExigirCentroActual());
-  if(p.cloud_id)q=q.eq("id",p.cloud_id);else if(p.operation_id)q=q.eq("operation_id",p.operation_id);else return;
-  const {error}=await q;if(error)throw error;return
- }
  throw new Error("Tipo de operación offline no soportado: "+op.tipo)
 }
 
@@ -3510,9 +3492,6 @@ async function flkSincronizarSeguro(){
   }
   if(typeof flkReconciliarInventarioNube==="function"){
    await flkReconciliarInventarioNube();
-  }
-  if(typeof flkCargarPrestacionesNube==="function"){
-   await flkCargarPrestacionesNube();
   }
 
   flkActualizarEstadoConexion();
@@ -4035,8 +4014,7 @@ async function flkRecuperacionEmergenciaNube(){
    guardarGastos();
   }catch(e){console.error("Gastos",e);fallos.push("Gastos: "+(e.message||e))}
 
-  // COMPRAS Y PROVEEDORES · v61.73: offline conserva compras/proveedores locales y no consulta Supabase
-  if(flkNubeDisponible()){
+  // COMPRAS Y PROVEEDORES
   try{
    const [rs,ro,rp]=await Promise.all([
     flkSupabase.from("suppliers").select("*").order("name"),
@@ -4074,66 +4052,36 @@ async function flkRecuperacionEmergenciaNube(){
     }
    });
    guardarProveedores();guardarOrdenesCompra();
-  }catch(e){
-   if(flkNubeDisponible()){console.error("Compras",e);fallos.push("Compras: "+(e.message||e))}
-  }
-  }else{
-   // Sin Internet: mantener proveedores y órdenes ya guardados en el dispositivo.
-   if(typeof flkAplicarPendientesSobreDatos==="function")flkAplicarPendientesSobreDatos();
-   if(typeof actualizarOpcionesOrganizacion==="function")actualizarOpcionesOrganizacion();
-   if(typeof actualizarProveedores==="function")actualizarProveedores();
-   if(typeof actualizarOrdenesCompra==="function")actualizarOrdenesCompra();
-   if(typeof actualizarCuentasPagar==="function")actualizarCuentasPagar();
-  }
+  }catch(e){console.error("Compras",e);fallos.push("Compras: "+(e.message||e))}
 
-  // CAJA · v61.72: si la conexión cae durante la recuperación, conservar datos locales
-  if(flkNubeDisponible()){
-   try{
-    const {data,error}=await flkSupabase.from("cash_movements").select("*").order("occurred_at",{ascending:true});
-    if(error)throw error;
-    movimientosCajaSupabase=(data||[]).map(m=>({
-     id:m.id,
-     tipo:m.type==="income"?"entrada":"salida",
-     cantidad:Number(m.amount||0),
-     concepto:m.description||"Movimiento",
-     metodo:normalizarMetodoFlujo(m.payment_method||"Otro"),
-     fecha:m.occurred_at||m.created_at,
-     grupo:String(m.description||"").startsWith("Gasto ·")?"gasto":
-       String(m.description||"").startsWith("Abono ·")?"abono":
-       String(m.description||"").startsWith("Venta ·")?"venta":
-       String(m.description||"").startsWith("Pago proveedor ·")?"proveedor":
-       (String(m.description||"")==="Retiro del propietario"||String(m.description||"")==="Aporte del propietario")?"propietario":
-       String(m.description||"").startsWith("Reembolso devolución ·")?"reembolso":"otro"
-    }));
-    guardarMovimientosCajaLocal();
-   }catch(e){
-    if(flkEsErrorConexion(e)){
-     console.warn("Caja: conexión perdida durante recuperación; se conserva la copia local.",e);
-     flkActualizarEstadoConexion();
-    }else{
-     console.error("Caja",e);
-     fallos.push("Caja: "+(e.message||e));
-    }
-   }
-  }
+  // CAJA
+  try{
+   const {data,error}=await flkSupabase.from("cash_movements").select("*").order("occurred_at",{ascending:true});
+   if(error)throw error;
+   movimientosCajaSupabase=(data||[]).map(m=>({
+    id:m.id,
+    tipo:m.type==="income"?"entrada":"salida",
+    cantidad:Number(m.amount||0),
+    concepto:m.description||"Movimiento",
+    metodo:normalizarMetodoFlujo(m.payment_method||"Otro"),
+    fecha:m.occurred_at||m.created_at,
+    grupo:String(m.description||"").startsWith("Gasto ·")?"gasto":
+      String(m.description||"").startsWith("Abono ·")?"abono":
+      String(m.description||"").startsWith("Venta ·")?"venta":
+      String(m.description||"").startsWith("Pago proveedor ·")?"proveedor":
+      (String(m.description||"")==="Retiro del propietario"||String(m.description||"")==="Aporte del propietario")?"propietario":
+      String(m.description||"").startsWith("Reembolso devolución ·")?"reembolso":"otro"
+   }));
+   guardarMovimientosCajaLocal();
+  }catch(e){console.error("Caja",e);fallos.push("Caja: "+(e.message||e))}
 
-  // CIERRES · v61.72: sin fetch cuando ya estamos offline; conservar copia local
-  if(flkNubeDisponible()){
-   try{
-    const {data,error}=await flkSupabase.from("cash_closures").select("*").order("close_date",{ascending:false});
-    if(error)throw error;
-    cierres=(data||[]).map(cierreDesdeSupabase);
-    guardarCierres();
-   }catch(e){
-    if(flkEsErrorConexion(e)){
-     console.warn("Cierres: conexión perdida durante recuperación; se conserva la copia local.",e);
-     flkActualizarEstadoConexion();
-    }else{
-     console.error("Cierres",e);
-     fallos.push("Cierres: "+(e.message||e));
-    }
-   }
-  }
+  // CIERRES
+  try{
+   const {data,error}=await flkSupabase.from("cash_closures").select("*").order("close_date",{ascending:false});
+   if(error)throw error;
+   cierres=(data||[]).map(cierreDesdeSupabase);
+   guardarCierres();
+  }catch(e){console.error("Cierres",e);fallos.push("Cierres: "+(e.message||e))}
 
   // IMPORTANTE: durante recuperación NO aplicar cola offline y NO sincronizar.
   mostrarProductos();
@@ -8050,28 +7998,6 @@ function movimientosFlujoCaja(){
   }
  });
 
- // Prestaciones de servicio cobradas. Se reconstruyen desde el almacenamiento local
- // de Prestaciones. Los registros antiguos sin método se consideran Efectivo.
- try{
-  let bid="global";
-  try{if(typeof flkBusinessGuardado==="function")bid=String(flkBusinessGuardado()||"global");}
-  catch(_){try{if(typeof FLK_BUSINESS_ID!=="undefined"&&FLK_BUSINESS_ID)bid=String(FLK_BUSINESS_ID);}catch(__){}}
-  const keyPrest="flackunloker_prestaciones_servicio_v1::"+bid;
-  const arrPrest=JSON.parse(localStorage.getItem(keyPrest)||"[]");
-  (Array.isArray(arrPrest)?arrPrest:[]).forEach(p=>{
-   const ingreso=Number(p.ingreso||0);
-   if(!(ingreso>0))return;
-   mov.push({
-    id:"prestacion-"+String(p.id||p.created_at||Math.random()),
-    tipo:"entrada",cantidad:ingreso,
-    concepto:"Prestación · "+String(p.descripcion||"Servicio"),
-    metodo:normalizarMetodoFlujo(p.metodo||"Efectivo"),
-    fecha:p.created_at||((p.fecha||"")+"T12:00:00"),
-    grupo:"prestacion"
-   });
-  });
- }catch(e){console.warn("Prestaciones en flujo:",e);}
-
  // Conservar de cash_movements solo operaciones que no se pueden reconstruir
  // de las tablas anteriores (propietario y movimientos manuales/otros).
  (Array.isArray(movimientosCajaSupabase)?movimientosCajaSupabase:[]).forEach(m=>{
@@ -8091,7 +8017,7 @@ function datosFlujoCaja(){
  ["Efectivo","ATH Móvil","Tarjeta","Transferencia","Otro"].forEach(k=>metodos[k]=mov.filter(m=>m.metodo===k).reduce((t,m)=>t+(m.tipo==="entrada"?m.cantidad:-m.cantidad),0));
  return {
   lim,mov,entradas,salidas,neto:entradas-salidas,
-  ventas:suma("entrada","venta"),abonos:suma("entrada","abono"),prestaciones:suma("entrada","prestacion"),
+  ventas:suma("entrada","venta"),abonos:suma("entrada","abono"),
   gastos:suma("salida","gasto"),proveedores:suma("salida","proveedor"),
   aportesPropietario,retirosPropietario,
   netoPropietario:aportesPropietario-retirosPropietario,
@@ -8148,7 +8074,6 @@ function actualizarFlujoCaja(){
  const net=document.getElementById("flujoNeto");net.textContent="$"+d.neto.toFixed(2);net.style.color=d.neto<0?"#d93025":"#168044";
  document.getElementById("flujoVentasContado").textContent="$"+d.ventas.toFixed(2);
  document.getElementById("flujoAbonosClientes").textContent="$"+d.abonos.toFixed(2);
- const fp=document.getElementById("flujoPrestaciones");if(fp)fp.textContent="$"+d.prestaciones.toFixed(2);
  document.getElementById("flujoGastos").textContent="$"+d.gastos.toFixed(2);
  document.getElementById("flujoPagosProveedores").textContent="$"+d.proveedores.toFixed(2);
  document.getElementById("flujoAportesPropietario").textContent="$"+d.aportesPropietario.toFixed(2);
@@ -8309,27 +8234,7 @@ function datosFinanzas(){
  const gg=gastos.filter(g=>enRango(g.fecha||g.fechaLocal));
  const ventasTotal=vv.reduce((t,v)=>t+Number(v.ingreso||0),0);
  const costo=vv.reduce((t,v)=>t+Number(v.costoTotal||0),0);
- const brutaMercancia=ventasTotal-costo;
-
- // Prestaciones de servicio del mismo período financiero.
- // El ingreso cuenta como ingreso operativo; el costo externo reduce la ganancia,
- // pero no se registra como salida de caja.
- let prestacionesPeriodo=[];
- try{
-  let bid="global";
-  if(typeof flkBusinessGuardado==="function")bid=String(flkBusinessGuardado()||"global");
-  else if(typeof FLK_BUSINESS_ID!=="undefined"&&FLK_BUSINESS_ID)bid=String(FLK_BUSINESS_ID);
-  const raw=JSON.parse(localStorage.getItem("flackunloker_prestaciones_servicio_v1::"+bid)||"[]");
-  if(Array.isArray(raw))prestacionesPeriodo=raw.filter(p=>{
-   const d=new Date(String(p.fecha||"")+"T12:00:00");
-   return !Number.isNaN(d.getTime())&&d>=lim.desde&&d<lim.hasta;
-  });
- }catch(_){prestacionesPeriodo=[];}
- const prestIngresos=prestacionesPeriodo.reduce((t,p)=>t+Number(p.ingreso||0),0);
- const prestCostos=prestacionesPeriodo.reduce((t,p)=>t+Number(p.costo||0),0);
- const prestNeto=prestIngresos-prestCostos;
- const ingresosTotales=ventasTotal+prestIngresos;
- const bruta=brutaMercancia+prestNeto;
+ const bruta=ventasTotal-costo;
  const gastosTotal=gg.reduce((t,g)=>t+Number(g.cantidad||0),0);
  const neta=bruta-gastosTotal;
 
@@ -8364,7 +8269,7 @@ function datosFinanzas(){
  const flujoCajaTotal=flujoOperativo+netoPropietario;
 
  return {
-  lim,ventasTotal,costo,brutaMercancia,prestIngresos,prestCostos,prestNeto,ingresosTotales,bruta,gastosTotal,neta,
+  lim,ventasTotal,costo,bruta,gastosTotal,neta,
   caja,inventario,porCobrar,porPagar,activos,patrimonio,
   entradas,salidas,flujo:flujoOperativo,
   aportesPropietario,retirosPropietario,netoPropietario,flujoCajaTotal
@@ -8398,12 +8303,7 @@ function actualizarFinanzas(){
  money("finCaja",d.caja);money("finInventario",d.inventario);money("finPorCobrar",d.porCobrar);money("finActivos",d.activos);money("finPorPagar",d.porPagar);money("finPatrimonio",d.patrimonio);
  const formula=document.getElementById("finFormulaPatrimonio");
  if(formula)formula.textContent=`$${d.caja.toFixed(2)} + $${d.inventario.toFixed(2)} + $${d.porCobrar.toFixed(2)} − $${d.porPagar.toFixed(2)} = $${d.patrimonio.toFixed(2)}`;
- money("finVentas",d.ventasTotal);
- money("finPrestacionesPeriodo",d.prestIngresos);
- money("finIngresosTotales",d.ingresosTotales);
- money("finCosto",d.costo);
- money("finPrestCostosPeriodo",d.prestCostos);
- money("finBruta",d.bruta);money("finGastos",d.gastosTotal);money("finNeta",d.neta);
+ money("finVentas",d.ventasTotal);money("finCosto",d.costo);money("finBruta",d.bruta);money("finGastos",d.gastosTotal);money("finNeta",d.neta);
  money("finEntradas",d.entradas);money("finSalidas",d.salidas);money("finFlujoNeto",d.flujo);
  money("finAportesPropietario",d.aportesPropietario);
  money("finRetirosPropietario",d.retirosPropietario);
@@ -8416,8 +8316,8 @@ function actualizarFinanzas(){
  document.getElementById("finPatrimonio").style.color=d.patrimonio<0?"#d93025":"#0a84ff";
  document.getElementById("finNeta").style.color=d.neta<0?"#d93025":"#168044";
  document.getElementById("finFlujoNeto").style.color=d.flujo<0?"#d93025":"#168044";
- document.getElementById("finMargenBruto").textContent=(d.ingresosTotales?d.bruta/d.ingresosTotales*100:0).toFixed(1)+"%";
- document.getElementById("finMargenNeto").textContent=(d.ingresosTotales?d.neta/d.ingresosTotales*100:0).toFixed(1)+"%";
+ document.getElementById("finMargenBruto").textContent=(d.ventasTotal?d.bruta/d.ventasTotal*100:0).toFixed(1)+"%";
+ document.getElementById("finMargenNeto").textContent=(d.ventasTotal?d.neta/d.ventasTotal*100:0).toFixed(1)+"%";
  document.getElementById("finRelacion").textContent=d.porPagar>0?(d.porCobrar/d.porPagar).toFixed(2)+"x":(d.porCobrar>0?"Sin deuda":"—");
  actualizarEstadoContribucionArrendamiento()
 }
@@ -8433,7 +8333,7 @@ function mostrarFinanzas(){flkOcultarTodasLasVistas();
 }
 function imprimirFinanzas(){
  const d=datosFinanzas();if(!d)return alert("Selecciona un período válido.");
- const pct=n=>(d.ingresosTotales?n/d.ingresosTotales*100:0).toFixed(1)+"%";
+ const pct=n=>(d.ventasTotal?n/d.ventasTotal*100:0).toFixed(1)+"%";
  const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Estado financiero</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{margin-bottom:4px}h2{margin-top:28px}p{color:#666}.fila{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #ddd}.fila strong{white-space:nowrap}.print{margin-top:24px;padding:12px 18px}@media print{.print{display:none}}
 </style>
 <style>
@@ -8739,7 +8639,7 @@ body.flk-v6125 #cuentasTotalPagado {
 .flk-etiqueta-qr .qrbox img,.flk-etiqueta-qr .qrbox canvas{width:30mm!important;height:30mm!important}
 @media(max-width:430px){.flk-qr-controles,.flk-qr-acciones{grid-template-columns:1fr}}
 </style>
-</head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas de mercancía</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Ingresos por prestaciones</span><strong>$${d.prestIngresos.toFixed(2)}</strong></div><div class="fila"><span>Ingresos totales</span><strong>$${d.ingresosTotales.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Costos externos de prestaciones</span><strong>$${d.prestCostos.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta total</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta total</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
+</head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el estado financiero.");w.document.write(html);w.document.close()
 }
 
@@ -11039,7 +10939,7 @@ async function flkDeepStorageCopy(){
 }
 
 </script>
-\n<script id="flk-prestaciones-v6174-sync-script">
+\n<script id="flk-prestaciones-v6142-script">
 (function(){
 'use strict';
 var prestacionesServicio=[];
@@ -11054,13 +10954,11 @@ function resumen(desde,hasta){var a=prestacionesServicio.filter(function(p){var 
 function hoy(){var d=new Date(),a=new Date(d.getFullYear(),d.getMonth(),d.getDate()),b=new Date(a);b.setDate(b.getDate()+1);return resumen(a,b);}
 function mes(){var d=new Date(),a=new Date(d.getFullYear(),d.getMonth(),1),b=new Date(d.getFullYear(),d.getMonth()+1,1);return resumen(a,b);}
 function set(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
-function pintar(){load();var h=hoy(),m=mes();set('prestIngresosHoy',money(h.ingresos));set('prestCostosHoy',money(h.costos));set('prestNetoHoy',money(h.neto));set('prestIngresosMes',money(m.ingresos));set('prestCostosMes',money(m.costos));set('prestNetoMes',money(m.neto));set('cierrePrestIngresos',money(h.ingresos));set('cierrePrestCostos',money(h.costos));set('cierrePrestNeto',money(h.neto));set('finPrestIngresos',money(m.ingresos));set('finPrestCostos',money(m.costos));set('finPrestNeto',money(m.neto));set('estadPrestHoy',money(h.ingresos));set('estadPrestMes',money(m.ingresos));set('estadPrestCostosMes',money(m.costos));set('estadPrestNetoMes',money(m.neto));var box=document.getElementById('listaPrestacionesServicio');if(box)box.innerHTML=prestacionesServicio.length?prestacionesServicio.slice().sort(function(a,b){return String(b.fecha).localeCompare(String(a.fecha))||String(b.created_at||'').localeCompare(String(a.created_at||''));}).map(function(p){return '<div class="prestacion-item"><div class="prestacion-item-top"><div><h3>'+esc(p.descripcion)+'</h3><p>'+esc(p.fecha)+' · '+(p.tipo==='ingreso_costo'?'Ingreso + costo externo':'Solo ingreso')+' · '+esc(p.metodo||'Efectivo')+'</p></div><div class="prestacion-importes">Ingreso '+money(p.ingreso)+'<br>Costo '+money(p.costo)+'<br>Neto '+money(Number(p.ingreso)-Number(p.costo))+'</div></div><button type="button" class="boton-eliminar solo-admin" onclick="flkEliminarPrestacionServicio(&quot;'+esc(String(p.id))+'&quot;)">Eliminar</button></div>';}).join(''):'<div class="sin-productos">No hay prestaciones registradas.</div>'; }
-function flkMetodoPrestNube(v){return ({efectivo:'Efectivo',ath_movil:'ATH Móvil',tarjeta:'Tarjeta',transferencia:'Transferencia',otro:'Otro'})[v]||v||'Efectivo';}
-window.flkCargarPrestacionesNube=async function(){if(typeof flkNubeDisponible!=='function'||!flkNubeDisponible()||typeof flkSupabase==='undefined')return false;try{var bid=await flkExigirCentroActual();var r=await flkSupabase.from('service_provisions').select('*').eq('business_id',bid).order('service_date',{ascending:true}).order('created_at',{ascending:true});if(r.error)throw r.error;load();var q=typeof flkColaOffline==='function'?flkColaOffline():[];var ps=new Set(q.filter(function(o){return o.tipo==='service_provision_save'&&o.estado!=='sincronizado';}).map(function(o){return o.id;}));var pd=new Set(q.filter(function(o){return o.tipo==='service_provision_delete'&&o.estado!=='sincronizado'&&o.payload&&o.payload.cloud_id;}).map(function(o){return String(o.payload.cloud_id);}));var nube=(r.data||[]).filter(function(x){return !pd.has(String(x.id));}).map(function(x){return {id:String(x.id),cloud_id:String(x.id),operation_id:x.operation_id||'',descripcion:x.description||'',tipo:x.service_type||'ingreso',ingreso:Number(x.income||0),costo:Number(x.external_cost||0),metodo:flkMetodoPrestNube(x.payment_method),fecha:x.service_date,created_at:x.created_at||''};});var pendientes=prestacionesServicio.filter(function(p){return p.operation_id&&ps.has(p.operation_id);});var legacy=prestacionesServicio.filter(function(p){return !p.cloud_id&&!p.operation_id;});var m=new Map();nube.concat(pendientes).concat(legacy).forEach(function(p){m.set(String(p.cloud_id||p.operation_id||p.id),p);});prestacionesServicio=Array.from(m.values());save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();return true;}catch(e){if(typeof flkSilenciarSiEsConexion==='function'&&flkSilenciarSiEsConexion(e))return false;console.error('Prestaciones nube:',e);return false;}};
+function pintar(){load();var h=hoy(),m=mes();set('prestIngresosHoy',money(h.ingresos));set('prestCostosHoy',money(h.costos));set('prestNetoHoy',money(h.neto));set('prestIngresosMes',money(m.ingresos));set('prestCostosMes',money(m.costos));set('prestNetoMes',money(m.neto));set('cierrePrestIngresos',money(h.ingresos));set('cierrePrestCostos',money(h.costos));set('cierrePrestNeto',money(h.neto));set('finPrestIngresos',money(m.ingresos));set('finPrestCostos',money(m.costos));set('finPrestNeto',money(m.neto));set('estadPrestHoy',money(h.ingresos));set('estadPrestMes',money(m.ingresos));set('estadPrestCostosMes',money(m.costos));set('estadPrestNetoMes',money(m.neto));var box=document.getElementById('listaPrestacionesServicio');if(box)box.innerHTML=prestacionesServicio.length?prestacionesServicio.slice().sort(function(a,b){return String(b.fecha).localeCompare(String(a.fecha))||Number(b.id)-Number(a.id);}).map(function(p){return '<div class="prestacion-item"><div class="prestacion-item-top"><div><h3>'+esc(p.descripcion)+'</h3><p>'+esc(p.fecha)+' · '+(p.tipo==='ingreso_costo'?'Ingreso + costo externo':'Solo ingreso')+'</p></div><div class="prestacion-importes">Ingreso '+money(p.ingreso)+'<br>Costo '+money(p.costo)+'<br>Neto '+money(Number(p.ingreso)-Number(p.costo))+'</div></div><button type="button" class="boton-eliminar solo-admin" onclick="flkEliminarPrestacionServicio('+Number(p.id)+')">Eliminar</button></div>';}).join(''):'<div class="sin-productos">No hay prestaciones registradas.</div>'; }
 window.flkCambiarTipoPrestacion=function(){var t=document.getElementById('prestTipo'),c=document.getElementById('prestCosto');if(!t||!c)return;c.disabled=t.value!=='ingreso_costo';if(c.disabled)c.value='0';};
-window.flkGuardarPrestacionServicio=function(){if(typeof requiereAdmin==='function'&&!requiereAdmin('Registrar prestaciones de servicio'))return;var de=document.getElementById('prestDescripcion'),ti=document.getElementById('prestTipo'),ing=document.getElementById('prestIngreso'),me=document.getElementById('prestMetodo'),co=document.getElementById('prestCosto'),fe=document.getElementById('prestFecha');var descripcion=String(de?de.value:'').trim(),tipo=ti?ti.value:'ingreso',ingreso=Number(ing?ing.value:0),metodo=me?me.value:'Efectivo',costo=tipo==='ingreso_costo'?Number(co?co.value:0):0,fecha=fe?fe.value:'';if(!descripcion)return alert('Escribe la descripción de la prestación.');if(!fecha)return alert('Selecciona la fecha.');if(ingreso<0||costo<0)return alert('Los importes no pueden ser negativos.');load();var localId=typeof flkUUID==='function'?flkUUID():'prest-'+Date.now();var op=typeof flkEncolarOperacion==='function'?flkEncolarOperacion('service_provision_save',{description:descripcion,service_type:tipo,income:ingreso,payment_method:metodo,external_cost:costo,service_date:fecha,local_id:localId}):null;prestacionesServicio.push({id:localId,operation_id:op?op.id:'',descripcion:descripcion,tipo:tipo,ingreso:ingreso,costo:costo,metodo:metodo,fecha:fecha,created_at:new Date().toISOString(),offlinePendiente:!!op});save();if(de)de.value='';if(ing)ing.value='0';if(co)co.value='0';pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()&&typeof flkSincronizarSeguro==='function')setTimeout(function(){flkSincronizarSeguro();},50);};
-window.flkEliminarPrestacionServicio=function(id){if(typeof requiereAdmin==='function'&&!requiereAdmin('Eliminar prestaciones de servicio'))return;if(!confirm('¿Eliminar esta prestación?'))return;load();var p=prestacionesServicio.find(function(x){return String(x.id)===String(id);});if(!p)return;if(typeof flkEncolarOperacion==='function')flkEncolarOperacion('service_provision_delete',{cloud_id:p.cloud_id||null,operation_id:p.operation_id||null,local_id:String(p.id)});prestacionesServicio=prestacionesServicio.filter(function(x){return String(x.id)!==String(id);});save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()&&typeof flkSincronizarSeguro==='function')setTimeout(function(){flkSincronizarSeguro();},50);};
-window.mostrarPrestacionesServicio=function(){try{localStorage.setItem('flackunloker_ultimo_modulo_v1','botonPrestacionesServicio');}catch(_){}if(typeof flkOcultarTodasLasVistas==='function')flkOcultarTodasLasVistas();var v=document.getElementById('vistaPrestacionesServicio');if(!v)return alert('No se pudo abrir Prestaciones de servicio.');v.style.display='block';document.querySelectorAll('.menu-cuadricula button').forEach(function(b){b.classList.remove('activo');});var btn=document.getElementById('botonPrestacionesServicio');if(btn)btn.classList.add('activo');if(typeof cerrarMenuPrincipal==='function')cerrarMenuPrincipal();var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();if(typeof flkCargarPrestacionesNube==='function')flkCargarPrestacionesNube();};
+window.flkGuardarPrestacionServicio=function(){if(typeof requiereAdmin==='function'&&!requiereAdmin('Registrar prestaciones de servicio'))return;var de=document.getElementById('prestDescripcion'),ti=document.getElementById('prestTipo'),ing=document.getElementById('prestIngreso'),co=document.getElementById('prestCosto'),fe=document.getElementById('prestFecha');var descripcion=String(de?de.value:'').trim(),tipo=ti?ti.value:'ingreso',ingreso=Number(ing?ing.value:0),costo=tipo==='ingreso_costo'?Number(co?co.value:0):0,fecha=fe?fe.value:'';if(!descripcion)return alert('Escribe la descripción de la prestación.');if(!fecha)return alert('Selecciona la fecha.');if(ingreso<0||costo<0)return alert('Los importes no pueden ser negativos.');prestacionesServicio.push({id:Date.now(),descripcion:descripcion,tipo:tipo,ingreso:ingreso,costo:costo,fecha:fecha,created_at:new Date().toISOString()});save();if(de)de.value='';if(ing)ing.value='0';if(co)co.value='0';pintar();};
+window.flkEliminarPrestacionServicio=function(id){if(typeof requiereAdmin==='function'&&!requiereAdmin('Eliminar prestaciones de servicio'))return;if(!confirm('¿Eliminar esta prestación?'))return;load();prestacionesServicio=prestacionesServicio.filter(function(p){return Number(p.id)!==Number(id);});save();pintar();};
+window.mostrarPrestacionesServicio=function(){try{localStorage.setItem('flackunloker_ultimo_modulo_v1','botonPrestacionesServicio');}catch(_){}if(typeof flkOcultarTodasLasVistas==='function')flkOcultarTodasLasVistas();var v=document.getElementById('vistaPrestacionesServicio');if(!v)return alert('No se pudo abrir Prestaciones de servicio.');v.style.display='block';document.querySelectorAll('.menu-cuadricula button').forEach(function(b){b.classList.remove('activo');});var btn=document.getElementById('botonPrestacionesServicio');if(btn)btn.classList.add('activo');if(typeof cerrarMenuPrincipal==='function')cerrarMenuPrincipal();var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();};
 function init(){var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
@@ -11100,10 +10998,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     return !overlay||overlay.classList.contains("oculto");
   }
   function abrirActual(){
-    /* v61.75: el interceptor temprano del menú guarda la selección en localStorage.
-       Refrescar aquí evita que el módulo anterior (p. ej. Prestaciones) se restaure
-       después de que el usuario ya eligió otro módulo. */
-    try{actual=localStorage.getItem(KEY)||actual;}catch(_){}
     if(restaurando||!actual||actual==="botonInventario"||!sesionVisible())return;
     const btn=document.getElementById(actual),fn=window[MODULOS[actual]];
     if(!btn||typeof fn!=="function"||getComputedStyle(btn).display==="none")return;
@@ -11156,7 +11050,5 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   else ubicar();
 })();
 </script>
-
-<!-- v61.71: Prestaciones integradas en resultados de Finanzas; costo externo no afecta flujo de caja -->
 </body>
 </html>
