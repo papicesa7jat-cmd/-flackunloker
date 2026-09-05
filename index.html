@@ -10891,62 +10891,64 @@ function init(){var f=document.getElementById('prestFecha');if(f&&!f.value)f.val
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>\n
-<script id="flk-v6150-restore-last-module">
+<script id="flk-v6154-restore-last-module">
 (function(){
   const KEY="flackunloker_ultimo_modulo_v1";
   const MODULOS={
-    botonInventario:"mostrarInventario",
-    botonHistorial:"mostrarHistorial",
-    botonVentas:"mostrarVentas",
-    botonClientes:"mostrarClientes",
-    botonGastos:"mostrarGastos",
-    botonCierre:"mostrarCierre",
-    botonReportes:"mostrarReportes",
-    botonAlertas:"mostrarAlertas",
-    botonOrdenes:"mostrarOrdenes",
-    botonProveedores:"mostrarProveedores",
-    botonCuentasPagar:"mostrarCuentasPagar",
-    botonFlujoCaja:"mostrarFlujoCaja",
-    botonFinanzas:"mostrarFinanzas",
-    botonPrestacionesServicio:"mostrarPrestacionesServicio",
-    botonEstadisticas:"mostrarEstadisticas",
-    botonAdminSoftware:"mostrarAdminSoftware",
-    botonLicencias:"mostrarLicencias"
+    botonInventario:"mostrarInventario",botonHistorial:"mostrarHistorial",botonVentas:"mostrarVentas",
+    botonClientes:"mostrarClientes",botonGastos:"mostrarGastos",botonCierre:"mostrarCierre",
+    botonReportes:"mostrarReportes",botonAlertas:"mostrarAlertas",botonOrdenes:"mostrarOrdenes",
+    botonProveedores:"mostrarProveedores",botonCuentasPagar:"mostrarCuentasPagar",botonFlujoCaja:"mostrarFlujoCaja",
+    botonFinanzas:"mostrarFinanzas",botonPrestacionesServicio:"mostrarPrestacionesServicio",
+    botonEstadisticas:"mostrarEstadisticas",botonAdminSoftware:"mostrarAdminSoftware",botonLicencias:"mostrarLicencias"
   };
+  let restaurando=true;
+  let objetivo="";
+  try{objetivo=localStorage.getItem(KEY)||"";}catch(_){}
 
   document.addEventListener("click",function(ev){
-    const b=ev.target && ev.target.closest ? ev.target.closest("button[id]") : null;
-    if(b && MODULOS[b.id]){
-      try{ localStorage.setItem(KEY,b.id); }catch(_){ }
+    const b=ev.target&&ev.target.closest?ev.target.closest("button[id]"):null;
+    if(b&&MODULOS[b.id]){
+      objetivo=b.id;
+      restaurando=false;
+      try{localStorage.setItem(KEY,b.id);}catch(_){}
     }
   },true);
 
+  /* Durante el arranque, evita que una llamada automática tardía a Inventario
+     pise el módulo que estaba abierto antes del refresco. Un clic real en
+     Inventario desactiva esta protección antes de ejecutar su función. */
+  if(objetivo && objetivo!=="botonInventario" && typeof window.mostrarInventario==="function"){
+    const mostrarInventarioOriginal=window.mostrarInventario;
+    window.mostrarInventario=function(){
+      if(restaurando && objetivo && objetivo!=="botonInventario") return;
+      return mostrarInventarioOriginal.apply(this,arguments);
+    };
+  }
+
   function sesionVisible(){
     const overlay=document.getElementById("authOverlay");
-    return !overlay || overlay.classList.contains("oculto");
+    return !overlay||overlay.classList.contains("oculto");
   }
-
   function restaurar(){
-    let id="";
-    try{ id=localStorage.getItem(KEY)||""; }catch(_){ }
-    if(!id || id==="botonInventario") return true;
-    const fnName=MODULOS[id];
-    const btn=document.getElementById(id);
-    if(!fnName || !btn) return false;
-    if(getComputedStyle(btn).display==="none") return true;
-    const fn=window[fnName];
-    if(typeof fn!=="function") return false;
-    try{ fn(); return true; }catch(err){ console.error("Restaurar módulo:",err); return false; }
+    if(!objetivo||objetivo==="botonInventario")return true;
+    const fnName=MODULOS[objetivo],btn=document.getElementById(objetivo),fn=window[fnName];
+    if(!fnName||!btn||typeof fn!=="function")return false;
+    if(getComputedStyle(btn).display==="none")return false;
+    try{fn();return true;}catch(err){console.error("Restaurar módulo:",err);return false;}
   }
-
-  window.addEventListener("load",function(){
-    let intentos=0;
+  function iniciarRestauracion(){
+    if(!objetivo||objetivo==="botonInventario"){restaurando=false;return;}
+    let intentos=0,exitos=0;
     const timer=setInterval(function(){
+      if(!restaurando){clearInterval(timer);return;}
       intentos++;
-      if(sesionVisible() && restaurar()) clearInterval(timer);
-      if(intentos>=40) clearInterval(timer);
+      if(sesionVisible()&&restaurar())exitos++;
+      if(exitos>=3||intentos>=60){restaurando=false;clearInterval(timer);}
     },250);
-  },{once:true});
+  }
+  if(document.readyState==="complete")iniciarRestauracion();
+  else window.addEventListener("load",iniciarRestauracion,{once:true});
 })();
 </script>
 </body>
