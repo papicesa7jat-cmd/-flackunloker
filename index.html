@@ -4059,34 +4059,54 @@ async function flkRecuperacionEmergenciaNube(){
    guardarProveedores();guardarOrdenesCompra();
   }catch(e){console.error("Compras",e);fallos.push("Compras: "+(e.message||e))}
 
-  // CAJA
-  try{
-   const {data,error}=await flkSupabase.from("cash_movements").select("*").order("occurred_at",{ascending:true});
-   if(error)throw error;
-   movimientosCajaSupabase=(data||[]).map(m=>({
-    id:m.id,
-    tipo:m.type==="income"?"entrada":"salida",
-    cantidad:Number(m.amount||0),
-    concepto:m.description||"Movimiento",
-    metodo:normalizarMetodoFlujo(m.payment_method||"Otro"),
-    fecha:m.occurred_at||m.created_at,
-    grupo:String(m.description||"").startsWith("Gasto ·")?"gasto":
-      String(m.description||"").startsWith("Abono ·")?"abono":
-      String(m.description||"").startsWith("Venta ·")?"venta":
-      String(m.description||"").startsWith("Pago proveedor ·")?"proveedor":
-      (String(m.description||"")==="Retiro del propietario"||String(m.description||"")==="Aporte del propietario")?"propietario":
-      String(m.description||"").startsWith("Reembolso devolución ·")?"reembolso":"otro"
-   }));
-   guardarMovimientosCajaLocal();
-  }catch(e){console.error("Caja",e);fallos.push("Caja: "+(e.message||e))}
+  // CAJA · v61.72: si la conexión cae durante la recuperación, conservar datos locales
+  if(flkNubeDisponible()){
+   try{
+    const {data,error}=await flkSupabase.from("cash_movements").select("*").order("occurred_at",{ascending:true});
+    if(error)throw error;
+    movimientosCajaSupabase=(data||[]).map(m=>({
+     id:m.id,
+     tipo:m.type==="income"?"entrada":"salida",
+     cantidad:Number(m.amount||0),
+     concepto:m.description||"Movimiento",
+     metodo:normalizarMetodoFlujo(m.payment_method||"Otro"),
+     fecha:m.occurred_at||m.created_at,
+     grupo:String(m.description||"").startsWith("Gasto ·")?"gasto":
+       String(m.description||"").startsWith("Abono ·")?"abono":
+       String(m.description||"").startsWith("Venta ·")?"venta":
+       String(m.description||"").startsWith("Pago proveedor ·")?"proveedor":
+       (String(m.description||"")==="Retiro del propietario"||String(m.description||"")==="Aporte del propietario")?"propietario":
+       String(m.description||"").startsWith("Reembolso devolución ·")?"reembolso":"otro"
+    }));
+    guardarMovimientosCajaLocal();
+   }catch(e){
+    if(flkEsErrorConexion(e)){
+     console.warn("Caja: conexión perdida durante recuperación; se conserva la copia local.",e);
+     flkActualizarEstadoConexion();
+    }else{
+     console.error("Caja",e);
+     fallos.push("Caja: "+(e.message||e));
+    }
+   }
+  }
 
-  // CIERRES
-  try{
-   const {data,error}=await flkSupabase.from("cash_closures").select("*").order("close_date",{ascending:false});
-   if(error)throw error;
-   cierres=(data||[]).map(cierreDesdeSupabase);
-   guardarCierres();
-  }catch(e){console.error("Cierres",e);fallos.push("Cierres: "+(e.message||e))}
+  // CIERRES · v61.72: sin fetch cuando ya estamos offline; conservar copia local
+  if(flkNubeDisponible()){
+   try{
+    const {data,error}=await flkSupabase.from("cash_closures").select("*").order("close_date",{ascending:false});
+    if(error)throw error;
+    cierres=(data||[]).map(cierreDesdeSupabase);
+    guardarCierres();
+   }catch(e){
+    if(flkEsErrorConexion(e)){
+     console.warn("Cierres: conexión perdida durante recuperación; se conserva la copia local.",e);
+     flkActualizarEstadoConexion();
+    }else{
+     console.error("Cierres",e);
+     fallos.push("Cierres: "+(e.message||e));
+    }
+   }
+  }
 
   // IMPORTANTE: durante recuperación NO aplicar cola offline y NO sincronizar.
   mostrarProductos();
