@@ -1604,7 +1604,10 @@ textarea::placeholder{
 .prestacion-form{margin-bottom:14px}.prestacion-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px}.prestacion-grid .campo{margin:0}
 .prestacion-item{margin-bottom:10px}.prestacion-item-top{display:flex;justify-content:space-between;gap:10px}.prestacion-importes{font-weight:800;text-align:right;white-space:nowrap}
 @media(max-width:700px){.prestacion-resumen,.prestacion-grid{grid-template-columns:1fr}.prestacion-item-top{flex-direction:column}.prestacion-importes{text-align:left}}
-/* v61.63 · Prestaciones: texto negro y tipografía uniforme con el resto de módulos */
+</style>
+
+<style id="flk-v6165-prestaciones-solo-visual">
+/* v61.65: SOLO cambio visual sobre la v61.59 estable. */
 #vistaPrestacionesServicio,
 #vistaPrestacionesServicio .seccion-titulo h2,
 #vistaPrestacionesServicio .prestacion-card,
@@ -3629,7 +3632,7 @@ async function ejecutarRestablecimientoTotal(){
 
 const FLK_SUPABASE_URL='https://eviwhrqhinhnyccizkfq.supabase.co';
 const FLK_SUPABASE_KEY='sb_publishable_KgcL58HbkZ66Cguhs5JT0A_V2xAoL7h';
-let flkSupabase=window.supabase.createClient(FLK_SUPABASE_URL,FLK_SUPABASE_KEY);
+const flkSupabase=window.supabase.createClient(FLK_SUPABASE_URL,FLK_SUPABASE_KEY);
 let modoAuth="login";
 let rolSesion="employee";
 let flkSesionActiva=false;
@@ -3681,34 +3684,8 @@ const FLK_ROLE_CACHE_KEY="flackunloker_role_cache_v1";
 // Se conserva un verificador PBKDF2 local; nunca se guarda la contraseña en texto plano.
 const FLK_OFFLINE_AUTH_KEY="flackunloker_offline_auth_v1";
 const FLK_FORCE_OFFLINE_KEY="flackunloker_force_offline_v1";
-// v61.62 · credencial temporal solo en memoria para reautenticar Supabase
-// cuando el usuario entró offline después de haber cerrado sesión online.
-let flkCredencialReconexionMemoria=null;
 function flkNubeDisponible(){
  return !!navigator.onLine && localStorage.getItem(FLK_FORCE_OFFLINE_KEY)!=="1";
-}
-// v61.62 · Si la página arrancó totalmente offline pudo usar el cliente local
-// de emergencia. Al regresar Internet cargamos Supabase real SIN recargar la
-// página, para no perder la credencial temporal escrita en el login offline.
-async function flkAsegurarClienteSupabaseReal(){
- if(!navigator.onLine)return false;
- if(flkSupabase?.auth && typeof flkSupabase.auth.refreshSession==="function" && typeof flkSupabase.auth.setSession==="function")return true;
- try{
-  const URL_LIB="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
-  let codigo="";
-  try{
-   const r=await fetch(URL_LIB,{cache:"no-store"});
-   if(r.ok)codigo=await r.text();
-  }catch(_){}
-  if(!codigo){try{codigo=localStorage.getItem("flk_lib_supabasejs_v2")||"";}catch(_){}}
-  if(!codigo)return false;
-  try{delete window.supabase}catch(_){}
-  (0,eval)(String(codigo)+"\n//# sourceURL=flackunloker-supabase-reconexion-v6162.js");
-  if(!(window.supabase&&typeof window.supabase.createClient==="function"))return false;
-  flkSupabase=window.supabase.createClient(FLK_SUPABASE_URL,FLK_SUPABASE_KEY);
-  try{localStorage.setItem("flk_lib_supabasejs_v2",codigo)}catch(_){}
-  return !!(flkSupabase?.auth && typeof flkSupabase.auth.signInWithPassword==="function");
- }catch(err){console.warn("Reconexión Supabase real:",err);return false}
 }
 function flkBytesHex(bytes){return Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");}
 function flkHexBytes(hex){
@@ -3773,61 +3750,33 @@ async function flkReactivarNubeSiDisponible(){
  try{
   const ctrl=new AbortController();
   const t=setTimeout(()=>ctrl.abort(),4500);
+  /* Solo necesitamos confirmar que Supabase RESPONDE por red.
+     Un 401/404 también demuestra conexión; no exigimos r.ok. */
   await fetch(FLK_SUPABASE_URL+"/auth/v1/health?flk="+Date.now(),{
-   cache:"no-store",signal:ctrl.signal,headers:{"apikey":FLK_SUPABASE_KEY}
+   cache:"no-store",
+   signal:ctrl.signal,
+   headers:{"apikey":FLK_SUPABASE_KEY}
   });
   clearTimeout(t);
-
-  /* v61.62: si arrancamos offline, sustituir primero el cliente local de
-     emergencia por Supabase real sin recargar la página. */
-  if(!await flkAsegurarClienteSupabaseReal()){
-   localStorage.setItem(FLK_FORCE_OFFLINE_KEY,"1");
-   try{flkActualizarEstadoConexion()}catch(_){}
-   return false;
-  }
-
-  /* al volver Internet intentamos recuperar la sesión cloud automáticamente.
-     Primero la sesión existente; luego refreshSession(). */
+  /* Tener Internet no significa que exista una sesión autenticada en Supabase.
+     Tras entrar offline después de Cerrar sesión, la app conserva solo la
+     autenticación local; no debemos habilitar consultas cloud como anónimo. */
   let sesionNube=null;
   try{
    const r=await flkSupabase.auth.getSession();
    sesionNube=r?.data?.session||null;
   }catch(_){}
-
-  if(!sesionNube?.user?.id && flkSupabase?.auth && typeof flkSupabase.auth.refreshSession==="function"){
-   try{
-    const r=await flkSupabase.auth.refreshSession();
-    sesionNube=r?.data?.session||null;
-   }catch(_){}
-  }
-
-  // v61.62 · si no existe refresh token porque antes se cerró sesión,
-  // reutilizar una sola vez la credencial introducida en el login offline.
-  if(!sesionNube?.user?.id && flkCredencialReconexionMemoria?.email && flkCredencialReconexionMemoria?.password &&
-     flkSupabase?.auth && typeof flkSupabase.auth.signInWithPassword==="function"){
-   try{
-    const cred=flkCredencialReconexionMemoria;
-    const r=await flkSupabase.auth.signInWithPassword({email:cred.email,password:cred.password});
-    if(!r?.error && r?.data?.session?.user?.id){
-     sesionNube=r.data.session;
-     flkCredencialReconexionMemoria=null;
-    }
-   }catch(_){}
-  }
-
   if(!sesionNube?.user?.id){
    localStorage.setItem(FLK_FORCE_OFFLINE_KEY,"1");
    try{flkActualizarModoRendimiento()}catch(_){}
    try{flkActualizarEstadoConexion()}catch(_){}
    return false;
   }
-
   flkSesionActiva=sesionNube;
   flkGuardarSesionLocal(sesionNube);
   localStorage.removeItem(FLK_FORCE_OFFLINE_KEY);
   try{flkActualizarModoRendimiento()}catch(_){}
   try{flkActualizarEstadoConexion()}catch(_){}
-  try{if(typeof flkSincronizarSeguro==="function")setTimeout(()=>flkSincronizarSeguro(),150)}catch(_){}
   return true;
  }catch(_){return false}
 }
@@ -4204,7 +4153,6 @@ async function mostrarAppConSesion(session){
  }
 }
 async function cerrarSesionFlackunloker(){
- flkCredencialReconexionMemoria=null;
  try{flkActualizarSnapshotOffline()}catch(_){}
  try{
   const email=document.getElementById("authUsuarioEmail")?.textContent||document.getElementById("authEmail")?.value||"";
@@ -4237,7 +4185,6 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
   // El verificador local se usa primero solo cuando el navegador está realmente sin red.
   if(!navigator.onLine){
    if(await flkValidarAccesoOffline(email,password)){
-    flkCredencialReconexionMemoria={email,password};
     mostrarMensajeAuth("✅ Acceso offline validado en este dispositivo.","ok");
     flkLimpiarPasswordLogin();
     return;
@@ -4252,12 +4199,10 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
     if(flkEsErrorConexion(error)){
      if(cache?.user&&String(cache.user.email||"").toLowerCase()===email.toLowerCase()){
       localStorage.setItem(FLK_FORCE_OFFLINE_KEY,"1");
-      flkCredencialReconexionMemoria={email,password};
       mostrarMensajeAuth("✅ Acceso offline con la última sesión validada.","ok");
       flkPintarSesionLocal(cache.user);flkLimpiarPasswordLogin();return;
      }
      if(await flkValidarAccesoOffline(email,password)){
-      flkCredencialReconexionMemoria={email,password};
       mostrarMensajeAuth("✅ Acceso offline validado en este dispositivo.","ok");
       flkLimpiarPasswordLogin();return;
      }
@@ -4274,7 +4219,6 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
     mostrarMensajeAuth("❌ No se recibió una sesión válida.","error");return;
    }
    // Login online confirmado: abandonar de inmediato el estado de sesión local.
-   flkCredencialReconexionMemoria=null;
    localStorage.removeItem(FLK_FORCE_OFFLINE_KEY);
    flkSesionActiva=data.session;
    flkGuardarSesionLocal(data.session);
@@ -4291,12 +4235,10 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
    if(flkEsErrorConexion(err)){
     if(cache?.user&&String(cache.user.email||"").toLowerCase()===email.toLowerCase()){
      localStorage.setItem(FLK_FORCE_OFFLINE_KEY,"1");
-     flkCredencialReconexionMemoria={email,password};
      mostrarMensajeAuth("✅ Acceso offline con la última sesión validada.","ok");
      flkPintarSesionLocal(cache.user);flkLimpiarPasswordLogin();return;
     }
     if(await flkValidarAccesoOffline(email,password)){
-     flkCredencialReconexionMemoria={email,password};
      mostrarMensajeAuth("✅ Acceso offline validado en este dispositivo.","ok");
      flkLimpiarPasswordLogin();return;
     }
@@ -11045,19 +10987,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     if(b.id==="botonInventario")ultimoInventarioExplicito=Date.now();
     guardar(b.id);
   },true);
-
-  /* v61.64: Prestaciones no puede ser desplazada a Inventario por cargas tardías.
-     Inventario solo abre si el usuario lo pulsa de forma explícita. */
-  if(typeof window.mostrarInventario==="function") {
-    const mostrarInventarioReal=window.mostrarInventario;
-    window.mostrarInventario=function(){
-      if(actual==="botonPrestacionesServicio" && Date.now()-ultimoInventarioExplicito>=1200){
-        const pv=document.getElementById("vistaPrestacionesServicio");
-        if(pv && getComputedStyle(pv).display!=="none") return;
-      }
-      return mostrarInventarioReal.apply(this,arguments);
-    };
-  }
 
   function sesionVisible(){
     const overlay=document.getElementById("authOverlay");
