@@ -11100,6 +11100,10 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     return !overlay||overlay.classList.contains("oculto");
   }
   function abrirActual(){
+    /* v61.75: el interceptor temprano del menú guarda la selección en localStorage.
+       Refrescar aquí evita que el módulo anterior (p. ej. Prestaciones) se restaure
+       después de que el usuario ya eligió otro módulo. */
+    try{actual=localStorage.getItem(KEY)||actual;}catch(_){}
     if(restaurando||!actual||actual==="botonInventario"||!sesionVisible())return;
     const btn=document.getElementById(actual),fn=window[MODULOS[actual]];
     if(!btn||typeof fn!=="function"||getComputedStyle(btn).display==="none")return;
