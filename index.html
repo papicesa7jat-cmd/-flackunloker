@@ -4159,17 +4159,17 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
    else mostrarMensajeAuth("Cuenta creada. Revisa tu correo para confirmar el registro y luego inicia sesión.","ok");
   }catch(err){mostrarMensajeAuth("❌ Registro requiere conexión a Internet.","error");}
  }else{
-  // v61.52: tras un cierre de sesión, validar localmente si no hay Internet.
-  if(!flkNubeDisponible() || localStorage.getItem(FLK_FORCE_OFFLINE_KEY)==="1"){
+  // v61.58: si el dispositivo TIENE Internet, el login online tiene prioridad
+  // aunque haya quedado una marca de sesión local/offline forzado.
+  // El verificador local se usa primero solo cuando el navegador está realmente sin red.
+  if(!navigator.onLine){
    if(await flkValidarAccesoOffline(email,password)){
     mostrarMensajeAuth("✅ Acceso offline validado en este dispositivo.","ok");
     flkLimpiarPasswordLogin();
     return;
    }
-   if(!flkNubeDisponible()){
-    mostrarMensajeAuth("❌ Usuario o contraseña offline no válidos en este dispositivo.","error");
-    return;
-   }
+   mostrarMensajeAuth("❌ Usuario o contraseña offline no válidos en este dispositivo.","error");
+   return;
   }
   try{
    const {data,error}=await flkSupabase.auth.signInWithPassword({email,password});
@@ -4197,11 +4197,17 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
     if(cache?.user&&String(cache.user.email||"").toLowerCase()===email.toLowerCase()){flkPintarSesionLocal(cache.user);flkLimpiarPasswordLogin();return;}
     mostrarMensajeAuth("❌ No se recibió una sesión válida.","error");return;
    }
+   // Login online confirmado: abandonar de inmediato el estado de sesión local.
    localStorage.removeItem(FLK_FORCE_OFFLINE_KEY);
+   flkSesionActiva=data.session;
+   flkGuardarSesionLocal(data.session);
+   try{flkActualizarModoRendimiento()}catch(_){}
+   try{flkActualizarEstadoConexion()}catch(_){}
    flkRecordarUsuarioLogin(email);mostrarMensajeAuth("","");
    await flkGuardarAccesoOffline(data.session.user,password);
    await mostrarAppConSesion(data.session);
    flkActualizarSnapshotOffline();
+   try{flkActualizarEstadoConexion()}catch(_){}
    flkLimpiarPasswordLogin();
   }catch(err){
    const cache=flkSesionOfflineDisponible();
