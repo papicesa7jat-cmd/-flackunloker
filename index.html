@@ -3731,9 +3731,26 @@ async function flkReactivarNubeSiDisponible(){
   const r=await fetch(FLK_SUPABASE_URL+"/auth/v1/health",{cache:"no-store",signal:ctrl.signal});clearTimeout(t);
   if(!r.ok)return false;
   localStorage.removeItem(FLK_FORCE_OFFLINE_KEY);
+  try{flkActualizarModoRendimiento()}catch(_){}
+  try{flkActualizarEstadoConexion()}catch(_){}
   return true;
  }catch(_){return false}
 }
+
+// v61.55 · Si la página arranca con Internet ya restablecido, no esperamos
+// a un nuevo evento `online`: comprobamos Supabase y salimos del offline forzado.
+function flkComprobarReconexionAlArrancar(){
+ if(!navigator.onLine)return;
+ setTimeout(async()=>{
+  if(await flkReactivarNubeSiDisponible()){
+   try{flkActualizarModoRendimiento()}catch(_){}
+   try{flkActualizarEstadoConexion()}catch(_){}
+   try{if(typeof flkComprobarPropietarioSoftware==="function")await flkComprobarPropietarioSoftware()}catch(_){}
+  }
+ },300);
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",flkComprobarReconexionAlArrancar,{once:true});
+else flkComprobarReconexionAlArrancar();
 
 function flkGuardarSesionLocal(session){
  try{
