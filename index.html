@@ -3663,6 +3663,9 @@ const FLK_ROLE_CACHE_KEY="flackunloker_role_cache_v1";
 // Se conserva un verificador PBKDF2 local; nunca se guarda la contraseña en texto plano.
 const FLK_OFFLINE_AUTH_KEY="flackunloker_offline_auth_v1";
 const FLK_FORCE_OFFLINE_KEY="flackunloker_force_offline_v1";
+// v61.61 · credencial temporal solo en memoria para reautenticar Supabase
+// cuando el usuario entró offline después de haber cerrado sesión online.
+let flkCredencialReconexionMemoria=null;
 function flkNubeDisponible(){
  return !!navigator.onLine && localStorage.getItem(FLK_FORCE_OFFLINE_KEY)!=="1";
 }
@@ -3746,6 +3749,20 @@ async function flkReactivarNubeSiDisponible(){
    try{
     const r=await flkSupabase.auth.refreshSession();
     sesionNube=r?.data?.session||null;
+   }catch(_){}
+  }
+
+  // v61.61 · si no existe refresh token porque antes se cerró sesión,
+  // reutilizar una sola vez la credencial introducida en el login offline.
+  if(!sesionNube?.user?.id && flkCredencialReconexionMemoria?.email && flkCredencialReconexionMemoria?.password &&
+     flkSupabase?.auth && typeof flkSupabase.auth.signInWithPassword==="function"){
+   try{
+    const cred=flkCredencialReconexionMemoria;
+    const r=await flkSupabase.auth.signInWithPassword({email:cred.email,password:cred.password});
+    if(!r?.error && r?.data?.session?.user?.id){
+     sesionNube=r.data.session;
+     flkCredencialReconexionMemoria=null;
+    }
    }catch(_){}
   }
 
@@ -4153,6 +4170,7 @@ async function mostrarAppConSesion(session){
  }
 }
 async function cerrarSesionFlackunloker(){
+ flkCredencialReconexionMemoria=null;
  try{flkActualizarSnapshotOffline()}catch(_){}
  try{
   const email=document.getElementById("authUsuarioEmail")?.textContent||document.getElementById("authEmail")?.value||"";
@@ -4185,6 +4203,7 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
   // El verificador local se usa primero solo cuando el navegador está realmente sin red.
   if(!navigator.onLine){
    if(await flkValidarAccesoOffline(email,password)){
+    flkCredencialReconexionMemoria={email,password};
     mostrarMensajeAuth("✅ Acceso offline validado en este dispositivo.","ok");
     flkLimpiarPasswordLogin();
     return;
@@ -4199,10 +4218,12 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
     if(flkEsErrorConexion(error)){
      if(cache?.user&&String(cache.user.email||"").toLowerCase()===email.toLowerCase()){
       localStorage.setItem(FLK_FORCE_OFFLINE_KEY,"1");
+      flkCredencialReconexionMemoria={email,password};
       mostrarMensajeAuth("✅ Acceso offline con la última sesión validada.","ok");
       flkPintarSesionLocal(cache.user);flkLimpiarPasswordLogin();return;
      }
      if(await flkValidarAccesoOffline(email,password)){
+      flkCredencialReconexionMemoria={email,password};
       mostrarMensajeAuth("✅ Acceso offline validado en este dispositivo.","ok");
       flkLimpiarPasswordLogin();return;
      }
@@ -4219,6 +4240,7 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
     mostrarMensajeAuth("❌ No se recibió una sesión válida.","error");return;
    }
    // Login online confirmado: abandonar de inmediato el estado de sesión local.
+   flkCredencialReconexionMemoria=null;
    localStorage.removeItem(FLK_FORCE_OFFLINE_KEY);
    flkSesionActiva=data.session;
    flkGuardarSesionLocal(data.session);
