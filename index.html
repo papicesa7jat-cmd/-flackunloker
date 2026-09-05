@@ -1654,8 +1654,8 @@ textarea::placeholder{
    <div id="campoNombreAuth" class="auth-campo" style="display:none">
     <label>Nombre</label><input id="authNombre" type="text" autocomplete="name" placeholder="Tu nombre">
    </div>
-   <div class="auth-campo"><label>Correo electrónico</label><input id="authEmail" name="username" type="email" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="correo@ejemplo.com"></div>
-   <div class="auth-campo"><label>Contraseña</label><div class="auth-password-wrap"><input id="authPassword" name="password" type="password" autocomplete="current-password" minlength="8" required placeholder="Mínimo 8 caracteres"><button type="button" class="auth-password-toggle" id="authPasswordToggle" aria-label="Mostrar contraseña" title="Mostrar contraseña" onclick="var p=document.getElementById('authPassword');if(!p)return false;p.type=(p.type==='password'?'text':'password');this.textContent=(p.type==='text'?'🙈':'👁️');this.title=(p.type==='text'?'Ocultar contraseña':'Mostrar contraseña');this.setAttribute('aria-label',this.title);return false;">👁️</button></div></div>
+   <div class="auth-campo"><label>Correo electrónico</label><input id="authEmail" type="email" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="correo@ejemplo.com"></div>
+   <div class="auth-campo"><label>Contraseña</label><div class="auth-password-wrap"><input id="authPassword" type="password" autocomplete="current-password" minlength="8" required placeholder="Mínimo 8 caracteres"><button type="button" class="auth-password-toggle" id="authPasswordToggle" aria-label="Mostrar contraseña" title="Mostrar contraseña" onclick="var p=document.getElementById('authPassword');if(!p)return false;p.type=(p.type==='password'?'text':'password');this.textContent=(p.type==='text'?'🙈':'👁️');this.title=(p.type==='text'?'Ocultar contraseña':'Mostrar contraseña');this.setAttribute('aria-label',this.title);return false;">👁️</button></div></div>
    <button type="button" class="auth-olvido" id="botonOlvidePassword" onclick="abrirRecuperarPassword()">¿Olvidaste tu contraseña?</button>
    <button id="authSubmit" class="auth-btn" type="submit">Entrar</button>
   </form>
@@ -3544,7 +3544,7 @@ function flkActualizarModoRendimiento(){
 }
 window.addEventListener("online",flkActualizarModoRendimiento);
 window.addEventListener("offline",flkActualizarModoRendimiento);
-window.addEventListener("online",()=>setTimeout(()=>flkComprobarPropietarioSoftware(),0));
+window.addEventListener("online",()=>setTimeout(async()=>{if(await flkReactivarNubeSiDisponible()){try{await flkComprobarPropietarioSoftware()}catch(_){}}},0));
 window.addEventListener("offline",()=>setTimeout(()=>flkComprobarPropietarioSoftware(),0));
 document.addEventListener("DOMContentLoaded",flkActualizarModoRendimiento);
 
@@ -3652,6 +3652,81 @@ document.addEventListener("DOMContentLoaded",()=>{flkCargarUsuarioLogin();flkLim
 
 const FLK_SESSION_CACHE_KEY="flackunloker_session_cache_v1";
 const FLK_ROLE_CACHE_KEY="flackunloker_role_cache_v1";
+// v61.52 · acceso offline después de Cerrar sesión.
+// Se conserva un verificador PBKDF2 local; nunca se guarda la contraseña en texto plano.
+const FLK_OFFLINE_AUTH_KEY="flackunloker_offline_auth_v1";
+const FLK_FORCE_OFFLINE_KEY="flackunloker_force_offline_v1";
+function flkNubeDisponible(){
+ return !!navigator.onLine && localStorage.getItem(FLK_FORCE_OFFLINE_KEY)!=="1";
+}
+function flkBytesHex(bytes){return Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");}
+function flkHexBytes(hex){
+ const out=new Uint8Array(Math.floor(String(hex||"").length/2));
+ for(let i=0;i<out.length;i++)out[i]=parseInt(hex.substr(i*2,2),16)||0;
+ return out;
+}
+async function flkDerivarClaveOffline(password,saltHex,iteraciones=120000){
+ if(!window.crypto?.subtle)throw new Error("Web Crypto no disponible");
+ const enc=new TextEncoder();
+ const base=await crypto.subtle.importKey("raw",enc.encode(String(password||"")),"PBKDF2",false,["deriveBits"]);
+ const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:flkHexBytes(saltHex),iterations:iteraciones,hash:"SHA-256"},base,256);
+ return flkBytesHex(new Uint8Array(bits));
+}
+function flkLeerAccesoOffline(){
+ try{return JSON.parse(localStorage.getItem(FLK_OFFLINE_AUTH_KEY)||"null")}catch(_){return null}
+}
+async function flkGuardarAccesoOffline(user,password){
+ try{
+  if(!user?.id||!user?.email||!password||!window.crypto?.getRandomValues)return false;
+  const salt=new Uint8Array(16);crypto.getRandomValues(salt);
+  const saltHex=flkBytesHex(salt),iteraciones=120000;
+  const hash=await flkDerivarClaveOffline(password,saltHex,iteraciones);
+  const actual={
+   version:1,user:{id:user.id,email:user.email},salt:saltHex,hash,iteraciones,
+   role:flkRolLocal(user.id)||rolSesion||"employee",
+   business_id:(typeof FLK_BUSINESS_ID!=="undefined"&&FLK_BUSINESS_ID)||localStorage.getItem("flackunloker_business_id_v1")||null,
+   saved_at:new Date().toISOString()
+  };
+  localStorage.setItem(FLK_OFFLINE_AUTH_KEY,JSON.stringify(actual));
+  return true;
+ }catch(err){console.warn("No se pudo preparar acceso offline:",err);return false}
+}
+function flkActualizarSnapshotOffline(){
+ try{
+  const x=flkLeerAccesoOffline(); if(!x?.user?.id)return;
+  x.role=flkRolLocal(x.user.id)||rolSesion||x.role||"employee";
+  x.business_id=(typeof FLK_BUSINESS_ID!=="undefined"&&FLK_BUSINESS_ID)||localStorage.getItem("flackunloker_business_id_v1")||x.business_id||null;
+  x.saved_at=new Date().toISOString();
+  localStorage.setItem(FLK_OFFLINE_AUTH_KEY,JSON.stringify(x));
+ }catch(_){ }
+}
+async function flkValidarAccesoOffline(email,password){
+ try{
+  const x=flkLeerAccesoOffline();
+  if(!x?.user?.id||!x?.salt||!x?.hash)return false;
+  if(String(x.user.email||"").trim().toLowerCase()!==String(email||"").trim().toLowerCase())return false;
+  const hash=await flkDerivarClaveOffline(password,x.salt,Number(x.iteraciones||120000));
+  if(hash!==x.hash)return false;
+  const snap={user:{id:x.user.id,email:x.user.email},saved_at:new Date().toISOString()};
+  localStorage.setItem(FLK_SESSION_CACHE_KEY,JSON.stringify(snap));
+  if(x.role)flkGuardarRolLocal(x.user.id,x.role);
+  if(x.business_id)localStorage.setItem("flackunloker_business_id_v1",x.business_id);
+  localStorage.setItem(FLK_FORCE_OFFLINE_KEY,"1");
+  flkPintarSesionLocal(snap.user);
+  flkActualizarEstadoConexion();
+  return true;
+ }catch(err){console.warn("Acceso offline local:",err);return false}
+}
+async function flkReactivarNubeSiDisponible(){
+ if(!navigator.onLine)return false;
+ try{
+  const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),3500);
+  const r=await fetch(FLK_SUPABASE_URL+"/auth/v1/health",{cache:"no-store",signal:ctrl.signal});clearTimeout(t);
+  if(!r.ok)return false;
+  localStorage.removeItem(FLK_FORCE_OFFLINE_KEY);
+  return true;
+ }catch(_){return false}
+}
 
 function flkGuardarSesionLocal(session){
  try{
@@ -4010,6 +4085,7 @@ async function mostrarAppConSesion(session){
  }
 }
 async function cerrarSesionFlackunloker(){
+ try{flkActualizarSnapshotOffline()}catch(_){}
  try{
   const email=document.getElementById("authUsuarioEmail")?.textContent||document.getElementById("authEmail")?.value||"";
   if(email&&email.includes("@"))flkRecordarUsuarioLogin(email);
@@ -4036,19 +4112,32 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
    else mostrarMensajeAuth("Cuenta creada. Revisa tu correo para confirmar el registro y luego inicia sesión.","ok");
   }catch(err){mostrarMensajeAuth("❌ Registro requiere conexión a Internet.","error");}
  }else{
-  // v61.51: si no hay red, reabrir la última sesión validada sin llamar a Supabase.
-  if(!navigator.onLine&&flkEntrarConSesionOffline(email)){
-   mostrarMensajeAuth("✅ Acceso offline con la última sesión validada.","ok");
-   flkLimpiarPasswordLogin();
-   return;
+  // v61.52: tras un cierre de sesión, validar localmente si no hay Internet.
+  if(!navigator.onLine || localStorage.getItem(FLK_FORCE_OFFLINE_KEY)==="1"){
+   if(await flkValidarAccesoOffline(email,password)){
+    mostrarMensajeAuth("✅ Acceso offline validado en este dispositivo.","ok");
+    flkLimpiarPasswordLogin();
+    return;
+   }
+   if(!navigator.onLine){
+    mostrarMensajeAuth("❌ Usuario o contraseña offline no válidos en este dispositivo.","error");
+    return;
+   }
   }
   try{
    const {data,error}=await flkSupabase.auth.signInWithPassword({email,password});
    if(error){
     const cache=flkSesionOfflineDisponible();
-    if(flkEsErrorConexion(error)&&cache?.user&&String(cache.user.email||"").toLowerCase()===email.toLowerCase()){
-     mostrarMensajeAuth("✅ Acceso offline con la última sesión validada.","ok");
-     flkPintarSesionLocal(cache.user);flkLimpiarPasswordLogin();return;
+    if(flkEsErrorConexion(error)){
+     if(cache?.user&&String(cache.user.email||"").toLowerCase()===email.toLowerCase()){
+      localStorage.setItem(FLK_FORCE_OFFLINE_KEY,"1");
+      mostrarMensajeAuth("✅ Acceso offline con la última sesión validada.","ok");
+      flkPintarSesionLocal(cache.user);flkLimpiarPasswordLogin();return;
+     }
+     if(await flkValidarAccesoOffline(email,password)){
+      mostrarMensajeAuth("✅ Acceso offline validado en este dispositivo.","ok");
+      flkLimpiarPasswordLogin();return;
+     }
     }
     const msg=String(error.message||"").toLowerCase();
     if(msg.includes("invalid login credentials")||msg.includes("invalid credentials"))mostrarMensajeAuth("❌ Usuario o contraseña incorrectos. Revisa la contraseña.","error");
@@ -4061,13 +4150,24 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
     if(cache?.user&&String(cache.user.email||"").toLowerCase()===email.toLowerCase()){flkPintarSesionLocal(cache.user);flkLimpiarPasswordLogin();return;}
     mostrarMensajeAuth("❌ No se recibió una sesión válida.","error");return;
    }
+   localStorage.removeItem(FLK_FORCE_OFFLINE_KEY);
    flkRecordarUsuarioLogin(email);mostrarMensajeAuth("","");
-   await mostrarAppConSesion(data.session);flkLimpiarPasswordLogin();
+   await flkGuardarAccesoOffline(data.session.user,password);
+   await mostrarAppConSesion(data.session);
+   flkActualizarSnapshotOffline();
+   flkLimpiarPasswordLogin();
   }catch(err){
    const cache=flkSesionOfflineDisponible();
-   if(flkEsErrorConexion(err)&&cache?.user&&String(cache.user.email||"").toLowerCase()===email.toLowerCase()){
-    mostrarMensajeAuth("✅ Acceso offline con la última sesión validada.","ok");
-    flkPintarSesionLocal(cache.user);flkLimpiarPasswordLogin();return;
+   if(flkEsErrorConexion(err)){
+    if(cache?.user&&String(cache.user.email||"").toLowerCase()===email.toLowerCase()){
+     localStorage.setItem(FLK_FORCE_OFFLINE_KEY,"1");
+     mostrarMensajeAuth("✅ Acceso offline con la última sesión validada.","ok");
+     flkPintarSesionLocal(cache.user);flkLimpiarPasswordLogin();return;
+    }
+    if(await flkValidarAccesoOffline(email,password)){
+     mostrarMensajeAuth("✅ Acceso offline validado en este dispositivo.","ok");
+     flkLimpiarPasswordLogin();return;
+    }
    }
    mostrarMensajeAuth("❌ No se pudo iniciar sesión: "+String(err?.message||err),"error");
   }
@@ -5684,7 +5784,7 @@ function flkBusinessGuardado(){
 let FLK_BUSINESS_ID=flkBusinessGuardado();
 
 async function flkCargarCentroActual(){
- if(!flkSupabase || !flkSesionActiva || !navigator.onLine){
+ if(!flkSupabase || !flkSesionActiva || !flkNubeDisponible()){
   FLK_BUSINESS_ID=flkBusinessGuardado();
   return FLK_BUSINESS_ID;
  }
