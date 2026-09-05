@@ -2748,7 +2748,7 @@ function flkEstadoConexionClave(estadoEspecial){
 }
 
 function flkEsErrorConexion(err){
- if(!navigator.onLine)return true;
+ if(!flkNubeDisponible())return true;
  const msg=String(err?.message||err||"").toLowerCase();
  const nombre=String(err?.name||"").toLowerCase();
  return [
@@ -2787,7 +2787,7 @@ function flkActualizarEstadoConexion(estadoEspecial){
  if(estadoEspecial==="sync"){box.classList.add("sync");txt.textContent="🔄 Sincronizando";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"";return}
  if(c){box.classList.add("error");txt.textContent="⚠️ Conflicto pendiente";pen.textContent=`${c} conflicto${c===1?"":"s"}`;return}
  if(estadoEspecial==="error"){box.classList.add("error");txt.textContent="⚠️ Error de sincronización";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"";return}
- if(!navigator.onLine){box.classList.add("offline");txt.textContent="🟠 Sin Internet";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"Sin cambios pendientes";return}
+ if(!flkNubeDisponible()){box.classList.add("offline");txt.textContent="🟠 Sin Internet";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"Sin cambios pendientes";return}
  txt.textContent=n?"🟢 En línea":"🟢 Sincronizado";
  pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:""
 }
@@ -3172,7 +3172,7 @@ function flkAplicarProductoLocal(op){
  if(actual){
   const stockActual=Number(actual.cantidad||0);
   Object.assign(actual,d);
-  actual.cantidad=navigator.onLine?stockActual:Number(op.payload?.local_stock??stockActual);
+  actual.cantidad=flkNubeDisponible()?stockActual:Number(op.payload?.local_stock??stockActual);
   if(!actual.offlineCreateOperationId)actual.offlineCreateOperationId=d.offlineCreateOperationId;
  }else productos.push(d);
  return true
@@ -3421,7 +3421,7 @@ async function flkProcesarOperacionOffline(op){
 let flkOrquestandoSync=false;
 
 async function flkReconciliarInventarioNube(){
- if(!navigator.onLine)return false;
+ if(!flkNubeDisponible())return false;
  try{
   const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
   if(error)throw error;
@@ -3437,7 +3437,7 @@ async function flkReconciliarInventarioNube(){
 }
 
 async function flkSupabaseDisponible(timeoutMs=4500){
- if(!navigator.onLine||typeof flkSupabase==="undefined")return false;
+ if(!flkNubeDisponible()||typeof flkSupabase==="undefined")return false;
  try{
   const prueba=flkSupabase.from("products").select("id").limit(1);
   const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error("timeout supabase")),timeoutMs));
@@ -3449,7 +3449,7 @@ async function flkSupabaseDisponible(timeoutMs=4500){
 }
 
 async function flkSincronizarSeguro(){
- if(flkOrquestandoSync||!navigator.onLine)return false;
+ if(flkOrquestandoSync||!flkNubeDisponible())return false;
  flkOrquestandoSync=true;
  try{
   const disponible=await flkSupabaseDisponible();
@@ -3486,7 +3486,7 @@ async function flkSincronizarSeguro(){
 }
 
 async function flkProcesarColaOffline(){
- if(flkSincronizando||!navigator.onLine||typeof flkSupabase==="undefined")return;
+ if(flkSincronizando||!flkNubeDisponible()||typeof flkSupabase==="undefined")return;
  const {data:{session}}=await flkSupabase.auth.getSession();
  if(!session)return;
  let q=flkColaOffline(),pendientes=q.filter(x=>x.estado==="pendiente"||x.estado==="error");
@@ -3540,7 +3540,7 @@ window.addEventListener("online",async()=>{
 window.addEventListener("offline",()=>flkActualizarEstadoConexion());
 
 function flkActualizarModoRendimiento(){
- document.documentElement.classList.toggle("flk-offline",!navigator.onLine);
+ document.documentElement.classList.toggle("flk-offline",!flkNubeDisponible());
 }
 window.addEventListener("online",flkActualizarModoRendimiento);
 window.addEventListener("offline",flkActualizarModoRendimiento);
@@ -3556,7 +3556,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   box.title="Estado de conexión";
   box.addEventListener("click",()=>{
    flkMostrarAvisoConexionTemporal();
-   if(navigator.onLine)setTimeout(()=>flkSincronizarSeguro(),0);
+   if(flkNubeDisponible())setTimeout(()=>flkSincronizarSeguro(),0);
   });
  }
 });
@@ -3649,10 +3649,17 @@ function flkRecordarUsuarioLogin(email){try{const v=String(email||"").trim();if(
 function flkCargarUsuarioLogin(){try{const e=document.getElementById("authEmail");if(e&&!e.value)e.value=localStorage.getItem(FLK_LOGIN_USER_KEY)||""}catch(_){}}
 function flkLimpiarPasswordLogin(){const p=document.getElementById("authPassword");const b=document.getElementById("authPasswordToggle");if(p){p.value="";p.type="password"}if(b){b.textContent="👁️";b.title="Mostrar contraseña";b.setAttribute("aria-label","Mostrar contraseña")}}
 document.addEventListener("DOMContentLoaded",()=>{flkCargarUsuarioLogin();flkLimpiarPasswordLogin()});
+// v61.53 · retirar credenciales antiguas que hayan quedado en la URL por versiones previas.
+try{
+ const u=new URL(location.href);
+ let cambio=false;
+ ["username","password"].forEach(k=>{if(u.searchParams.has(k)){u.searchParams.delete(k);cambio=true;}});
+ if(cambio)history.replaceState(null,"",u.pathname+(u.search?u.search:"")+(u.hash||""));
+}catch(_){}
 
 const FLK_SESSION_CACHE_KEY="flackunloker_session_cache_v1";
 const FLK_ROLE_CACHE_KEY="flackunloker_role_cache_v1";
-// v61.52 · acceso offline después de Cerrar sesión.
+// v61.53 · acceso offline después de Cerrar sesión + bloqueo real de nube.
 // Se conserva un verificador PBKDF2 local; nunca se guarda la contraseña en texto plano.
 const FLK_OFFLINE_AUTH_KEY="flackunloker_offline_auth_v1";
 const FLK_FORCE_OFFLINE_KEY="flackunloker_force_offline_v1";
@@ -3824,7 +3831,7 @@ function flkPintarSesionLocal(user){
  if(typeof actualizarEstadisticas==="function")actualizarEstadisticas();
 }
 async function flkActualizarNubeDespuesArranque(){
- if(!navigator.onLine||!flkSesionActiva||flkModoRecuperacionPassword)return false;
+ if(!flkNubeDisponible()||!flkSesionActiva||flkModoRecuperacionPassword)return false;
  const tareas=[
   cargarInventarioSupabase,cargarHistorialSupabase,cargarVentasSupabase,cargarGastosSupabase,
   cargarMovimientosCajaSupabase,cargarComprasSupabase,cargarCierresSupabase
@@ -3838,7 +3845,7 @@ async function flkActualizarNubeDespuesArranque(){
 
 async function cargarRolUsuario(user){
  rolSesion=flkRolLocal(user?.id)||"employee";
- if(navigator.onLine){
+ if(flkNubeDisponible()){
   try{
    const {data,error}=await flkSupabase.from("profiles").select("role").eq("id",user.id).maybeSingle();
    if(!error&&data&&data.role){
@@ -3869,7 +3876,7 @@ function aplicarPermisosVisuales(){
 let flkModoRecuperacionNube=false;
 
 async function flkRecuperacionEmergenciaNube(){
- if(flkModoRecuperacionNube||!navigator.onLine||flkModoRecuperacionPassword)return false;
+ if(flkModoRecuperacionNube||!flkNubeDisponible()||flkModoRecuperacionPassword)return false;
  flkModoRecuperacionNube=true;
  const fallos=[];
  try{
@@ -4055,7 +4062,7 @@ async function mostrarAppConSesion(session){
   document.getElementById("authOverlay").classList.add("oculto");
   flkPintarSesionLocal(session.user);
   await cargarRolUsuario(session.user);
-  if(navigator.onLine){
+  if(flkNubeDisponible()){
    await flkComprobarPropietarioSoftware();
    // v61.14: TODA cuenta, incluido el propietario del software,
    // vuelve a resolver su centro operativo real al iniciar sesión.
@@ -4113,13 +4120,13 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
   }catch(err){mostrarMensajeAuth("❌ Registro requiere conexión a Internet.","error");}
  }else{
   // v61.52: tras un cierre de sesión, validar localmente si no hay Internet.
-  if(!navigator.onLine || localStorage.getItem(FLK_FORCE_OFFLINE_KEY)==="1"){
+  if(!flkNubeDisponible() || localStorage.getItem(FLK_FORCE_OFFLINE_KEY)==="1"){
    if(await flkValidarAccesoOffline(email,password)){
     mostrarMensajeAuth("✅ Acceso offline validado en este dispositivo.","ok");
     flkLimpiarPasswordLogin();
     return;
    }
-   if(!navigator.onLine){
+   if(!flkNubeDisponible()){
     mostrarMensajeAuth("❌ Usuario o contraseña offline no válidos en este dispositivo.","error");
     return;
    }
@@ -4181,7 +4188,7 @@ function flkEstadoRecuperacion(id,texto,tipo=""){
   el.className="recuperar-estado"+(texto?" visible "+tipo:"");
 }
 function abrirRecuperarPassword(){
-  if(!navigator.onLine){
+  if(!flkNubeDisponible()){
     alert("Para recuperar o cambiar la contraseña debes estar conectado a Internet.");
     return;
   }
@@ -4214,7 +4221,7 @@ function flkUrlRecuperacion(){
 
 document.getElementById("formularioRecuperarPassword")?.addEventListener("submit",async e=>{
   e.preventDefault();
-  if(!navigator.onLine){
+  if(!flkNubeDisponible()){
     flkEstadoRecuperacion(
       "estadoRecuperacionPassword",
       "Para recuperar o cambiar la contraseña debes estar conectado a Internet.",
@@ -4252,7 +4259,7 @@ document.getElementById("formularioRecuperarPassword")?.addEventListener("submit
           : "Se alcanzó temporalmente el límite de correos de recuperación de Supabase. Espera un tiempo antes de solicitar otro enlace.",
         "error"
       );
-    }else if(!navigator.onLine || msg.includes("fetch") || msg.includes("network")){
+    }else if(!flkNubeDisponible() || msg.includes("fetch") || msg.includes("network")){
       flkEstadoRecuperacion(
         "estadoRecuperacionPassword",
         "No hay conexión con Internet en este momento. Comprueba la conexión e inténtalo nuevamente.",
@@ -4285,7 +4292,7 @@ document.getElementById("formularioRecuperarPassword")?.addEventListener("submit
 
 document.getElementById("formularioNuevaPassword")?.addEventListener("submit",async e=>{
   e.preventDefault();
-  if(!navigator.onLine){
+  if(!flkNubeDisponible()){
     flkEstadoRecuperacion(
       "estadoNuevaPassword",
       "Para cambiar la contraseña debes estar conectado a Internet.",
@@ -4354,7 +4361,7 @@ async function flkVolverLicenciaPropietaria(){
   FLK_LICENSE_KEY=FLK_OWNER_LICENSE_KEY;
   flkOcultarActivacionCliente();
 
-  if(flkSesionActiva && navigator.onLine){
+  if(flkSesionActiva && flkNubeDisponible()){
    await flkComprobarPropietarioSoftware();
   }
 
@@ -4370,7 +4377,7 @@ async function flkVolverLicenciaPropietaria(){
 }
 
 async function flkActivarLicenciaCliente(){
- if(!navigator.onLine){
+ if(!flkNubeDisponible()){
   return flkMostrarActivacionCliente("Debes estar conectado a Internet para activar una licencia por primera vez.");
  }
  const input=document.getElementById("flkClaveActivacion");
@@ -4580,7 +4587,7 @@ async function flkValidarLicencia(){
  const texto=document.getElementById("flkLicenciaTexto");
  if(texto)texto.textContent="Licencia: comprobando…";
 
- if(navigator.onLine){
+ if(flkNubeDisponible()){
   try{
    // v61.10: nunca validar/vincular un dispositivo antes de conocer la sesión.
    // Esto evita que la cuenta propietaria quede atrapada por una validación
@@ -4744,7 +4751,7 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
  if(event==="SIGNED_OUT"){
   flkSesionActiva=false;
   // v61.44: no borrar la sesión local por un SIGNED_OUT pasivo.
-  // Safari/Chrome pueden emitirlo durante un refresh sin red aunque navigator.onLine sea true.
+  // Safari/Chrome pueden emitirlo durante un refresh sin red aunque flkNubeDisponible() sea true.
   // cerrarSesionFlackunloker() sigue borrando la caché cuando la salida es intencional.
  }
  setTimeout(()=>mostrarAppConSesion(session),0);
@@ -4756,7 +4763,7 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",pintarCache,{once:true});
   else setTimeout(pintarCache,0);
  }
- if(!navigator.onLine){
+ if(!flkNubeDisponible()){
   if(!cache?.user)document.getElementById("authOverlay").classList.remove("oculto");
   flkActualizarEstadoConexion();
   return;
@@ -4829,7 +4836,7 @@ async function flkComprobarPropietarioSoftware(){
  }
 
  // Offline: conservar el permiso del propietario validado previamente en este navegador.
- if(!navigator.onLine){
+ if(!flkNubeDisponible()){
   const cached=flkLeerPropietarioSoftwareCache();
   flkPintarPropietarioSoftware(cached);
   return cached;
@@ -4889,7 +4896,7 @@ function flkFechaCortaLic(v){
  return Number.isNaN(d.getTime())?"—":d.toLocaleDateString("es-PR");
 }
 async function flkEnriquecerCentrosConLicencias(){
- if(!flkEsPropietarioSoftware||!navigator.onLine)return;
+ if(!flkEsPropietarioSoftware||!flkNubeDisponible())return;
  try{
   const {data,error}=await flkSupabase.rpc("flk_list_licenses");
   if(error)throw error;
@@ -5025,7 +5032,7 @@ async function flkCargarUsuariosExistentesAdminSoftware(){
  const sel=document.getElementById("adminswUsuarioEmail");
  if(!sel)return;
 
- if(!navigator.onLine){
+ if(!flkNubeDisponible()){
   sel.innerHTML='<option value="">Conéctate a Internet</option>';
   return;
  }
@@ -5078,7 +5085,7 @@ async function cargarAdminSoftware(){
  if(!flkEsPropietarioSoftware)return;
  flkCargarUsuariosExistentesAdminSoftware();
  const lista=document.getElementById("adminswListaCentros");
- if(!navigator.onLine){lista.innerHTML='<div class="sin-productos">Conéctate a Internet para administrar centros.</div>';return}
+ if(!flkNubeDisponible()){lista.innerHTML='<div class="sin-productos">Conéctate a Internet para administrar centros.</div>';return}
  lista.innerHTML='<div class="sin-productos">Cargando centros...</div>';
  try{
   const {data,error}=await flkSupabase.rpc("flk_software_admin_list_centers");
@@ -5109,7 +5116,7 @@ async function crearCentroAdminSoftware(){
 
 async function crearUsuarioAdminSoftware(){
  if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
- if(!navigator.onLine)return alert("Debes estar conectado a Internet para crear usuarios.");
+ if(!flkNubeDisponible())return alert("Debes estar conectado a Internet para crear usuarios.");
  const email=(document.getElementById("adminswNuevoEmail")?.value||"").trim().toLowerCase();
  const password=document.getElementById("adminswNuevoPassword")?.value||"";
  const business=document.getElementById("adminswNuevoCentro")?.value||"";
@@ -5339,7 +5346,7 @@ async function cargarListaLicencias(){
  const lista=document.getElementById("listaLicenciasRegistradas");
  if(!lista)return;
 
- if(!navigator.onLine){
+ if(!flkNubeDisponible()){
   lista.innerHTML='<div class="sin-productos">Conéctate a Internet para consultar las licencias.</div>';
   return;
  }
@@ -5498,7 +5505,7 @@ async function cargarCentrosSelectorLicencias(){
  if(!flkEsPropietarioSoftware)return;
  const sel=document.getElementById("licNuevoCentro");
  if(!sel)return;
- if(!navigator.onLine){
+ if(!flkNubeDisponible()){
   sel.innerHTML='<option value="">Conéctate a Internet</option>';
   return;
  }
@@ -5573,7 +5580,7 @@ async function cargarPanelLicencias(){
 
 async function crearLicenciaTercero(){
  if(!flkEsPropietarioSoftware)return alert("Solo el propietario puede crear licencias.");
- if(!navigator.onLine)return alert("Debes estar conectado a Internet para crear una licencia.");
+ if(!flkNubeDisponible())return alert("Debes estar conectado a Internet para crear una licencia.");
 
  const boton=document.getElementById("botonCrearLicenciaTercero");
  if(boton?.disabled)return;
@@ -5671,7 +5678,7 @@ function flkPrepararActivacionCliente(){
 
 async function liberarDispositivoLicencia(){
  if(!flkEsPropietarioSoftware)return alert("Solo el propietario puede liberar dispositivos.");
- if(!navigator.onLine)return alert("Debes estar conectado a Internet para liberar un dispositivo.");
+ if(!flkNubeDisponible())return alert("Debes estar conectado a Internet para liberar un dispositivo.");
  if(!confirm("¿Liberar el dispositivo asociado a esta licencia? La próxima instalación que valide la licencia quedará vinculada automáticamente."))return;
  try{
   const {error}=await flkSupabase.rpc("flk_release_license_device",{
@@ -5815,7 +5822,7 @@ async function flkExigirCentroActual(){
   return guardado;
  }
 
- if(!navigator.onLine){
+ if(!flkNubeDisponible()){
   throw new Error("Conéctate a Internet para identificar el centro de trabajo.");
  }
 
@@ -5841,9 +5848,9 @@ function productoHaciaSupabase(p,stock=0){
 }
 async function cargarInventarioSupabase(){
  if(flkModoRecuperacionPassword)return false;
- if(navigator.onLine)await flkExigirCentroActual();
- if(navigator.onLine&&!flkSesionActiva)return false;
- if(!navigator.onLine){flkAplicarPendientesSobreDatos();mostrarProductos();actualizarEstadisticas();return true}
+ if(flkNubeDisponible())await flkExigirCentroActual();
+ if(flkNubeDisponible()&&!flkSesionActiva)return false;
+ if(!flkNubeDisponible()){flkAplicarPendientesSobreDatos();mostrarProductos();actualizarEstadisticas();return true}
  const locales=Array.isArray(productos)?[...productos]:[];
  const {data:cloud,error}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
  if(error){
@@ -5958,7 +5965,7 @@ async function guardarProductoSupabase(p,esNuevo=false,stockInicial=0){
 }
 async function ajustarStockSupabase(p,delta,tipo,nota=""){
  if(!p.supabaseId&&!p.offlineCreateOperationId)throw new Error("Producto sin referencia de sincronización.");
- if(!navigator.onLine||!p.supabaseId){
+ if(!flkNubeDisponible()||!p.supabaseId){
   const nuevo=Number(p.cantidad||0)+Number(delta);
   if(nuevo<0)throw new Error("Inventario insuficiente para "+p.nombre);
   flkEncolarOperacion("stock_adjustment",{
@@ -6054,7 +6061,7 @@ function movimientoDesdeSupabase(m){
 }
 async function cargarHistorialSupabase(){
  if(flkModoRecuperacionPassword)return false;
- if(navigator.onLine&&!flkSesionActiva)return false;
+ if(flkNubeDisponible()&&!flkSesionActiva)return false;
  const {data,error}=await flkSupabase.from("stock_movements")
   .select("id,product_id,movement_type,quantity,stock_after,note,created_at")
   .order("created_at",{ascending:false});
@@ -6089,8 +6096,8 @@ function gastoDesdeSupabase(r){
 }
 async function cargarGastosSupabase(){
  if(flkModoRecuperacionPassword)return false;
- if(navigator.onLine&&!flkSesionActiva)return false;
- if(!navigator.onLine){
+ if(flkNubeDisponible()&&!flkSesionActiva)return false;
+ if(!flkNubeDisponible()){
   flkAplicarPendientesSobreDatos();
   actualizarGastos();
   actualizarResumen();
@@ -6162,8 +6169,8 @@ function cierreDesdeSupabase(c){
 }
 async function cargarCierresSupabase(){
  if(flkModoRecuperacionPassword)return false;
- if(navigator.onLine&&!flkSesionActiva)return false;
- if(!navigator.onLine){flkAplicarPendientesSobreDatos();mostrarListaCierres();return true}
+ if(flkNubeDisponible()&&!flkSesionActiva)return false;
+ if(!flkNubeDisponible()){flkAplicarPendientesSobreDatos();mostrarListaCierres();return true}
  const locales=Array.isArray(cierres)?[...cierres]:[];
  let {data:cloud,error}=await flkSupabase.from("cash_closures").select("*").order("close_date",{ascending:false});
  if(error){console.error("Supabase cierres:",error);return false}
@@ -6195,8 +6202,8 @@ function guardarCierres(){localStorage.setItem(flkLocalKey("flackunloker_cierres
 
 async function cargarComprasSupabase(){
  if(flkModoRecuperacionPassword)return false;
- if(navigator.onLine&&!flkSesionActiva)return false;
- if(!navigator.onLine){
+ if(flkNubeDisponible()&&!flkSesionActiva)return false;
+ if(!flkNubeDisponible()){
   flkAplicarPendientesSobreDatos();
   actualizarOpcionesOrganizacion();actualizarProveedores();actualizarOrdenesCompra();actualizarCuentasPagar();
   return true
@@ -6300,7 +6307,7 @@ document.getElementById("formularioProducto").addEventListener("submit",async e=
    if(cantidad>0)historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:id,nombre,sku,tipo:"entrada",cantidad,saldo:cantidad,fecha:new Date().toISOString(),detalle:"🟠 Inventario inicial pendiente de sincronización"});
   }
   guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();cerrarFormulario();
-  if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
+  if(flkNubeDisponible())setTimeout(flkProcesarColaOffline,0);
  }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("No se pudo guardar el producto: "+(err.message||err))}
  finally{procesandoGuardado=false}
 });
@@ -6331,8 +6338,8 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
 
  const btn=document.getElementById("botonConfirmarMovimiento");
  const est=document.getElementById("estadoMovimientoOffline");
- if(btn){btn.disabled=true;btn.textContent=navigator.onLine?"Guardando...":"Guardando local..."}
- if(est)est.style.display=navigator.onLine?"none":"block";
+ if(btn){btn.disabled=true;btn.textContent=flkNubeDisponible()?"Guardando...":"Guardando local..."}
+ if(est)est.style.display=flkNubeDisponible()?"none":"block";
 
  try{
   const cantidad=Number(document.getElementById("cantidadMovimiento").value);
@@ -6350,7 +6357,7 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
 
   p.cantidad=await ajustarStockSupabase(p,delta,tipoGuardado,"Movimiento manual desde Flackunloker");
 
-  if(navigator.onLine){
+  if(flkNubeDisponible()){
    await cargarHistorialSupabase();
    guardarDatos();
    mostrarProductos();
@@ -6417,7 +6424,7 @@ async function eliminarProducto(id){
  actualizarEstadisticas();
  if(typeof actualizarCentroAlertas==="function")actualizarCentroAlertas();
 
- if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
+ if(flkNubeDisponible())setTimeout(flkProcesarColaOffline,0);
 }
 function mostrarProductos(){
  const lista=document.getElementById("listaProductos"),q=document.getElementById("busqueda").value.toLowerCase().trim();
@@ -6567,8 +6574,8 @@ function ventaDesdeSupabase(v){
 
 async function cargarVentasSupabase(){
  if(flkModoRecuperacionPassword)return false;
- if(navigator.onLine&&!flkSesionActiva)return false;
- if(!navigator.onLine){
+ if(flkNubeDisponible()&&!flkSesionActiva)return false;
+ if(!flkNubeDisponible()){
   flkAplicarPendientesSobreDatos();
   actualizarVentas();
   actualizarClientes();
@@ -6703,7 +6710,7 @@ async function registrarVentaSupabase(datos){
   if(!p||(!p.supabaseId&&!p.offlineCreateOperationId))throw new Error("El producto "+i.nombre+" no tiene referencia de sincronización.");
   return {product_id:p.supabaseId||null,product_operation_id:p.offlineCreateOperationId||null,quantity:Number(i.cantidad),unit_price:Number(i.precioUnitario)};
  });
- if(!navigator.onLine||items.some(i=>!i.product_id&&i.product_operation_id)){
+ if(!flkNubeDisponible()||items.some(i=>!i.product_id&&i.product_operation_id)){
   const op=flkEncolarOperacion("sale",{
    customer_name:datos.cliente||"Cliente general",
    customer_phone:datos.telefono||null,
@@ -7007,7 +7014,7 @@ document.getElementById("formularioAutorizacionDevolucion").addEventListener("su
  const id=ventaPendienteAutorizacionDevolucion;
  if(id==null)return cerrarAutorizacionDevolucion();
  let autorizado=false;
- if(navigator.onLine){
+ if(flkNubeDisponible()){
   try{
    const {data,error}=await flkSupabase.rpc("flk_authorize_return_pin",{p_pin:pin});
    if(!error)autorizado=data===true||data?.authorized===true||data?.autorizado===true;
@@ -7069,7 +7076,7 @@ document.getElementById("formularioDevolucion").addEventListener("submit",async 
  const productId=item.supabaseProductId||prod?.supabaseId||null;
  const saleOperationId=v.offlineOperationId||null;
 
- if(!navigator.onLine){
+ if(!flkNubeDisponible()){
   if(!item.supabaseSaleItemId && !saleOperationId)return alert("Este recibo no tiene una referencia segura para sincronizar la devolución.");
   if(!productId)return alert("Este producto todavía no está vinculado con Supabase.");
 
@@ -7128,7 +7135,7 @@ document.getElementById("formularioAbono").addEventListener("submit",async e=>{
  if(!Number.isFinite(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
  if(cantidad>Number(v.saldo)+0.009)return alert(`El abono no puede superar el saldo de $${Number(v.saldo).toFixed(2)}.`);
 
- if(!navigator.onLine){
+ if(!flkNubeDisponible()){
   if(!v.supabaseId&&!v.offlineOperationId)return alert("Este recibo no tiene una referencia segura para sincronizar el abono.");
   procesandoGuardado=true;
   try{
@@ -7180,11 +7187,11 @@ function eliminarVenta(id){
  ventas=ventas.filter(x=>x.id!==id);historial=historial.filter(m=>m.ventaId!==id);recalcularSaldos();guardarDatos();guardarHistorial();guardarVentas();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarVentas();actualizarEstadisticas()
 }
 document.getElementById("busquedaVentas").addEventListener("input",mostrarListaVentas);
-async function mostrarVentas(){flkOcultarTodasLasVistas();if(navigator.onLine)setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="block";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("ventas");actualizarVentas();scrollTop()}
+async function mostrarVentas(){flkOcultarTodasLasVistas();if(flkNubeDisponible())setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="block";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("ventas");actualizarVentas();scrollTop()}
 
 function claveCliente(v){const tel=String(v.telefono||"").trim().toLowerCase();const nom=String(v.cliente||"Cliente general").trim().toLowerCase();return tel?"tel:"+tel:"nom:"+nom}
 function obtenerClientes(){const mapa={};ventas.forEach(v=>{normalizarCuentaVenta(v);const nombre=String(v.cliente||"Cliente general").trim()||"Cliente general",telefono=String(v.telefono||"").trim(),k=claveCliente(v);if(!mapa[k])mapa[k]={clave:k,nombre,telefono,compras:0,total:0,unidades:0,saldoPendiente:0,creditosPendientes:0,saldoVencido:0,creditosVencidos:0,ultima:null,ventas:[]};const c=mapa[k];c.compras++;c.total+=Number(v.ingreso||0);c.unidades+=unidadesNetasVenta(v);c.saldoPendiente+=Number(v.saldo||0);if(Number(v.saldo||0)>0){c.creditosPendientes++;const ev=estadoVencimientoVenta(v);if(ev.clave==="vencido"){c.creditosVencidos++;c.saldoVencido+=Number(v.saldo||0)}}c.ventas.push(v);if(!c.ultima||new Date(v.fecha)>new Date(c.ultima))c.ultima=v.fecha});return Object.values(mapa).sort((a,b)=>new Date(b.ultima)-new Date(a.ultima))}
-async function mostrarClientes(){flkOcultarTodasLasVistas();if(navigator.onLine)setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="block";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("clientes");actualizarClientes();scrollTop()}
+async function mostrarClientes(){flkOcultarTodasLasVistas();if(flkNubeDisponible())setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="block";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("clientes");actualizarClientes();scrollTop()}
 function actualizarClientes(){const clientes=obtenerClientes(),q=document.getElementById("busquedaClientes").value.toLowerCase().trim(),arr=clientes.filter(c=>c.nombre.toLowerCase().includes(q)||c.telefono.toLowerCase().includes(q));document.getElementById("totalClientes").textContent=clientes.length;document.getElementById("comprasClientes").textContent=clientes.reduce((t,c)=>t+c.compras,0);document.getElementById("totalCompradoClientes").textContent="$"+clientes.reduce((t,c)=>t+c.total,0).toFixed(2);document.getElementById("creditosPendientesClientes").textContent=ventas.filter(v=>{normalizarCuentaVenta(v);return v.saldo>0}).length;document.getElementById("creditosVencidosClientes").textContent=ventas.filter(v=>estadoVencimientoVenta(v).clave==="vencido").length;document.getElementById("saldoPorCobrarClientes").textContent="$"+ventas.reduce((t,v)=>{normalizarCuentaVenta(v);return t+Number(v.saldo||0)},0).toFixed(2);document.getElementById("saldoVencidoClientes").textContent="$"+ventas.reduce((t,v)=>estadoVencimientoVenta(v).clave==="vencido"?t+Number(v.saldo||0):t,0).toFixed(2);const lista=document.getElementById("listaClientes");if(!arr.length){lista.innerHTML=`<div class="sin-productos">${clientes.length?"No encontramos clientes con esa búsqueda.":"Los clientes aparecerán aquí automáticamente cuando hagas recibos de venta."}</div>`;return}lista.innerHTML=arr.map(c=>{const f=c.ultima?new Date(c.ultima):null;return `<div class="cliente-card"><div class="cliente-superior"><div><h3>${escapeHtml(c.nombre)}</h3><p>${c.telefono?escapeHtml(c.telefono):"Sin teléfono"}</p></div><div class="cliente-total">$${c.total.toFixed(2)}</div></div><div class="cliente-detalle">Compras: <strong>${c.compras}</strong> · Unidades: <strong>${c.unidades}</strong>${c.saldoPendiente>0?`<br>Por cobrar: <strong>$${c.saldoPendiente.toFixed(2)}</strong> · Créditos: <strong>${c.creditosPendientes}</strong>`:""}${c.saldoVencido>0?`<br><span style="color:#d93025">Vencido: <strong>$${c.saldoVencido.toFixed(2)}</strong> · ${c.creditosVencidos} cuenta(s)</span>`:""}<br>Última compra: <strong>${f?f.toLocaleDateString("es-PR"):"—"}</strong>${c.saldoPendiente>0?`<br>💳 Saldo pendiente: <strong style="color:#c45b19">$${c.saldoPendiente.toFixed(2)}</strong> · ${c.creditosPendientes} cuenta(s)`:"<br>✅ Sin deuda pendiente"}</div><div class="acciones-cliente"><button class="boton-cliente" onclick="verCliente('${encodeURIComponent(c.clave)}')">🧾 Ver compras</button><button class="boton-cliente boton-cliente-venta" onclick="nuevoReciboCliente('${encodeURIComponent(c.clave)}')">＋ Nuevo recibo</button></div></div>`}).join("")}
 function clientePorClave(enc){const k=decodeURIComponent(enc);return obtenerClientes().find(c=>c.clave===k)}
 function verCliente(enc){const c=clientePorClave(enc);if(!c)return;document.getElementById("tituloCliente").textContent=c.nombre;document.getElementById("textoCliente").textContent=(c.telefono?c.telefono+" · ":"")+c.compras+" compra(s) · Total $"+c.total.toFixed(2)+(c.saldoPendiente>0?" · Debe $"+c.saldoPendiente.toFixed(2):" · Sin deuda");document.getElementById("recibosCliente").innerHTML=c.ventas.sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).map(v=>{normalizarCuentaVenta(v);return `<div class="venta-card"><div class="venta-superior"><div><h3>Recibo #${escapeHtml(v.numero||String(v.id).slice(-8))}</h3><p>${new Date(v.fecha).toLocaleDateString("es-PR")}</p>${v.saldo>0?`<span class="estado-pago credito">💳 Debe $${Number(v.saldo).toFixed(2)}</span>`:`<span class="estado-pago pagado">✅ Pagado</span>`}</div><div class="venta-total">$${Number(v.ingreso||0).toFixed(2)}</div></div><div class="acciones-cliente"><button class="boton-recibo-venta" onclick="generarReciboVenta(${v.id})">🧾 Ver recibo</button>${v.saldo>0?`<button class="boton-abono-venta" onclick="cerrarCliente();abrirAbono(${v.id})">💵 Registrar abono</button>`:""}${pagosDeVenta(v).length?`<button class="boton-historial-abonos" onclick="cerrarCliente();verHistorialAbonos(${v.id})">📋 Historial abonos</button>`:""}</div></div>`}).join("");document.getElementById("botonNuevaVentaCliente").onclick=()=>{cerrarCliente();nuevoReciboCliente(enc)};document.getElementById("modalCliente").classList.add("visible")}
@@ -7193,7 +7200,7 @@ function nuevoReciboCliente(enc){const c=clientePorClave(enc);if(!c)return;abrir
 document.getElementById("busquedaClientes").addEventListener("input",actualizarClientes);
 
 async function mostrarHistorial(){flkOcultarTodasLasVistas();
- if(navigator.onLine){
+ if(flkNubeDisponible()){
   setTimeout(()=>cargarInventarioSupabase().catch(()=>{}),0);
   setTimeout(()=>cargarHistorialSupabase().catch(()=>{}),0);
  }
@@ -7295,7 +7302,7 @@ document.getElementById("formularioGasto").addEventListener("submit",async e=>{
   }else{
    legacy=String(Date.now()+Math.floor(Math.random()*100000));
   }
-  if(!navigator.onLine){
+  if(!flkNubeDisponible()){
    const payload={
     expense_id:supabaseId,
     legacy_id:legacy,
@@ -7339,7 +7346,7 @@ async function eliminarGasto(id){
  const g=gastos.find(x=>x.id===id);if(!g)return;
  if(!confirm(`¿Eliminar el gasto “${g.concepto}” por $${Number(g.cantidad).toFixed(2)}?`))return;
 
- if(!navigator.onLine){
+ if(!flkNubeDisponible()){
   if(!g.supabaseId){
    let q=flkColaOffline();
    q=q.filter(op=>!(op.tipo==="expense_save" && String(op.payload?.legacy_id||"")===String(g.id)));
@@ -7380,7 +7387,7 @@ function mostrarListaGastos(){
 }
 document.getElementById("busquedaGastos").addEventListener("input",mostrarListaGastos);
 async function mostrarGastos(){flkOcultarTodasLasVistas();
- if(!requiereAdmin())return;if(navigator.onLine)setTimeout(()=>cargarGastosSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="block";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("gastos");actualizarGastos();scrollTop()}
+ if(!requiereAdmin())return;if(flkNubeDisponible())setTimeout(()=>cargarGastosSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="block";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("gastos");actualizarGastos();scrollTop()}
 
 function metodoCajaClave(metodo){const m=String(metodo||"").trim().toLowerCase();if(m.includes("efectivo"))return "efectivo";if(m.includes("ath"))return "ath";if(m.includes("tarjeta"))return "tarjeta";return "otros"}
 function resumenCierreFecha(fechaLocal){
@@ -7430,7 +7437,7 @@ async function guardarCierreHoy(){
  });
  flkAplicarCierreLocal(op);
  guardarCierres();actualizarCierre();
- if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
+ if(flkNubeDisponible())setTimeout(flkProcesarColaOffline,0);
 }
 function mostrarListaCierres(){const lista=document.getElementById("listaCierres"),arr=[...cierres].sort((a,b)=>String(b.fechaLocal).localeCompare(String(a.fechaLocal)));if(!arr.length){lista.innerHTML='<div class="sin-productos">Todavía no hay cierres guardados.</div>';return}lista.innerHTML=arr.map(c=>{const f=new Date(c.fechaLocal+"T12:00:00");return `<div class="cierre-card"><div class="venta-superior"><div><h3>Cierre · ${f.toLocaleDateString("es-PR")}</h3><p>Guardado ${new Date(c.guardado||Date.now()).toLocaleString("es-PR")}</p></div><div class="cierre-total">${formatoDineroCierre(c.gananciaNeta)}</div></div><div class="cierre-detalle">Ventas: <strong>${formatoDineroCierre(c.ventasTotal)}</strong> · Gastos: <strong>${formatoDineroCierre(c.gastosTotal)}</strong><br>Ganancia bruta: <strong>${formatoDineroCierre(c.gananciaBruta)}</strong> · Ganancia neta: <strong>${formatoDineroCierre(c.gananciaNeta)}</strong><br>Cobrado: <strong>${formatoDineroCierre(c.cobrado)}</strong> · Efectivo neto: <strong>${formatoDineroCierre(c.efectivoNeto)}</strong><br>Efectivo: ${formatoDineroCierre(c.efectivo)} · ATH: ${formatoDineroCierre(c.ath)} · Tarjeta: ${formatoDineroCierre(c.tarjeta)} · Otros: ${formatoDineroCierre(c.otros)}<br>Crédito: ${formatoDineroCierre(c.credito)} · Saldo pendiente: ${formatoDineroCierre(c.saldoCredito)}</div><div class="cierre-acciones"><button class="boton-cierre" onclick="imprimirCierre(${c.id})">🧾 Ver / imprimir</button><button class="boton-cierre boton-cierre-peligro" onclick="eliminarCierre(${c.id})">🗑️ Eliminar</button></div></div>`}).join("")}
 function imprimirCierre(id){const c=cierres.find(x=>x.id===id);if(!c)return;const f=new Date(c.fechaLocal+"T12:00:00"),contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cierre ${c.fechaLocal}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#f4f7fb;color:#111;margin:0}.hoja{max-width:460px;margin:24px auto;background:#fff;padding:28px;border-radius:18px}.fila{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid #eee}.total{font-size:20px;font-weight:800}.btn{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700}@media print{body{background:#fff}.hoja{margin:0;max-width:none}.btn{display:none}}
@@ -7442,10 +7449,10 @@ async function eliminarCierre(id){
  const op=flkEncolarOperacion("cash_closure_delete",{closure_id:c.supabaseId||null,close_date:c.fechaLocal});
  flkAplicarEliminarCierreLocal(op);
  guardarCierres();actualizarCierre();
- if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
+ if(flkNubeDisponible())setTimeout(flkProcesarColaOffline,0);
 }
 async function mostrarCierre(){flkOcultarTodasLasVistas();
- if(!requiereAdmin())return;if(navigator.onLine){setTimeout(()=>cargarInventarioSupabase().catch(()=>{}),0);setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);setTimeout(()=>cargarGastosSupabase().catch(()=>{}),0);setTimeout(()=>cargarComprasSupabase().catch(()=>{}),0);setTimeout(()=>cargarMovimientosCajaSupabase().catch(()=>{}),0);setTimeout(()=>cargarCierresSupabase().catch(()=>{}),0);}["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaReportes","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaCierre").style.display="block";actualizarMenu("cierre");actualizarCierre();scrollTop()}
+ if(!requiereAdmin())return;if(flkNubeDisponible()){setTimeout(()=>cargarInventarioSupabase().catch(()=>{}),0);setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);setTimeout(()=>cargarGastosSupabase().catch(()=>{}),0);setTimeout(()=>cargarComprasSupabase().catch(()=>{}),0);setTimeout(()=>cargarMovimientosCajaSupabase().catch(()=>{}),0);setTimeout(()=>cargarCierresSupabase().catch(()=>{}),0);}["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaReportes","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaCierre").style.display="block";actualizarMenu("cierre");actualizarCierre();scrollTop()}
 
 function fechaLocalDeValor(fecha){if(!fecha)return "";if(/^\d{4}-\d{2}-\d{2}$/.test(String(fecha)))return String(fecha);const d=new Date(fecha);return Number.isNaN(d.getTime())?"":fechaLocalISO(d)}
 function rangoReporteActual(){
@@ -7538,7 +7545,7 @@ function imprimirInformeArrendamiento(){
 }
 
 async function mostrarReportes(){flkOcultarTodasLasVistas();
- if(!requiereAdmin())return;if(navigator.onLine){setTimeout(()=>cargarInventarioSupabase().catch(()=>{}),0);setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);setTimeout(()=>cargarGastosSupabase().catch(()=>{}),0);setTimeout(()=>cargarComprasSupabase().catch(()=>{}),0);setTimeout(()=>cargarMovimientosCajaSupabase().catch(()=>{}),0);setTimeout(()=>cargarConfiguracionesArrendamiento().catch(()=>{}),0);}setTimeout(actualizarInformeArrendamiento,0);["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaReportes").style.display="block";actualizarMenu("reportes");actualizarReporte();scrollTop()}
+ if(!requiereAdmin())return;if(flkNubeDisponible()){setTimeout(()=>cargarInventarioSupabase().catch(()=>{}),0);setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);setTimeout(()=>cargarGastosSupabase().catch(()=>{}),0);setTimeout(()=>cargarComprasSupabase().catch(()=>{}),0);setTimeout(()=>cargarMovimientosCajaSupabase().catch(()=>{}),0);setTimeout(()=>cargarConfiguracionesArrendamiento().catch(()=>{}),0);}setTimeout(actualizarInformeArrendamiento,0);["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaAlertas","vistaOrdenes","vistaEstadisticas"].forEach(id=>document.getElementById(id).style.display="none");document.getElementById("vistaReportes").style.display="block";actualizarMenu("reportes");actualizarReporte();scrollTop()}
 
 
 function nombreProveedorNorm(v){return String(v||"").trim().toLowerCase()}
@@ -7584,7 +7591,7 @@ document.getElementById("formularioProveedor").addEventListener("submit",async e
  actualizarProveedores();
  actualizarOpcionesOrganizacion();
  cerrarProveedor();
- if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
+ if(flkNubeDisponible())setTimeout(flkProcesarColaOffline,0);
 });
 function eliminarProveedor(id){const p=proveedores.find(x=>x.id===id);if(!p)return;const productosAsociados=productos.filter(x=>nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(p.nombre)).length,ordenesAsociadas=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)).length;if(!confirm(`¿Eliminar ${p.nombre} del directorio?\n\nSus ${productosAsociados} producto(s) y ${ordenesAsociadas} orden(es) conservarán el nombre del proveedor como historial.`))return;proveedores=proveedores.filter(x=>x.id!==id);guardarProveedores();actualizarProveedores();actualizarOpcionesOrganizacion()}
 function nuevaOrdenProveedor(id){const p=proveedores.find(x=>x.id===id);if(!p)return;abrirOrdenCompra(null,p.nombre)}
@@ -7595,7 +7602,7 @@ function mostrarProveedores(){flkOcultarTodasLasVistas();
  ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaProveedores").style.display="block";actualizarMenu("proveedores");scrollTop();
  requestAnimationFrame(()=>actualizarProveedores());
- if(navigator.onLine)setTimeout(()=>cargarComprasSupabase().then(()=>actualizarProveedores()).catch(()=>{}),0);
+ if(flkNubeDisponible())setTimeout(()=>cargarComprasSupabase().then(()=>actualizarProveedores()).catch(()=>{}),0);
 }
 document.getElementById("busquedaProveedores").addEventListener("input",mostrarListaProveedores);
 
@@ -7654,7 +7661,7 @@ document.getElementById("formularioOrdenCompra").addEventListener("submit",async
  actualizarProveedores();
  actualizarCentroAlertas();
  cerrarOrdenCompra();
- if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
+ if(flkNubeDisponible())setTimeout(flkProcesarColaOffline,0);
 });
 async function marcarOrdenada(id){
  const o=ordenesCompra.find(x=>x.id===id);
@@ -7670,7 +7677,7 @@ async function marcarOrdenada(id){
  guardarOrdenesCompra();
  actualizarOrdenesCompra();
  actualizarProveedores();
- if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
+ if(flkNubeDisponible())setTimeout(flkProcesarColaOffline,0);
 }
 function actualizarCamposCreditoProveedor(){const credito=document.getElementById("condicionPagoProveedor").value==="credito";document.getElementById("campoAbonoProveedor").classList.toggle("visible",credito);document.getElementById("campoVencimientoProveedor").classList.toggle("visible",credito);if(credito&&!document.getElementById("fechaVencimientoProveedor").value){const d=new Date();d.setDate(d.getDate()+30);document.getElementById("fechaVencimientoProveedor").value=fechaLocalISO(d)}if(!credito){document.getElementById("abonoInicialProveedor").value="0";document.getElementById("fechaVencimientoProveedor").value=""}}
 function recibirOrden(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;const p=productos.find(x=>x.id===o.productoId);if(!p)return alert("El producto de esta orden ya no existe en el inventario.");ordenRecepcionId=id;document.getElementById("formularioRecepcionOrden").reset();document.getElementById("condicionPagoProveedor").value="pagado";document.getElementById("textoRecepcionOrden").textContent=`${numeroOrdenCompra(o)} · ${o.proveedor} · Total $${Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)).toFixed(2)}`;actualizarCamposCreditoProveedor();document.getElementById("modalRecepcionOrden").classList.add("visible")}
@@ -7718,7 +7725,7 @@ document.getElementById("formularioRecepcionOrden").addEventListener("submit",as
  actualizarCentroAlertas();
  actualizarEstadisticas();
  cerrarRecepcionOrden();
- if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
+ if(flkNubeDisponible())setTimeout(flkProcesarColaOffline,0);
 });
 async function eliminarOrdenCompra(id){
  const o=ordenesCompra.find(x=>x.id===id);if(!o)return;
@@ -7739,7 +7746,7 @@ function mostrarOrdenes(){flkOcultarTodasLasVistas();
  ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaOrdenes").style.display="block";actualizarMenu("ordenes");scrollTop();
  requestAnimationFrame(()=>actualizarOrdenesCompra());
- if(navigator.onLine)setTimeout(()=>cargarComprasSupabase().then(()=>actualizarOrdenesCompra()).catch(()=>{}),0);
+ if(flkNubeDisponible())setTimeout(()=>cargarComprasSupabase().then(()=>actualizarOrdenesCompra()).catch(()=>{}),0);
 }
 function estadoCuentaProveedor(o){const saldo=Number(o.saldoProveedor||0);if(saldo<=0.009)return {clave:"pagada",texto:"✅ Pagada"};if(o.fechaVencimientoProveedor){const hoy=new Date(fechaLocalISO(new Date())+"T00:00:00"),v=new Date(o.fechaVencimientoProveedor+"T00:00:00");if(v<hoy)return {clave:"vencida",texto:"🔴 Vencida"}}return {clave:"pendiente",texto:"⏳ Pendiente"}}
 function abrirPagoProveedor(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado!=="recibida"||Number(o.saldoProveedor||0)<=0)return;ordenPagoProveedorId=id;document.getElementById("formularioPagoProveedor").reset();document.getElementById("textoPagoProveedor").textContent=`${o.proveedor} · ${numeroOrdenCompra(o)}`;document.getElementById("cantidadPagoProveedor").max=Number(o.saldoProveedor).toFixed(2);document.getElementById("cantidadPagoProveedor").value=Number(o.saldoProveedor).toFixed(2);document.getElementById("ayudaPagoProveedor").textContent=`Saldo actual: $${Number(o.saldoProveedor).toFixed(2)}`;document.getElementById("modalPagoProveedor").classList.add("visible")}
@@ -7774,7 +7781,7 @@ document.getElementById("formularioPagoProveedor").addEventListener("submit",asy
  actualizarFlujoCaja();
  actualizarFinanzas();
  cerrarPagoProveedor();
- if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
+ if(flkNubeDisponible())setTimeout(flkProcesarColaOffline,0);
 });
 function verHistorialPagosProveedor(id){const o=ordenesCompra.find(x=>x.id===id);if(!o)return;document.getElementById("textoHistorialPagosProveedor").textContent=`${o.proveedor} · ${numeroOrdenCompra(o)} · Total $${Number(o.costoTotal||0).toFixed(2)}`;const pagos=Array.isArray(o.pagosProveedor)?[...o.pagosProveedor].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)):[];document.getElementById("listaHistorialPagosProveedor").innerHTML=pagos.length?pagos.map(p=>`<div class="abono-card"><div class="abono-superior"><strong>${new Date(p.fecha).toLocaleString("es-PR")}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">Método: <strong>${escapeHtml(p.metodo||"—")}</strong><br>Saldo anterior: $${Number(p.saldoAnterior||0).toFixed(2)} · Restante: $${Number(p.saldoRestante||0).toFixed(2)}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div></div>`).join(""):'<div class="sin-productos">No hay pagos registrados.</div>';document.getElementById("modalHistorialPagosProveedor").classList.add("visible")}
 function cerrarHistorialPagosProveedor(){document.getElementById("modalHistorialPagosProveedor").classList.remove("visible")}
@@ -7786,7 +7793,7 @@ function mostrarCuentasPagar(){flkOcultarTodasLasVistas();
  ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaCuentasPagar").style.display="block";actualizarMenu("cuentasPagar");scrollTop();
  requestAnimationFrame(()=>actualizarCuentasPagar());
- if(navigator.onLine)setTimeout(()=>cargarComprasSupabase().then(()=>actualizarCuentasPagar()).catch(()=>{}),0);
+ if(flkNubeDisponible())setTimeout(()=>cargarComprasSupabase().then(()=>actualizarCuentasPagar()).catch(()=>{}),0);
 }
 document.getElementById("busquedaCuentasPagar").addEventListener("input",mostrarListaCuentasPagar);
 
@@ -7794,8 +7801,8 @@ document.getElementById("busquedaCuentasPagar").addEventListener("input",mostrar
 
 async function cargarMovimientosCajaSupabase(){
  if(flkModoRecuperacionPassword)return false;
- if(navigator.onLine&&!flkSesionActiva)return false;
- if(!navigator.onLine){flkAplicarPendientesSobreDatos();if(typeof actualizarSaldoCajaFisica==="function")actualizarSaldoCajaFisica();return true}
+ if(flkNubeDisponible()&&!flkSesionActiva)return false;
+ if(!flkNubeDisponible()){flkAplicarPendientesSobreDatos();if(typeof actualizarSaldoCajaFisica==="function")actualizarSaldoCajaFisica();return true}
  const {data,error}=await flkSupabase.from("cash_movements")
   .select("id,type,amount,description,payment_method,occurred_at,created_at,sale_id")
   .order("occurred_at",{ascending:true});
@@ -7990,7 +7997,7 @@ document.getElementById("formularioMovimientoPropietario").addEventListener("sub
  guardarMovimientosCajaLocal();
  actualizarFlujoCaja();actualizarCierre();actualizarSaldoCajaFisica();
  cerrarMovimientoPropietario();
- if(navigator.onLine)setTimeout(flkProcesarColaOffline,0);
+ if(flkNubeDisponible())setTimeout(flkProcesarColaOffline,0);
 });
 function actualizarFlujoCaja(){
  actualizarSaldoCajaFisica();
@@ -8024,7 +8031,7 @@ function mostrarFlujoCaja(){flkOcultarTodasLasVistas();
  document.getElementById("vistaFlujoCaja").style.display="block";actualizarMenu("flujoCaja");scrollTop();
  actualizarSaldoCajaFisica();
  requestAnimationFrame(()=>actualizarFlujoCaja());
- if(navigator.onLine)setTimeout(async()=>{
+ if(flkNubeDisponible())setTimeout(async()=>{
   await Promise.allSettled([cargarVentasSupabase(),cargarGastosSupabase(),cargarMovimientosCajaSupabase()]);
   actualizarSaldoCajaFisica();
   actualizarFlujoCaja();
@@ -8220,7 +8227,7 @@ async function sincronizarYActualizarFinanzas(){
   actualizarEstadoContribucionArrendamiento();
  }catch(err){
   console.error("Sincronización Finanzas:",err);
-  if(navigator.onLine&&flkSesionActiva)alert("No se pudieron actualizar todos los datos financieros desde Supabase.")
+  if(flkNubeDisponible()&&flkSesionActiva)alert("No se pudieron actualizar todos los datos financieros desde Supabase.")
  }
 }
 function actualizarFinanzas(){
@@ -8253,7 +8260,7 @@ function mostrarFinanzas(){flkOcultarTodasLasVistas();
  ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaFinanzas").style.display="block";actualizarMenu("finanzas");scrollTop();
  requestAnimationFrame(()=>actualizarFinanzas());
- if(navigator.onLine)setTimeout(async()=>{
+ if(flkNubeDisponible())setTimeout(async()=>{
   await Promise.allSettled([cargarInventarioSupabase(),cargarVentasSupabase(),cargarGastosSupabase(),cargarComprasSupabase(),cargarMovimientosCajaSupabase(),cargarConfiguracionesArrendamiento()]);
   actualizarFinanzas();
  },0);
@@ -8614,7 +8621,7 @@ function mostrarAlertas(){flkOcultarTodasLasVistas();
  ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaAlertas").style.display="block";actualizarMenu("alertas");scrollTop();
  requestAnimationFrame(()=>actualizarCentroAlertas());
- if(navigator.onLine)setTimeout(async()=>{
+ if(flkNubeDisponible())setTimeout(async()=>{
   await Promise.allSettled([cargarInventarioSupabase(),cargarVentasSupabase(),cargarGastosSupabase(),cargarComprasSupabase(),cargarMovimientosCajaSupabase()]);
   actualizarCentroAlertas();
  },0);
@@ -8624,7 +8631,7 @@ function mostrarEstadisticas(){flkOcultarTodasLasVistas();
  ["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaAdminSoftware"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  document.getElementById("vistaEstadisticas").style.display="block";actualizarMenu("estadisticas");scrollTop();
  requestAnimationFrame(()=>actualizarEstadisticas());
- if(navigator.onLine)setTimeout(async()=>{
+ if(flkNubeDisponible())setTimeout(async()=>{
   await Promise.allSettled([cargarInventarioSupabase(),cargarVentasSupabase(),cargarGastosSupabase(),cargarComprasSupabase(),cargarMovimientosCajaSupabase()]);
   actualizarEstadisticas();
  },0);
@@ -8640,7 +8647,7 @@ async function sincronizarYActualizarEstadisticas(){
   actualizarEstadisticas();
  }catch(err){
   console.error("Sincronización Estadísticas:",err);
-  if(navigator.onLine&&flkSesionActiva)alert("No se pudieron actualizar todos los datos desde Supabase.")
+  if(flkNubeDisponible()&&flkSesionActiva)alert("No se pudieron actualizar todos los datos desde Supabase.")
  }
 }
 function actualizarEstadisticas(){
@@ -8708,13 +8715,13 @@ function flkNombreCentroBackupLocal(){
 }
 async function flkResolverCentroBackup(){
  let id=flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:flkBusinessGuardado();
- if(!id && navigator.onLine){
+ if(!id && flkNubeDisponible()){
   try{id=await flkExigirCentroActual()}catch(_){}
  }
  if(!id)throw new Error("No se pudo identificar el centro activo.");
 
  let nombre=flkNombreCentroBackupLocal();
- if(navigator.onLine && typeof flkSupabase!=="undefined"){
+ if(flkNubeDisponible() && typeof flkSupabase!=="undefined"){
   try{
    const {data,error}=await flkSupabase.from("businesses").select("name,business_name,customer_name").eq("id",id).maybeSingle();
    if(!error&&data){
@@ -8779,7 +8786,7 @@ function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click(
    Primero conserva la salva local. Si hay Internet y el usuario es Administrador,
    migra los datos restaurados a Supabase ANTES de aceptar la nube como fuente de verdad. */
 async function flkSincronizarRespaldoRestaurado(){
- if(!navigator.onLine)return {ok:false,pendiente:true,mensaje:"Restaurado localmente. La subida a Supabase queda pendiente hasta tener Internet."};
+ if(!flkNubeDisponible())return {ok:false,pendiente:true,mensaje:"Restaurado localmente. La subida a Supabase queda pendiente hasta tener Internet."};
  if(!flkSesionActiva)return {ok:false,pendiente:true,mensaje:"Restaurado localmente. Inicia sesión para subir la salva a Supabase."};
  if(rolSesion!=="admin")return {ok:false,pendiente:true,mensaje:"Restaurado localmente. Un Administrador debe abrir el sistema para subir la salva a Supabase."};
 
@@ -8978,7 +8985,7 @@ if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
    const reg=await navigator.serviceWorker.register("./sw.js?v=61.47",{updateViaCache:"none"});
-   if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
+   if(flkNubeDisponible())setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
 }
@@ -10384,11 +10391,11 @@ function actualizarEstadoQROfflineVisual(){
  if(!el||typeof flkEstadoMotoresQROffline!=="function")return;
  const e=flkEstadoMotoresQROffline();
  if(e.qrcodejs&&(e.jsqr||e.html5qrcode)){
-  el.textContent=navigator.onLine
+  el.textContent=flkNubeDisponible()
    ?"Listo: quedará disponible aunque se vaya Internet."
    :"Modo offline activo en este dispositivo.";
  }else{
-  el.textContent=navigator.onLine
+  el.textContent=flkNubeDisponible()
    ?"Pulsa Preparar offline para guardar los motores."
    :"Sin copia local todavía. Usa lector físico o código manual.";
  }
