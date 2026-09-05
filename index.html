@@ -7046,36 +7046,7 @@ function imprimirComprobanteDevolucion(ventaId,devolucionSupabaseId){
  const item=itemsDeVenta(v).find(i=>i.productoId===d.productoId)||{};
  const numero=d.numeroDevolucion?String(d.numeroDevolucion).padStart(6,"0"):String(d.id).slice(-6);
  const fecha=new Date(d.fecha),monto=Number(d.monto??d.reembolso??0),cantidad=Number(d.cantidad||0),unitario=cantidad>0?monto/cantidad:0;
- const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Devolución ${numero}</title><style>${flkCssComprobanteProfesional("#f25b18")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">↩ Devolución de cliente</span><span class="numero">N.º DV-${numero}</span></div></header><section class="meta"><div>Recibo original<strong>#${escapeHtml(v.numero||"")}</strong></div><div>Fecha y hora<strong>${fecha.toLocaleDateString("es-PR")} · ${fecha.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${escapeHtml(v.cliente||"Cliente general")}</strong></div><div>Teléfono<strong>${escapeHtml(v.telefono||"—")}</strong></div></section><section class="seccion"><h3>Detalle de devolución</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cant.</th><th class="num">Precio unit.</th><th class="num">Reembolso</th></tr></thead><tbody><tr><td>${escapeHtml(item.nombre||d.nombre||"Producto")}</td><td>${escapeHtml(item.sku||d.sku||"—")}</td><td class="num">${cantidad}</td><td class="num">$${unitario.toFixed(2)}</td><td class="num"><strong>$${monto.toFixed(2)}</strong></td></tr></tbody></table></section><section class="seccion"><div class="resumen"><div class="r"><span>Cantidad devuelta</span><strong>${cantidad}</strong></div><div class="r total"><span>TOTAL DEVOLUCIÓN</span><strong>$${monto.toFixed(2)}</strong></div></div></section><section class="seccion"><h3>Motivo / observaciones</h3><div class="nota">${escapeHtml(d.motivo||"No especificado")}</div><div class="firma"><div>Cliente / recibe devolución</div><div>Autorización administrativa</div></div></section><div class="pie">Comprobante generado por Flackunloker · Documento de control interno</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div>
-<!-- FLK: Cambiar contraseña de centro v1 -->
-<div id="flkCambiarPasswordCentroCard" style="margin-top:12px;background:#fff;border:1px solid #d9eafa;border-radius:16px;padding:15px">
- <h3 style="margin:0 0 8px">🔐 Cambiar contraseña de centro</h3>
- <p style="margin:0 0 10px;color:#667085;font-size:13px">
-  Opción administrativa para recuperar acceso de un centro.
- </p>
- <button type="button" onclick="flkAbrirCambioPasswordCentroV1()" style="width:100%;padding:12px;border:0;border-radius:12px;background:#eaf4ff;color:#075aa8;font-weight:800">
-  Cambiar contraseña
- </button>
-</div>
-<div id="flkModalPasswordCentroV1" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.45);align-items:center;justify-content:center;padding:20px">
- <div style="background:white;border-radius:20px;padding:20px;width:min(420px,100%)">
-  <h3>Cambiar contraseña</h3>
-  <input id="flkNuevaPasswordCentroV1" type="password" placeholder="Nueva contraseña" style="width:100%;padding:12px;border-radius:10px;border:1px solid #ddd">
-  <button onclick="flkCerrarCambioPasswordCentroV1()" style="margin-top:10px;width:100%;padding:12px;border:0;border-radius:10px">Cerrar</button>
- </div>
-</div>
-<script>
-function flkAbrirCambioPasswordCentroV1(){
- const m=document.getElementById('flkModalPasswordCentroV1');
- if(m)m.style.display='flex';
-}
-function flkCerrarCambioPasswordCentroV1(){
- const m=document.getElementById('flkModalPasswordCentroV1');
- if(m)m.style.display='none';
-}
-</script>
-
-</body></html>`;
+ const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Devolución ${numero}</title><style>${flkCssComprobanteProfesional("#f25b18")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">↩ Devolución de cliente</span><span class="numero">N.º DV-${numero}</span></div></header><section class="meta"><div>Recibo original<strong>#${escapeHtml(v.numero||"")}</strong></div><div>Fecha y hora<strong>${fecha.toLocaleDateString("es-PR")} · ${fecha.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${escapeHtml(v.cliente||"Cliente general")}</strong></div><div>Teléfono<strong>${escapeHtml(v.telefono||"—")}</strong></div></section><section class="seccion"><h3>Detalle de devolución</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cant.</th><th class="num">Precio unit.</th><th class="num">Reembolso</th></tr></thead><tbody><tr><td>${escapeHtml(item.nombre||d.nombre||"Producto")}</td><td>${escapeHtml(item.sku||d.sku||"—")}</td><td class="num">${cantidad}</td><td class="num">$${unitario.toFixed(2)}</td><td class="num"><strong>$${monto.toFixed(2)}</strong></td></tr></tbody></table></section><section class="seccion"><div class="resumen"><div class="r"><span>Cantidad devuelta</span><strong>${cantidad}</strong></div><div class="r total"><span>TOTAL DEVOLUCIÓN</span><strong>$${monto.toFixed(2)}</strong></div></div></section><section class="seccion"><h3>Motivo / observaciones</h3><div class="nota">${escapeHtml(d.motivo||"No especificado")}</div><div class="firma"><div>Cliente / recibe devolución</div><div>Autorización administrativa</div></div></section><div class="pie">Comprobante generado por Flackunloker · Documento de control interno</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div></body></html>`;
  flkAbrirDocumentoComprobante(html)
 }
 
