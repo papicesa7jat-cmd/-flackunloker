@@ -7046,46 +7046,7 @@ function imprimirComprobanteDevolucion(ventaId,devolucionSupabaseId){
  const item=itemsDeVenta(v).find(i=>i.productoId===d.productoId)||{};
  const numero=d.numeroDevolucion?String(d.numeroDevolucion).padStart(6,"0"):String(d.id).slice(-6);
  const fecha=new Date(d.fecha),monto=Number(d.monto??d.reembolso??0),cantidad=Number(d.cantidad||0),unitario=cantidad>0?monto/cantidad:0;
- const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Devolución ${numero}</title><style>${flkCssComprobanteProfesional("#f25b18")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">↩ Devolución de cliente</span><span class="numero">N.º DV-${numero}</span></div></header><section class="meta"><div>Recibo original<strong>#${escapeHtml(v.numero||"")}</strong></div><div>Fecha y hora<strong>${fecha.toLocaleDateString("es-PR")} · ${fecha.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${escapeHtml(v.cliente||"Cliente general")}</strong></div><div>Teléfono<strong>${escapeHtml(v.telefono||"—")}</strong></div></section><section class="seccion"><h3>Detalle de devolución</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cant.</th><th class="num">Precio unit.</th><th class="num">Reembolso</th></tr></thead><tbody><tr><td>${escapeHtml(item.nombre||d.nombre||"Producto")}</td><td>${escapeHtml(item.sku||d.sku||"—")}</td><td class="num">${cantidad}</td><td class="num">$${unitario.toFixed(2)}</td><td class="num"><strong>$${monto.toFixed(2)}</strong></td></tr></tbody></table></section><section class="seccion"><div class="resumen"><div class="r"><span>Cantidad devuelta</span><strong>${cantidad}</strong></div><div class="r total"><span>TOTAL DEVOLUCIÓN</span><strong>$${monto.toFixed(2)}</strong></div></div></section><section class="seccion"><h3>Motivo / observaciones</h3><div class="nota">${escapeHtml(d.motivo||"No especificado")}</div><div class="firma"><div>Cliente / recibe devolución</div><div>Autorización administrativa</div></div></section><div class="pie">Comprobante generado por Flackunloker · Documento de control interno</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div>
-<!-- PRUEBA: Cambio de contraseña de centro -->
-<style>
-#flkCambiarPassCentroBox{display:none;position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.45);align-items:center;justify-content:center;padding:20px}
-#flkCambiarPassCentroBox.visible{display:flex}
-#flkCambiarPassCentroCard{background:#fff;border-radius:20px;padding:22px;width:min(420px,100%)}
-#flkCambiarPassCentroCard input,#flkCambiarPassCentroCard button{width:100%;padding:12px;margin-top:10px;border-radius:12px}
-</style>
-<div id="flkCambiarPassCentroBox">
- <div id="flkCambiarPassCentroCard">
-  <h3>🔐 Cambiar contraseña de centro</h3>
-  <p>Prueba administrativa.</p>
-  <input id="flkNuevoPassCentro" type="password" placeholder="Nueva contraseña">
-  <input id="flkConfirmarPassCentro" type="password" placeholder="Confirmar contraseña">
-  <button onclick="flkGuardarPassCentroPrueba()" style="background:#0a84ff;color:white;border:0">Guardar</button>
-  <button onclick="document.getElementById('flkCambiarPassCentroBox').classList.remove('visible')" style="border:0;background:#eee">Cancelar</button>
- </div>
-</div>
-<script>
-function flkAbrirCambioPassCentro(){
- document.getElementById('flkCambiarPassCentroBox').classList.add('visible');
-}
-function flkGuardarPassCentroPrueba(){
- const a=document.getElementById('flkNuevoPassCentro').value;
- const b=document.getElementById('flkConfirmarPassCentro').value;
- if(!a || a!==b){alert('Las contraseñas no coinciden');return}
- alert('Prueba correcta. La interfaz está lista para enlazar con el centro.');
-}
-document.addEventListener('DOMContentLoaded',()=>{
- const v=document.getElementById('vistaSoftware');
- const b=document.createElement('button');
- b.type='button';
- b.textContent='🔐 Cambiar contraseña de centro (PRUEBA)';
- b.onclick=flkAbrirCambioPassCentro;
- b.style.cssText='margin-top:12px;width:100%;padding:13px;border:0;border-radius:12px;background:#eaf4ff;color:#075aa8;font-weight:800';
- if(v) v.appendChild(b);
-});
-</script>
-
-</body></html>`;
+ const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Devolución ${numero}</title><style>${flkCssComprobanteProfesional("#f25b18")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">↩ Devolución de cliente</span><span class="numero">N.º DV-${numero}</span></div></header><section class="meta"><div>Recibo original<strong>#${escapeHtml(v.numero||"")}</strong></div><div>Fecha y hora<strong>${fecha.toLocaleDateString("es-PR")} · ${fecha.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${escapeHtml(v.cliente||"Cliente general")}</strong></div><div>Teléfono<strong>${escapeHtml(v.telefono||"—")}</strong></div></section><section class="seccion"><h3>Detalle de devolución</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cant.</th><th class="num">Precio unit.</th><th class="num">Reembolso</th></tr></thead><tbody><tr><td>${escapeHtml(item.nombre||d.nombre||"Producto")}</td><td>${escapeHtml(item.sku||d.sku||"—")}</td><td class="num">${cantidad}</td><td class="num">$${unitario.toFixed(2)}</td><td class="num"><strong>$${monto.toFixed(2)}</strong></td></tr></tbody></table></section><section class="seccion"><div class="resumen"><div class="r"><span>Cantidad devuelta</span><strong>${cantidad}</strong></div><div class="r total"><span>TOTAL DEVOLUCIÓN</span><strong>$${monto.toFixed(2)}</strong></div></div></section><section class="seccion"><h3>Motivo / observaciones</h3><div class="nota">${escapeHtml(d.motivo||"No especificado")}</div><div class="firma"><div>Cliente / recibe devolución</div><div>Autorización administrativa</div></div></section><div class="pie">Comprobante generado por Flackunloker · Documento de control interno</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div></body></html>`;
  flkAbrirDocumentoComprobante(html)
 }
 
