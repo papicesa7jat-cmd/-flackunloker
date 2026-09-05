@@ -1604,6 +1604,24 @@ textarea::placeholder{
 .prestacion-form{margin-bottom:14px}.prestacion-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px}.prestacion-grid .campo{margin:0}
 .prestacion-item{margin-bottom:10px}.prestacion-item-top{display:flex;justify-content:space-between;gap:10px}.prestacion-importes{font-weight:800;text-align:right;white-space:nowrap}
 @media(max-width:700px){.prestacion-resumen,.prestacion-grid{grid-template-columns:1fr}.prestacion-item-top{flex-direction:column}.prestacion-importes{text-align:left}}
+/* v61.63 · Prestaciones: texto negro y tipografía uniforme con el resto de módulos */
+#vistaPrestacionesServicio,
+#vistaPrestacionesServicio .seccion-titulo h2,
+#vistaPrestacionesServicio .prestacion-card,
+#vistaPrestacionesServicio .prestacion-form,
+#vistaPrestacionesServicio .prestacion-item,
+#vistaPrestacionesServicio .campo label,
+#vistaPrestacionesServicio .prestacion-item-top,
+#vistaPrestacionesServicio .prestacion-importes,
+#vistaPrestacionesServicio .lista-estadisticas,
+#vistaPrestacionesServicio .lista-estadisticas h3,
+#vistaPrestacionesServicio .fila-estadistica span{color:#111 !important;}
+#vistaPrestacionesServicio .prestacion-card span,
+#vistaPrestacionesServicio .campo label,
+#vistaPrestacionesServicio .prestacion-item,
+#vistaPrestacionesServicio .fila-estadistica{font-size:13px !important;}
+#vistaPrestacionesServicio .seccion-titulo h2{font-size:20px !important;}
+#vistaPrestacionesServicio .lista-estadisticas h3{font-size:16px !important;}
 </style>
 </head>
 <body>
@@ -11027,6 +11045,19 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     if(b.id==="botonInventario")ultimoInventarioExplicito=Date.now();
     guardar(b.id);
   },true);
+
+  /* v61.64: Prestaciones no puede ser desplazada a Inventario por cargas tardías.
+     Inventario solo abre si el usuario lo pulsa de forma explícita. */
+  if(typeof window.mostrarInventario==="function") {
+    const mostrarInventarioReal=window.mostrarInventario;
+    window.mostrarInventario=function(){
+      if(actual==="botonPrestacionesServicio" && Date.now()-ultimoInventarioExplicito>=1200){
+        const pv=document.getElementById("vistaPrestacionesServicio");
+        if(pv && getComputedStyle(pv).display!=="none") return;
+      }
+      return mostrarInventarioReal.apply(this,arguments);
+    };
+  }
 
   function sesionVisible(){
     const overlay=document.getElementById("authOverlay");
