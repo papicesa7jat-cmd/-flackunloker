@@ -1605,9 +1605,8 @@ textarea::placeholder{
 .prestacion-item{margin-bottom:10px}.prestacion-item-top{display:flex;justify-content:space-between;gap:10px}.prestacion-importes{font-weight:800;text-align:right;white-space:nowrap}
 @media(max-width:700px){.prestacion-resumen,.prestacion-grid{grid-template-columns:1fr}.prestacion-item-top{flex-direction:column}.prestacion-importes{text-align:left}}
 </style>
-
-<style id="flk-v6165-prestaciones-solo-visual">
-/* v61.65: SOLO cambio visual sobre la v61.59 estable. */
+<style id="flk-v6168-prestaciones-solo-visual">
+/* SOLO presentación de Prestaciones: texto negro y tamaños alineados con el resto. */
 #vistaPrestacionesServicio,
 #vistaPrestacionesServicio .seccion-titulo h2,
 #vistaPrestacionesServicio .prestacion-card,
@@ -8725,7 +8724,7 @@ function actualizarEstadisticas(){
  const bajos=productos.filter(p=>Number(p.cantidad)<=Number(p.stockMinimo??5));document.getElementById("rankingStockBajo").innerHTML=bajos.length?bajos.map(p=>`<div class="fila-estadistica"><span>${escapeHtml(p.nombre)}</span><strong>${p.cantidad} / ${Number(p.stockMinimo??5)}</strong></div>`).join(""):`<div class="fila-estadistica"><span>Todo el inventario está por encima del mínimo.</span><strong>✓ OK</strong></div>`
 }
 function actualizarMenu(sec){["botonInventario","botonHistorial","botonVentas","botonClientes","botonGastos","botonCierre","botonReportes","botonAlertas","botonOrdenes","botonProveedores","botonCuentasPagar","botonFlujoCaja","botonFinanzas","botonPrestacionesServicio","botonEstadisticas","botonLicencias"].forEach(id=>document.getElementById(id).classList.remove("activo"));if(sec!=="proveedores")document.getElementById("vistaProveedores").style.display="none";if(sec!=="cuentasPagar")document.getElementById("vistaCuentasPagar").style.display="none";const mapa={inventario:"botonInventario",historial:"botonHistorial",ventas:"botonVentas",clientes:"botonClientes",gastos:"botonGastos",cierre:"botonCierre",reportes:"botonReportes",alertas:"botonAlertas",ordenes:"botonOrdenes",proveedores:"botonProveedores",cuentasPagar:"botonCuentasPagar",flujoCaja:"botonFlujoCaja",finanzas:"botonFinanzas",prestaciones:"botonPrestacionesServicio",estadisticas:"botonEstadisticas"};document.getElementById(mapa[sec]||"botonInventario").classList.add("activo")}
-function mostrarInventario(){if(window.flkModuloSeleccionado&&window.flkModuloSeleccionado!=="inventario"&&!window.flkPermitirInventarioExplicito)return;window.flkModuloSeleccionado="inventario";window.flkPermitirInventarioExplicito=false;document.body.classList.remove("flk-prestaciones-activa");flkOcultarTodasLasVistas();document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";document.getElementById("vistaFlujoCaja").style.display="none";document.getElementById("vistaFinanzas").style.display="none";const vl=document.getElementById("vistaLicencias");if(vl)vl.style.display="none";const va=document.getElementById("vistaAdminSoftware");if(va)va.style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
+function mostrarInventario(){flkOcultarTodasLasVistas();document.getElementById("vistaInventario").style.display="block";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";document.getElementById("vistaFlujoCaja").style.display="none";document.getElementById("vistaFinanzas").style.display="none";const vl=document.getElementById("vistaLicencias");if(vl)vl.style.display="none";const va=document.getElementById("vistaAdminSoftware");if(va)va.style.display="none";actualizarMenu("inventario");mostrarProductos();scrollTop()}
 function scrollTop(){window.scrollTo({top:0,behavior:"auto"})}
 document.addEventListener("visibilitychange",()=>{
  if(document.visibilityState==="visible"){
@@ -9083,6 +9082,12 @@ if("serviceWorker" in navigator){
  document.addEventListener("click",function(e){
   const b=e.target.closest("#menuPrincipalFondo .menu-cuadricula button");
   if(!b)return;
+
+  /* Guardar aquí el módulo elegido ANTES de stopImmediatePropagation.
+     Este interceptor es el primero que recibe el clic del menú. */
+  if(b.id && acciones[b.id]){
+   try{ localStorage.setItem("flackunloker_ultimo_modulo_v1",b.id); }catch(_){}
+  }
 
   const onclick=String(b.getAttribute("onclick")||"");
   let accion=b.id?acciones[b.id]:null;
@@ -10953,7 +10958,7 @@ function pintar(){load();var h=hoy(),m=mes();set('prestIngresosHoy',money(h.ingr
 window.flkCambiarTipoPrestacion=function(){var t=document.getElementById('prestTipo'),c=document.getElementById('prestCosto');if(!t||!c)return;c.disabled=t.value!=='ingreso_costo';if(c.disabled)c.value='0';};
 window.flkGuardarPrestacionServicio=function(){if(typeof requiereAdmin==='function'&&!requiereAdmin('Registrar prestaciones de servicio'))return;var de=document.getElementById('prestDescripcion'),ti=document.getElementById('prestTipo'),ing=document.getElementById('prestIngreso'),co=document.getElementById('prestCosto'),fe=document.getElementById('prestFecha');var descripcion=String(de?de.value:'').trim(),tipo=ti?ti.value:'ingreso',ingreso=Number(ing?ing.value:0),costo=tipo==='ingreso_costo'?Number(co?co.value:0):0,fecha=fe?fe.value:'';if(!descripcion)return alert('Escribe la descripción de la prestación.');if(!fecha)return alert('Selecciona la fecha.');if(ingreso<0||costo<0)return alert('Los importes no pueden ser negativos.');prestacionesServicio.push({id:Date.now(),descripcion:descripcion,tipo:tipo,ingreso:ingreso,costo:costo,fecha:fecha,created_at:new Date().toISOString()});save();if(de)de.value='';if(ing)ing.value='0';if(co)co.value='0';pintar();};
 window.flkEliminarPrestacionServicio=function(id){if(typeof requiereAdmin==='function'&&!requiereAdmin('Eliminar prestaciones de servicio'))return;if(!confirm('¿Eliminar esta prestación?'))return;load();prestacionesServicio=prestacionesServicio.filter(function(p){return Number(p.id)!==Number(id);});save();pintar();};
-window.mostrarPrestacionesServicio=function(){window.flkModuloSeleccionado='prestaciones';window.flkPermitirInventarioExplicito=false;document.body.classList.add('flk-prestaciones-activa');if(typeof flkOcultarTodasLasVistas==='function')flkOcultarTodasLasVistas();var v=document.getElementById('vistaPrestacionesServicio');if(!v)return alert('No se pudo abrir Prestaciones de servicio.');v.style.display='block';document.querySelectorAll('.menu-cuadricula button').forEach(function(b){b.classList.remove('activo');});var btn=document.getElementById('botonPrestacionesServicio');if(btn)btn.classList.add('activo');if(typeof cerrarMenuPrincipal==='function')cerrarMenuPrincipal();var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();};
+window.mostrarPrestacionesServicio=function(){try{localStorage.setItem('flackunloker_ultimo_modulo_v1','botonPrestacionesServicio');}catch(_){}if(typeof flkOcultarTodasLasVistas==='function')flkOcultarTodasLasVistas();var v=document.getElementById('vistaPrestacionesServicio');if(!v)return alert('No se pudo abrir Prestaciones de servicio.');v.style.display='block';document.querySelectorAll('.menu-cuadricula button').forEach(function(b){b.classList.remove('activo');});var btn=document.getElementById('botonPrestacionesServicio');if(btn)btn.classList.add('activo');if(typeof cerrarMenuPrincipal==='function')cerrarMenuPrincipal();var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();};
 function init(){var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
@@ -11022,51 +11027,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   }
   if(document.readyState==="complete")inicio();
   else window.addEventListener("load",inicio,{once:true});
-})();
-</script>
-
-<style id="flk-v6167-prestaciones-view-lock">
-body.flk-prestaciones-activa #vistaInventario,
-body.flk-prestaciones-activa #vistaHistorial,
-body.flk-prestaciones-activa #vistaVentas,
-body.flk-prestaciones-activa #vistaClientes,
-body.flk-prestaciones-activa #vistaGastos,
-body.flk-prestaciones-activa #vistaCierre,
-body.flk-prestaciones-activa #vistaReportes,
-body.flk-prestaciones-activa #vistaAlertas,
-body.flk-prestaciones-activa #vistaOrdenes,
-body.flk-prestaciones-activa #vistaProveedores,
-body.flk-prestaciones-activa #vistaCuentasPagar,
-body.flk-prestaciones-activa #vistaFlujoCaja,
-body.flk-prestaciones-activa #vistaFinanzas,
-body.flk-prestaciones-activa #vistaEstadisticas,
-body.flk-prestaciones-activa #vistaAdminSoftware,
-body.flk-prestaciones-activa #vistaLicencias{display:none!important}
-body.flk-prestaciones-activa #vistaPrestacionesServicio{display:block!important}
-</style>
-<script id="flk-v6167-navigation-source-guard">
-(function(){
-  window.flkModuloSeleccionado=window.flkModuloSeleccionado||"inventario";
-  window.flkPermitirInventarioExplicito=false;
-  document.addEventListener("click",function(ev){
-    var b=ev.target&&ev.target.closest?ev.target.closest("#menuPrincipalFondo .menu-cuadricula button[id]"):null;
-    if(!b)return;
-    if(b.id==="botonInventario"){
-      window.flkModuloSeleccionado="inventario";
-      window.flkPermitirInventarioExplicito=true;
-      document.body.classList.remove("flk-prestaciones-activa");
-      return;
-    }
-    if(b.id==="botonPrestacionesServicio"){
-      window.flkModuloSeleccionado="prestaciones";
-      window.flkPermitirInventarioExplicito=false;
-      document.body.classList.add("flk-prestaciones-activa");
-      return;
-    }
-    window.flkModuloSeleccionado=b.id;
-    window.flkPermitirInventarioExplicito=false;
-    document.body.classList.remove("flk-prestaciones-activa");
-  },true);
 })();
 </script>
 </body>
