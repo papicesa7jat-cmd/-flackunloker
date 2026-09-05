@@ -11029,5 +11029,26 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   else window.addEventListener("load",inicio,{once:true});
 })();
 </script>
+
+<script id="flk-v6169-ubicar-resumenes-prestaciones">
+(function(){
+  function ubicar(){
+    const pares=[
+      ["resumenPrestacionesCierre","vistaCierre"],
+      ["resumenPrestacionesFinanzas","vistaFinanzas"],
+      ["resumenPrestacionesEstadisticas","vistaEstadisticas"]
+    ];
+    pares.forEach(function(par){
+      const bloque=document.getElementById(par[0]);
+      const vista=document.getElementById(par[1]);
+      if(bloque && vista && bloque.parentElement!==vista){
+        vista.appendChild(bloque);
+      }
+    });
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",ubicar,{once:true});
+  else ubicar();
+})();
+</script>
 </body>
 </html>
