@@ -4019,7 +4019,8 @@ async function flkRecuperacionEmergenciaNube(){
    guardarGastos();
   }catch(e){console.error("Gastos",e);fallos.push("Gastos: "+(e.message||e))}
 
-  // COMPRAS Y PROVEEDORES
+  // COMPRAS Y PROVEEDORES · v61.73: offline conserva compras/proveedores locales y no consulta Supabase
+  if(flkNubeDisponible()){
   try{
    const [rs,ro,rp]=await Promise.all([
     flkSupabase.from("suppliers").select("*").order("name"),
@@ -4057,7 +4058,17 @@ async function flkRecuperacionEmergenciaNube(){
     }
    });
    guardarProveedores();guardarOrdenesCompra();
-  }catch(e){console.error("Compras",e);fallos.push("Compras: "+(e.message||e))}
+  }catch(e){
+   if(flkNubeDisponible()){console.error("Compras",e);fallos.push("Compras: "+(e.message||e))}
+  }
+  }else{
+   // Sin Internet: mantener proveedores y órdenes ya guardados en el dispositivo.
+   if(typeof flkAplicarPendientesSobreDatos==="function")flkAplicarPendientesSobreDatos();
+   if(typeof actualizarOpcionesOrganizacion==="function")actualizarOpcionesOrganizacion();
+   if(typeof actualizarProveedores==="function")actualizarProveedores();
+   if(typeof actualizarOrdenesCompra==="function")actualizarOrdenesCompra();
+   if(typeof actualizarCuentasPagar==="function")actualizarCuentasPagar();
+  }
 
   // CAJA · v61.72: si la conexión cae durante la recuperación, conservar datos locales
   if(flkNubeDisponible()){
