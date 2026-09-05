@@ -758,7 +758,56 @@ button.menu-toggle{
   color:#000 !important;
 }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script id="flk-supabase-loader-v6147">
+/* v61.47: Supabase JS disponible también tras refrescar completamente sin Internet. */
+(function(){
+ var KEY="flk_lib_supabasejs_v2";
+ var URL="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+ function ejecutar(codigo){
+  try{(0,eval)(String(codigo)+"\n//# sourceURL=flackunloker-offline-supabase.js");return !!(window.supabase&&window.supabase.createClient);}catch(e){console.warn("Supabase local cache:",e);return false;}
+ }
+ if(!(window.supabase&&window.supabase.createClient)){
+  try{var guardado=localStorage.getItem(KEY);if(guardado)ejecutar(guardado);}catch(_){ }
+ }
+ if(!(window.supabase&&window.supabase.createClient) && navigator.onLine){
+  document.write('<script src="'+URL+'"><\\/script>');
+ }
+ window.addEventListener("load",function(){
+  if(!navigator.onLine || !(window.supabase&&window.supabase.createClient))return;
+  fetch(URL,{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.text();}).then(function(c){try{localStorage.setItem(KEY,c);}catch(_){}}).catch(function(){});
+ },{once:true});
+})();
+</script>
+<script id="flk-supabase-offline-fallback-v6147">
+/* Si este dispositivo todavía no tiene la librería guardada, el resto de la app no se rompe. */
+(function(){
+ if(window.supabase&&typeof window.supabase.createClient==="function")return;
+ function offlineError(){return {message:"offline",name:"NetworkError"};}
+ function result(data){return Promise.resolve({data:data===undefined?null:data,error:offlineError()});}
+ function builder(){
+  var api={};
+  ["select","eq","neq","gt","gte","lt","lte","like","ilike","in","is","order","limit","range","single","maybeSingle","insert","update","delete","upsert"].forEach(function(k){api[k]=function(){return api;};});
+  api.then=function(resolve,reject){return result(null).then(resolve,reject);};
+  api.catch=function(fn){return result(null).catch(fn);};
+  return api;
+ }
+ window.supabase={createClient:function(){
+  return {
+   auth:{
+    getSession:function(){return Promise.resolve({data:{session:null},error:null});},
+    signInWithPassword:function(){return Promise.resolve({data:{session:null},error:offlineError()});},
+    signUp:function(){return Promise.resolve({data:{session:null},error:offlineError()});},
+    signOut:function(){return Promise.resolve({error:null});},
+    updateUser:function(){return Promise.resolve({data:null,error:offlineError()});},
+    onAuthStateChange:function(){return {data:{subscription:{unsubscribe:function(){}}}};}
+   },
+   from:function(){return builder();},
+   rpc:function(){return result(null);}
+  };
+ }};
+ console.warn("Flackunloker: modo offline local sin conexión a Supabase.");
+})();
+</script>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -1601,7 +1650,7 @@ textarea::placeholder{
    <button id="tabLogin" class="auth-tab activo" onclick="cambiarModoAuth('login')">Iniciar sesión</button>
    <button id="tabRegistro" class="auth-tab" onclick="cambiarModoAuth('registro')">Crear cuenta</button>
   </div>
-  <form id="formAuth">
+  <form id="formAuth" method="post" action="javascript:void(0)">
    <div id="campoNombreAuth" class="auth-campo" style="display:none">
     <label>Nombre</label><input id="authNombre" type="text" autocomplete="name" placeholder="Tu nombre">
    </div>
@@ -8788,7 +8837,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.45",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.47",{updateViaCache:"none"});
    if(navigator.onLine)setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
@@ -8811,6 +8860,7 @@ if("serviceWorker" in navigator){
   botonCuentasPagar:()=>mostrarCuentasPagar(),
   botonFlujoCaja:()=>mostrarFlujoCaja(),
   botonFinanzas:()=>mostrarFinanzas(),
+  botonPrestacionesServicio:()=>mostrarPrestacionesServicio(),
   botonEstadisticas:()=>mostrarEstadisticas(),
   botonAdminSoftware:()=>mostrarAdminSoftware(),
   botonLicencias:()=>mostrarLicencias()
