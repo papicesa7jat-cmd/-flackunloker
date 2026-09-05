@@ -2040,11 +2040,14 @@ textarea::placeholder{
 </div>
 
 <div class="lista-estadisticas"><h3>📈 Resultados del período</h3>
-<div class="fila-estadistica"><span>Ventas</span><strong id="finVentas">$0.00</strong></div>
+<div class="fila-estadistica"><span>Ventas de mercancía</span><strong id="finVentas">$0.00</strong></div>
+<div class="fila-estadistica"><span>Ingresos por prestaciones</span><strong id="finPrestacionesPeriodo">$0.00</strong></div>
+<div class="fila-estadistica"><span>Ingresos totales</span><strong id="finIngresosTotales">$0.00</strong></div>
 <div class="fila-estadistica"><span>Costo de mercancía vendida</span><strong id="finCosto">$0.00</strong></div>
-<div class="fila-estadistica"><span>Ganancia bruta</span><strong id="finBruta">$0.00</strong></div>
+<div class="fila-estadistica"><span>Costos externos de prestaciones</span><strong id="finPrestCostosPeriodo">$0.00</strong></div>
+<div class="fila-estadistica"><span>Ganancia bruta total</span><strong id="finBruta">$0.00</strong></div>
 <div class="fila-estadistica"><span>Gastos</span><strong id="finGastos">$0.00</strong></div>
-<div class="fila-estadistica"><span>💰 Ganancia neta</span><strong id="finNeta">$0.00</strong></div>
+<div class="fila-estadistica"><span>💰 Ganancia neta total</span><strong id="finNeta">$0.00</strong></div>
 </div>
 
 
@@ -2102,8 +2105,8 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 </div>
 
 <div class="lista-estadisticas"><h3>📌 Indicadores</h3>
-<div class="fila-estadistica"><span>Margen bruto sobre ventas</span><strong id="finMargenBruto">0.0%</strong></div>
-<div class="fila-estadistica"><span>Margen neto sobre ventas</span><strong id="finMargenNeto">0.0%</strong></div>
+<div class="fila-estadistica"><span>Margen bruto sobre ingresos totales</span><strong id="finMargenBruto">0.0%</strong></div>
+<div class="fila-estadistica"><span>Margen neto sobre ingresos totales</span><strong id="finMargenNeto">0.0%</strong></div>
 <div class="fila-estadistica"><span>Relación por cobrar / por pagar</span><strong id="finRelacion">—</strong></div>
 </div>
 </div>
@@ -8259,7 +8262,27 @@ function datosFinanzas(){
  const gg=gastos.filter(g=>enRango(g.fecha||g.fechaLocal));
  const ventasTotal=vv.reduce((t,v)=>t+Number(v.ingreso||0),0);
  const costo=vv.reduce((t,v)=>t+Number(v.costoTotal||0),0);
- const bruta=ventasTotal-costo;
+ const brutaMercancia=ventasTotal-costo;
+
+ // Prestaciones de servicio del mismo período financiero.
+ // El ingreso cuenta como ingreso operativo; el costo externo reduce la ganancia,
+ // pero no se registra como salida de caja.
+ let prestacionesPeriodo=[];
+ try{
+  let bid="global";
+  if(typeof flkBusinessGuardado==="function")bid=String(flkBusinessGuardado()||"global");
+  else if(typeof FLK_BUSINESS_ID!=="undefined"&&FLK_BUSINESS_ID)bid=String(FLK_BUSINESS_ID);
+  const raw=JSON.parse(localStorage.getItem("flackunloker_prestaciones_servicio_v1::"+bid)||"[]");
+  if(Array.isArray(raw))prestacionesPeriodo=raw.filter(p=>{
+   const d=new Date(String(p.fecha||"")+"T12:00:00");
+   return !Number.isNaN(d.getTime())&&d>=lim.desde&&d<lim.hasta;
+  });
+ }catch(_){prestacionesPeriodo=[];}
+ const prestIngresos=prestacionesPeriodo.reduce((t,p)=>t+Number(p.ingreso||0),0);
+ const prestCostos=prestacionesPeriodo.reduce((t,p)=>t+Number(p.costo||0),0);
+ const prestNeto=prestIngresos-prestCostos;
+ const ingresosTotales=ventasTotal+prestIngresos;
+ const bruta=brutaMercancia+prestNeto;
  const gastosTotal=gg.reduce((t,g)=>t+Number(g.cantidad||0),0);
  const neta=bruta-gastosTotal;
 
@@ -8294,7 +8317,7 @@ function datosFinanzas(){
  const flujoCajaTotal=flujoOperativo+netoPropietario;
 
  return {
-  lim,ventasTotal,costo,bruta,gastosTotal,neta,
+  lim,ventasTotal,costo,brutaMercancia,prestIngresos,prestCostos,prestNeto,ingresosTotales,bruta,gastosTotal,neta,
   caja,inventario,porCobrar,porPagar,activos,patrimonio,
   entradas,salidas,flujo:flujoOperativo,
   aportesPropietario,retirosPropietario,netoPropietario,flujoCajaTotal
@@ -8328,7 +8351,12 @@ function actualizarFinanzas(){
  money("finCaja",d.caja);money("finInventario",d.inventario);money("finPorCobrar",d.porCobrar);money("finActivos",d.activos);money("finPorPagar",d.porPagar);money("finPatrimonio",d.patrimonio);
  const formula=document.getElementById("finFormulaPatrimonio");
  if(formula)formula.textContent=`$${d.caja.toFixed(2)} + $${d.inventario.toFixed(2)} + $${d.porCobrar.toFixed(2)} − $${d.porPagar.toFixed(2)} = $${d.patrimonio.toFixed(2)}`;
- money("finVentas",d.ventasTotal);money("finCosto",d.costo);money("finBruta",d.bruta);money("finGastos",d.gastosTotal);money("finNeta",d.neta);
+ money("finVentas",d.ventasTotal);
+ money("finPrestacionesPeriodo",d.prestIngresos);
+ money("finIngresosTotales",d.ingresosTotales);
+ money("finCosto",d.costo);
+ money("finPrestCostosPeriodo",d.prestCostos);
+ money("finBruta",d.bruta);money("finGastos",d.gastosTotal);money("finNeta",d.neta);
  money("finEntradas",d.entradas);money("finSalidas",d.salidas);money("finFlujoNeto",d.flujo);
  money("finAportesPropietario",d.aportesPropietario);
  money("finRetirosPropietario",d.retirosPropietario);
@@ -8341,8 +8369,8 @@ function actualizarFinanzas(){
  document.getElementById("finPatrimonio").style.color=d.patrimonio<0?"#d93025":"#0a84ff";
  document.getElementById("finNeta").style.color=d.neta<0?"#d93025":"#168044";
  document.getElementById("finFlujoNeto").style.color=d.flujo<0?"#d93025":"#168044";
- document.getElementById("finMargenBruto").textContent=(d.ventasTotal?d.bruta/d.ventasTotal*100:0).toFixed(1)+"%";
- document.getElementById("finMargenNeto").textContent=(d.ventasTotal?d.neta/d.ventasTotal*100:0).toFixed(1)+"%";
+ document.getElementById("finMargenBruto").textContent=(d.ingresosTotales?d.bruta/d.ingresosTotales*100:0).toFixed(1)+"%";
+ document.getElementById("finMargenNeto").textContent=(d.ingresosTotales?d.neta/d.ingresosTotales*100:0).toFixed(1)+"%";
  document.getElementById("finRelacion").textContent=d.porPagar>0?(d.porCobrar/d.porPagar).toFixed(2)+"x":(d.porCobrar>0?"Sin deuda":"—");
  actualizarEstadoContribucionArrendamiento()
 }
@@ -8358,7 +8386,7 @@ function mostrarFinanzas(){flkOcultarTodasLasVistas();
 }
 function imprimirFinanzas(){
  const d=datosFinanzas();if(!d)return alert("Selecciona un período válido.");
- const pct=n=>(d.ventasTotal?n/d.ventasTotal*100:0).toFixed(1)+"%";
+ const pct=n=>(d.ingresosTotales?n/d.ingresosTotales*100:0).toFixed(1)+"%";
  const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Estado financiero</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{margin-bottom:4px}h2{margin-top:28px}p{color:#666}.fila{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #ddd}.fila strong{white-space:nowrap}.print{margin-top:24px;padding:12px 18px}@media print{.print{display:none}}
 </style>
 <style>
@@ -8664,7 +8692,7 @@ body.flk-v6125 #cuentasTotalPagado {
 .flk-etiqueta-qr .qrbox img,.flk-etiqueta-qr .qrbox canvas{width:30mm!important;height:30mm!important}
 @media(max-width:430px){.flk-qr-controles,.flk-qr-acciones{grid-template-columns:1fr}}
 </style>
-</head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
+</head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas de mercancía</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Ingresos por prestaciones</span><strong>$${d.prestIngresos.toFixed(2)}</strong></div><div class="fila"><span>Ingresos totales</span><strong>$${d.ingresosTotales.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Costos externos de prestaciones</span><strong>$${d.prestCostos.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta total</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta total</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el estado financiero.");w.document.write(html);w.document.close()
 }
 
@@ -10981,8 +11009,8 @@ function mes(){var d=new Date(),a=new Date(d.getFullYear(),d.getMonth(),1),b=new
 function set(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
 function pintar(){load();var h=hoy(),m=mes();set('prestIngresosHoy',money(h.ingresos));set('prestCostosHoy',money(h.costos));set('prestNetoHoy',money(h.neto));set('prestIngresosMes',money(m.ingresos));set('prestCostosMes',money(m.costos));set('prestNetoMes',money(m.neto));set('cierrePrestIngresos',money(h.ingresos));set('cierrePrestCostos',money(h.costos));set('cierrePrestNeto',money(h.neto));set('finPrestIngresos',money(m.ingresos));set('finPrestCostos',money(m.costos));set('finPrestNeto',money(m.neto));set('estadPrestHoy',money(h.ingresos));set('estadPrestMes',money(m.ingresos));set('estadPrestCostosMes',money(m.costos));set('estadPrestNetoMes',money(m.neto));var box=document.getElementById('listaPrestacionesServicio');if(box)box.innerHTML=prestacionesServicio.length?prestacionesServicio.slice().sort(function(a,b){return String(b.fecha).localeCompare(String(a.fecha))||Number(b.id)-Number(a.id);}).map(function(p){return '<div class="prestacion-item"><div class="prestacion-item-top"><div><h3>'+esc(p.descripcion)+'</h3><p>'+esc(p.fecha)+' · '+(p.tipo==='ingreso_costo'?'Ingreso + costo externo':'Solo ingreso')+' · '+esc(p.metodo||'Efectivo')+'</p></div><div class="prestacion-importes">Ingreso '+money(p.ingreso)+'<br>Costo '+money(p.costo)+'<br>Neto '+money(Number(p.ingreso)-Number(p.costo))+'</div></div><button type="button" class="boton-eliminar solo-admin" onclick="flkEliminarPrestacionServicio('+Number(p.id)+')">Eliminar</button></div>';}).join(''):'<div class="sin-productos">No hay prestaciones registradas.</div>'; }
 window.flkCambiarTipoPrestacion=function(){var t=document.getElementById('prestTipo'),c=document.getElementById('prestCosto');if(!t||!c)return;c.disabled=t.value!=='ingreso_costo';if(c.disabled)c.value='0';};
-window.flkGuardarPrestacionServicio=function(){if(typeof requiereAdmin==='function'&&!requiereAdmin('Registrar prestaciones de servicio'))return;var de=document.getElementById('prestDescripcion'),ti=document.getElementById('prestTipo'),ing=document.getElementById('prestIngreso'),me=document.getElementById('prestMetodo'),co=document.getElementById('prestCosto'),fe=document.getElementById('prestFecha');var descripcion=String(de?de.value:'').trim(),tipo=ti?ti.value:'ingreso',ingreso=Number(ing?ing.value:0),metodo=me?me.value:'Efectivo',costo=tipo==='ingreso_costo'?Number(co?co.value:0):0,fecha=fe?fe.value:'';if(!descripcion)return alert('Escribe la descripción de la prestación.');if(!fecha)return alert('Selecciona la fecha.');if(ingreso<0||costo<0)return alert('Los importes no pueden ser negativos.');prestacionesServicio.push({id:Date.now(),descripcion:descripcion,tipo:tipo,ingreso:ingreso,costo:costo,metodo:metodo,fecha:fecha,created_at:new Date().toISOString()});save();if(de)de.value='';if(ing)ing.value='0';if(co)co.value='0';pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();};
-window.flkEliminarPrestacionServicio=function(id){if(typeof requiereAdmin==='function'&&!requiereAdmin('Eliminar prestaciones de servicio'))return;if(!confirm('¿Eliminar esta prestación?'))return;load();prestacionesServicio=prestacionesServicio.filter(function(p){return Number(p.id)!==Number(id);});save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();};
+window.flkGuardarPrestacionServicio=function(){if(typeof requiereAdmin==='function'&&!requiereAdmin('Registrar prestaciones de servicio'))return;var de=document.getElementById('prestDescripcion'),ti=document.getElementById('prestTipo'),ing=document.getElementById('prestIngreso'),me=document.getElementById('prestMetodo'),co=document.getElementById('prestCosto'),fe=document.getElementById('prestFecha');var descripcion=String(de?de.value:'').trim(),tipo=ti?ti.value:'ingreso',ingreso=Number(ing?ing.value:0),metodo=me?me.value:'Efectivo',costo=tipo==='ingreso_costo'?Number(co?co.value:0):0,fecha=fe?fe.value:'';if(!descripcion)return alert('Escribe la descripción de la prestación.');if(!fecha)return alert('Selecciona la fecha.');if(ingreso<0||costo<0)return alert('Los importes no pueden ser negativos.');prestacionesServicio.push({id:Date.now(),descripcion:descripcion,tipo:tipo,ingreso:ingreso,costo:costo,metodo:metodo,fecha:fecha,created_at:new Date().toISOString()});save();if(de)de.value='';if(ing)ing.value='0';if(co)co.value='0';pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();};
+window.flkEliminarPrestacionServicio=function(id){if(typeof requiereAdmin==='function'&&!requiereAdmin('Eliminar prestaciones de servicio'))return;if(!confirm('¿Eliminar esta prestación?'))return;load();prestacionesServicio=prestacionesServicio.filter(function(p){return Number(p.id)!==Number(id);});save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();};
 window.mostrarPrestacionesServicio=function(){try{localStorage.setItem('flackunloker_ultimo_modulo_v1','botonPrestacionesServicio');}catch(_){}if(typeof flkOcultarTodasLasVistas==='function')flkOcultarTodasLasVistas();var v=document.getElementById('vistaPrestacionesServicio');if(!v)return alert('No se pudo abrir Prestaciones de servicio.');v.style.display='block';document.querySelectorAll('.menu-cuadricula button').forEach(function(b){b.classList.remove('activo');});var btn=document.getElementById('botonPrestacionesServicio');if(btn)btn.classList.add('activo');if(typeof cerrarMenuPrincipal==='function')cerrarMenuPrincipal();var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();};
 function init(){var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
@@ -11075,5 +11103,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   else ubicar();
 })();
 </script>
+
+<!-- v61.71: Prestaciones integradas en resultados de Finanzas; costo externo no afecta flujo de caja -->
 </body>
 </html>
