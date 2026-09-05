@@ -3729,33 +3729,54 @@ async function flkReactivarNubeSiDisponible(){
  try{
   const ctrl=new AbortController();
   const t=setTimeout(()=>ctrl.abort(),4500);
-  /* Solo necesitamos confirmar que Supabase RESPONDE por red.
-     Un 401/404 también demuestra conexión; no exigimos r.ok. */
   await fetch(FLK_SUPABASE_URL+"/auth/v1/health?flk="+Date.now(),{
-   cache:"no-store",
-   signal:ctrl.signal,
-   headers:{"apikey":FLK_SUPABASE_KEY}
+   cache:"no-store",signal:ctrl.signal,headers:{"apikey":FLK_SUPABASE_KEY}
   });
   clearTimeout(t);
-  /* Tener Internet no significa que exista una sesión autenticada en Supabase.
-     Tras entrar offline después de Cerrar sesión, la app conserva solo la
-     autenticación local; no debemos habilitar consultas cloud como anónimo. */
+
+  /* v61.60: al volver Internet intentamos recuperar la sesión cloud
+     automáticamente. Primero la sesión existente; luego refreshSession(). */
   let sesionNube=null;
   try{
    const r=await flkSupabase.auth.getSession();
    sesionNube=r?.data?.session||null;
   }catch(_){}
+
+  if(!sesionNube?.user?.id && flkSupabase?.auth && typeof flkSupabase.auth.refreshSession==="function"){
+   try{
+    const r=await flkSupabase.auth.refreshSession();
+    sesionNube=r?.data?.session||null;
+   }catch(_){}
+  }
+
+  /* Si la página arrancó totalmente offline pudo haberse creado el cliente
+     local de emergencia. Ese cliente no puede recuperar tokens de Supabase.
+     Al regresar Internet recargamos UNA sola vez para cargar la librería real. */
+  if(!sesionNube?.user?.id && (!flkSupabase?.auth || typeof flkSupabase.auth.refreshSession!=="function")){
+   try{
+    const K="flk_reconexion_reload_v6160";
+    if(sessionStorage.getItem(K)!=="1"){
+     sessionStorage.setItem(K,"1");
+     setTimeout(()=>location.reload(),120);
+    }
+   }catch(_){}
+   return false;
+  }
+
   if(!sesionNube?.user?.id){
    localStorage.setItem(FLK_FORCE_OFFLINE_KEY,"1");
    try{flkActualizarModoRendimiento()}catch(_){}
    try{flkActualizarEstadoConexion()}catch(_){}
    return false;
   }
+
+  try{sessionStorage.removeItem("flk_reconexion_reload_v6160")}catch(_){}
   flkSesionActiva=sesionNube;
   flkGuardarSesionLocal(sesionNube);
   localStorage.removeItem(FLK_FORCE_OFFLINE_KEY);
   try{flkActualizarModoRendimiento()}catch(_){}
   try{flkActualizarEstadoConexion()}catch(_){}
+  try{if(typeof flkSincronizarSeguro==="function")setTimeout(()=>flkSincronizarSeguro(),150)}catch(_){}
   return true;
  }catch(_){return false}
 }
