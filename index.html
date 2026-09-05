@@ -3668,6 +3668,39 @@ function flkSesionLocal(){
   return x?.user?.id?x:null
  }catch(e){return null}
 }
+// v61.51: recuperación offline robusta. Si la caché propia falta,
+// intenta recuperar el usuario de la sesión persistida por Supabase.
+function flkSesionOfflineDisponible(){
+ const propia=flkSesionLocal();
+ if(propia?.user?.id)return propia;
+ try{
+  for(let i=0;i<localStorage.length;i++){
+   const k=localStorage.key(i)||"";
+   if(!/^sb-.*-auth-token$/.test(k))continue;
+   const raw=localStorage.getItem(k);
+   if(!raw)continue;
+   const obj=JSON.parse(raw);
+   const cand=obj?.currentSession||obj?.session||obj;
+   const user=cand?.user||obj?.user;
+   if(user?.id){
+    const snap={user:{id:user.id,email:user.email||""},saved_at:new Date().toISOString()};
+    try{localStorage.setItem(FLK_SESSION_CACHE_KEY,JSON.stringify(snap))}catch(_){}
+    return snap;
+   }
+  }
+ }catch(_){}
+ return null;
+}
+function flkEntrarConSesionOffline(emailEsperado){
+ const cache=flkSesionOfflineDisponible();
+ if(!cache?.user?.id)return false;
+ const esperado=String(emailEsperado||"").trim().toLowerCase();
+ const guardado=String(cache.user.email||"").trim().toLowerCase();
+ if(esperado&&guardado&&esperado!==guardado)return false;
+ flkPintarSesionLocal(cache.user);
+ flkActualizarEstadoConexion();
+ return true;
+}
 function flkGuardarRolLocal(userId,role){
  try{
   if(userId&&role)localStorage.setItem(FLK_ROLE_CACHE_KEY,JSON.stringify({user_id:userId,role,saved_at:new Date().toISOString()}))
@@ -4003,10 +4036,16 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
    else mostrarMensajeAuth("Cuenta creada. Revisa tu correo para confirmar el registro y luego inicia sesión.","ok");
   }catch(err){mostrarMensajeAuth("❌ Registro requiere conexión a Internet.","error");}
  }else{
+  // v61.51: si no hay red, reabrir la última sesión validada sin llamar a Supabase.
+  if(!navigator.onLine&&flkEntrarConSesionOffline(email)){
+   mostrarMensajeAuth("✅ Acceso offline con la última sesión validada.","ok");
+   flkLimpiarPasswordLogin();
+   return;
+  }
   try{
    const {data,error}=await flkSupabase.auth.signInWithPassword({email,password});
    if(error){
-    const cache=flkSesionLocal();
+    const cache=flkSesionOfflineDisponible();
     if(flkEsErrorConexion(error)&&cache?.user&&String(cache.user.email||"").toLowerCase()===email.toLowerCase()){
      mostrarMensajeAuth("✅ Acceso offline con la última sesión validada.","ok");
      flkPintarSesionLocal(cache.user);flkLimpiarPasswordLogin();return;
@@ -4018,14 +4057,14 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
     return;
    }
    if(!data?.session){
-    const cache=flkSesionLocal();
+    const cache=flkSesionOfflineDisponible();
     if(cache?.user&&String(cache.user.email||"").toLowerCase()===email.toLowerCase()){flkPintarSesionLocal(cache.user);flkLimpiarPasswordLogin();return;}
     mostrarMensajeAuth("❌ No se recibió una sesión válida.","error");return;
    }
    flkRecordarUsuarioLogin(email);mostrarMensajeAuth("","");
    await mostrarAppConSesion(data.session);flkLimpiarPasswordLogin();
   }catch(err){
-   const cache=flkSesionLocal();
+   const cache=flkSesionOfflineDisponible();
    if(flkEsErrorConexion(err)&&cache?.user&&String(cache.user.email||"").toLowerCase()===email.toLowerCase()){
     mostrarMensajeAuth("✅ Acceso offline con la última sesión validada.","ok");
     flkPintarSesionLocal(cache.user);flkLimpiarPasswordLogin();return;
@@ -4591,6 +4630,7 @@ async function flkValidarLicencia(){
 
 flkSupabase.auth.onAuthStateChange((event,session)=>{
  if(event==="SIGNED_IN" && session?.user){
+  flkGuardarSesionLocal(session);
   // v61.11: no reutilizar la clave de otro centro guardada previamente en este navegador.
   localStorage.removeItem(FLK_CLIENT_LICENSE_KEY_STORAGE);
  }
@@ -4610,7 +4650,7 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
  setTimeout(()=>mostrarAppConSesion(session),0);
 });
 (()=>{
- const cache=flkSesionLocal();
+ const cache=flkSesionOfflineDisponible();
  const pintarCache=()=>{if(cache?.user)flkPintarSesionLocal(cache.user);};
  if(cache?.user){
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",pintarCache,{once:true});
