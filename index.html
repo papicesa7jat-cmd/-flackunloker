@@ -1835,9 +1835,10 @@ textarea::placeholder{
 <div id="estadoCierreHoy" class="estado-respaldo"></div>
 <div class="seccion-titulo"><h2>🗂️ Historial de cierres</h2></div>
 <div id="listaCierres"></div>
+<div class="lista-estadisticas" id="resumenPrestacionesCierre"><h3>🛠️ Prestaciones de servicio · Hoy</h3><div class="fila-estadistica"><span>Ingresos</span><strong id="cierrePrestIngresos">$0.00</strong></div><div class="fila-estadistica"><span>Costos externos</span><strong id="cierrePrestCostos">$0.00</strong></div><div class="fila-estadistica"><span>Resultado</span><strong id="cierrePrestNeto">$0.00</strong></div></div>
 </div>
 
-<div class="lista-estadisticas" id="resumenPrestacionesCierre"><h3>🛠️ Prestaciones de servicio · Hoy</h3><div class="fila-estadistica"><span>Ingresos</span><strong id="cierrePrestIngresos">$0.00</strong></div><div class="fila-estadistica"><span>Costos externos</span><strong id="cierrePrestCostos">$0.00</strong></div><div class="fila-estadistica"><span>Resultado</span><strong id="cierrePrestNeto">$0.00</strong></div></div>
+
 <div id="vistaReportes" style="display:none">
 <div class="seccion-titulo"><h2>📈 Reportes</h2></div>
 <div class="reporte-controles">
@@ -2106,9 +2107,9 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="fila-estadistica"><span>Margen neto sobre ventas</span><strong id="finMargenNeto">0.0%</strong></div>
 <div class="fila-estadistica"><span>Relación por cobrar / por pagar</span><strong id="finRelacion">—</strong></div>
 </div>
+<div class="lista-estadisticas" id="resumenPrestacionesFinanzas"><h3>🛠️ Prestaciones de servicio · Mes actual</h3><div class="fila-estadistica"><span>Ingresos</span><strong id="finPrestIngresos">$0.00</strong></div><div class="fila-estadistica"><span>Costos externos</span><strong id="finPrestCostos">$0.00</strong></div><div class="fila-estadistica"><span>Resultado</span><strong id="finPrestNeto">$0.00</strong></div></div>
 </div>
 
-<div class="lista-estadisticas" id="resumenPrestacionesFinanzas"><h3>🛠️ Prestaciones de servicio · Mes actual</h3><div class="fila-estadistica"><span>Ingresos</span><strong id="finPrestIngresos">$0.00</strong></div><div class="fila-estadistica"><span>Costos externos</span><strong id="finPrestCostos">$0.00</strong></div><div class="fila-estadistica"><span>Resultado</span><strong id="finPrestNeto">$0.00</strong></div></div>
 
 <div id="vistaPrestacionesServicio" style="display:none">
 <div class="seccion-titulo"><h2>🛠️ Prestaciones de servicio</h2></div>
@@ -2144,6 +2145,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="lista-estadisticas"><h3>📦 Productos con mayor existencia</h3><div id="rankingProductos"></div></div>
 <div class="lista-estadisticas"><h3>🔄 Productos con más movimientos</h3><div id="rankingMovimientos"></div></div>
 <div class="lista-estadisticas"><h3>⚠️ Productos con stock bajo</h3><div id="rankingStockBajo"></div></div>
+<div class="lista-estadisticas" id="resumenPrestacionesEstadisticas"><h3>🛠️ Prestaciones de servicio</h3><div class="fila-estadistica"><span>Ingresos de hoy</span><strong id="estadPrestHoy">$0.00</strong></div><div class="fila-estadistica"><span>Ingresos del mes</span><strong id="estadPrestMes">$0.00</strong></div><div class="fila-estadistica"><span>Costos del mes</span><strong id="estadPrestCostosMes">$0.00</strong></div><div class="fila-estadistica"><span>Resultado del mes</span><strong id="estadPrestNetoMes">$0.00</strong></div></div>
 </div>
 </div>
 
@@ -2422,7 +2424,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 
 
 
-<div class="lista-estadisticas" id="resumenPrestacionesEstadisticas"><h3>🛠️ Prestaciones de servicio</h3><div class="fila-estadistica"><span>Ingresos de hoy</span><strong id="estadPrestHoy">$0.00</strong></div><div class="fila-estadistica"><span>Ingresos del mes</span><strong id="estadPrestMes">$0.00</strong></div><div class="fila-estadistica"><span>Costos del mes</span><strong id="estadPrestCostosMes">$0.00</strong></div><div class="fila-estadistica"><span>Resultado del mes</span><strong id="estadPrestNetoMes">$0.00</strong></div></div>
+
 <div id="vistaAdminSoftware" style="display:none">
  <div class="seccion-titulo">
   <h2>⚙️ Administración del Software</h2>
@@ -11024,5 +11026,32 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   else window.addEventListener("load",inicio,{once:true});
 })();
 </script>
+
+<script id="flk-v6166-no-auto-inventory">
+(function(){
+  var KEY="flackunloker_ultimo_modulo_v1";
+  var permisoInventarioHasta=0;
+  document.addEventListener("click",function(ev){
+    var el=ev.target&&ev.target.closest?ev.target.closest("button,a"):null;
+    if(!el)return;
+    var oc=String(el.getAttribute("onclick")||"");
+    if(el.id==="botonInventario" || /mostrarInventario\s*\(/.test(oc)){
+      permisoInventarioHasta=Date.now()+1800;
+      try{localStorage.setItem(KEY,"botonInventario");}catch(_){ }
+    }
+  },true);
+  var original=window.mostrarInventario;
+  if(typeof original!=="function")return;
+  window.mostrarInventario=function(){
+    var ultimo="";
+    try{ultimo=localStorage.getItem(KEY)||"";}catch(_){ }
+    if(ultimo && ultimo!=="botonInventario" && Date.now()>permisoInventarioHasta){
+      return;
+    }
+    return original.apply(this,arguments);
+  };
+})();
+</script>
+
 </body>
 </html>
