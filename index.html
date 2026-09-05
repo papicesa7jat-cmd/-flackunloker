@@ -2787,7 +2787,7 @@ function flkActualizarEstadoConexion(estadoEspecial){
  if(estadoEspecial==="sync"){box.classList.add("sync");txt.textContent="🔄 Sincronizando";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"";return}
  if(c){box.classList.add("error");txt.textContent="⚠️ Conflicto pendiente";pen.textContent=`${c} conflicto${c===1?"":"s"}`;return}
  if(estadoEspecial==="error"){box.classList.add("error");txt.textContent="⚠️ Error de sincronización";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"";return}
- if(!flkNubeDisponible()){box.classList.add("offline");txt.textContent="🟠 Sin Internet";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"Sin cambios pendientes";return}
+ if(!flkNubeDisponible()){box.classList.add("offline");txt.textContent=navigator.onLine?"🟠 Internet · sesión local":"🟠 Sin Internet";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:(navigator.onLine?"Inicia sesión online para sincronizar":"Sin cambios pendientes");return}
  txt.textContent=n?"🟢 En línea":"🟢 Sincronizado";
  pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:""
 }
@@ -3737,6 +3737,22 @@ async function flkReactivarNubeSiDisponible(){
    headers:{"apikey":FLK_SUPABASE_KEY}
   });
   clearTimeout(t);
+  /* Tener Internet no significa que exista una sesión autenticada en Supabase.
+     Tras entrar offline después de Cerrar sesión, la app conserva solo la
+     autenticación local; no debemos habilitar consultas cloud como anónimo. */
+  let sesionNube=null;
+  try{
+   const r=await flkSupabase.auth.getSession();
+   sesionNube=r?.data?.session||null;
+  }catch(_){}
+  if(!sesionNube?.user?.id){
+   localStorage.setItem(FLK_FORCE_OFFLINE_KEY,"1");
+   try{flkActualizarModoRendimiento()}catch(_){}
+   try{flkActualizarEstadoConexion()}catch(_){}
+   return false;
+  }
+  flkSesionActiva=sesionNube;
+  flkGuardarSesionLocal(sesionNube);
   localStorage.removeItem(FLK_FORCE_OFFLINE_KEY);
   try{flkActualizarModoRendimiento()}catch(_){}
   try{flkActualizarEstadoConexion()}catch(_){}
