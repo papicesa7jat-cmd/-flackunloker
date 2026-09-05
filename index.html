@@ -3727,9 +3727,16 @@ async function flkValidarAccesoOffline(email,password){
 async function flkReactivarNubeSiDisponible(){
  if(!navigator.onLine)return false;
  try{
-  const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),3500);
-  const r=await fetch(FLK_SUPABASE_URL+"/auth/v1/health",{cache:"no-store",signal:ctrl.signal});clearTimeout(t);
-  if(!r.ok)return false;
+  const ctrl=new AbortController();
+  const t=setTimeout(()=>ctrl.abort(),4500);
+  /* Solo necesitamos confirmar que Supabase RESPONDE por red.
+     Un 401/404 también demuestra conexión; no exigimos r.ok. */
+  await fetch(FLK_SUPABASE_URL+"/auth/v1/health?flk="+Date.now(),{
+   cache:"no-store",
+   signal:ctrl.signal,
+   headers:{"apikey":FLK_SUPABASE_KEY}
+  });
+  clearTimeout(t);
   localStorage.removeItem(FLK_FORCE_OFFLINE_KEY);
   try{flkActualizarModoRendimiento()}catch(_){}
   try{flkActualizarEstadoConexion()}catch(_){}
@@ -3737,7 +3744,7 @@ async function flkReactivarNubeSiDisponible(){
  }catch(_){return false}
 }
 
-// v61.55 · Si la página arranca con Internet ya restablecido, no esperamos
+// v61.56 · Si la página arranca con Internet ya restablecido, no esperamos
 // a un nuevo evento `online`: comprobamos Supabase y salimos del offline forzado.
 function flkComprobarReconexionAlArrancar(){
  if(!navigator.onLine)return;
