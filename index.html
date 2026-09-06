@@ -3891,7 +3891,7 @@ function flkPintarSesionLocal(user){
  const rolGuardado=flkRolLocal(user?.id);
  rolSesion=rolGuardado||"employee";
  document.getElementById("authUsuarioEmail").textContent=user?.email||"Usuario";
- document.getElementById("authUsuarioRol").textContent=rolSesion==="admin"?"👑 Administrador":"👤 Empleado";
+ document.getElementById("authUsuarioRol").textContent=(typeof flkEsPropietarioSoftware!=="undefined" && flkEsPropietarioSoftware)?"👑 Propietario":(rolSesion==="admin"?"👑 Administrador":"👤 Empleado");
  document.getElementById("authUsuario").classList.add("visible");
  document.getElementById("authOverlay").classList.add("oculto");
  aplicarPermisosVisuales();
@@ -3936,7 +3936,7 @@ async function cargarRolUsuario(user){
   }catch(e){}
  }
  document.getElementById("authUsuarioEmail").textContent=user.email||"Usuario";
- document.getElementById("authUsuarioRol").textContent=rolSesion==="admin"?"👑 Administrador":"👤 Empleado";
+ document.getElementById("authUsuarioRol").textContent=(typeof flkEsPropietarioSoftware!=="undefined" && flkEsPropietarioSoftware)?"👑 Propietario":(rolSesion==="admin"?"👑 Administrador":"👤 Empleado");
  document.getElementById("authUsuario").classList.add("visible");
  aplicarPermisosVisuales();
 }
