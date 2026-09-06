@@ -9325,13 +9325,25 @@ recalcularSaldos();mostrarProductos();actualizarResumenHistorial();actualizarVen
 window.addEventListener("load",()=>{
  setTimeout(()=>flkValidarLicencia(),200);
 });
-window.addEventListener("online",()=>setTimeout(()=>flkValidarLicencia(),250));
+window.addEventListener("online",async()=>{
+ setTimeout(()=>flkValidarLicencia(),250);
+ // Al regresar Internet, sincroniza la cola offline sin cerrar sesión.
+ setTimeout(async()=>{
+  try{
+   if(typeof flkSincronizarSeguro==="function"){
+    await flkSincronizarSeguro();
+   }
+  }catch(e){
+   console.warn("Sincronización automática al volver Internet:",e);
+  }
+ },500);
+});
 window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.47",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.48",{updateViaCache:"none"});
    if(flkNubeDisponible())setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
