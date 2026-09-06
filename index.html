@@ -3608,6 +3608,40 @@ document.addEventListener("DOMContentLoaded",()=>{
 
 
 
+let flkCentroResetSeleccionado=null;
+
+async function abrirResetCentroAdminSoftware(businessId){
+ if(!flkEsPropietarioSoftware)return alert("Solo el propietario puede restablecer centros.");
+ const centro=flkAdminSoftwareCentros.find(c=>String(c.business_id)===String(businessId));
+ if(!centro)return alert("Centro no encontrado.");
+
+ const ok=confirm("⚠️ RESTABLECER CENTRO\n\nCentro: "+centro.name+"\n\nSe borrarán los datos operativos de este centro solamente.\n\n¿Continuar?");
+ if(!ok)return;
+
+ const pin=prompt("Introduce el PIN de restablecimiento (6 dígitos):");
+ if(!pin)return;
+ if(!/^\\d{6}$/.test(pin))return alert("El PIN debe tener exactamente 6 dígitos.");
+
+ const texto=prompt("Escribe exactamente RESTABLECER para confirmar:");
+ if(String(texto||"").trim().toUpperCase()!=="RESTABLECER")return alert("Confirmación inválida.");
+
+ try{
+  const {error}=await flkSupabase.rpc("flk_full_system_reset_center",{
+    p_business_id:centro.business_id,
+    p_pin:pin,
+    p_confirmation:"RESTABLECER"
+  });
+  if(error)throw error;
+
+  alert("✅ Centro restablecido correctamente: "+centro.name);
+  cargarAdminSoftware();
+ }catch(err){
+  console.error("Reset centro:",err);
+  alert("No se pudo restablecer el centro:\n\n"+(err?.message||err));
+ }
+}
+
+
 async function abrirRestablecimientoTotal(){
  if(!requiereAdmin())return;
  if(rolSesion!=="admin")return alert("Solo el Administrador puede usar el restablecimiento total.");
@@ -5235,7 +5269,7 @@ async function cargarAdminSoftware(){
   const sel=document.getElementById("adminswUsuarioCentro");if(sel)sel.innerHTML=opcionesCentros;
   const selNuevo=document.getElementById("adminswNuevoCentro");if(selNuevo)selNuevo.innerHTML=opcionesCentros;
   if(!flkAdminSoftwareCentros.length){lista.innerHTML='<div class="sin-productos">No hay centros registrados.</div>';return}
-  lista.innerHTML=flkAdminSoftwareCentros.map(c=>`<div class="adminsw-centro" id="adminsw-centro-${flkEscAttr(c.business_id)}"><div class="adminsw-centro-top"><div><h3>${flkAdminSwEsc(c.name)}</h3><p>Código: ${flkAdminSwEsc(c.code||"—")}<br>ID: ${flkAdminSwEsc(c.business_id)}</p></div><span class="adminsw-badge ${String(c.status)==="active"?"active":"inactive"}">${String(c.status)==="active"?"ACTIVO":"INACTIVO"}</span></div><div class="adminsw-acciones"><button class="adminsw-btn azul" onclick="cargarMiembrosCentroAdminSoftware('${flkEscAttr(c.business_id)}')">👥 Ver usuarios</button><button class="adminsw-btn azul" onclick="cambiarPasswordCentroAdminSoftware('${flkEscAttr(c.business_id)}')">🔑 Cambiar contraseña</button><button class="adminsw-btn ${String(c.status)==="active"?"rojo":"verde"}" onclick="cambiarEstadoCentroAdminSoftware('${flkEscAttr(c.business_id)}','${String(c.status)==="active"?"inactive":"active"}')">${String(c.status)==="active"?"⛔ Desactivar":"✅ Activar"}</button></div><div class="adminsw-miembros" id="adminsw-miembros-${flkEscAttr(c.business_id)}" style="display:none"></div></div>`).join("");
+  lista.innerHTML=flkAdminSoftwareCentros.map(c=>`<div class="adminsw-centro" id="adminsw-centro-${flkEscAttr(c.business_id)}"><div class="adminsw-centro-top"><div><h3>${flkAdminSwEsc(c.name)}</h3><p>Código: ${flkAdminSwEsc(c.code||"—")}<br>ID: ${flkAdminSwEsc(c.business_id)}</p></div><span class="adminsw-badge ${String(c.status)==="active"?"active":"inactive"}">${String(c.status)==="active"?"ACTIVO":"INACTIVO"}</span></div><div class="adminsw-acciones"><button class="adminsw-btn azul" onclick="cargarMiembrosCentroAdminSoftware('${flkEscAttr(c.business_id)}')">👥 Ver usuarios</button><button class="adminsw-btn azul" onclick="cambiarPasswordCentroAdminSoftware('${flkEscAttr(c.business_id)}')">🔑 Cambiar contraseña</button><button class="adminsw-btn ${String(c.status)==="active"?"rojo":"verde"}" onclick="cambiarEstadoCentroAdminSoftware('${flkEscAttr(c.business_id)}','${String(c.status)==="active"?"inactive":"active"}')">${String(c.status)==="active"?"⛔ Desactivar":"✅ Activar"}</button><button class="adminsw-btn rojo" onclick="abrirResetCentroAdminSoftware('${flkEscAttr(c.business_id)}')">⚠️ Restablecer</button></div><div class="adminsw-miembros" id="adminsw-miembros-${flkEscAttr(c.business_id)}" style="display:none"></div></div>`).join("");
   await flkEnriquecerCentrosConLicencias();
  }catch(err){console.error("Administración software:",err);lista.innerHTML='<div class="sin-productos">No se pudo cargar la administración de centros.</div>';alert("Error cargando Software:\n\n"+(err?.message||"Error desconocido"))}
 }
