@@ -7179,6 +7179,13 @@ document.getElementById("formularioCambioPinDevolucion")?.addEventListener("subm
  alert("✅ PIN de devolución cambiado correctamente en este dispositivo.");
 });
 
+
+function flkCalcularReembolsoReal(v){
+ const pagos=Array.isArray(v.sale_payments)?v.sale_payments:[];
+ const totalPagos=pagos.reduce((s,p)=>s+Number(p.amount||p.cantidad||0),0);
+ const pagadoInicial=Number(v.pagado||0);
+ return Math.max(totalPagos,pagadoInicial);
+}
 function abrirDevolucion(id){
  if(rolSesion==="admin")return abrirDevolucionAutorizada(id);
  ventaPendienteAutorizacionDevolucion=id;
@@ -7257,7 +7264,7 @@ document.getElementById("formularioDevolucion").addEventListener("submit",async 
  const precioUnidad=Number(item.precioUnitario||0);
  const montoDevolucion=cantidad*precioUnidad;
  const pagosRegistrados=Array.isArray(v.sale_payments)?v.sale_payments:[];
- const totalPagadoReal=pagosRegistrados.reduce((s,p)=>s+Number(p.amount||p.cantidad||0),0)+Number(v.pagado||0);
+ const totalPagadoReal=flkCalcularReembolsoReal(v);
  const saldoPendiente=Math.max(0,Number(v.ingreso||0)-totalPagadoReal);
  const maximoPermitido=totalPagadoReal+saldoPendiente;
  if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
