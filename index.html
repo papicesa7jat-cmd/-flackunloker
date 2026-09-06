@@ -2605,7 +2605,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div id="menuPrincipalFondo" class="menu-panel-fondo" onclick="cerrarMenuPrincipal(event)">
  <div class="menu-panel" onclick="event.stopPropagation()">
   <div class="menu-panel-cabecera"><h2>☰ Menú principal</h2><button class="cerrar-menu" onclick="cerrarMenuPrincipal()">✕</button></div>
-  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button class="solo-admin" onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button class="solo-admin" id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button class="solo-admin" id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button class="solo-admin" id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button class="solo-admin" id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button class="solo-admin" id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button class="solo-admin" id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button class="solo-admin" id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button class="solo-admin" id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button id="botonPrestacionesServicio" onclick="mostrarPrestacionesServicio()">🛠️ Prestaciones</button><button class="solo-admin" id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button class="solo-propietario" id="botonAdminSoftware" onclick="mostrarAdminSoftware()">⚙️ Software</button><button class="solo-propietario" id="botonLicencias" onclick="mostrarLicencias()">🔐 Licencias</button></div>
+  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button class="solo-admin" onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button class="solo-admin" id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button class="solo-admin" id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button class="solo-admin" id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button class="solo-admin" id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button class="solo-admin" id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button class="solo-admin" id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button class="solo-admin" id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button class="solo-admin" id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button id="botonPrestacionesServicio" onclick="mostrarPrestacionesServicio()">🛠️ Prestaciones</button><button class="solo-admin" id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button class="solo-propietario solo-admin-centro" id="botonAdminSoftware" onclick="mostrarAdminSoftware()">⚙️ Software</button><button class="solo-propietario" id="botonLicencias" onclick="mostrarLicencias()">🔐 Licencias</button></div>
  </div>
 </div>
 
@@ -4944,7 +4944,7 @@ function flkPintarPropietarioSoftware(esOwner){
  const botonLic=document.getElementById("botonLicencias");
  const botonAdmin=document.getElementById("botonAdminSoftware");
  if(botonLic)botonLic.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
- if(botonAdmin)botonAdmin.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
+ if(botonAdmin)botonAdmin.style.setProperty("display",(flkEsPropietarioSoftware||rolSesion==="admin")?"flex":"none","important");
 }
 
 async function flkComprobarPropietarioSoftware(){
@@ -4991,7 +4991,7 @@ function flkAdminSwEsc(v){
 }
 
 async function mostrarAdminSoftware(){flkOcultarTodasLasVistas();
- if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
+ if(!flkEsPropietarioSoftware && rolSesion!=="admin")return alert("Este panel requiere permisos administrativos.");
  const vistas=["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaLicencias"];
  vistas.forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  const v=document.getElementById("vistaAdminSoftware");if(v)v.style.display="block";
