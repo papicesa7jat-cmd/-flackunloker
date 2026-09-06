@@ -5199,7 +5199,47 @@ async function flkCargarUsuariosExistentesAdminSoftware(){
  }
 }
 
-async function cargarAdminSoftware(){
+async 
+async function cambiarPinResetCentroAdminSoftware(){
+ try{
+  if(!flkEsPropietarioSoftware){
+   await flkComprobarPropietarioSoftware();
+  }
+  if(!flkEsPropietarioSoftware)
+    return alert("Solo el propietario puede cambiar el PIN de restablecimiento.");
+
+  const centros=Array.isArray(flkAdminSoftwareCentros)?flkAdminSoftwareCentros:[];
+  if(!centros.length)return alert("No hay centros cargados.");
+
+  const lista=centros.map((c,i)=>`${i+1}. ${c.name}`).join("\n");
+  const sel=prompt("Seleccione centro:\n\n"+lista);
+  const indice=Number(sel)-1;
+
+  if(!Number.isInteger(indice)||!centros[indice])return;
+
+  const pin=String(prompt("Nuevo PIN de restablecimiento (6 dígitos):")||"").trim();
+  if(!/^\d{6}$/.test(pin))
+    return alert("El PIN debe tener exactamente 6 dígitos.");
+
+  const confirmar=String(prompt("Confirmar nuevo PIN:")||"").trim();
+  if(pin!==confirmar)
+    return alert("Los PIN no coinciden.");
+
+  const {error}=await flkSupabase.rpc("flk_change_center_reset_pin",{
+    p_business_id:centros[indice].business_id,
+    p_new_pin:pin
+  });
+
+  if(error)throw error;
+
+  alert("PIN de restablecimiento actualizado correctamente.");
+ }catch(e){
+  console.error("Cambio PIN reset:",e);
+  alert("No se pudo cambiar el PIN: "+(e?.message||e));
+ }
+}
+
+function cargarAdminSoftware(){
  if(!flkEsPropietarioSoftware)return;
  flkCargarUsuariosExistentesAdminSoftware();
  const lista=document.getElementById("adminswListaCentros");
@@ -5217,7 +5257,7 @@ async function cargarAdminSoftware(){
   const sel=document.getElementById("adminswUsuarioCentro");if(sel)sel.innerHTML=opcionesCentros;
   const selNuevo=document.getElementById("adminswNuevoCentro");if(selNuevo)selNuevo.innerHTML=opcionesCentros;
   if(!flkAdminSoftwareCentros.length){lista.innerHTML='<div class="sin-productos">No hay centros registrados.</div>';return}
-  lista.innerHTML=flkAdminSoftwareCentros.map(c=>`<div class="adminsw-centro" id="adminsw-centro-${flkEscAttr(c.business_id)}"><div class="adminsw-centro-top"><div><h3>${flkAdminSwEsc(c.name)}</h3><p>Código: ${flkAdminSwEsc(c.code||"—")}<br>ID: ${flkAdminSwEsc(c.business_id)}</p></div><span class="adminsw-badge ${String(c.status)==="active"?"active":"inactive"}">${String(c.status)==="active"?"ACTIVO":"INACTIVO"}</span></div><div class="adminsw-acciones"><button class="adminsw-btn azul" onclick="cargarMiembrosCentroAdminSoftware('${flkEscAttr(c.business_id)}')">👥 Ver usuarios</button><button class="adminsw-btn azul" onclick="cambiarPasswordCentroAdminSoftware('${flkEscAttr(c.business_id)}')">🔑 Cambiar contraseña</button><button class="adminsw-btn ${String(c.status)==="active"?"rojo":"verde"}" onclick="cambiarEstadoCentroAdminSoftware('${flkEscAttr(c.business_id)}','${String(c.status)==="active"?"inactive":"active"}')">${String(c.status)==="active"?"⛔ Desactivar":"✅ Activar"}</button><button class="adminsw-btn rojo" onclick="abrirResetCentroAdminSoftware('${flkEscAttr(c.business_id)}')">⚠️ Restablecer</button></div><div class="adminsw-miembros" id="adminsw-miembros-${flkEscAttr(c.business_id)}" style="display:none"></div></div>`).join("");
+  lista.innerHTML=flkAdminSoftwareCentros.map(c=>`<div class="adminsw-centro" id="adminsw-centro-${flkEscAttr(c.business_id)}"><div class="adminsw-centro-top"><div><h3>${flkAdminSwEsc(c.name)}</h3><p>Código: ${flkAdminSwEsc(c.code||"—")}<br>ID: ${flkAdminSwEsc(c.business_id)}</p></div><span class="adminsw-badge ${String(c.status)==="active"?"active":"inactive"}">${String(c.status)==="active"?"ACTIVO":"INACTIVO"}</span></div><div class="adminsw-acciones"><button class="adminsw-btn azul" onclick="cargarMiembrosCentroAdminSoftware('${flkEscAttr(c.business_id)}')">👥 Ver usuarios</button><button class="adminsw-btn azul" onclick="cambiarPasswordCentroAdminSoftware('${flkEscAttr(c.business_id)}')">🔑 Cambiar contraseña</button><button class="adminsw-btn ${String(c.status)==="active"?"rojo":"verde"}" onclick="cambiarEstadoCentroAdminSoftware('${flkEscAttr(c.business_id)}','${String(c.status)==="active"?"inactive":"active"}')">${String(c.status)==="active"?"⛔ Desactivar":"✅ Activar"}</button><button class="adminsw-btn rojo" onclick="cambiarPinResetCentroAdminSoftware()">🔑 Cambiar PIN reset</button><button class="adminsw-btn rojo" onclick="abrirResetCentroAdminSoftware('${flkEscAttr(c.business_id)}')">⚠️ Restablecer</button></div><div class="adminsw-miembros" id="adminsw-miembros-${flkEscAttr(c.business_id)}" style="display:none"></div></div>`).join("");
   await flkEnriquecerCentrosConLicencias();
  }catch(err){console.error("Administración software:",err);lista.innerHTML='<div class="sin-productos">No se pudo cargar la administración de centros.</div>';alert("Falta instalar o actualizar las funciones de Administración del Software en Supabase.\n\nDetalle: "+(err?.message||"Error desconocido"))}
 }
