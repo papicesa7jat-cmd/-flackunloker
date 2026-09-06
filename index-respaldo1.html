@@ -1108,6 +1108,10 @@ body.rol-empleado #panelRestablecimientoTotal{display:none!important;}
 <style id="flk-owner-license-panel-style">
 .solo-propietario{display:none!important}
 body.es-propietario .solo-propietario{display:flex!important}
+/* Software: propietario y administradores de centro */
+.solo-software{display:none!important}
+body.es-propietario .solo-software,
+body.rol-admin .solo-software{display:flex!important}
 #vistaLicencias{
  display:none;
  width:100%;
@@ -2605,7 +2609,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div id="menuPrincipalFondo" class="menu-panel-fondo" onclick="cerrarMenuPrincipal(event)">
  <div class="menu-panel" onclick="event.stopPropagation()">
   <div class="menu-panel-cabecera"><h2>☰ Menú principal</h2><button class="cerrar-menu" onclick="cerrarMenuPrincipal()">✕</button></div>
-  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button class="solo-admin" onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button class="solo-admin" id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button class="solo-admin" id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button class="solo-admin" id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button class="solo-admin" id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button class="solo-admin" id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button class="solo-admin" id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button class="solo-admin" id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button class="solo-admin" id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button id="botonPrestacionesServicio" onclick="mostrarPrestacionesServicio()">🛠️ Prestaciones</button><button class="solo-admin" id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button class="solo-propietario" id="botonAdminSoftware" onclick="mostrarAdminSoftware()">⚙️ Software</button><button class="solo-propietario" id="botonLicencias" onclick="mostrarLicencias()">🔐 Licencias</button></div>
+  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button class="solo-admin" onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button class="solo-admin" id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button class="solo-admin" id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button class="solo-admin" id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button class="solo-admin" id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button class="solo-admin" id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button class="solo-admin" id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button class="solo-admin" id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button class="solo-admin" id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button id="botonPrestacionesServicio" onclick="mostrarPrestacionesServicio()">🛠️ Prestaciones</button><button class="solo-admin" id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button class="solo-software" id="botonAdminSoftware" onclick="mostrarAdminSoftware()">⚙️ Software</button><button class="solo-propietario" id="botonLicencias" onclick="mostrarLicencias()">🔐 Licencias</button></div>
  </div>
 </div>
 
@@ -4944,7 +4948,7 @@ function flkPintarPropietarioSoftware(esOwner){
  const botonLic=document.getElementById("botonLicencias");
  const botonAdmin=document.getElementById("botonAdminSoftware");
  if(botonLic)botonLic.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
- if(botonAdmin)botonAdmin.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
+ if(botonAdmin)botonAdmin.style.setProperty("display",(flkEsPropietarioSoftware || rolSesion==="admin")?"flex":"none","important");
 }
 
 async function flkComprobarPropietarioSoftware(){
@@ -4991,12 +4995,26 @@ function flkAdminSwEsc(v){
 }
 
 function mostrarAdminSoftware(){flkOcultarTodasLasVistas();
- if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
+ if(!flkSesionActiva || rolSesion!=="admin")return alert("Solo un administrador autorizado puede cambiar contraseñas.");
  const vistas=["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaLicencias"];
  vistas.forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  const v=document.getElementById("vistaAdminSoftware");if(v)v.style.display="block";
  document.querySelectorAll("#menuPrincipalFondo .menu-cuadricula button").forEach(b=>b.classList.remove("activo"));
  document.getElementById("botonAdminSoftware")?.classList.add("activo");
+ if(!flkEsPropietarioSoftware){
+   if(v)v.innerHTML=`<div class="respaldo-box">
+   <h3>⚙️ Software del Centro</h3>
+   <p>Herramientas administrativas del centro actual.</p>
+   <div class="botones-respaldo">
+   <button class="boton-respaldo boton-crear-respaldo" onclick="crearRespaldo()">💾 Crear respaldo</button>
+   <button class="boton-respaldo boton-restaurar-respaldo" onclick="seleccionarRespaldo()">♻️ Restaurar respaldo</button>
+   <button class="boton-respaldo boton-crear-respaldo" onclick="abrirCambioPinDevolucion()">🔑 Cambiar PIN devolución</button>
+   </div>
+   <div id="estadoRespaldo"></div>
+   <input id="archivoRespaldo" type="file" accept=".json" onchange="restaurarRespaldo(event)" style="display:none">
+   </div>`;
+   scrollTop();return;
+ }
  cargarAdminSoftware();scrollTop();
 }
 
@@ -5217,9 +5235,46 @@ async function cargarAdminSoftware(){
   const sel=document.getElementById("adminswUsuarioCentro");if(sel)sel.innerHTML=opcionesCentros;
   const selNuevo=document.getElementById("adminswNuevoCentro");if(selNuevo)selNuevo.innerHTML=opcionesCentros;
   if(!flkAdminSoftwareCentros.length){lista.innerHTML='<div class="sin-productos">No hay centros registrados.</div>';return}
-  lista.innerHTML=flkAdminSoftwareCentros.map(c=>`<div class="adminsw-centro" id="adminsw-centro-${flkEscAttr(c.business_id)}"><div class="adminsw-centro-top"><div><h3>${flkAdminSwEsc(c.name)}</h3><p>Código: ${flkAdminSwEsc(c.code||"—")}<br>ID: ${flkAdminSwEsc(c.business_id)}</p></div><span class="adminsw-badge ${String(c.status)==="active"?"active":"inactive"}">${String(c.status)==="active"?"ACTIVO":"INACTIVO"}</span></div><div class="adminsw-acciones"><button class="adminsw-btn azul" onclick="cargarMiembrosCentroAdminSoftware('${flkEscAttr(c.business_id)}')">👥 Ver usuarios</button><button class="adminsw-btn ${String(c.status)==="active"?"rojo":"verde"}" onclick="cambiarEstadoCentroAdminSoftware('${flkEscAttr(c.business_id)}','${String(c.status)==="active"?"inactive":"active"}')">${String(c.status)==="active"?"⛔ Desactivar":"✅ Activar"}</button></div><div class="adminsw-miembros" id="adminsw-miembros-${flkEscAttr(c.business_id)}" style="display:none"></div></div>`).join("");
+  lista.innerHTML=flkAdminSoftwareCentros.map(c=>`<div class="adminsw-centro" id="adminsw-centro-${flkEscAttr(c.business_id)}"><div class="adminsw-centro-top"><div><h3>${flkAdminSwEsc(c.name)}</h3><p>Código: ${flkAdminSwEsc(c.code||"—")}<br>ID: ${flkAdminSwEsc(c.business_id)}</p></div><span class="adminsw-badge ${String(c.status)==="active"?"active":"inactive"}">${String(c.status)==="active"?"ACTIVO":"INACTIVO"}</span></div><div class="adminsw-acciones"><button class="adminsw-btn azul" onclick="cargarMiembrosCentroAdminSoftware('${flkEscAttr(c.business_id)}')">👥 Ver usuarios</button><button class="adminsw-btn azul" onclick="cambiarPasswordCentroAdminSoftware('${flkEscAttr(c.business_id)}')">🔑 Cambiar contraseña</button><button class="adminsw-btn ${String(c.status)==="active"?"rojo":"verde"}" onclick="cambiarEstadoCentroAdminSoftware('${flkEscAttr(c.business_id)}','${String(c.status)==="active"?"inactive":"active"}')">${String(c.status)==="active"?"⛔ Desactivar":"✅ Activar"}</button></div><div class="adminsw-miembros" id="adminsw-miembros-${flkEscAttr(c.business_id)}" style="display:none"></div></div>`).join("");
   await flkEnriquecerCentrosConLicencias();
- }catch(err){console.error("Administración software:",err);lista.innerHTML='<div class="sin-productos">No se pudo cargar la administración de centros.</div>';alert("Falta instalar o actualizar las funciones de Administración del Software en Supabase.\n\nDetalle: "+(err?.message||"Error desconocido"))}
+ }catch(err){console.error("Administración software:",err);lista.innerHTML='<div class="sin-productos">No se pudo cargar la administración de centros.</div>';alert("Error cargando Software:\n\n"+(err?.message||"Error desconocido"))}
+}
+
+
+async function cambiarPasswordCentroAdminSoftware(businessId){
+ if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
+ const centro=flkAdminSoftwareCentros.find(c=>String(c.business_id)===String(businessId));
+ if(!centro)return alert("Centro no encontrado.");
+
+ try{
+   const {data,error}=await flkSupabase.rpc("flk_software_admin_list_users");
+   if(error)throw error;
+
+   const usuarios=(Array.isArray(data)?data:[]).filter(u=>String(u.business_id)===String(businessId));
+   if(!usuarios.length)return alert("Este centro no tiene usuarios asignados.");
+
+   const opciones=usuarios.map((u,i)=>`${i+1}. ${u.email}`).join("\n");
+   const sel=prompt("Seleccione usuario:\n\n"+opciones);
+   const indice=Number(sel)-1;
+   if(!Number.isInteger(indice)||!usuarios[indice])return;
+
+   const nueva=prompt("Nueva contraseña (mínimo 6 caracteres):");
+   if(!nueva||nueva.length<6)return alert("Contraseña inválida.");
+
+   const confirmar=prompt("Confirmar nueva contraseña:");
+   if(nueva!==confirmar)return alert("Las contraseñas no coinciden.");
+
+   const {error:err}=await flkSupabase.rpc("flk_software_admin_change_password",{
+      p_user_id:usuarios[indice].user_id,
+      p_new_password:nueva
+   });
+   if(err)throw err;
+
+   alert("Contraseña cambiada correctamente.");
+ }catch(e){
+   console.error("Cambio contraseña centro:",e);
+   alert("No se pudo cambiar la contraseña: "+(e?.message||"Error desconocido"));
+ }
 }
 
 async function crearCentroAdminSoftware(){
@@ -8909,7 +8964,7 @@ function flkNombreArchivoSeguro(valor){
   .slice(0,50)||"Centro";
 }
 
-function mostrarEstadoRespaldo(m){const e=document.getElementById("estadoRespaldo");e.textContent=m;e.classList.add("visible")}
+function mostrarEstadoRespaldo(m){const e=document.getElementById("estadoRespaldo");if(!e)return;e.textContent=m;e.classList.add("visible")}
 
 function nombreRespaldoFlackunloker(centroNombre="Centro",centroId=""){
  const d=new Date();
@@ -8943,10 +8998,10 @@ async function crearRespaldo(){
   mostrarEstadoRespaldo(`✅ Respaldo creado para ${centro.nombre}.`);
  }catch(err){
   console.error("Respaldo por centro:",err);
-  alert("No se pudo crear el respaldo porque no se pudo identificar el centro activo.");
+  alert("Error creando respaldo:\n\n"+(err?.message||err));
  }
 }
-function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
+function seleccionarRespaldo(){const e=document.getElementById("archivoRespaldo");if(e)e.click();else console.error("Falta elemento archivoRespaldo")}
 
 /* ===== RESTAURACIÓN SEGURA v61.26 =====
    Primero conserva la salva local. Si hay Internet y el usuario es Administrador,
