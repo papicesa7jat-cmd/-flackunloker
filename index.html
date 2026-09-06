@@ -8946,20 +8946,13 @@ async function crearRespaldo(){
   alert("No se pudo crear el respaldo porque no se pudo identificar el centro activo.");
  }
 }
-async function seleccionarRespaldo(){
- try{
-  const centro=await flkResolverCentroBackup();
-  if(!centro || !centro.id){
-    alert("No se pudo identificar el centro de restauración.");
-    return;
-  }
-  const ok=confirm("Restaurar respaldo en el centro:\n\n"+centro.nombre+"\n\nSeleccione el archivo de respaldo para continuar.");
-  if(!ok)return;
+function seleccionarRespaldo(){
+  const centroDestino = prompt(
+    "Escriba el centro destino para la restauración:\n\nCentro Principal\nCentro Prueba\nCentro_Llenma"
+  );
+  if(!centroDestino) return;
+  window.flkCentroRestauracionDestino = centroDestino.trim();
   document.getElementById("archivoRespaldo").click();
- }catch(e){
-  console.error("Preparar restauración:",e);
-  alert("No se pudo preparar la restauración.");
- }
 }
 
 /* ===== RESTAURACIÓN SEGURA v61.26 =====
