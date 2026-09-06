@@ -758,24 +758,50 @@ button.menu-toggle{
   color:#000 !important;
 }
 </style>
-<script id="flk-supabase-loader-v6147">
-/* v61.47: Supabase JS disponible también tras refrescar completamente sin Internet. */
+<script id="flk-supabase-loader-v6148">
+/* v61.48: carga segura de Supabase. No bloquea el modo offline si CDN falla. */
 (function(){
  var KEY="flk_lib_supabasejs_v2";
  var URL="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+
  function ejecutar(codigo){
-  try{(0,eval)(String(codigo)+"\n//# sourceURL=flackunloker-offline-supabase.js");return !!(window.supabase&&window.supabase.createClient);}catch(e){console.warn("Supabase local cache:",e);return false;}
+  try{
+   (0,eval)(String(codigo)+"\n//# sourceURL=flackunloker-offline-supabase.js");
+   return !!(window.supabase&&window.supabase.createClient);
+  }catch(e){
+   console.warn("Supabase local cache:",e);
+   return false;
+  }
  }
+
+ function cargarCDN(){
+  return new Promise(function(resolve){
+   var s=document.createElement("script");
+   s.src=URL;
+   s.async=true;
+   s.onload=function(){resolve(!!(window.supabase&&window.supabase.createClient));};
+   s.onerror=function(){console.warn("Supabase CDN no disponible. Continuando offline.");resolve(false);};
+   document.head.appendChild(s);
+  });
+ }
+
  if(!(window.supabase&&window.supabase.createClient)){
-  try{var guardado=localStorage.getItem(KEY);if(guardado)ejecutar(guardado);}catch(_){ }
+  try{
+   var guardado=localStorage.getItem(KEY);
+   if(guardado) ejecutar(guardado);
+  }catch(_){}
  }
+
  if(!(window.supabase&&window.supabase.createClient) && navigator.onLine){
-  document.write('<script src="'+URL+'"><\\/script>');
+  cargarCDN().then(function(ok){
+   if(ok){
+    fetch(URL,{cache:"no-store"})
+    .then(function(r){return r.ok?r.text():Promise.reject();})
+    .then(function(c){try{localStorage.setItem(KEY,c);}catch(_){}});
+   }
+  });
  }
- window.addEventListener("load",function(){
-  if(!navigator.onLine || !(window.supabase&&window.supabase.createClient))return;
-  fetch(URL,{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.text();}).then(function(c){try{localStorage.setItem(KEY,c);}catch(_){}}).catch(function(){});
- },{once:true});
+
 })();
 </script>
 <script id="flk-supabase-offline-fallback-v6147">
