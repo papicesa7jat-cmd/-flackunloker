@@ -5011,7 +5011,7 @@ function mostrarAdminSoftware(){flkOcultarTodasLasVistas();
    <button class="boton-respaldo boton-crear-respaldo" onclick="abrirCambioPinDevolucion()">🔑 Cambiar PIN devolución</button>
    </div>
    <div id="estadoRespaldo"></div>
-   <input id="archivoRespaldo" type="file" accept=".json" style="display:none">
+   <input id="archivoRespaldo" type="file" accept=".json" onchange="restaurarRespaldo(event)" style="display:none">
    </div>`;
    scrollTop();return;
  }
