@@ -8934,7 +8934,7 @@ async function flkResolverCentroBackup(){
  let nombre=flkNombreCentroBackupLocal();
  if(flkNubeDisponible() && typeof flkSupabase!=="undefined"){
   try{
-   const {data,error}=await flkSupabase.from("businesses").select("name").eq("id",id).maybeSingle();
+   const {data,error}=await flkSupabase.from("businesses").select("name,business_name,customer_name").eq("id",id).maybeSingle();
    if(!error&&data){
     const n=String(data.business_name||data.name||data.customer_name||"").trim();
     if(n){
@@ -8988,7 +8988,7 @@ async function crearRespaldo(){
   mostrarEstadoRespaldo(`✅ Respaldo creado para ${centro.nombre}.`);
  }catch(err){
   console.error("Respaldo por centro:",err);
-  alert("No se pudo crear el respaldo porque no se pudo identificar el centro activo.");
+  alert("Error creando respaldo:\n\n"+(err?.message||err));
  }
 }
 function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
