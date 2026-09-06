@@ -763,6 +763,7 @@ button.menu-toggle{
 (function(){
  var KEY="flk_lib_supabasejs_v2";
  var URL="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+ window.FALLBACK_URL="https://unpkg.com/@supabase/supabase-js@2";\n var FALLBACK_URL=window.FALLBACK_URL;
  function ejecutar(codigo){
   try{(0,eval)(String(codigo)+"\n//# sourceURL=flackunloker-offline-supabase.js");return !!(window.supabase&&window.supabase.createClient);}catch(e){console.warn("Supabase local cache:",e);return false;}
  }
@@ -770,7 +771,7 @@ button.menu-toggle{
   try{var guardado=localStorage.getItem(KEY);if(guardado)ejecutar(guardado);}catch(_){ }
  }
  if(!(window.supabase&&window.supabase.createClient) && navigator.onLine){
-  document.write('<script src="'+URL+'"><\\/script>');
+  document.write('<script src="'+URL+'" onerror="this.onerror=null;this.src=FALLBACK_URL;"><\\/script>');
  }
  window.addEventListener("load",function(){
   if(!navigator.onLine || !(window.supabase&&window.supabase.createClient))return;
