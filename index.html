@@ -2605,7 +2605,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div id="menuPrincipalFondo" class="menu-panel-fondo" onclick="cerrarMenuPrincipal(event)">
  <div class="menu-panel" onclick="event.stopPropagation()">
   <div class="menu-panel-cabecera"><h2>☰ Menú principal</h2><button class="cerrar-menu" onclick="cerrarMenuPrincipal()">✕</button></div>
-  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button class="solo-admin" onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button class="solo-admin" id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button class="solo-admin" id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button class="solo-admin" id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button class="solo-admin" id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button class="solo-admin" id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button class="solo-admin" id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button class="solo-admin" id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button class="solo-admin" id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button id="botonPrestacionesServicio" onclick="mostrarPrestacionesServicio()">🛠️ Prestaciones</button><button class="solo-admin" id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button class="solo-propietario" id="botonAdminSoftware" onclick="mostrarAdminSoftware()">⚙️ Software</button><button class="solo-propietario" id="botonLicencias" onclick="mostrarLicencias()">🔐 Licencias</button></div>
+  <div class="menu-cuadricula"><button id="botonInventario" class="activo" onclick="mostrarInventario()">📦 Inventario</button><button class="solo-admin" onclick="abrirFormulario()">➕ Agregar</button><button id="botonHistorial" onclick="mostrarHistorial()">📜 Historial</button><button id="botonVentas" onclick="mostrarVentas()">🧾 Ventas</button><button id="botonClientes" onclick="mostrarClientes()">👥 Clientes</button><button class="solo-admin" id="botonGastos" onclick="mostrarGastos()">💸 Gastos</button><button class="solo-admin" id="botonCierre" onclick="mostrarCierre()">📊 Cierre</button><button class="solo-admin" id="botonReportes" onclick="mostrarReportes()">📈 Reportes</button><button id="botonAlertas" onclick="mostrarAlertas()">🔔 Alertas<span id="badgeAlertas"></span></button><button class="solo-admin" id="botonOrdenes" onclick="mostrarOrdenes()">📦 Órdenes</button><button class="solo-admin" id="botonProveedores" onclick="mostrarProveedores()">🏢 Proveedores</button><button class="solo-admin" id="botonCuentasPagar" onclick="mostrarCuentasPagar()">💳 Por pagar</button><button class="solo-admin" id="botonFlujoCaja" onclick="mostrarFlujoCaja()">💰 Flujo caja</button><button class="solo-admin" id="botonFinanzas" onclick="mostrarFinanzas()">📊 Finanzas</button><button id="botonPrestacionesServicio" onclick="mostrarPrestacionesServicio()">🛠️ Prestaciones</button><button class="solo-admin" id="botonEstadisticas" onclick="mostrarEstadisticas()">📊 Estadísticas</button><button class="solo-admin-software" id="botonAdminSoftware" onclick="mostrarAdminSoftware()">⚙️ Software</button><button class="solo-propietario" id="botonLicencias" onclick="mostrarLicencias()">🔐 Licencias</button></div>
  </div>
 </div>
 
@@ -7050,7 +7050,7 @@ function imprimirComprobanteDevolucion(ventaId,devolucionSupabaseId){
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
-body:not(.es-propietario):not(.rol-empleado) #botonAdminSoftware{
+body:not(.rol-empleado) #botonAdminSoftware{
   display:flex!important;
 }
 body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
@@ -7085,7 +7085,7 @@ function generarReciboVenta(id){
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
-body:not(.es-propietario):not(.rol-empleado) #botonAdminSoftware{
+body:not(.rol-empleado) #botonAdminSoftware{
   display:flex!important;
 }
 body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
@@ -7319,7 +7319,7 @@ function generarComprobanteAbono(ventaId,pagoId){
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
-body:not(.es-propietario):not(.rol-empleado) #botonAdminSoftware{
+body:not(.rol-empleado) #botonAdminSoftware{
   display:flex!important;
 }
 body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
@@ -7369,7 +7369,7 @@ function imprimirComprobanteMovimiento(id){
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
-body:not(.es-propietario):not(.rol-empleado) #botonAdminSoftware{
+body:not(.rol-empleado) #botonAdminSoftware{
   display:flex!important;
 }
 body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
@@ -7608,7 +7608,7 @@ function imprimirCierre(id){const c=cierres.find(x=>x.id===id);if(!c)return;cons
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
-body:not(.es-propietario):not(.rol-empleado) #botonAdminSoftware{
+body:not(.rol-empleado) #botonAdminSoftware{
   display:flex!important;
 }
 body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
@@ -7656,7 +7656,7 @@ function imprimirReporte(){const d=datosReporte(),prod=d.productos.length?d.prod
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
-body:not(.es-propietario):not(.rol-empleado) #botonAdminSoftware{
+body:not(.rol-empleado) #botonAdminSoftware{
   display:flex!important;
 }
 body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
@@ -7726,7 +7726,7 @@ function imprimirInformeArrendamiento(){
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
-body:not(.es-propietario):not(.rol-empleado) #botonAdminSoftware{
+body:not(.rol-empleado) #botonAdminSoftware{
   display:flex!important;
 }
 body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
@@ -8262,7 +8262,7 @@ function imprimirFlujoCaja(){
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
-body:not(.es-propietario):not(.rol-empleado) #botonAdminSoftware{
+body:not(.rol-empleado) #botonAdminSoftware{
   display:flex!important;
 }
 body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
@@ -8831,7 +8831,7 @@ body.flk-v6125 #cuentasTotalPagado {
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
-body:not(.es-propietario):not(.rol-empleado) #botonAdminSoftware{
+body:not(.rol-empleado) #botonAdminSoftware{
   display:flex!important;
 }
 body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
@@ -9859,7 +9859,7 @@ function imprimirEtiquetaQRProducto(){
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
-body:not(.es-propietario):not(.rol-empleado) #botonAdminSoftware{
+body:not(.rol-empleado) #botonAdminSoftware{
   display:flex!important;
 }
 body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
@@ -11415,7 +11415,7 @@ async function cambiarPasswordCentroAdminSoftware(businessId){
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
-body:not(.es-propietario):not(.rol-empleado) #botonAdminSoftware{
+body:not(.rol-empleado) #botonAdminSoftware{
   display:flex!important;
 }
 body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
@@ -11424,5 +11424,3 @@ body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
 </style>
 </body>
 </html>
-
-<!-- FLK: separacion software propietario administrador centro revisada -->
