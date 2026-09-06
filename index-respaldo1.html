@@ -8946,7 +8946,21 @@ async function crearRespaldo(){
   alert("No se pudo crear el respaldo porque no se pudo identificar el centro activo.");
  }
 }
-function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
+async function seleccionarRespaldo(){
+ try{
+  const centro=await flkResolverCentroBackup();
+  if(!centro || !centro.id){
+    alert("No se pudo identificar el centro de restauración.");
+    return;
+  }
+  const ok=confirm("Restaurar respaldo en el centro:\n\n"+centro.nombre+"\n\nSeleccione el archivo de respaldo para continuar.");
+  if(!ok)return;
+  document.getElementById("archivoRespaldo").click();
+ }catch(e){
+  console.error("Preparar restauración:",e);
+  alert("No se pudo preparar la restauración.");
+ }
+}
 
 /* ===== RESTAURACIÓN SEGURA v61.26 =====
    Primero conserva la salva local. Si hay Internet y el usuario es Administrador,
