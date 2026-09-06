@@ -5028,7 +5028,8 @@ function flkAdminSwEsc(v){
  }[c]));
 }
 
-function mostrarAdminSoftware(){flkOcultarTodasLasVistas();
+async function mostrarAdminSoftware(){flkOcultarTodasLasVistas();
+ await flkComprobarPropietarioSoftware();
  if(!flkSesionActiva || rolSesion!=="admin")return alert("Solo un administrador autorizado puede cambiar contraseñas.");
  const vistas=["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaLicencias"];
  vistas.forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
