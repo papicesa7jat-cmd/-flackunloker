@@ -8946,20 +8946,33 @@ async function crearRespaldo(){
   alert("No se pudo crear el respaldo porque no se pudo identificar el centro activo.");
  }
 }
-async function seleccionarRespaldo(){
- try{
-  const centro=await flkResolverCentroBackup();
-  if(!centro || !centro.id){
-    alert("No se pudo identificar el centro de restauración.");
+function seleccionarRespaldo(){
+  const opcionCentro = prompt(
+    "Seleccione el centro destino para la restauración:\n\n1 - Centro Principal\n2 - Centro Prueba\n3 - Centro_Llenma\n\nEscriba el número:"
+  );
+  if(!opcionCentro) return;
+
+  const centros = {
+    "1":"Centro Principal",
+    "2":"Centro Prueba",
+    "3":"Centro_Llenma"
+  };
+
+  const centroDestino = centros[opcionCentro.trim()];
+
+  if(!centroDestino){
+    alert("Número de centro no válido.");
     return;
   }
-  const ok=confirm("Restaurar respaldo en el centro:\n\n"+centro.nombre+"\n\nSeleccione el archivo de respaldo para continuar.");
-  if(!ok)return;
+
+  const confirmar = confirm(
+    "Va a restaurar el respaldo en:\n\n" + centroDestino + "\n\n¿Continuar?"
+  );
+
+  if(!confirmar) return;
+
+  window.flkCentroRestauracionDestino = centroDestino;
   document.getElementById("archivoRespaldo").click();
- }catch(e){
-  console.error("Preparar restauración:",e);
-  alert("No se pudo preparar la restauración.");
- }
 }
 
 /* ===== RESTAURACIÓN SEGURA v61.26 =====
@@ -9014,20 +9027,30 @@ async function restaurarRespaldo(event){
     );
    }
 
-   const centroActual=await flkResolverCentroBackup();
-   if(String(centroActual.id)!==backupCentroId){
+   const centroActivo=await flkResolverCentroBackup();
+   const centroDestinoNombre=String(window.flkCentroRestauracionDestino||centroActivo.nombre||"").trim();
+
+   // El propietario puede elegir el centro destino. La validación debe hacerse
+   // contra el centro seleccionado, no contra el centro de la sesión.
+   const destinoCoincide =
+      backupCentroNombre.toLowerCase().includes(centroDestinoNombre.toLowerCase()) ||
+      centroDestinoNombre.toLowerCase().includes(backupCentroNombre.toLowerCase());
+
+   if(!destinoCoincide && String(centroActivo.id)!==backupCentroId){
     return alert(
      "⛔ RESPALDO DE OTRO CENTRO\n\n"+
      "Respaldo: "+(backupCentroNombre||"Centro sin nombre")+" ("+backupCentroId.slice(0,8)+")\n"+
-     "Centro activo: "+centroActual.nombre+" ("+String(centroActual.id).slice(0,8)+")\n\n"+
+     "Destino elegido: "+centroDestinoNombre+"\n\n"+
      "La restauración fue bloqueada para evitar mezclar datos entre centros."
     );
    }
 
+   const centroActual={id:backupCentroId,nombre:backupCentroNombre||centroDestinoNombre};
+
    const ok=confirm(
     "✅ Centro verificado\n\n"+
     "Respaldo: "+(backupCentroNombre||centroActual.nombre)+"\n"+
-    "Centro activo: "+centroActual.nombre+"\n\n"+
+    "Centro destino: "+centroDestinoNombre+"\n\n"+
     "¿Quieres restaurar este respaldo?\n\n"+
     "Los datos locales actuales de ESTE CENTRO serán reemplazados por los datos del respaldo."
    );
