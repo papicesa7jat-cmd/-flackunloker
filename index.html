@@ -5002,7 +5002,17 @@ function mostrarAdminSoftware(){flkOcultarTodasLasVistas();
  document.querySelectorAll("#menuPrincipalFondo .menu-cuadricula button").forEach(b=>b.classList.remove("activo"));
  document.getElementById("botonAdminSoftware")?.classList.add("activo");
  if(!flkEsPropietarioSoftware){
-   if(v)v.innerHTML=`<div class="respaldo-box"><h3>⚙️ Software del Centro</h3><p>Herramientas administrativas del centro actual.</p><div class="botones-respaldo"><button class="boton-respaldo boton-crear-respaldo" onclick="crearRespaldo()">💾 Crear respaldo</button><button class="boton-respaldo boton-restaurar-respaldo" onclick="seleccionarRespaldo()">♻️ Restaurar respaldo</button><button class="boton-respaldo boton-crear-respaldo" onclick="abrirCambioPinDevolucion()">🔑 Cambiar PIN devolución</button></div></div>`;
+   if(v)v.innerHTML=`<div class="respaldo-box">
+   <h3>⚙️ Software del Centro</h3>
+   <p>Herramientas administrativas del centro actual.</p>
+   <div class="botones-respaldo">
+   <button class="boton-respaldo boton-crear-respaldo" onclick="crearRespaldo()">💾 Crear respaldo</button>
+   <button class="boton-respaldo boton-restaurar-respaldo" onclick="seleccionarRespaldo()">♻️ Restaurar respaldo</button>
+   <button class="boton-respaldo boton-crear-respaldo" onclick="abrirCambioPinDevolucion()">🔑 Cambiar PIN devolución</button>
+   </div>
+   <div id="estadoRespaldo"></div>
+   <input id="archivoRespaldo" type="file" accept=".json" style="display:none">
+   </div>`;
    scrollTop();return;
  }
  cargarAdminSoftware();scrollTop();
