@@ -8947,11 +8947,31 @@ async function crearRespaldo(){
  }
 }
 function seleccionarRespaldo(){
-  const centroDestino = prompt(
-    "Escriba el centro destino para la restauración:\n\nCentro Principal\nCentro Prueba\nCentro_Llenma"
+  const opcionCentro = prompt(
+    "Seleccione el centro destino para la restauración:\n\n1 - Centro Principal\n2 - Centro Prueba\n3 - Centro_Llenma\n\nEscriba el número:"
   );
-  if(!centroDestino) return;
-  window.flkCentroRestauracionDestino = centroDestino.trim();
+  if(!opcionCentro) return;
+
+  const centros = {
+    "1":"Centro Principal",
+    "2":"Centro Prueba",
+    "3":"Centro_Llenma"
+  };
+
+  const centroDestino = centros[opcionCentro.trim()];
+
+  if(!centroDestino){
+    alert("Número de centro no válido.");
+    return;
+  }
+
+  const confirmar = confirm(
+    "Va a restaurar el respaldo en:\n\n" + centroDestino + "\n\n¿Continuar?"
+  );
+
+  if(!confirmar) return;
+
+  window.flkCentroRestauracionDestino = centroDestino;
   document.getElementById("archivoRespaldo").click();
 }
 
