@@ -9874,7 +9874,7 @@ function imprimirEtiquetaQRProducto(){
  const vista=document.getElementById("flkEtiquetaQRVista"),img=vista.querySelector("img"),canvas=vista.querySelector("canvas");
  const qr=canvas?canvas.toDataURL("image/png"):(img?img.src:"");
  const p=flkProductoEtiquetaActual,w=window.open("","_blank");if(!w)return alert("El navegador bloqueó la impresión.");
- const html='<!doctype html><html><head><meta charset="utf-8"><title>Etiqueta QR</title><style>@page{size:58mm auto;margin:2mm}body{margin:0;width:54mm;font-family:Arial,sans-serif}.et{width:52mm;padding:2mm;text-align:center}.et img{width:30mm;height:30mm}.et h3{font-size:4mm;margin:1mm 0}.et p{font-size:2.7mm;margin:.5mm 0}.manual{margin-top:1mm;padding-top:1mm;border-top:.25mm dashed #777;font-size:2.8mm;font-weight:700}</style></head><body><div class="et"><strong>FLACKUNLOKER</strong><br><img src="'+qr+'"><h3>'+flkQrEsc(p.nombre)+'</h3><p>SKU: <strong>'+flkQrEsc(p.sku)+'</strong></p><p class="manual">Código manual: <strong>'+flkQrEsc(p.sku)+'</strong></p></div>
+ const html=`<!doctype html><html><head><meta charset="utf-8"><title>Etiqueta QR</title><style>@page{size:58mm auto;margin:2mm}body{margin:0;width:54mm;font-family:Arial,sans-serif}.et{width:52mm;padding:2mm;text-align:center}.et img{width:30mm;height:30mm}.et h3{font-size:4mm;margin:1mm 0}.et p{font-size:2.7mm;margin:.5mm 0}.manual{margin-top:1mm;padding-top:1mm;border-top:.25mm dashed #777;font-size:2.8mm;font-weight:700}</style></head><body><div class="et"><strong>FLACKUNLOKER</strong><br><img src="'+qr+'"><h3>'+flkQrEsc(p.nombre)+'</h3><p>SKU: <strong>'+flkQrEsc(p.sku)+'</strong></p><p class="manual">Código manual: <strong>'+flkQrEsc(p.sku)+'</strong></p></div>
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
@@ -9885,7 +9885,7 @@ body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
   display:none!important;
 }
 </style>
-</body></html>';
+</body></html>`;
  w.document.open();w.document.write(html);w.document.close();setTimeout(function(){w.print()},250);
 }
 
