@@ -7057,6 +7057,38 @@ body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
   display:none!important;
 }
 </style>
+
+<script>
+/* v61.x - Software visible para administradores de centro */
+(function(){
+  function ajustarMenuSoftware(){
+    try{
+      const rol = (window.usuarioActual?.role || window.currentUserRole || window.rolActual || "").toString().toLowerCase();
+      const esAdmin = rol.includes("admin");
+      const esOwner = !!window.flkEsPropietarioSoftware;
+      if(!esAdmin && !esOwner) return;
+
+      const botones = Array.from(document.querySelectorAll("button"));
+      const existe = botones.some(b => (b.innerText||"").toLowerCase().includes("software"));
+      if(existe) return;
+
+      const grid = document.querySelector(".menu-cuadricula");
+      if(!grid) return;
+
+      const b = document.createElement("button");
+      b.innerHTML = "⚙️<br>Software";
+      b.onclick = function(){
+        if(typeof abrirSoftware === "function") abrirSoftware();
+        else if(typeof mostrarVista === "function") mostrarVista("software");
+      };
+      grid.appendChild(b);
+    }catch(e){}
+  }
+  setTimeout(ajustarMenuSoftware,1200);
+  document.addEventListener("click", function(){setTimeout(ajustarMenuSoftware,300);});
+})();
+</script>
+
 </body></html>`;
  flkAbrirDocumentoComprobante(html)
 }
@@ -7092,6 +7124,38 @@ body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
   display:none!important;
 }
 </style>
+
+<script>
+/* v61.x - Software visible para administradores de centro */
+(function(){
+  function ajustarMenuSoftware(){
+    try{
+      const rol = (window.usuarioActual?.role || window.currentUserRole || window.rolActual || "").toString().toLowerCase();
+      const esAdmin = rol.includes("admin");
+      const esOwner = !!window.flkEsPropietarioSoftware;
+      if(!esAdmin && !esOwner) return;
+
+      const botones = Array.from(document.querySelectorAll("button"));
+      const existe = botones.some(b => (b.innerText||"").toLowerCase().includes("software"));
+      if(existe) return;
+
+      const grid = document.querySelector(".menu-cuadricula");
+      if(!grid) return;
+
+      const b = document.createElement("button");
+      b.innerHTML = "⚙️<br>Software";
+      b.onclick = function(){
+        if(typeof abrirSoftware === "function") abrirSoftware();
+        else if(typeof mostrarVista === "function") mostrarVista("software");
+      };
+      grid.appendChild(b);
+    }catch(e){}
+  }
+  setTimeout(ajustarMenuSoftware,1200);
+  document.addEventListener("click", function(){setTimeout(ajustarMenuSoftware,300);});
+})();
+</script>
+
 </body></html>`;
  flkAbrirDocumentoComprobante(contenido,"El navegador bloqueó el recibo. Permite ventanas emergentes para Flackunloker.")
 }
@@ -7326,6 +7390,38 @@ body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
   display:none!important;
 }
 </style>
+
+<script>
+/* v61.x - Software visible para administradores de centro */
+(function(){
+  function ajustarMenuSoftware(){
+    try{
+      const rol = (window.usuarioActual?.role || window.currentUserRole || window.rolActual || "").toString().toLowerCase();
+      const esAdmin = rol.includes("admin");
+      const esOwner = !!window.flkEsPropietarioSoftware;
+      if(!esAdmin && !esOwner) return;
+
+      const botones = Array.from(document.querySelectorAll("button"));
+      const existe = botones.some(b => (b.innerText||"").toLowerCase().includes("software"));
+      if(existe) return;
+
+      const grid = document.querySelector(".menu-cuadricula");
+      if(!grid) return;
+
+      const b = document.createElement("button");
+      b.innerHTML = "⚙️<br>Software";
+      b.onclick = function(){
+        if(typeof abrirSoftware === "function") abrirSoftware();
+        else if(typeof mostrarVista === "function") mostrarVista("software");
+      };
+      grid.appendChild(b);
+    }catch(e){}
+  }
+  setTimeout(ajustarMenuSoftware,1200);
+  document.addEventListener("click", function(){setTimeout(ajustarMenuSoftware,300);});
+})();
+</script>
+
 </body></html>`;
  flkAbrirDocumentoComprobante(contenido,"El navegador bloqueó el comprobante. Permite ventanas emergentes para Flackunloker.")
 }
@@ -7376,6 +7472,38 @@ body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
   display:none!important;
 }
 </style>
+
+<script>
+/* v61.x - Software visible para administradores de centro */
+(function(){
+  function ajustarMenuSoftware(){
+    try{
+      const rol = (window.usuarioActual?.role || window.currentUserRole || window.rolActual || "").toString().toLowerCase();
+      const esAdmin = rol.includes("admin");
+      const esOwner = !!window.flkEsPropietarioSoftware;
+      if(!esAdmin && !esOwner) return;
+
+      const botones = Array.from(document.querySelectorAll("button"));
+      const existe = botones.some(b => (b.innerText||"").toLowerCase().includes("software"));
+      if(existe) return;
+
+      const grid = document.querySelector(".menu-cuadricula");
+      if(!grid) return;
+
+      const b = document.createElement("button");
+      b.innerHTML = "⚙️<br>Software";
+      b.onclick = function(){
+        if(typeof abrirSoftware === "function") abrirSoftware();
+        else if(typeof mostrarVista === "function") mostrarVista("software");
+      };
+      grid.appendChild(b);
+    }catch(e){}
+  }
+  setTimeout(ajustarMenuSoftware,1200);
+  document.addEventListener("click", function(){setTimeout(ajustarMenuSoftware,300);});
+})();
+</script>
+
 </body></html>`;
  flkAbrirDocumentoComprobante(html)
 }
@@ -7615,6 +7743,38 @@ body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
   display:none!important;
 }
 </style>
+
+<script>
+/* v61.x - Software visible para administradores de centro */
+(function(){
+  function ajustarMenuSoftware(){
+    try{
+      const rol = (window.usuarioActual?.role || window.currentUserRole || window.rolActual || "").toString().toLowerCase();
+      const esAdmin = rol.includes("admin");
+      const esOwner = !!window.flkEsPropietarioSoftware;
+      if(!esAdmin && !esOwner) return;
+
+      const botones = Array.from(document.querySelectorAll("button"));
+      const existe = botones.some(b => (b.innerText||"").toLowerCase().includes("software"));
+      if(existe) return;
+
+      const grid = document.querySelector(".menu-cuadricula");
+      if(!grid) return;
+
+      const b = document.createElement("button");
+      b.innerHTML = "⚙️<br>Software";
+      b.onclick = function(){
+        if(typeof abrirSoftware === "function") abrirSoftware();
+        else if(typeof mostrarVista === "function") mostrarVista("software");
+      };
+      grid.appendChild(b);
+    }catch(e){}
+  }
+  setTimeout(ajustarMenuSoftware,1200);
+  document.addEventListener("click", function(){setTimeout(ajustarMenuSoftware,300);});
+})();
+</script>
+
 </body></html>`;const w=window.open("","_blank");if(!w)return alert("El navegador bloqueó la ventana. Permite ventanas emergentes para ver el cierre.");w.document.open();w.document.write(contenido);w.document.close()}
 async function eliminarCierre(id){
  const c=cierres.find(x=>x.id===id);if(!c)return;
@@ -7663,6 +7823,38 @@ body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
   display:none!important;
 }
 </style>
+
+<script>
+/* v61.x - Software visible para administradores de centro */
+(function(){
+  function ajustarMenuSoftware(){
+    try{
+      const rol = (window.usuarioActual?.role || window.currentUserRole || window.rolActual || "").toString().toLowerCase();
+      const esAdmin = rol.includes("admin");
+      const esOwner = !!window.flkEsPropietarioSoftware;
+      if(!esAdmin && !esOwner) return;
+
+      const botones = Array.from(document.querySelectorAll("button"));
+      const existe = botones.some(b => (b.innerText||"").toLowerCase().includes("software"));
+      if(existe) return;
+
+      const grid = document.querySelector(".menu-cuadricula");
+      if(!grid) return;
+
+      const b = document.createElement("button");
+      b.innerHTML = "⚙️<br>Software";
+      b.onclick = function(){
+        if(typeof abrirSoftware === "function") abrirSoftware();
+        else if(typeof mostrarVista === "function") mostrarVista("software");
+      };
+      grid.appendChild(b);
+    }catch(e){}
+  }
+  setTimeout(ajustarMenuSoftware,1200);
+  document.addEventListener("click", function(){setTimeout(ajustarMenuSoftware,300);});
+})();
+</script>
+
 </body></html>`;const w=window.open("","_blank");if(!w)return alert("El navegador bloqueó la ventana. Permite ventanas emergentes para ver el reporte.");w.document.open();w.document.write(contenido);w.document.close()}
 
 function datosInformeArrendamiento(mes){
@@ -7733,6 +7925,38 @@ body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
   display:none!important;
 }
 </style>
+
+<script>
+/* v61.x - Software visible para administradores de centro */
+(function(){
+  function ajustarMenuSoftware(){
+    try{
+      const rol = (window.usuarioActual?.role || window.currentUserRole || window.rolActual || "").toString().toLowerCase();
+      const esAdmin = rol.includes("admin");
+      const esOwner = !!window.flkEsPropietarioSoftware;
+      if(!esAdmin && !esOwner) return;
+
+      const botones = Array.from(document.querySelectorAll("button"));
+      const existe = botones.some(b => (b.innerText||"").toLowerCase().includes("software"));
+      if(existe) return;
+
+      const grid = document.querySelector(".menu-cuadricula");
+      if(!grid) return;
+
+      const b = document.createElement("button");
+      b.innerHTML = "⚙️<br>Software";
+      b.onclick = function(){
+        if(typeof abrirSoftware === "function") abrirSoftware();
+        else if(typeof mostrarVista === "function") mostrarVista("software");
+      };
+      grid.appendChild(b);
+    }catch(e){}
+  }
+  setTimeout(ajustarMenuSoftware,1200);
+  document.addEventListener("click", function(){setTimeout(ajustarMenuSoftware,300);});
+})();
+</script>
+
 </body></html>`;
  const w=window.open("","_blank");
  if(!w)return alert("Permite ventanas emergentes para ver el informe.");
@@ -8269,6 +8493,38 @@ body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
   display:none!important;
 }
 </style>
+
+<script>
+/* v61.x - Software visible para administradores de centro */
+(function(){
+  function ajustarMenuSoftware(){
+    try{
+      const rol = (window.usuarioActual?.role || window.currentUserRole || window.rolActual || "").toString().toLowerCase();
+      const esAdmin = rol.includes("admin");
+      const esOwner = !!window.flkEsPropietarioSoftware;
+      if(!esAdmin && !esOwner) return;
+
+      const botones = Array.from(document.querySelectorAll("button"));
+      const existe = botones.some(b => (b.innerText||"").toLowerCase().includes("software"));
+      if(existe) return;
+
+      const grid = document.querySelector(".menu-cuadricula");
+      if(!grid) return;
+
+      const b = document.createElement("button");
+      b.innerHTML = "⚙️<br>Software";
+      b.onclick = function(){
+        if(typeof abrirSoftware === "function") abrirSoftware();
+        else if(typeof mostrarVista === "function") mostrarVista("software");
+      };
+      grid.appendChild(b);
+    }catch(e){}
+  }
+  setTimeout(ajustarMenuSoftware,1200);
+  document.addEventListener("click", function(){setTimeout(ajustarMenuSoftware,300);});
+})();
+</script>
+
 </body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el reporte.");w.document.write(html);w.document.close()
 }
@@ -8838,6 +9094,38 @@ body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
   display:none!important;
 }
 </style>
+
+<script>
+/* v61.x - Software visible para administradores de centro */
+(function(){
+  function ajustarMenuSoftware(){
+    try{
+      const rol = (window.usuarioActual?.role || window.currentUserRole || window.rolActual || "").toString().toLowerCase();
+      const esAdmin = rol.includes("admin");
+      const esOwner = !!window.flkEsPropietarioSoftware;
+      if(!esAdmin && !esOwner) return;
+
+      const botones = Array.from(document.querySelectorAll("button"));
+      const existe = botones.some(b => (b.innerText||"").toLowerCase().includes("software"));
+      if(existe) return;
+
+      const grid = document.querySelector(".menu-cuadricula");
+      if(!grid) return;
+
+      const b = document.createElement("button");
+      b.innerHTML = "⚙️<br>Software";
+      b.onclick = function(){
+        if(typeof abrirSoftware === "function") abrirSoftware();
+        else if(typeof mostrarVista === "function") mostrarVista("software");
+      };
+      grid.appendChild(b);
+    }catch(e){}
+  }
+  setTimeout(ajustarMenuSoftware,1200);
+  document.addEventListener("click", function(){setTimeout(ajustarMenuSoftware,300);});
+})();
+</script>
+
 </body></html>`;
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el estado financiero.");w.document.write(html);w.document.close()
 }
@@ -9866,6 +10154,38 @@ body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
   display:none!important;
 }
 </style>
+
+<script>
+/* v61.x - Software visible para administradores de centro */
+(function(){
+  function ajustarMenuSoftware(){
+    try{
+      const rol = (window.usuarioActual?.role || window.currentUserRole || window.rolActual || "").toString().toLowerCase();
+      const esAdmin = rol.includes("admin");
+      const esOwner = !!window.flkEsPropietarioSoftware;
+      if(!esAdmin && !esOwner) return;
+
+      const botones = Array.from(document.querySelectorAll("button"));
+      const existe = botones.some(b => (b.innerText||"").toLowerCase().includes("software"));
+      if(existe) return;
+
+      const grid = document.querySelector(".menu-cuadricula");
+      if(!grid) return;
+
+      const b = document.createElement("button");
+      b.innerHTML = "⚙️<br>Software";
+      b.onclick = function(){
+        if(typeof abrirSoftware === "function") abrirSoftware();
+        else if(typeof mostrarVista === "function") mostrarVista("software");
+      };
+      grid.appendChild(b);
+    }catch(e){}
+  }
+  setTimeout(ajustarMenuSoftware,1200);
+  document.addEventListener("click", function(){setTimeout(ajustarMenuSoftware,300);});
+})();
+</script>
+
 </body></html>';
  w.document.open();w.document.write(html);w.document.close();setTimeout(function(){w.print()},250);
 }
@@ -11422,5 +11742,37 @@ body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
   display:none!important;
 }
 </style>
+
+<script>
+/* v61.x - Software visible para administradores de centro */
+(function(){
+  function ajustarMenuSoftware(){
+    try{
+      const rol = (window.usuarioActual?.role || window.currentUserRole || window.rolActual || "").toString().toLowerCase();
+      const esAdmin = rol.includes("admin");
+      const esOwner = !!window.flkEsPropietarioSoftware;
+      if(!esAdmin && !esOwner) return;
+
+      const botones = Array.from(document.querySelectorAll("button"));
+      const existe = botones.some(b => (b.innerText||"").toLowerCase().includes("software"));
+      if(existe) return;
+
+      const grid = document.querySelector(".menu-cuadricula");
+      if(!grid) return;
+
+      const b = document.createElement("button");
+      b.innerHTML = "⚙️<br>Software";
+      b.onclick = function(){
+        if(typeof abrirSoftware === "function") abrirSoftware();
+        else if(typeof mostrarVista === "function") mostrarVista("software");
+      };
+      grid.appendChild(b);
+    }catch(e){}
+  }
+  setTimeout(ajustarMenuSoftware,1200);
+  document.addEventListener("click", function(){setTimeout(ajustarMenuSoftware,300);});
+})();
+</script>
+
 </body>
 </html>
