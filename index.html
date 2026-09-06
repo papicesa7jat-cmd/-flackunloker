@@ -7254,8 +7254,13 @@ document.getElementById("formularioDevolucion").addEventListener("submit",async 
  const cantidad=Number(document.getElementById("cantidadDevolucion").value);
  const motivo=(document.getElementById("motivoDevolucion")?.value||"").trim();
  const disponible=Number(item.cantidad||0)-Number(item.devuelto||0);
+ const precioUnidad=Number(item.precioUnitario||0);
+ const montoDevolucion=cantidad*precioUnidad;
+ const totalPagadoVenta=Number(v.totalPagado||0);
  if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
  if(cantidad>disponible)return alert(`Solo quedan ${disponible} unidad(es) disponibles para devolver.`);
+ if(montoDevolucion>Number(v.ingreso||0)+0.009)return alert("La devolución no puede superar el valor del recibo.");
+ if(montoDevolucion>totalPagadoVenta+0.009 && totalPagadoVenta>0)return alert("La devolución no puede superar el monto realmente cobrado al cliente.");
 
  const prod=productos.find(x=>String(x.id)===String(item.productoId));
  const productId=item.supabaseProductId||prod?.supabaseId||null;
