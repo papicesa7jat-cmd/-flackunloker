@@ -7256,11 +7256,14 @@ document.getElementById("formularioDevolucion").addEventListener("submit",async 
  const disponible=Number(item.cantidad||0)-Number(item.devuelto||0);
  const precioUnidad=Number(item.precioUnitario||0);
  const montoDevolucion=cantidad*precioUnidad;
- const totalPagadoVenta=Number(v.totalPagado||0);
+ const pagosRegistrados=Array.isArray(v.sale_payments)?v.sale_payments:[];
+ const totalPagadoReal=pagosRegistrados.reduce((s,p)=>s+Number(p.amount||p.cantidad||0),0)+Number(v.pagado||0);
+ const saldoPendiente=Math.max(0,Number(v.ingreso||0)-totalPagadoReal);
+ const maximoPermitido=totalPagadoReal+saldoPendiente;
  if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
  if(cantidad>disponible)return alert(`Solo quedan ${disponible} unidad(es) disponibles para devolver.`);
  if(montoDevolucion>Number(v.ingreso||0)+0.009)return alert("La devolución no puede superar el valor del recibo.");
- if(montoDevolucion>totalPagadoVenta+0.009 && totalPagadoVenta>0)return alert("La devolución no puede superar el monto realmente cobrado al cliente.");
+ if(montoDevolucion>maximoPermitido+0.009)return alert("La devolución supera el límite permitido de esta venta.");
 
  const prod=productos.find(x=>String(x.id)===String(item.productoId));
  const productId=item.supabaseProductId||prod?.supabaseId||null;
