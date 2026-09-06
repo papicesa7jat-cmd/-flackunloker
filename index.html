@@ -11155,6 +11155,75 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",ubicar,{once:true});
   else ubicar();
 })();
+
+
+// RESTAURADO: funciones administración centros
+async function abrirResetCentroAdminSoftware(businessId){
+ if(!flkEsPropietarioSoftware)return alert("Solo el propietario puede restablecer centros.");
+ const centro=flkAdminSoftwareCentros.find(c=>String(c.business_id)===String(businessId));
+ if(!centro)return alert("Centro no encontrado.");
+
+ const ok=confirm("⚠️ RESTABLECER CENTRO\n\nCentro: "+centro.name+"\n\nSe borrarán los datos operativos de este centro solamente.\n\n¿Continuar?");
+ if(!ok)return;
+
+ const pin=prompt("Introduce el PIN de restablecimiento (6 dígitos):");
+ if(!pin)return;
+ if(!/^\\d{6}$/.test(pin))return alert("El PIN debe tener exactamente 6 dígitos.");
+
+ const texto=prompt("Escribe exactamente RESTABLECER para confirmar:");
+ if(String(texto||"").trim().toUpperCase()!=="RESTABLECER")return alert("Confirmación inválida.");
+
+ try{
+  const {error}=await flkSupabase.rpc("flk_full_system_reset_center",{
+    p_business_id:centro.business_id,
+    p_pin:pin,
+    p_confirmation:"RESTABLECER"
+  });
+  if(error)throw error;
+
+  alert("✅ Centro restablecido correctamente: "+centro.name);
+  cargarAdminSoftware();
+ }catch(err){
+  console.error("Reset centro:",err);
+  alert("No se pudo restablecer el centro:\n\n"+(err?.message||err));
+ }
+}
+
+async function cambiarPasswordCentroAdminSoftware(businessId){
+ if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
+ const centro=flkAdminSoftwareCentros.find(c=>String(c.business_id)===String(businessId));
+ if(!centro)return alert("Centro no encontrado.");
+
+ try{
+   const {data,error}=await flkSupabase.rpc("flk_software_admin_list_users");
+   if(error)throw error;
+
+   const usuarios=(Array.isArray(data)?data:[]).filter(u=>String(u.business_id)===String(businessId));
+   if(!usuarios.length)return alert("Este centro no tiene usuarios asignados.");
+
+   const opciones=usuarios.map((u,i)=>`${i+1}. ${u.email}`).join("\n");
+   const sel=prompt("Seleccione usuario:\n\n"+opciones);
+   const indice=Number(sel)-1;
+   if(!Number.isInteger(indice)||!usuarios[indice])return;
+
+   const nueva=prompt("Nueva contraseña (mínimo 6 caracteres):");
+   if(!nueva||nueva.length<6)return alert("Contraseña inválida.");
+
+   const confirmar=prompt("Confirmar nueva contraseña:");
+   if(nueva!==confirmar)return alert("Las contraseñas no coinciden.");
+
+   const {error:err}=await flkSupabase.rpc("flk_software_admin_change_password",{
+      p_user_id:usuarios[indice].user_id,
+      p_new_password:nueva
+   });
+   if(err)throw err;
+
+   alert("Contraseña cambiada correctamente.");
+ }catch(e){
+   console.error("Cambio contraseña centro:",e);
+   alert("No se pudo cambiar la contraseña: "+(e?.message||"Error desconocido"));
+ }
+}
 </script>
 
 <!-- v61.71: Prestaciones integradas en resultados de Finanzas; costo externo no afecta flujo de caja -->
