@@ -5217,9 +5217,46 @@ async function cargarAdminSoftware(){
   const sel=document.getElementById("adminswUsuarioCentro");if(sel)sel.innerHTML=opcionesCentros;
   const selNuevo=document.getElementById("adminswNuevoCentro");if(selNuevo)selNuevo.innerHTML=opcionesCentros;
   if(!flkAdminSoftwareCentros.length){lista.innerHTML='<div class="sin-productos">No hay centros registrados.</div>';return}
-  lista.innerHTML=flkAdminSoftwareCentros.map(c=>`<div class="adminsw-centro" id="adminsw-centro-${flkEscAttr(c.business_id)}"><div class="adminsw-centro-top"><div><h3>${flkAdminSwEsc(c.name)}</h3><p>Código: ${flkAdminSwEsc(c.code||"—")}<br>ID: ${flkAdminSwEsc(c.business_id)}</p></div><span class="adminsw-badge ${String(c.status)==="active"?"active":"inactive"}">${String(c.status)==="active"?"ACTIVO":"INACTIVO"}</span></div><div class="adminsw-acciones"><button class="adminsw-btn azul" onclick="cargarMiembrosCentroAdminSoftware('${flkEscAttr(c.business_id)}')">👥 Ver usuarios</button><button class="adminsw-btn ${String(c.status)==="active"?"rojo":"verde"}" onclick="cambiarEstadoCentroAdminSoftware('${flkEscAttr(c.business_id)}','${String(c.status)==="active"?"inactive":"active"}')">${String(c.status)==="active"?"⛔ Desactivar":"✅ Activar"}</button></div><div class="adminsw-miembros" id="adminsw-miembros-${flkEscAttr(c.business_id)}" style="display:none"></div></div>`).join("");
+  lista.innerHTML=flkAdminSoftwareCentros.map(c=>`<div class="adminsw-centro" id="adminsw-centro-${flkEscAttr(c.business_id)}"><div class="adminsw-centro-top"><div><h3>${flkAdminSwEsc(c.name)}</h3><p>Código: ${flkAdminSwEsc(c.code||"—")}<br>ID: ${flkAdminSwEsc(c.business_id)}</p></div><span class="adminsw-badge ${String(c.status)==="active"?"active":"inactive"}">${String(c.status)==="active"?"ACTIVO":"INACTIVO"}</span></div><div class="adminsw-acciones"><button class="adminsw-btn azul" onclick="cargarMiembrosCentroAdminSoftware('${flkEscAttr(c.business_id)}')">👥 Ver usuarios</button><button class="adminsw-btn azul" onclick="cambiarPasswordCentroAdminSoftware('${flkEscAttr(c.business_id)}')">🔑 Cambiar contraseña</button><button class="adminsw-btn ${String(c.status)==="active"?"rojo":"verde"}" onclick="cambiarEstadoCentroAdminSoftware('${flkEscAttr(c.business_id)}','${String(c.status)==="active"?"inactive":"active"}')">${String(c.status)==="active"?"⛔ Desactivar":"✅ Activar"}</button></div><div class="adminsw-miembros" id="adminsw-miembros-${flkEscAttr(c.business_id)}" style="display:none"></div></div>`).join("");
   await flkEnriquecerCentrosConLicencias();
  }catch(err){console.error("Administración software:",err);lista.innerHTML='<div class="sin-productos">No se pudo cargar la administración de centros.</div>';alert("Falta instalar o actualizar las funciones de Administración del Software en Supabase.\n\nDetalle: "+(err?.message||"Error desconocido"))}
+}
+
+
+async function cambiarPasswordCentroAdminSoftware(businessId){
+ if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
+ const centro=flkAdminSoftwareCentros.find(c=>String(c.business_id)===String(businessId));
+ if(!centro)return alert("Centro no encontrado.");
+
+ try{
+   const {data,error}=await flkSupabase.rpc("flk_software_admin_list_users");
+   if(error)throw error;
+
+   const usuarios=(Array.isArray(data)?data:[]).filter(u=>String(u.business_id)===String(businessId));
+   if(!usuarios.length)return alert("Este centro no tiene usuarios asignados.");
+
+   const opciones=usuarios.map((u,i)=>`${i+1}. ${u.email}`).join("\n");
+   const sel=prompt("Seleccione usuario:\n\n"+opciones);
+   const indice=Number(sel)-1;
+   if(!Number.isInteger(indice)||!usuarios[indice])return;
+
+   const nueva=prompt("Nueva contraseña (mínimo 6 caracteres):");
+   if(!nueva||nueva.length<6)return alert("Contraseña inválida.");
+
+   const confirmar=prompt("Confirmar nueva contraseña:");
+   if(nueva!==confirmar)return alert("Las contraseñas no coinciden.");
+
+   const {error:err}=await flkSupabase.rpc("flk_software_admin_change_password",{
+      p_user_id:usuarios[indice].user_id,
+      p_new_password:nueva
+   });
+   if(err)throw err;
+
+   alert("Contraseña cambiada correctamente.");
+ }catch(e){
+   console.error("Cambio contraseña centro:",e);
+   alert("No se pudo cambiar la contraseña: "+(e?.message||"Error desconocido"));
+ }
 }
 
 async function crearCentroAdminSoftware(){
