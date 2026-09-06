@@ -8954,7 +8954,7 @@ function flkNombreArchivoSeguro(valor){
   .slice(0,50)||"Centro";
 }
 
-function mostrarEstadoRespaldo(m){const e=document.getElementById("estadoRespaldo");e.textContent=m;e.classList.add("visible")}
+function mostrarEstadoRespaldo(m){const e=document.getElementById("estadoRespaldo");if(!e)return;e.textContent=m;e.classList.add("visible")}
 
 function nombreRespaldoFlackunloker(centroNombre="Centro",centroId=""){
  const d=new Date();
