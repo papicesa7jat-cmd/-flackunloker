@@ -8991,7 +8991,7 @@ async function crearRespaldo(){
   alert("Error creando respaldo:\n\n"+(err?.message||err));
  }
 }
-function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
+function seleccionarRespaldo(){const e=document.getElementById("archivoRespaldo");if(e)e.click();else console.error("Falta elemento archivoRespaldo")}
 
 /* ===== RESTAURACIÓN SEGURA v61.26 =====
    Primero conserva la salva local. Si hay Internet y el usuario es Administrador,
