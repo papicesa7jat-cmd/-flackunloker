@@ -11159,6 +11159,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 // RESTAURADO: funciones administración centros
 async function abrirResetCentroAdminSoftware(businessId){
+ await flkComprobarPropietarioSoftware();
  if(!flkEsPropietarioSoftware)return alert("Solo el propietario puede restablecer centros.");
  const centro=flkAdminSoftwareCentros.find(c=>String(c.business_id)===String(businessId));
  if(!centro)return alert("Centro no encontrado.");
@@ -11166,9 +11167,9 @@ async function abrirResetCentroAdminSoftware(businessId){
  const ok=confirm("⚠️ RESTABLECER CENTRO\n\nCentro: "+centro.name+"\n\nSe borrarán los datos operativos de este centro solamente.\n\n¿Continuar?");
  if(!ok)return;
 
- const pin=prompt("Introduce el PIN de restablecimiento (6 dígitos):");
+ const pin=String(prompt("Introduce el PIN de restablecimiento (6 dígitos):")||"").trim();
  if(!pin)return;
- if(!/^\\d{6}$/.test(pin))return alert("El PIN debe tener exactamente 6 dígitos.");
+ if(!/^[0-9]{6}$/.test(pin))return alert("El PIN debe tener exactamente 6 dígitos.");
 
  const texto=prompt("Escribe exactamente RESTABLECER para confirmar:");
  if(String(texto||"").trim().toUpperCase()!=="RESTABLECER")return alert("Confirmación inválida.");
@@ -11190,6 +11191,7 @@ async function abrirResetCentroAdminSoftware(businessId){
 }
 
 async function cambiarPasswordCentroAdminSoftware(businessId){
+ await flkComprobarPropietarioSoftware();
  if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
  const centro=flkAdminSoftwareCentros.find(c=>String(c.business_id)===String(businessId));
  if(!centro)return alert("Centro no encontrado.");
