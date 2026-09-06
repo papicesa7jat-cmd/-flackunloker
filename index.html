@@ -4991,7 +4991,7 @@ function flkAdminSwEsc(v){
 }
 
 function mostrarAdminSoftware(){flkOcultarTodasLasVistas();
- if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
+ if(!flkSesionActiva || rolSesion!=="admin")return alert("Solo un administrador autorizado puede cambiar contraseñas.");
  const vistas=["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaLicencias"];
  vistas.forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  const v=document.getElementById("vistaAdminSoftware");if(v)v.style.display="block";
