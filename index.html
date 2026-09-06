@@ -1110,6 +1110,10 @@ body.rol-empleado #panelRestablecimientoTotal{display:none!important;}
 body.es-propietario .solo-propietario{display:flex!important}
 /* El botón "Software" (#botonAdminSoftware) se oculta a los empleados; el resto de roles (admin/propietario de centro y el propietario del software) lo ven, gracias a las reglas "body:not(.rol-empleado) #botonAdminSoftware" ya presentes en este archivo. */
 body.rol-empleado #botonAdminSoftware{display:none!important}
+/* Dentro del panel "Software": lo marcado como solo-propietario-software solo lo ve el propietario real del software (flkEsPropietarioSoftware / body.es-propietario). El administrador de un centro (rolSesion admin, sin ser propietario del software) solo ve lo marcado como solo-admin-centro-software: cambiar PIN de restablecimiento, restablecer su centro y hacer/restaurar respaldos. */
+.solo-admin-centro-software{display:none}
+body:not(.es-propietario) .solo-admin-centro-software{display:block}
+body:not(.es-propietario) .solo-propietario-software{display:none!important}
 #vistaLicencias{
  display:none;
  width:100%;
@@ -2432,15 +2436,16 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div id="vistaAdminSoftware" style="display:none">
  <div class="seccion-titulo">
   <h2>⚙️ Administración del Software</h2>
-  <button class="boton-agregar" type="button" onclick="cargarAdminSoftware()">↻ Actualizar</button>
+  <button class="boton-agregar solo-propietario-software" type="button" onclick="cargarAdminSoftware()">↻ Actualizar</button>
  </div>
- <div class="reporte-controles"><p class="reporte-periodo">Panel exclusivo del propietario de Flackunloker. Administra centros y asigna cuentas existentes sin entrar al SQL.</p></div>
- <div class="adminsw-grid">
+ <div class="reporte-controles solo-propietario-software"><p class="reporte-periodo">Panel exclusivo del propietario de Flackunloker. Administra centros y asigna cuentas existentes sin entrar al SQL.</p></div>
+ <div class="reporte-controles solo-admin-centro-software"><p class="reporte-periodo">Como administrador de este centro puedes cambiar el PIN de restablecimiento, restablecer los datos de tu centro y crear o restaurar respaldos.</p></div>
+ <div class="adminsw-grid solo-propietario-software">
   <div class="adminsw-card"><span>Centros</span><strong id="adminswTotalCentros">0</strong></div>
   <div class="adminsw-card"><span>Activos</span><strong id="adminswCentrosActivos">0</strong></div>
   <div class="adminsw-card"><span>Usuarios asignados</span><strong id="adminswTotalMiembros">0</strong></div>
  </div>
- <div class="adminsw-panel">
+ <div class="adminsw-panel solo-propietario-software">
   <h3 style="margin:0 0 14px">🏢 Crear centro</h3>
   <div class="adminsw-form">
    <div class="campo"><label>Nombre del centro</label><input id="adminswCentroNombre" maxlength="120" placeholder="Ej. Flackunloker - Sucursal Norte"></div>
@@ -2448,7 +2453,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
    <button class="boton-agregar" type="button" onclick="crearCentroAdminSoftware()">➕ Crear</button>
   </div>
  </div>
- <div class="adminsw-panel">
+ <div class="adminsw-panel solo-propietario-software">
   <h3 style="margin:0 0 14px">➕ Crear usuario y asignar</h3>
   <div class="adminsw-form" style="grid-template-columns:1.25fr 1.1fr 1fr 1fr auto">
    <div class="campo"><label>Correo del nuevo usuario</label><input id="adminswNuevoEmail" type="email" autocomplete="off" placeholder="usuario@correo.com"></div>
@@ -2459,7 +2464,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   </div>
   <small class="ayuda-campo">La contraseña se envía únicamente a una función segura de Supabase. La clave administrativa nunca se guarda en este index.html.</small>
  </div>
- <div class="adminsw-panel">
+ <div class="adminsw-panel solo-propietario-software">
   <h3 style="margin:0 0 14px">👤 Asignar usuario existente</h3>
   <div class="adminsw-form" style="grid-template-columns:1.3fr 1fr 1fr auto">
    <div class="campo"><label for="adminswUsuarioEmail">Usuario existente</label><select id="adminswUsuarioEmail"><option value="">Cargando usuarios...</option></select></div>
@@ -2469,6 +2474,14 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   </div>
   <small class="ayuda-campo">En esta primera etapa el usuario debe existir previamente en Authentication. La creación de cuentas desde este panel se añadirá después mediante un servicio seguro, sin exponer claves administrativas en el navegador.</small>
  </div>
+ <div class="adminsw-panel adminsw-seguridad-compacta solo-admin-centro-software">
+  <h3 style="margin:0 0 8px">🔐 Mi centro</h3>
+  <p style="margin:0 0 10px;color:#667085;font-size:12px;line-height:1.45">Cambia el PIN de restablecimiento o restablece los datos operativos de tu propio centro.</p>
+  <div class="adminsw-seguridad-botones">
+   <button type="button" class="adminsw-seguridad-btn adminsw-pin-btn" onclick="cambiarPinResetCentroAdminSoftware(FLK_BUSINESS_ID)">🔑 Cambiar PIN reset</button>
+   <button type="button" class="adminsw-seguridad-btn adminsw-reset-btn" onclick="abrirResetCentroAdminSoftware(FLK_BUSINESS_ID)">⚠️ Restablecer centro</button>
+  </div>
+ </div>
  <div class="adminsw-panel">
   <h3 style="margin:0 0 8px">💾 Respaldo y restauración</h3>
   <p style="margin:0 0 14px;color:#667085;font-size:13px;line-height:1.55">Guarda una copia de los datos de Flackunloker o restaura un respaldo anterior.</p>
@@ -2476,11 +2489,11 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
    <button class="boton-respaldo boton-crear-respaldo" type="button" onclick="crearRespaldo()">💾 Crear respaldo</button>
    <button class="boton-respaldo boton-restaurar-respaldo" type="button" onclick="seleccionarRespaldo()">📥 Restaurar respaldo</button>
   </div>
-  <button type="button" onclick="flkDeepStorageOpen()" style="width:100%;margin-top:10px;border:0;border-radius:12px;padding:13px 10px;background:#e9f4ff;color:#075aa8;font-size:14px;font-weight:900;cursor:pointer">🧪 Revisar IndexedDB / caché offline</button>
+  <button type="button" onclick="flkDeepStorageOpen()" class="solo-propietario-software" style="width:100%;margin-top:10px;border:0;border-radius:12px;padding:13px 10px;background:#e9f4ff;color:#075aa8;font-size:14px;font-weight:900;cursor:pointer">🧪 Revisar IndexedDB / caché offline</button>
   <input id="archivoRespaldo" type="file" accept=".json,application/json" style="display:none" onchange="restaurarRespaldo(event)">
   <div id="estadoRespaldo" class="estado-respaldo"></div>
  </div>
- <div class="adminsw-panel adminsw-seguridad-compacta">
+ <div class="adminsw-panel adminsw-seguridad-compacta solo-propietario-software">
   <h3 style="margin:0 0 8px">🔐 Seguridad</h3>
   <p style="margin:0 0 10px;color:#667085;font-size:12px;line-height:1.45">Controles administrativos del sistema.</p>
   <div class="adminsw-seguridad-botones">
@@ -2488,7 +2501,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
    <button type="button" class="adminsw-seguridad-btn adminsw-reset-btn" onclick="abrirRestablecimientoTotal()">⚠️ Reseteo de fábrica</button>
   </div>
  </div>
- <div id="adminswListaCentros"><div class="sin-productos">Pulsa Actualizar para cargar los centros.</div></div>
+ <div id="adminswListaCentros" class="solo-propietario-software"><div class="sin-productos">Pulsa Actualizar para cargar los centros.</div></div>
 </div>
 
 <div id="vistaLicencias" style="display:none">
@@ -4994,13 +5007,16 @@ function flkAdminSwEsc(v){
 }
 
 async function mostrarAdminSoftware(){flkOcultarTodasLasVistas();
- if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
+ if(!flkEsPropietarioSoftware && rolSesion!=="admin")return alert("Este panel es exclusivo del propietario o del administrador del centro.");
  const vistas=["vistaInventario","vistaHistorial","vistaVentas","vistaClientes","vistaGastos","vistaCierre","vistaReportes","vistaAlertas","vistaOrdenes","vistaProveedores","vistaCuentasPagar","vistaFlujoCaja","vistaFinanzas","vistaEstadisticas","vistaLicencias"];
  vistas.forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none"});
  const v=document.getElementById("vistaAdminSoftware");if(v)v.style.display="block";
  document.querySelectorAll("#menuPrincipalFondo .menu-cuadricula button").forEach(b=>b.classList.remove("activo"));
  document.getElementById("botonAdminSoftware")?.classList.add("activo");
- cargarAdminSoftware();scrollTop();
+ // El administrador de un centro (no propietario del software) no carga el listado completo de centros;
+ // solo usa las funciones de su propio centro (PIN/restablecer) y el respaldo local.
+ if(flkEsPropietarioSoftware)cargarAdminSoftware();
+ scrollTop();
 }
 
 
@@ -11310,8 +11326,12 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 // RESTAURADO: funciones administración centros
 async function abrirResetCentroAdminSoftware(businessId){
  await flkComprobarPropietarioSoftware();
- if(!flkEsPropietarioSoftware)return alert("Solo el propietario puede restablecer centros.");
- const centro=flkAdminSoftwareCentros.find(c=>String(c.business_id)===String(businessId));
+ const esAdminDeSuPropioCentro=rolSesion==="admin" && flkUuidValido(FLK_BUSINESS_ID) && String(businessId)===String(FLK_BUSINESS_ID);
+ if(!flkEsPropietarioSoftware && !esAdminDeSuPropioCentro)return alert("Solo el propietario o el administrador de este centro pueden restablecerlo.");
+ let centro=flkAdminSoftwareCentros.find(c=>String(c.business_id)===String(businessId));
+ if(!centro && esAdminDeSuPropioCentro){
+  try{const info=await flkResolverCentroBackup();centro={business_id:info.id,name:info.nombre}}catch(_){}
+ }
  if(!centro)return alert("Centro no encontrado.");
 
  const ok=confirm("⚠️ RESTABLECER CENTRO\n\nCentro: "+centro.name+"\n\nSe borrarán los datos operativos de este centro solamente.\n\n¿Continuar?");
@@ -11347,8 +11367,9 @@ async function cambiarPinResetCentroAdminSoftware(businessId){
    await flkComprobarPropietarioSoftware();
   }
 
-  if(!flkEsPropietarioSoftware)
-    return alert("Solo el propietario puede cambiar el PIN de restablecimiento.");
+  const esAdminDeSuPropioCentro=rolSesion==="admin" && flkUuidValido(FLK_BUSINESS_ID) && String(businessId)===String(FLK_BUSINESS_ID);
+  if(!flkEsPropietarioSoftware && !esAdminDeSuPropioCentro)
+    return alert("Solo el propietario o el administrador de este centro pueden cambiar su PIN de restablecimiento.");
 
   const pin=String(prompt("Nuevo PIN de restablecimiento (6 dígitos):")||"").trim();
 
