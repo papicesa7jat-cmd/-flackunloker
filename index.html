@@ -3891,7 +3891,7 @@ function flkPintarSesionLocal(user){
  const rolGuardado=flkRolLocal(user?.id);
  rolSesion=rolGuardado||"employee";
  document.getElementById("authUsuarioEmail").textContent=user?.email||"Usuario";
- document.getElementById("authUsuarioRol").textContent=(typeof flkEsPropietarioSoftware!=="undefined" && flkEsPropietarioSoftware)?"👑 Propietario":(rolSesion==="admin"?"👑 Administrador":"👤 Empleado");
+ document.getElementById("authUsuarioRol").textContent=rolSesion==="admin"?"👑 Administrador":"👤 Empleado";
  document.getElementById("authUsuario").classList.add("visible");
  document.getElementById("authOverlay").classList.add("oculto");
  aplicarPermisosVisuales();
@@ -3936,7 +3936,7 @@ async function cargarRolUsuario(user){
   }catch(e){}
  }
  document.getElementById("authUsuarioEmail").textContent=user.email||"Usuario";
- document.getElementById("authUsuarioRol").textContent=(typeof flkEsPropietarioSoftware!=="undefined" && flkEsPropietarioSoftware)?"👑 Propietario":(rolSesion==="admin"?"👑 Administrador":"👤 Empleado");
+ document.getElementById("authUsuarioRol").textContent=rolSesion==="admin"?"👑 Administrador":"👤 Empleado";
  document.getElementById("authUsuario").classList.add("visible");
  aplicarPermisosVisuales();
 }
@@ -5217,7 +5217,7 @@ async function cargarAdminSoftware(){
   const sel=document.getElementById("adminswUsuarioCentro");if(sel)sel.innerHTML=opcionesCentros;
   const selNuevo=document.getElementById("adminswNuevoCentro");if(selNuevo)selNuevo.innerHTML=opcionesCentros;
   if(!flkAdminSoftwareCentros.length){lista.innerHTML='<div class="sin-productos">No hay centros registrados.</div>';return}
-  lista.innerHTML=flkAdminSoftwareCentros.map(c=>`<div class="adminsw-centro" id="adminsw-centro-${flkEscAttr(c.business_id)}"><div class="adminsw-centro-top"><div><h3>${flkAdminSwEsc(c.name)}</h3><p>Código: ${flkAdminSwEsc(c.code||"—")}<br>ID: ${flkAdminSwEsc(c.business_id)}</p></div><span class="adminsw-badge ${String(c.status)==="active"?"active":"inactive"}">${String(c.status)==="active"?"ACTIVO":"INACTIVO"}</span></div><div class="adminsw-acciones"><button class="adminsw-btn azul" onclick="cargarMiembrosCentroAdminSoftware('${flkEscAttr(c.business_id)}')">👥 Ver usuarios</button><button class="adminsw-btn azul" onclick="cambiarPasswordCentroAdminSoftware('${flkEscAttr(c.business_id)}')">🔑 Cambiar contraseña</button><button class="adminsw-btn ${String(c.status)==="active"?"rojo":"verde"}" onclick="cambiarEstadoCentroAdminSoftware('${flkEscAttr(c.business_id)}','${String(c.status)==="active"?"inactive":"active"}')">${String(c.status)==="active"?"⛔ Desactivar":"✅ Activar"}</button><button class="adminsw-btn azul" onclick="cambiarPinResetCentroAdminSoftware('${flkEscAttr(c.business_id)}')">🔑 Cambiar PIN reset</button><button class="adminsw-btn rojo" onclick="abrirResetCentroAdminSoftware('${flkEscAttr(c.business_id)}')">⚠️ Restablecer</button></div><div class="adminsw-miembros" id="adminsw-miembros-${flkEscAttr(c.business_id)}" style="display:none"></div></div>`).join("");
+  lista.innerHTML=flkAdminSoftwareCentros.map(c=>`<div class="adminsw-centro" id="adminsw-centro-${flkEscAttr(c.business_id)}"><div class="adminsw-centro-top"><div><h3>${flkAdminSwEsc(c.name)}</h3><p>Código: ${flkAdminSwEsc(c.code||"—")}<br>ID: ${flkAdminSwEsc(c.business_id)}</p></div><span class="adminsw-badge ${String(c.status)==="active"?"active":"inactive"}">${String(c.status)==="active"?"ACTIVO":"INACTIVO"}</span></div><div class="adminsw-acciones"><button class="adminsw-btn azul" onclick="cargarMiembrosCentroAdminSoftware('${flkEscAttr(c.business_id)}')">👥 Ver usuarios</button><button class="adminsw-btn azul" onclick="cambiarPasswordCentroAdminSoftware('${flkEscAttr(c.business_id)}')">🔑 Cambiar contraseña</button><button class="adminsw-btn ${String(c.status)==="active"?"rojo":"verde"}" onclick="cambiarEstadoCentroAdminSoftware('${flkEscAttr(c.business_id)}','${String(c.status)==="active"?"inactive":"active"}')">${String(c.status)==="active"?"⛔ Desactivar":"✅ Activar"}</button><button class="adminsw-btn rojo" onclick="abrirResetCentroAdminSoftware('${flkEscAttr(c.business_id)}')">⚠️ Restablecer</button></div><div class="adminsw-miembros" id="adminsw-miembros-${flkEscAttr(c.business_id)}" style="display:none"></div></div>`).join("");
   await flkEnriquecerCentrosConLicencias();
  }catch(err){console.error("Administración software:",err);lista.innerHTML='<div class="sin-productos">No se pudo cargar la administración de centros.</div>';alert("Falta instalar o actualizar las funciones de Administración del Software en Supabase.\n\nDetalle: "+(err?.message||"Error desconocido"))}
 }
@@ -8946,7 +8946,25 @@ async function crearRespaldo(){
   alert("No se pudo crear el respaldo porque no se pudo identificar el centro activo.");
  }
 }
-function seleccionarRespaldo(){document.getElementById("archivoRespaldo").click()}
+
+async function seleccionarRespaldo(){
+  try{
+    const centro = await flkResolverCentroBackup();
+    const destino = confirm(
+      "Restauración por centro\n\n"+
+      "El respaldo seleccionado será validado contra el centro activo:\n"+
+      (centro?.nombre || "Centro actual")+
+      "\n\nContinuar para seleccionar el archivo."
+    );
+    if(!destino)return;
+
+    document.getElementById("archivoRespaldo").click();
+  }catch(e){
+    console.error("Selector de restauración:",e);
+    alert("No se pudo preparar la restauración del centro.");
+  }
+}
+
 
 /* ===== RESTAURACIÓN SEGURA v61.26 =====
    Primero conserva la salva local. Si hay Internet y el usuario es Administrador,
@@ -11187,41 +11205,6 @@ async function abrirResetCentroAdminSoftware(businessId){
  }catch(err){
   console.error("Reset centro:",err);
   alert("No se pudo restablecer el centro:\n\n"+(err?.message||err));
- }
-}
-
-
-async function cambiarPinResetCentroAdminSoftware(businessId){
- try{
-  if(!flkEsPropietarioSoftware){
-   await flkComprobarPropietarioSoftware();
-  }
-
-  if(!flkEsPropietarioSoftware)
-    return alert("Solo el propietario puede cambiar el PIN de restablecimiento.");
-
-  const pin=String(prompt("Nuevo PIN de restablecimiento (6 dígitos):")||"").trim();
-
-  if(!/^\d{6}$/.test(pin))
-    return alert("El PIN debe tener exactamente 6 dígitos.");
-
-  const confirmar=String(prompt("Confirmar nuevo PIN:")||"").trim();
-
-  if(pin!==confirmar)
-    return alert("Los PIN no coinciden.");
-
-  const {error}=await flkSupabase.rpc("flk_change_center_reset_pin",{
-    p_business_id:businessId,
-    p_new_pin:pin
-  });
-
-  if(error)throw error;
-
-  alert("PIN de restablecimiento actualizado correctamente.");
-
- }catch(e){
-  console.error("Cambio PIN restablecimiento:",e);
-  alert("No se pudo cambiar el PIN: "+(e?.message||e));
  }
 }
 
