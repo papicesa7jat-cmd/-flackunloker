@@ -1108,6 +1108,8 @@ body.rol-empleado #panelRestablecimientoTotal{display:none!important;}
 <style id="flk-owner-license-panel-style">
 .solo-propietario{display:none!important}
 body.es-propietario .solo-propietario{display:flex!important}
+/* El botón "Software" (#botonAdminSoftware) se oculta a los empleados; el resto de roles (admin/propietario de centro y el propietario del software) lo ven, gracias a las reglas "body:not(.rol-empleado) #botonAdminSoftware" ya presentes en este archivo. */
+body.rol-empleado #botonAdminSoftware{display:none!important}
 #vistaLicencias{
  display:none;
  width:100%;
@@ -4942,9 +4944,10 @@ function flkPintarPropietarioSoftware(esOwner){
  flkEsPropietarioSoftware=!!esOwner;
  document.body.classList.toggle("es-propietario",flkEsPropietarioSoftware);
  const botonLic=document.getElementById("botonLicencias");
- const botonAdmin=document.getElementById("botonAdminSoftware");
  if(botonLic)botonLic.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
- if(botonAdmin)botonAdmin.style.setProperty("display",flkEsPropietarioSoftware?"flex":"none","important");
+ // El botón "Software" (#botonAdminSoftware) ya NO se oculta aquí según flkEsPropietarioSoftware:
+ // su visibilidad la controla aplicarPermisosVisuales()/las reglas CSS "body:not(.rol-empleado) #botonAdminSoftware",
+ // para que también lo vean los administradores/propietarios de cada centro, no solo el propietario global del software.
 }
 
 async function flkComprobarPropietarioSoftware(){
