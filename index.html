@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-09-04-v61.44-prestaciones-offline-seguro">
+<meta name="flackunloker-offline-version" content="2026-09-07-v61.86-contribucion-mensual-neta">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1918,7 +1918,7 @@ textarea::placeholder{
   </div>
  </div>
  <div style="margin-top:15px">
-  <div class="fila-estadistica"><span>Ventas brutas del mes</span><strong id="repArrVentas">$0.00</strong></div>
+  <div class="fila-estadistica"><span>Ventas del mes · netas de devoluciones</span><strong id="repArrVentas">$0.00</strong></div>
   <div class="fila-estadistica"><span>Modalidad</span><strong id="repArrModalidad">—</strong></div>
   <div class="fila-estadistica"><span>Valor configurado</span><strong id="repArrValor">—</strong></div>
   <div class="fila-estadistica"><span>Arrendamiento calculado</span><strong id="repArrMonto">$0.00</strong></div>
@@ -2114,7 +2114,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 </div>
 
 <div style="margin-top:16px">
- <div class="fila-estadistica"><span>Ventas brutas del mes</span><strong id="contribVentasBrutas">$0.00</strong></div>
+ <div class="fila-estadistica"><span>Ventas del mes · netas de devoluciones</span><strong id="contribVentasBrutas">$0.00</strong></div>
  <div class="fila-estadistica"><span id="contribDetalleArrendamiento">Arrendamiento calculado</span><strong id="contribArrendamiento">$0.00</strong></div>
  <div class="fila-estadistica"><span>Ganancia bruta del mes</span><strong id="contribGananciaBruta">$0.00</strong></div>
  <div class="fila-estadistica"><span>Ganancia bruta después de arrendamiento</span><strong id="contribResultado">$0.00</strong></div>
@@ -8483,24 +8483,25 @@ function configuracionArrendamientoMes(mes){
 }
 function ventasBrutasMesArrendamiento(mes){
  if(!mes)return 0;
+ // v61.86: v.ingreso ya representa la venta NETA después de devoluciones.
+ // No se vuelve a sumar el importe devuelto, porque eso revivía ventas anuladas.
  return ventas.reduce((total,v)=>{
   const d=new Date(v.fecha);
   if(Number.isNaN(d.getTime()))return total;
   const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   if(vm!==mes)return total;
-  const dev=Array.isArray(v.devoluciones)?v.devoluciones.reduce((t,r)=>t+Number(r.monto??r.reembolso??0),0):0;
-  return total+Number(v.ingreso||0)+dev;
+  return total+Math.max(0,Number(v.ingreso||0));
  },0)
 }
 function costoVentasMesArrendamiento(mes){
  if(!mes)return 0;
+ // v61.86: v.costoTotal también es NETO después de devoluciones.
  return ventas.reduce((total,v)=>{
   const d=new Date(v.fecha);
   if(Number.isNaN(d.getTime()))return total;
   const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   if(vm!==mes)return total;
-  const costoDevuelto=itemsDeVenta(v).reduce((t,i)=>t+Math.max(0,Number(i.devuelto||0))*Number(i.costoUnitario||0),0);
-  return total+Number(v.costoTotal||0)+costoDevuelto;
+  return total+Math.max(0,Number(v.costoTotal||0));
  },0)
 }
 function cargarConfiguracionArrendamientoMes(){
@@ -8531,7 +8532,7 @@ function actualizarEstadoContribucionArrendamiento(){
  const input=document.getElementById("valorArrendamiento");
  if(modo==="percent"){
   if(label)label.textContent="Porcentaje sobre ventas brutas (%)";
-  if(detalle)detalle.textContent=`Arrendamiento (${valor.toFixed(2)}% de ventas brutas)`;
+  if(detalle)detalle.textContent=`Arrendamiento (${valor.toFixed(2)}% de ventas netas del mes)`;
   if(input){input.max="100";input.step="0.01"}
  }else{
   if(label)label.textContent="Pago fijo mensual ($)";
@@ -8569,6 +8570,33 @@ function limitesFinanzas(){
  }else{desde=new Date(ahora.getFullYear(),ahora.getMonth(),1);hasta=new Date(ahora.getFullYear(),ahora.getMonth()+1,1);texto="Este mes"}
  return {desde,hasta,texto}
 }
+
+/* ===== v61.86 · CONTRIBUCIÓN MENSUAL EN GANANCIA NETA ===== */
+function flkMesesEnPeriodoFinanzas(lim){
+ const meses=[];
+ if(!lim?.desde||!lim?.hasta)return meses;
+ let d=new Date(lim.desde.getFullYear(),lim.desde.getMonth(),1);
+ const fin=new Date(lim.hasta.getTime()-1);
+ const ultimo=new Date(fin.getFullYear(),fin.getMonth(),1);
+ while(d<=ultimo){
+  meses.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);
+  d=new Date(d.getFullYear(),d.getMonth()+1,1);
+ }
+ return meses
+}
+function flkArrendamientoMes(mes){
+ const conf=configuracionArrendamientoMes(mes);
+ if(!conf)return 0;
+ const modo=conf.mode||"percent";
+ const valor=Math.max(0,Number(conf.value||0));
+ const ventasMes=ventasBrutasMesArrendamiento(mes);
+ return modo==="percent"?ventasMes*(valor/100):valor
+}
+function flkArrendamientoPeriodo(lim){
+ return flkMesesEnPeriodoFinanzas(lim)
+  .reduce((t,mes)=>t+flkArrendamientoMes(mes),0)
+}
+
 function datosFinanzas(){
  const lim=limitesFinanzas();if(!lim)return null;
  const enRango=f=>{const d=new Date(f);return !Number.isNaN(d.getTime())&&d>=lim.desde&&d<lim.hasta};
@@ -8600,7 +8628,9 @@ function datosFinanzas(){
  const ingresosTotales=ventasTotal+prestIngresos;
  const bruta=brutaMercancia+prestNeto;
  const gastosTotal=gg.reduce((t,g)=>t+Number(g.cantidad||0),0);
- const neta=bruta-gastosTotal;
+ // La contribución/arrendamiento se descuenta UNA sola vez por cada mes configurado.
+ const arrendamientoPeriodo=flkArrendamientoPeriodo(lim);
+ const neta=bruta-gastosTotal-arrendamientoPeriodo;
 
  // Posición financiera actual
  const inventario=productos.reduce((t,p)=>t+Number(p.cantidad||0)*Number(p.costo||0),0);
@@ -8633,7 +8663,7 @@ function datosFinanzas(){
  const flujoCajaTotal=flujoOperativo+netoPropietario;
 
  return {
-  lim,ventasTotal,costo,brutaMercancia,prestIngresos,prestCostos,prestNeto,ingresosTotales,bruta,gastosTotal,neta,
+  lim,ventasTotal,costo,brutaMercancia,prestIngresos,prestCostos,prestNeto,ingresosTotales,bruta,gastosTotal,arrendamientoPeriodo,neta,
   caja,inventario,porCobrar,porPagar,activos,patrimonio,
   entradas,salidas,flujo:flujoOperativo,
   aportesPropietario,retirosPropietario,netoPropietario,flujoCajaTotal
@@ -8673,6 +8703,8 @@ function actualizarFinanzas(){
  money("finCosto",d.costo);
  money("finPrestCostosPeriodo",d.prestCostos);
  money("finBruta",d.bruta);money("finGastos",d.gastosTotal);money("finNeta",d.neta);
+ const finNetaEl=document.getElementById("finNeta");
+ if(finNetaEl)finNetaEl.title=`Incluye contribución/arrendamiento mensual: $${Number(d.arrendamientoPeriodo||0).toFixed(2)}`;
  money("finEntradas",d.entradas);money("finSalidas",d.salidas);money("finFlujoNeto",d.flujo);
  money("finAportesPropietario",d.aportesPropietario);
  money("finRetirosPropietario",d.retirosPropietario);
@@ -9008,7 +9040,7 @@ body.flk-v6125 #cuentasTotalPagado {
 .flk-etiqueta-qr .qrbox img,.flk-etiqueta-qr .qrbox canvas{width:30mm!important;height:30mm!important}
 @media(max-width:430px){.flk-qr-controles,.flk-qr-acciones{grid-template-columns:1fr}}
 </style>
-</head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas de mercancía</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Ingresos por prestaciones</span><strong>$${d.prestIngresos.toFixed(2)}</strong></div><div class="fila"><span>Ingresos totales</span><strong>$${d.ingresosTotales.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Costos externos de prestaciones</span><strong>$${d.prestCostos.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta total</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta total</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button>
+</head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas de mercancía</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Ingresos por prestaciones</span><strong>$${d.prestIngresos.toFixed(2)}</strong></div><div class="fila"><span>Ingresos totales</span><strong>$${d.ingresosTotales.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Costos externos de prestaciones</span><strong>$${d.prestCostos.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta total</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Contribución / arrendamiento mensual</span><strong>$${Number(d.arrendamientoPeriodo||0).toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta total</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button>
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
