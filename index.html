@@ -2985,8 +2985,10 @@ function flkAplicarDevolucionLocal(op){
   nombre:item.nombre||"Producto",
   cantidad:aplicada,
   monto,
-  // v61.74: caja devuelve solo dinero realmente cobrado.
-  reembolso:Math.min(monto,Number(v.totalPagado||0)),
+  // v61.80: usar pagadoAnterior (lo que había pagado el cliente ANTES de esta
+  // devolución), no v.totalPagado -- ese ya quedó reducido a "nuevoPagado" dos
+  // líneas arriba, así que leerlo aquí siempre daba $0 de reembolso en caja.
+  reembolso:Math.min(monto,pagadoAnterior),
   motivo:p.reason||"",
   fecha:op.created_at||new Date().toISOString()
  });
@@ -6732,9 +6734,17 @@ function ventaDesdeSupabase(v){
  }));
  const legacyNum=Number(v.legacy_id);
  const id=Number.isFinite(legacyNum)&&v.legacy_id!==null?idLocalDesdeLegacy(v.legacy_id,v.id):idLocalDesdeLegacy(null,v.id);
- const ingreso=Number(v.total||0),
-       cantidadNeta=items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0),
+ const cantidadNeta=items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0),
+       // v61.79: el ingreso debe quedar neto de las unidades ya devueltas, igual que costoTotal.
+       // Antes se usaba v.total (el monto original de la venta, sin restar devoluciones) mientras
+       // costoTotal sí restaba lo devuelto, dejando la ganancia mal calculada tras recargar desde Supabase.
+       ingreso=items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0))*Number(i.precioUnitario||0),0),
        costoTotal=items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0))*Number(i.costoUnitario||0),0);
+ // v61.79: totalPagado/saldo también se recalculan contra el ingreso ya neto (no se
+ // confía en v.paid_amount/v.balance_due tal cual llegan de Supabase, que pueden
+ // quedar desalineados tras una devolución y producir un saldo negativo).
+ const totalPagado=Math.max(0,Math.min(Number(v.paid_amount||0),ingreso)),
+       saldo=Math.max(0,ingreso-totalPagado);
  return {
   id,supabaseId:v.id,
   numero:v.receipt_number||String(id).slice(-8),
@@ -6746,9 +6756,9 @@ function ventaDesdeSupabase(v){
   cliente:v.customer_name||"Cliente general",
   telefono:v.customer_phone||"",
   metodoPago:v.payment_method||"cash",
-  estadoPago:Number(v.balance_due||0)>0.009?"credito":"pagado",
-  totalPagado:Number(v.paid_amount||0),
-  saldo:Number(v.balance_due||0),
+  estadoPago:saldo>0.009?"credito":"pagado",
+  totalPagado,
+  saldo,
   pagos,
   fechaVencimiento:v.due_date||"",
   nota:v.note||""
@@ -8182,7 +8192,11 @@ function movimientosFlujoCaja(){
   devolucionesDeVenta(v).forEach((d,idx)=>{
    mov.push({
     id:"reembolso-"+String(d.supabaseId||d.offlineOperationId||d.id||idx),
-    tipo:"salida",cantidad:Number(Math.min(Number(d.reembolso??d.monto??0), Number(v.totalPagado||v.pagado||v.totalPayment||0))),
+    // v61.80: usar directamente el reembolso guardado en la devolución (ya viene
+    // correctamente calculado al momento de aplicarla). Antes se volvía a limitar
+    // contra v.totalPagado ACTUAL del recibo, que para entonces ya está reducido
+    // por la propia devolución, y siempre daba $0 de salida en caja.
+    tipo:"salida",cantidad:Number(d.reembolso??d.monto??0),
     concepto:"Reembolso devolución · Recibo "+String(v.numero||v.id),
     metodo:normalizarMetodoFlujo(d.metodo||v.metodoPago||"Otro"),
     fecha:d.fecha||v.fecha||new Date().toISOString(),grupo:"reembolso"
@@ -9146,31 +9160,6 @@ async function crearRespaldo(){
  }
 }
 function seleccionarRespaldo(){
-  const opcionCentro = prompt(
-    "Seleccione el centro destino para la restauración:\n\n1 - Centro Principal\n2 - Centro Prueba\n3 - Centro_Llenma\n\nEscriba el número:"
-  );
-  if(!opcionCentro) return;
-
-  const centros = {
-    "1":"Centro Principal",
-    "2":"Centro Prueba",
-    "3":"Centro_Llenma"
-  };
-
-  const centroDestino = centros[opcionCentro.trim()];
-
-  if(!centroDestino){
-    alert("Número de centro no válido.");
-    return;
-  }
-
-  const confirmar = confirm(
-    "Va a restaurar el respaldo en:\n\n" + centroDestino + "\n\n¿Continuar?"
-  );
-
-  if(!confirmar) return;
-
-  window.flkCentroRestauracionDestino = centroDestino;
   document.getElementById("archivoRespaldo").click();
 }
 
@@ -9227,33 +9216,33 @@ async function restaurarRespaldo(event){
    }
 
    const centroActivo=await flkResolverCentroBackup();
-   const centroDestinoNombre=String(window.flkCentroRestauracionDestino||centroActivo.nombre||"").trim();
 
-   // El propietario puede elegir el centro destino. La validación debe hacerse
-   // contra el centro seleccionado, no contra el centro de la sesión.
-   const destinoCoincide =
-      backupCentroNombre.toLowerCase().includes(centroDestinoNombre.toLowerCase()) ||
-      centroDestinoNombre.toLowerCase().includes(backupCentroNombre.toLowerCase());
-
-   if(!destinoCoincide && String(centroActivo.id)!==backupCentroId){
+   // Seguridad multicentro: comparar SIEMPRE contra el centro real de la sesión activa
+   // (centroActivo.id), nunca contra un nombre escrito a mano. Así se evita restaurar
+   // datos "a medias" que luego la sincronización con Supabase sobrescribe en silencio.
+   if(String(centroActivo.id)!==backupCentroId){
     return alert(
      "⛔ RESPALDO DE OTRO CENTRO\n\n"+
      "Respaldo: "+(backupCentroNombre||"Centro sin nombre")+" ("+backupCentroId.slice(0,8)+")\n"+
-     "Destino elegido: "+centroDestinoNombre+"\n\n"+
-     "La restauración fue bloqueada para evitar mezclar datos entre centros."
+     "Tu sesión actual: "+(centroActivo.nombre||"(sin nombre)")+" ("+String(centroActivo.id||"").slice(0,8)+")\n\n"+
+     "La restauración fue bloqueada porque este respaldo pertenece a otro centro.\n"+
+     "Inicia sesión con una cuenta de ese centro y vuelve a intentarlo."
     );
    }
 
-   const centroActual={id:backupCentroId,nombre:backupCentroNombre||centroDestinoNombre};
+   const centroActual={id:backupCentroId,nombre:backupCentroNombre||centroActivo.nombre};
 
    const ok=confirm(
     "✅ Centro verificado\n\n"+
     "Respaldo: "+(backupCentroNombre||centroActual.nombre)+"\n"+
-    "Centro destino: "+centroDestinoNombre+"\n\n"+
+    "Centro destino: "+centroActual.nombre+"\n\n"+
     "¿Quieres restaurar este respaldo?\n\n"+
     "Los datos locales actuales de ESTE CENTRO serán reemplazados por los datos del respaldo."
    );
-   if(!ok)return;
+   if(!ok){
+    mostrarEstadoRespaldo("❌ Restauración cancelada. No se modificó ningún dato.");
+    return;
+   }
 
    productos=datos.productos;
    historial=datos.historial;
