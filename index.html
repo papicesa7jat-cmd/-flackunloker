@@ -3923,6 +3923,10 @@ function flkLimpiarSesionLocal(){
  try{
   localStorage.removeItem(FLK_SESSION_CACHE_KEY);
   localStorage.removeItem(FLK_ROLE_CACHE_KEY);
+  // v61.81: sin esto, cerrar sesión no apagaba el modo "forzado sin conexión".
+  // Al recargar, la app volvía a entrar offline y retomaba la sesión local,
+  // dando la sensación de que el cierre de sesión no funcionaba.
+  localStorage.removeItem(FLK_FORCE_OFFLINE_KEY);
  }catch(e){}
 }
 function flkPintarSesionLocal(user){
@@ -4256,6 +4260,15 @@ async function cerrarSesionFlackunloker(){
   await flkSupabase.auth.signOut();
  }catch(err){console.error(err)}
  try{flkLimpiarSesionLocal()}catch(_){}
+ // v61.81: si signOut() falló (por ejemplo, sin conexión), el token de Supabase
+ // puede quedar guardado en localStorage y la app lo retoma solo al recargar.
+ // Se limpia manualmente para garantizar que la sesión sí termine.
+ try{
+  for(let i=localStorage.length-1;i>=0;i--){
+   const k=localStorage.key(i)||"";
+   if(/^sb-.*-auth-token$/.test(k))localStorage.removeItem(k);
+  }
+ }catch(_){}
  location.reload();
 }
 document.getElementById("formAuth").addEventListener("submit",async e=>{
@@ -6609,15 +6622,19 @@ function mostrarProductos(){
 }
 
 function flkGananciaAjustadaVenta(v){
-  // Reversa de ganancia usando los datos reales de sale_returns.
+  // La ganancia se revierte según el margen real del producto devuelto.
+  // No se descuenta el reembolso completo porque eso duplicaría la pérdida.
   let g=Number(v.ganancia||0);
-  const devs=devolucionesDeVenta(v);
+  const devs=Array.isArray(v.devoluciones)?v.devoluciones:[];
   devs.forEach(d=>{
-    const item=(v.items||[]).find(i=>String(i.productoId)===String(d.productoId));
-    const precio=Number(item?.precioUnitario||0);
-    const costo=Number(item?.costoUnitario||item?.costo||0);
-    const cantidad=Number(d.cantidad||0);
-    g-=Math.max(0,(precio-costo)*cantidad);
+    const items=Array.isArray(d.items)?d.items:[];
+    const gananciaDevuelta=items.reduce((t,i)=>{
+      const cantidad=Number(i.cantidad||0);
+      const precio=Number(i.precioUnitario||i.precio||0);
+      const costo=Number(i.costoUnitario||i.costo||0);
+      return t + Math.max(0,(precio-costo)*cantidad);
+    },0);
+    g-=gananciaDevuelta;
   });
   return Math.abs(g)<0.005 ? 0 : g;
 }
@@ -6739,14 +6756,7 @@ function ventaDesdeSupabase(v){
  // v61.79: totalPagado/saldo también se recalculan contra el ingreso ya neto (no se
  // confía en v.paid_amount/v.balance_due tal cual llegan de Supabase, que pueden
  // quedar desalineados tras una devolución y producir un saldo negativo).
- const totalPagado=Math.max(0,Math.min(
-  Number(
-    v.paid_amount ??
-    v.total_paid ??
-    pagos.reduce((s,p)=>s+Number(p.cantidad||0),0)
-  ),
-  ingreso
-)),
+ const totalPagado=Math.max(0,Math.min(Number(v.paid_amount||0),ingreso)),
        saldo=Math.max(0,ingreso-totalPagado);
  return {
   id,supabaseId:v.id,
@@ -7157,7 +7167,7 @@ function generarReciboVenta(id){
  const qrReciboData=flkQrDataUrl("FLK|SALE|"+String(numero),112);
  normalizarCuentaVenta(v);const cliente=escapeHtml(v.cliente||"Cliente general"),telefono=escapeHtml(v.telefono||""),nota=escapeHtml(v.nota||""),devoluciones=devolucionesDeVenta(v),pagos=pagosDeVenta(v);
  const filas=items.filter(i=>Number(i.cantidad)>0).map(i=>{const cant=Number(i.cantidad||0),pu=Number(i.precioUnitario??0),tot=Number(i.ingreso??(cant*pu));return `<tr><td>${escapeHtml(i.nombre)}<div class="muted">Producto vendido</div></td><td>${escapeHtml(i.sku||"—")}</td><td class="num">${cant}</td><td class="num">$${pu.toFixed(2)}</td><td class="num"><strong>$${tot.toFixed(2)}</strong></td></tr>`}).join("")||'<tr><td colspan="5">Sin artículos activos.</td></tr>';
- const devolucionesTxt=devoluciones.length?`${devoluciones.length} devolución(es) · -$${devoluciones.reduce((t,d)=>t+Number(d.reembolso||0),0).toFixed(2)}`:"Ninguna";
+ const devolucionesTxt=devoluciones.length?`${devoluciones.length} devolución(es) · -$${devoluciones.reduce((t,d)=>t+Number(d.reembolso??d.monto??0),0).toFixed(2)}`:"Ninguna";
  const pagosTxt=pagos.length?`${pagos.length} abono(s) registrado(s)`:"Sin abonos";
  const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recibo ${escapeHtml(numero)}</title><style>${flkCssComprobanteProfesional("#0a67d1")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">🧾 Recibo de venta</span><span class="numero">N.º SA-${escapeHtml(numero)}</span></div></header><section class="meta"><div>Fecha y hora<strong>${f.toLocaleDateString("es-PR")} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${cliente}</strong></div><div>Teléfono<strong>${telefono||"—"}</strong></div><div>Estado de pago<strong>${escapeHtml(estadoVencimientoVenta(v).texto)}</strong></div></section><section class="seccion"><h3>Productos</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cant.</th><th class="num">Precio unit.</th><th class="num">Total</th></tr></thead><tbody>${filas}</tbody></table></section><section class="seccion"><div class="resumen"><div class="r"><span>Método inicial</span><strong>${escapeHtml(v.metodoPago||"—")}</strong></div><div class="r"><span>Pagado</span><strong>$${Number(v.totalPagado||0).toFixed(2)}</strong></div><div class="r"><span>Saldo pendiente</span><strong>$${Number(v.saldo||0).toFixed(2)}</strong></div><div class="r"><span>Devoluciones</span><strong>${devolucionesTxt}</strong></div><div class="r"><span>Abonos</span><strong>${pagosTxt}</strong></div><div class="r total"><span>TOTAL NETO</span><strong>$${Number(v.ingreso??0).toFixed(2)}</strong></div></div></section>${nota?`<section class="seccion"><h3>Observaciones</h3><div class="nota">${nota}</div></section>`:""}<section class="seccion"><div class="firma"><div>Vendido / entregado por</div><div>Cliente / recibido por</div></div></section>${qrReciboData?`<div style="text-align:center;margin:2mm 0"><img src="${qrReciboData}" style="width:24mm;height:24mm"><div style="font-size:1.8mm;margin-top:.8mm">QR del recibo</div></div>`:""}<div class="pie">Gracias por su compra · Comprobante generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div>
 <!-- PATCH: Software limitado para administradores de centro -->
@@ -7374,10 +7384,6 @@ document.getElementById("formularioDevolucion").addEventListener("submit",async 
   alert("No se pudo guardar la devolución: "+(err.message||err));
  }finally{
   procesandoGuardado=false;
-  if(botonGuardarVenta){
-   botonGuardarVenta.disabled=false;
-   botonGuardarVenta.textContent=botonGuardarVenta.dataset.textoOriginal||"Guardar venta";
-  }
  }
 });
 
@@ -7504,9 +7510,7 @@ function mostrarListaHistorial(){
   const el=document.createElement("div");el.className="movimiento";const f=new Date(m.fecha),entrada=m.tipo==="entrada";
   const saldo=m.saldo!==undefined&&m.saldo!==null?Number(m.saldo):"No disponible";
   const detalle=m.detalle?`<br>Origen: <strong>${escapeHtml(m.detalle)}</strong>`:"";
-  const origenTexto=String(m.detalle||"").toLowerCase();
-  const esInventarioInicial=origenTexto.includes("inventario inicial");
-  const etiqueta=esInventarioInicial?"＋ Entrada":/devolución/i.test(origenTexto)?"↩️ Devolución":/recepción de orden/i.test(origenTexto)?"📦 Compra":/venta/i.test(origenTexto)?"💰 Venta":entrada?"＋ Entrada":"− Salida";
+  const etiqueta=/Venta/i.test(m.detalle||"")?"💰 Venta":/Devolución/i.test(m.detalle||"")?"↩️ Devolución":/Recepción de orden/i.test(m.detalle||"")?"📦 Compra":entrada?"＋ Entrada":"− Salida";
   const acciones=m.supabaseId?`<div class="saldo-movimiento">🔒 Registro guardado en Supabase. Para corregir inventario, registra un nuevo movimiento de Entrada o Salida.</div>`:"";
   const idComp=String(m.id||m.supabaseId||"").replace(/'/g,"\\'");
   el.innerHTML=`<div class="movimiento-superior"><div class="movimiento-info"><h3>${escapeHtml(m.nombre)}</h3><p>SKU: ${escapeHtml(m.sku)}</p></div><div class="movimiento-tipo ${entrada?"entrada":"salida"}">${etiqueta}</div></div><div class="movimiento-detalle">Cantidad: <strong>${Number(m.cantidad)}</strong> &nbsp;·&nbsp; ${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}${detalle}<div class="saldo-movimiento">Saldo después del movimiento: <strong>${saldo}</strong></div></div>${acciones}<button type="button" class="boton-comprobante" onclick="imprimirComprobanteMovimiento('${idComp}')">🧾 Ver comprobante</button>`;
@@ -8205,7 +8209,7 @@ function movimientosFlujoCaja(){
     // correctamente calculado al momento de aplicarla). Antes se volvía a limitar
     // contra v.totalPagado ACTUAL del recibo, que para entonces ya está reducido
     // por la propia devolución, y siempre daba $0 de salida en caja.
-    tipo:"salida",cantidad:Number(d.reembolso||0),
+    tipo:"salida",cantidad:Number(d.reembolso??d.monto??0),
     concepto:"Reembolso devolución · Recibo "+String(v.numero||v.id),
     metodo:normalizarMetodoFlujo(d.metodo||v.metodoPago||"Otro"),
     fecha:d.fecha||v.fecha||new Date().toISOString(),grupo:"reembolso"
@@ -8430,7 +8434,7 @@ function ventasBrutasMesArrendamiento(mes){
   if(Number.isNaN(d.getTime()))return total;
   const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   if(vm!==mes)return total;
-  const dev=Array.isArray(v.devoluciones)?v.devoluciones.reduce((t,r)=>t+Number(r.reembolso||0),0):0;
+  const dev=Array.isArray(v.devoluciones)?v.devoluciones.reduce((t,r)=>t+Number(r.monto??r.reembolso??0),0):0;
   return total+Number(v.ingreso||0)+dev;
  },0)
 }
