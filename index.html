@@ -6739,7 +6739,14 @@ function ventaDesdeSupabase(v){
  // v61.79: totalPagado/saldo también se recalculan contra el ingreso ya neto (no se
  // confía en v.paid_amount/v.balance_due tal cual llegan de Supabase, que pueden
  // quedar desalineados tras una devolución y producir un saldo negativo).
- const totalPagado=Math.max(0,Math.min(Number(v.paid_amount||0),ingreso)),
+ const totalPagado=Math.max(0,Math.min(
+  Number(
+    v.paid_amount ??
+    v.total_paid ??
+    pagos.reduce((s,p)=>s+Number(p.cantidad||0),0)
+  ),
+  ingreso
+)),
        saldo=Math.max(0,ingreso-totalPagado);
  return {
   id,supabaseId:v.id,
