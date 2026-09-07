@@ -4050,25 +4050,11 @@ async function flkRecuperacionEmergenciaNube(){
      sale_payments:pagos.filter(x=>x.sale_id===v.id),
      sale_returns:devol.filter(x=>x.sale_id===v.id)
     };
-    const local=ventaDesdeSupabase(row);
-    const retornos=row.sale_returns||[];
-    local.devoluciones=retornos.map(r=>({
-     id:idLocalDesdeLegacy(null,r.id),
-     supabaseId:r.id,
-     numeroDevolucion:r.return_number,
-     ventaId:local.id,
-     productoId:(local.items.find(i=>i.supabaseSaleItemId===r.sale_item_id)||{}).productoId,
-     cantidad:Number(r.quantity||0),
-     monto:Number(r.refund_amount||0),
-     reembolso:Number(r.refund_amount||0),
-     motivo:r.reason||"",
-     fecha:r.created_at
-    }));
-    local.items.forEach(i=>{
-     i.devuelto=retornos.filter(r=>r.sale_item_id===i.supabaseSaleItemId)
-      .reduce((t,r)=>t+Number(r.quantity||0),0);
-    });
-    return local
+    return flkAplicarDevolucionesSupabaseAVenta(
+     ventaDesdeSupabase(row),
+     row.sale_returns||[],
+     row
+    );
    });
    const maxNumero=ventas.reduce((m,v)=>Math.max(m,Number(v.numeroConsecutivo||0)),0);
    if(maxNumero>=proximoNumeroRecibo)proximoNumeroRecibo=maxNumero+1;
@@ -6778,6 +6764,77 @@ function ventaDesdeSupabase(v){
  }
 }
 
+
+/* ===== v61.85 · RECONSTRUCCIÓN CORRECTA DE DEVOLUCIONES DESDE SUPABASE =====
+   La venta se reconstruye primero desde sales/sale_items y DESPUÉS se aplican
+   sale_returns. Así evitamos que al sincronizar reaparezcan ingreso, costo,
+   ganancia o saldo que ya habían sido anulados localmente por una devolución.
+*/
+function flkAplicarDevolucionesSupabaseAVenta(local, retornos, ventaNube){
+ const rs=Array.isArray(retornos)?retornos:[];
+ if(!local||!Array.isArray(local.items))return local;
+
+ // Cantidad devuelta real por artículo: sale_returns es la fuente de verdad.
+ local.items.forEach(i=>{
+  i.devuelto=rs
+   .filter(r=>r.sale_item_id===i.supabaseSaleItemId)
+   .reduce((t,r)=>t+Number(r.quantity||0),0);
+ });
+
+ // Recalcular importes NETOS después de aplicar las devoluciones.
+ local.cantidad=local.items.reduce(
+  (t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0
+ );
+ local.ingreso=local.items.reduce(
+  (t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0))*Number(i.precioUnitario||0),0
+ );
+ local.costoTotal=local.items.reduce(
+  (t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0))*Number(i.costoUnitario||0),0
+ );
+ local.ganancia=Number(local.ingreso||0)-Number(local.costoTotal||0);
+
+ // El efectivo histórico cobrado se obtiene de sale_payments cuando existe.
+ // Si no hay filas de pago, usamos paid_amount como respaldo.
+ const pagosBrutos=Array.isArray(local.pagos)
+  ? local.pagos.reduce((t,p)=>t+Number(p.cantidad||0),0)
+  : 0;
+ const pagadoBruto=Math.max(
+  pagosBrutos,
+  Number(ventaNube?.paid_amount||0),
+  0
+ );
+
+ // Reembolsos: nunca pueden superar el dinero realmente cobrado.
+ // Se asignan en orden para que varias devoluciones no dupliquen la salida de caja.
+ let disponibleReembolso=pagadoBruto;
+ local.devoluciones=rs.map(r=>{
+  const solicitado=Math.max(0,Number(r.refund_amount||0));
+  const reembolso=Math.min(solicitado,disponibleReembolso);
+  disponibleReembolso=Math.max(0,disponibleReembolso-reembolso);
+  const item=local.items.find(i=>i.supabaseSaleItemId===r.sale_item_id);
+  return {
+   id:idLocalDesdeLegacy(null,r.id),
+   supabaseId:r.id,
+   numeroDevolucion:r.return_number,
+   ventaId:local.id,
+   productoId:item?.productoId,
+   cantidad:Number(r.quantity||0),
+   monto:Number(r.refund_amount||0),
+   reembolso,
+   motivo:r.reason||"",
+   fecha:r.created_at
+  };
+ });
+
+ const reembolsado=local.devoluciones.reduce((t,d)=>t+Number(d.reembolso||0),0);
+ local.totalPagado=Math.max(0,Math.min(Number(local.ingreso||0),pagadoBruto-reembolsado));
+ local.saldo=Math.max(0,Number(local.ingreso||0)-Number(local.totalPagado||0));
+ local.estadoPago=local.saldo>0.009?"credito":"pagado";
+ if(local.saldo<=0.009)local.fechaVencimiento="";
+
+ return local;
+}
+
 async function cargarVentasSupabase(){
  if(flkModoRecuperacionPassword)return false;
  if(flkNubeDisponible()&&!flkSesionActiva)return false;
@@ -6890,14 +6947,11 @@ async function cargarVentasSupabase(){
 
  ventas=(cloud||[]).map(v=>{
   const local=ventaDesdeSupabase(v);
-  const retornos=Array.isArray(v.sale_returns)?v.sale_returns:[];
-  local.devoluciones=retornos.map(r=>({
-   id:idLocalDesdeLegacy(null,r.id),supabaseId:r.id,numeroDevolucion:r.return_number,ventaId:local.id,
-   productoId:(local.items.find(i=>i.supabaseSaleItemId===r.sale_item_id)||{}).productoId,
-   cantidad:Number(r.quantity||0),monto:Number(r.refund_amount||0),motivo:r.reason||"",fecha:r.created_at
-  }));
-  local.items.forEach(i=>{i.devuelto=retornos.filter(r=>r.sale_item_id===i.supabaseSaleItemId).reduce((t,r)=>t+Number(r.quantity||0),0)});
-  return local;
+  return flkAplicarDevolucionesSupabaseAVenta(
+   local,
+   Array.isArray(v.sale_returns)?v.sale_returns:[],
+   v
+  );
  });
  const maxNumero=ventas.reduce((m,v)=>Math.max(m,Number(v.numeroConsecutivo||0)),0);
  if(maxNumero>=proximoNumeroRecibo)proximoNumeroRecibo=maxNumero+1;
