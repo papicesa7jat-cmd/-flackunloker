@@ -7318,26 +7318,46 @@ document.getElementById("formularioDevolucion").addEventListener("submit",async 
   return
  }
 
- if(!item.supabaseSaleItemId)return alert("Este artículo del recibo todavía no está vinculado con Supabase.");
+ if(!item.supabaseSaleItemId && !saleOperationId)return alert("Este artículo del recibo todavía no tiene una referencia segura para sincronizar la devolución.");
+ if(!productId)return alert("Este producto todavía no está vinculado con Supabase.");
+
  procesandoGuardado=true;
  try{
-  const {error}=await flkSupabase.rpc("flk_return_sale_item",{
-   p_sale_item_id:item.supabaseSaleItemId,
-   p_quantity:cantidad,
-   p_reason:motivo||null
+  const op=flkEncolarOperacion("sale_return",{
+   sale_item_id:item.supabaseSaleItemId||null,
+   sale_operation_id:saleOperationId,
+   product_id:productId,
+   local_sale_id:v.id,
+   local_product_id:item.productoId,
+   local_return_id:Date.now()+Math.floor(Math.random()*100000),
+   quantity:cantidad,
+   reason:motivo||null
   });
-  if(error)throw error;
-  await cargarInventarioSupabase();
-  await cargarHistorialSupabase();
-  await cargarVentasSupabase();
-  actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();
+
+  // Aplicación inmediata local: no esperar a Supabase.
+  flkAplicarDevolucionLocal(op);
+  guardarDatos();guardarVentas();guardarHistorial();
+  mostrarProductos();actualizarVentas();actualizarResumenHistorial();
+  mostrarListaHistorial();actualizarClientes();
+  actualizarEstadisticas();actualizarFlujoCaja();actualizarFinanzas();
   cerrarDevolucion();
-  alert("✅ Devolución guardada en Supabase. El inventario, el recibo y el saldo fueron actualizados.");
+
+  alert("✅ Devolución aplicada localmente. Se sincronizará automáticamente.");
+
+  // Intento de sincronización en segundo plano sin bloquear la devolución.
+  setTimeout(()=>{
+   try{
+    if(typeof flkSincronizarPendientes==="function")flkSincronizarPendientes();
+   }catch(e){console.warn("Sincronización posterior omitida",e)}
+  },100);
  }catch(err){
   console.error(err);
-  if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó la devolución: "+(err.message||err))
- }finally{procesandoGuardado=false}
+  alert("No se pudo guardar la devolución: "+(err.message||err));
+ }finally{
+  procesandoGuardado=false;
+ }
 });
+
 
 function abrirAbono(id){const v=ventas.find(x=>x.id===id);if(!v)return;normalizarCuentaVenta(v);if(v.saldo<=0)return alert("Este recibo ya está pagado.");ventaAbonoId=id;const numero=v.numero||String(v.id).slice(-8);document.getElementById("textoAbono").textContent=`Recibo #${numero} · ${v.cliente||"Cliente general"}`;document.getElementById("cantidadAbono").value=Number(v.saldo).toFixed(2);document.getElementById("cantidadAbono").max=Number(v.saldo).toFixed(2);document.getElementById("ayudaAbono").textContent=`Saldo pendiente: $${Number(v.saldo).toFixed(2)}`;document.getElementById("notaAbono").value="";document.getElementById("modalAbono").classList.add("visible");document.getElementById("cantidadAbono").focus()}
 function cerrarAbono(){document.getElementById("modalAbono").classList.remove("visible");document.getElementById("formularioAbono").reset();ventaAbonoId=null}
