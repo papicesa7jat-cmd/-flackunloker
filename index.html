@@ -2985,7 +2985,8 @@ function flkAplicarDevolucionLocal(op){
   nombre:item.nombre||"Producto",
   cantidad:aplicada,
   monto,
-  reembolso:monto,
+  // v61.74: caja devuelve solo dinero realmente cobrado.
+  reembolso:Math.min(monto,Number(v.totalPagado||0)),
   motivo:p.reason||"",
   fecha:op.created_at||new Date().toISOString()
  });
