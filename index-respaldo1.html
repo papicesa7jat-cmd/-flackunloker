@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-09-04-v61.44-prestaciones-offline-seguro">
+<meta name="flackunloker-offline-version" content="2026-09-07-v61.86-contribucion-mensual-neta">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1918,7 +1918,7 @@ textarea::placeholder{
   </div>
  </div>
  <div style="margin-top:15px">
-  <div class="fila-estadistica"><span>Ventas brutas del mes</span><strong id="repArrVentas">$0.00</strong></div>
+  <div class="fila-estadistica"><span>Ventas del mes · netas de devoluciones</span><strong id="repArrVentas">$0.00</strong></div>
   <div class="fila-estadistica"><span>Modalidad</span><strong id="repArrModalidad">—</strong></div>
   <div class="fila-estadistica"><span>Valor configurado</span><strong id="repArrValor">—</strong></div>
   <div class="fila-estadistica"><span>Arrendamiento calculado</span><strong id="repArrMonto">$0.00</strong></div>
@@ -2114,7 +2114,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 </div>
 
 <div style="margin-top:16px">
- <div class="fila-estadistica"><span>Ventas brutas del mes</span><strong id="contribVentasBrutas">$0.00</strong></div>
+ <div class="fila-estadistica"><span>Ventas del mes · netas de devoluciones</span><strong id="contribVentasBrutas">$0.00</strong></div>
  <div class="fila-estadistica"><span id="contribDetalleArrendamiento">Arrendamiento calculado</span><strong id="contribArrendamiento">$0.00</strong></div>
  <div class="fila-estadistica"><span>Ganancia bruta del mes</span><strong id="contribGananciaBruta">$0.00</strong></div>
  <div class="fila-estadistica"><span>Ganancia bruta después de arrendamiento</span><strong id="contribResultado">$0.00</strong></div>
@@ -2985,7 +2985,10 @@ function flkAplicarDevolucionLocal(op){
   nombre:item.nombre||"Producto",
   cantidad:aplicada,
   monto,
-  reembolso:monto,
+  // v61.80: usar pagadoAnterior (lo que había pagado el cliente ANTES de esta
+  // devolución), no v.totalPagado -- ese ya quedó reducido a "nuevoPagado" dos
+  // líneas arriba, así que leerlo aquí siempre daba $0 de reembolso en caja.
+  reembolso:Math.min(monto,pagadoAnterior),
   motivo:p.reason||"",
   fecha:op.created_at||new Date().toISOString()
  });
@@ -3920,6 +3923,10 @@ function flkLimpiarSesionLocal(){
  try{
   localStorage.removeItem(FLK_SESSION_CACHE_KEY);
   localStorage.removeItem(FLK_ROLE_CACHE_KEY);
+  // v61.81: sin esto, cerrar sesión no apagaba el modo "forzado sin conexión".
+  // Al recargar, la app volvía a entrar offline y retomaba la sesión local,
+  // dando la sensación de que el cierre de sesión no funcionaba.
+  localStorage.removeItem(FLK_FORCE_OFFLINE_KEY);
  }catch(e){}
 }
 function flkPintarSesionLocal(user){
@@ -4043,25 +4050,11 @@ async function flkRecuperacionEmergenciaNube(){
      sale_payments:pagos.filter(x=>x.sale_id===v.id),
      sale_returns:devol.filter(x=>x.sale_id===v.id)
     };
-    const local=ventaDesdeSupabase(row);
-    const retornos=row.sale_returns||[];
-    local.devoluciones=retornos.map(r=>({
-     id:idLocalDesdeLegacy(null,r.id),
-     supabaseId:r.id,
-     numeroDevolucion:r.return_number,
-     ventaId:local.id,
-     productoId:(local.items.find(i=>i.supabaseSaleItemId===r.sale_item_id)||{}).productoId,
-     cantidad:Number(r.quantity||0),
-     monto:Number(r.refund_amount||0),
-     reembolso:Number(r.refund_amount||0),
-     motivo:r.reason||"",
-     fecha:r.created_at
-    }));
-    local.items.forEach(i=>{
-     i.devuelto=retornos.filter(r=>r.sale_item_id===i.supabaseSaleItemId)
-      .reduce((t,r)=>t+Number(r.quantity||0),0);
-    });
-    return local
+    return flkAplicarDevolucionesSupabaseAVenta(
+     ventaDesdeSupabase(row),
+     row.sale_returns||[],
+     row
+    );
    });
    const maxNumero=ventas.reduce((m,v)=>Math.max(m,Number(v.numeroConsecutivo||0)),0);
    if(maxNumero>=proximoNumeroRecibo)proximoNumeroRecibo=maxNumero+1;
@@ -4253,6 +4246,15 @@ async function cerrarSesionFlackunloker(){
   await flkSupabase.auth.signOut();
  }catch(err){console.error(err)}
  try{flkLimpiarSesionLocal()}catch(_){}
+ // v61.81: si signOut() falló (por ejemplo, sin conexión), el token de Supabase
+ // puede quedar guardado en localStorage y la app lo retoma solo al recargar.
+ // Se limpia manualmente para garantizar que la sesión sí termine.
+ try{
+  for(let i=localStorage.length-1;i>=0;i--){
+   const k=localStorage.key(i)||"";
+   if(/^sb-.*-auth-token$/.test(k))localStorage.removeItem(k);
+  }
+ }catch(_){}
  location.reload();
 }
 document.getElementById("formAuth").addEventListener("submit",async e=>{
@@ -6604,9 +6606,28 @@ function mostrarProductos(){
  });
  actualizarResumen();actualizarAlertasInventario()
 }
+
+function flkGananciaAjustadaVenta(v){
+  // La ganancia se revierte según el margen real del producto devuelto.
+  // No se descuenta el reembolso completo porque eso duplicaría la pérdida.
+  let g=Number(v.ganancia||0);
+  const devs=Array.isArray(v.devoluciones)?v.devoluciones:[];
+  devs.forEach(d=>{
+    const items=Array.isArray(d.items)?d.items:[];
+    const gananciaDevuelta=items.reduce((t,i)=>{
+      const cantidad=Number(i.cantidad||0);
+      const precio=Number(i.precioUnitario||i.precio||0);
+      const costo=Number(i.costoUnitario||i.costo||0);
+      return t + Math.max(0,(precio-costo)*cantidad);
+    },0);
+    g-=gananciaDevuelta;
+  });
+  return Math.abs(g)<0.005 ? 0 : g;
+}
+
 function actualizarResumen(){
  const unidades=productos.reduce((t,p)=>t+Number(p.cantidad),0),valorCosto=productos.reduce((t,p)=>t+Number(p.cantidad)*Number(p.costo??0),0),ventaPotencial=productos.reduce((t,p)=>t+Number(p.cantidad)*Number(p.precio),0),gananciaPotencial=ventaPotencial-valorCosto;
- const gananciaRealVentas=ventas.reduce((t,v)=>t+Number(v.ganancia||0),0),totalGastos= gastos.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNetaTotal=gananciaRealVentas-totalGastos;
+ const gananciaRealVentas=ventas.reduce((t,v)=>t+flkGananciaAjustadaVenta(v),0),totalGastos= gastos.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNetaTotal=gananciaRealVentas-totalGastos;
  document.getElementById("totalProductos").textContent=productos.length;document.getElementById("totalUnidades").textContent=unidades;document.getElementById("valorInventario").textContent="$"+valorCosto.toFixed(2);document.getElementById("ventaPotencial").textContent="$"+ventaPotencial.toFixed(2);document.getElementById("gananciaPotencial").textContent="$"+gananciaPotencial.toFixed(2);
  const gastoInventario=document.getElementById("gastoTotalInventario");if(gastoInventario)gastoInventario.textContent="$"+totalGastos.toFixed(2);
  const neto=document.getElementById("gananciaNetaTotal");if(neto){neto.textContent=(gananciaNetaTotal<0?"-$":"$")+Math.abs(gananciaNetaTotal).toFixed(2);neto.style.color=gananciaNetaTotal<0?"#d93025":"#168044"}
@@ -6712,9 +6733,17 @@ function ventaDesdeSupabase(v){
  }));
  const legacyNum=Number(v.legacy_id);
  const id=Number.isFinite(legacyNum)&&v.legacy_id!==null?idLocalDesdeLegacy(v.legacy_id,v.id):idLocalDesdeLegacy(null,v.id);
- const ingreso=Number(v.total||0),
-       cantidadNeta=items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0),
+ const cantidadNeta=items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0),
+       // v61.79: el ingreso debe quedar neto de las unidades ya devueltas, igual que costoTotal.
+       // Antes se usaba v.total (el monto original de la venta, sin restar devoluciones) mientras
+       // costoTotal sí restaba lo devuelto, dejando la ganancia mal calculada tras recargar desde Supabase.
+       ingreso=items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0))*Number(i.precioUnitario||0),0),
        costoTotal=items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0))*Number(i.costoUnitario||0),0);
+ // v61.79: totalPagado/saldo también se recalculan contra el ingreso ya neto (no se
+ // confía en v.paid_amount/v.balance_due tal cual llegan de Supabase, que pueden
+ // quedar desalineados tras una devolución y producir un saldo negativo).
+ const totalPagado=Math.max(0,Math.min(Number(v.paid_amount||0),ingreso)),
+       saldo=Math.max(0,ingreso-totalPagado);
  return {
   id,supabaseId:v.id,
   numero:v.receipt_number||String(id).slice(-8),
@@ -6726,13 +6755,84 @@ function ventaDesdeSupabase(v){
   cliente:v.customer_name||"Cliente general",
   telefono:v.customer_phone||"",
   metodoPago:v.payment_method||"cash",
-  estadoPago:Number(v.balance_due||0)>0.009?"credito":"pagado",
-  totalPagado:Number(v.paid_amount||0),
-  saldo:Number(v.balance_due||0),
+  estadoPago:saldo>0.009?"credito":"pagado",
+  totalPagado,
+  saldo,
   pagos,
   fechaVencimiento:v.due_date||"",
   nota:v.note||""
  }
+}
+
+
+/* ===== v61.85 · RECONSTRUCCIÓN CORRECTA DE DEVOLUCIONES DESDE SUPABASE =====
+   La venta se reconstruye primero desde sales/sale_items y DESPUÉS se aplican
+   sale_returns. Así evitamos que al sincronizar reaparezcan ingreso, costo,
+   ganancia o saldo que ya habían sido anulados localmente por una devolución.
+*/
+function flkAplicarDevolucionesSupabaseAVenta(local, retornos, ventaNube){
+ const rs=Array.isArray(retornos)?retornos:[];
+ if(!local||!Array.isArray(local.items))return local;
+
+ // Cantidad devuelta real por artículo: sale_returns es la fuente de verdad.
+ local.items.forEach(i=>{
+  i.devuelto=rs
+   .filter(r=>r.sale_item_id===i.supabaseSaleItemId)
+   .reduce((t,r)=>t+Number(r.quantity||0),0);
+ });
+
+ // Recalcular importes NETOS después de aplicar las devoluciones.
+ local.cantidad=local.items.reduce(
+  (t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0
+ );
+ local.ingreso=local.items.reduce(
+  (t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0))*Number(i.precioUnitario||0),0
+ );
+ local.costoTotal=local.items.reduce(
+  (t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0))*Number(i.costoUnitario||0),0
+ );
+ local.ganancia=Number(local.ingreso||0)-Number(local.costoTotal||0);
+
+ // El efectivo histórico cobrado se obtiene de sale_payments cuando existe.
+ // Si no hay filas de pago, usamos paid_amount como respaldo.
+ const pagosBrutos=Array.isArray(local.pagos)
+  ? local.pagos.reduce((t,p)=>t+Number(p.cantidad||0),0)
+  : 0;
+ const pagadoBruto=Math.max(
+  pagosBrutos,
+  Number(ventaNube?.paid_amount||0),
+  0
+ );
+
+ // Reembolsos: nunca pueden superar el dinero realmente cobrado.
+ // Se asignan en orden para que varias devoluciones no dupliquen la salida de caja.
+ let disponibleReembolso=pagadoBruto;
+ local.devoluciones=rs.map(r=>{
+  const solicitado=Math.max(0,Number(r.refund_amount||0));
+  const reembolso=Math.min(solicitado,disponibleReembolso);
+  disponibleReembolso=Math.max(0,disponibleReembolso-reembolso);
+  const item=local.items.find(i=>i.supabaseSaleItemId===r.sale_item_id);
+  return {
+   id:idLocalDesdeLegacy(null,r.id),
+   supabaseId:r.id,
+   numeroDevolucion:r.return_number,
+   ventaId:local.id,
+   productoId:item?.productoId,
+   cantidad:Number(r.quantity||0),
+   monto:Number(r.refund_amount||0),
+   reembolso,
+   motivo:r.reason||"",
+   fecha:r.created_at
+  };
+ });
+
+ const reembolsado=local.devoluciones.reduce((t,d)=>t+Number(d.reembolso||0),0);
+ local.totalPagado=Math.max(0,Math.min(Number(local.ingreso||0),pagadoBruto-reembolsado));
+ local.saldo=Math.max(0,Number(local.ingreso||0)-Number(local.totalPagado||0));
+ local.estadoPago=local.saldo>0.009?"credito":"pagado";
+ if(local.saldo<=0.009)local.fechaVencimiento="";
+
+ return local;
 }
 
 async function cargarVentasSupabase(){
@@ -6847,14 +6947,11 @@ async function cargarVentasSupabase(){
 
  ventas=(cloud||[]).map(v=>{
   const local=ventaDesdeSupabase(v);
-  const retornos=Array.isArray(v.sale_returns)?v.sale_returns:[];
-  local.devoluciones=retornos.map(r=>({
-   id:idLocalDesdeLegacy(null,r.id),supabaseId:r.id,numeroDevolucion:r.return_number,ventaId:local.id,
-   productoId:(local.items.find(i=>i.supabaseSaleItemId===r.sale_item_id)||{}).productoId,
-   cantidad:Number(r.quantity||0),monto:Number(r.refund_amount||0),motivo:r.reason||"",fecha:r.created_at
-  }));
-  local.items.forEach(i=>{i.devuelto=retornos.filter(r=>r.sale_item_id===i.supabaseSaleItemId).reduce((t,r)=>t+Number(r.quantity||0),0)});
-  return local;
+  return flkAplicarDevolucionesSupabaseAVenta(
+   local,
+   Array.isArray(v.sale_returns)?v.sale_returns:[],
+   v
+  );
  });
  const maxNumero=ventas.reduce((m,v)=>Math.max(m,Number(v.numeroConsecutivo||0)),0);
  if(maxNumero>=proximoNumeroRecibo)proximoNumeroRecibo=maxNumero+1;
@@ -6994,7 +7091,7 @@ function recalcularTotalesVenta(v){
 function actualizarDashboardVentas(){
  const ahora=new Date(),inicioHoy=new Date(ahora.getFullYear(),ahora.getMonth(),ahora.getDate()),inicioSemana=new Date(inicioHoy);inicioSemana.setDate(inicioSemana.getDate()-6);const inicioMes=new Date(ahora.getFullYear(),ahora.getMonth(),1);
  const enPeriodo=(v,inicio)=>{const f=new Date(v.fecha);return !Number.isNaN(f.getTime())&&f>=inicio&&f<=ahora};
- const resumen=arr=>({ingresos:arr.reduce((t,v)=>t+Number(v.ingreso??0),0),ganancia:arr.reduce((t,v)=>t+Number(v.ganancia??0),0)});
+ const resumen=arr=>({ingresos:arr.reduce((t,v)=>t+Number(v.ingreso??0),0),ganancia:arr.reduce((t,v)=>t+flkGananciaAjustadaVenta(v),0)});
  const formato=r=>`$${r.ingresos.toFixed(2)} / $${r.ganancia.toFixed(2)}`;
  document.getElementById("dashboardHoy").textContent=formato(resumen(ventas.filter(v=>enPeriodo(v,inicioHoy))));
  document.getElementById("dashboardSemana").textContent=formato(resumen(ventas.filter(v=>enPeriodo(v,inicioSemana))));
@@ -7179,6 +7276,13 @@ document.getElementById("formularioCambioPinDevolucion")?.addEventListener("subm
  alert("✅ PIN de devolución cambiado correctamente en este dispositivo.");
 });
 
+
+function flkCalcularReembolsoReal(v){
+ const pagos=Array.isArray(v.sale_payments)?v.sale_payments:[];
+ const totalPagos=pagos.reduce((s,p)=>s+Number(p.amount||p.cantidad||0),0);
+ const pagadoInicial=Number(v.pagado||0);
+ return Math.max(totalPagos,pagadoInicial);
+}
 function abrirDevolucion(id){
  if(rolSesion==="admin")return abrirDevolucionAutorizada(id);
  ventaPendienteAutorizacionDevolucion=id;
@@ -7254,8 +7358,16 @@ document.getElementById("formularioDevolucion").addEventListener("submit",async 
  const cantidad=Number(document.getElementById("cantidadDevolucion").value);
  const motivo=(document.getElementById("motivoDevolucion")?.value||"").trim();
  const disponible=Number(item.cantidad||0)-Number(item.devuelto||0);
+ const precioUnidad=Number(item.precioUnitario||0);
+ const montoDevolucion=cantidad*precioUnidad;
+ const pagosRegistrados=Array.isArray(v.sale_payments)?v.sale_payments:[];
+ const totalPagadoReal=flkCalcularReembolsoReal(v);
+ const saldoPendiente=Math.max(0,Number(v.ingreso||0)-totalPagadoReal);
+ const maximoPermitido=totalPagadoReal+saldoPendiente;
  if(!Number.isInteger(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
  if(cantidad>disponible)return alert(`Solo quedan ${disponible} unidad(es) disponibles para devolver.`);
+ if(montoDevolucion>Number(v.ingreso||0)+0.009)return alert("La devolución no puede superar el valor del recibo.");
+ if(montoDevolucion>maximoPermitido+0.009)return alert("La devolución supera el límite permitido de esta venta.");
 
  const prod=productos.find(x=>String(x.id)===String(item.productoId));
  const productId=item.supabaseProductId||prod?.supabaseId||null;
@@ -7289,26 +7401,46 @@ document.getElementById("formularioDevolucion").addEventListener("submit",async 
   return
  }
 
- if(!item.supabaseSaleItemId)return alert("Este artículo del recibo todavía no está vinculado con Supabase.");
+ if(!item.supabaseSaleItemId && !saleOperationId)return alert("Este artículo del recibo todavía no tiene una referencia segura para sincronizar la devolución.");
+ if(!productId)return alert("Este producto todavía no está vinculado con Supabase.");
+
  procesandoGuardado=true;
  try{
-  const {error}=await flkSupabase.rpc("flk_return_sale_item",{
-   p_sale_item_id:item.supabaseSaleItemId,
-   p_quantity:cantidad,
-   p_reason:motivo||null
+  const op=flkEncolarOperacion("sale_return",{
+   sale_item_id:item.supabaseSaleItemId||null,
+   sale_operation_id:saleOperationId,
+   product_id:productId,
+   local_sale_id:v.id,
+   local_product_id:item.productoId,
+   local_return_id:Date.now()+Math.floor(Math.random()*100000),
+   quantity:cantidad,
+   reason:motivo||null
   });
-  if(error)throw error;
-  await cargarInventarioSupabase();
-  await cargarHistorialSupabase();
-  await cargarVentasSupabase();
-  actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();
+
+  // Aplicación inmediata local: no esperar a Supabase.
+  flkAplicarDevolucionLocal(op);
+  guardarDatos();guardarVentas();guardarHistorial();
+  mostrarProductos();actualizarVentas();actualizarResumenHistorial();
+  mostrarListaHistorial();actualizarClientes();
+  actualizarEstadisticas();actualizarFlujoCaja();actualizarFinanzas();
   cerrarDevolucion();
-  alert("✅ Devolución guardada en Supabase. El inventario, el recibo y el saldo fueron actualizados.");
+
+  alert("✅ Devolución aplicada localmente. Se sincronizará automáticamente.");
+
+  // Intento de sincronización en segundo plano sin bloquear la devolución.
+  setTimeout(()=>{
+   try{
+    if(typeof flkSincronizarPendientes==="function")flkSincronizarPendientes();
+   }catch(e){console.warn("Sincronización posterior omitida",e)}
+  },100);
  }catch(err){
   console.error(err);
-  if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó la devolución: "+(err.message||err))
- }finally{procesandoGuardado=false}
+  alert("No se pudo guardar la devolución: "+(err.message||err));
+ }finally{
+  procesandoGuardado=false;
+ }
 });
+
 
 function abrirAbono(id){const v=ventas.find(x=>x.id===id);if(!v)return;normalizarCuentaVenta(v);if(v.saldo<=0)return alert("Este recibo ya está pagado.");ventaAbonoId=id;const numero=v.numero||String(v.id).slice(-8);document.getElementById("textoAbono").textContent=`Recibo #${numero} · ${v.cliente||"Cliente general"}`;document.getElementById("cantidadAbono").value=Number(v.saldo).toFixed(2);document.getElementById("cantidadAbono").max=Number(v.saldo).toFixed(2);document.getElementById("ayudaAbono").textContent=`Saldo pendiente: $${Number(v.saldo).toFixed(2)}`;document.getElementById("notaAbono").value="";document.getElementById("modalAbono").classList.add("visible");document.getElementById("cantidadAbono").focus()}
 function cerrarAbono(){document.getElementById("modalAbono").classList.remove("visible");document.getElementById("formularioAbono").reset();ventaAbonoId=null}
@@ -8127,6 +8259,10 @@ function movimientosFlujoCaja(){
   devolucionesDeVenta(v).forEach((d,idx)=>{
    mov.push({
     id:"reembolso-"+String(d.supabaseId||d.offlineOperationId||d.id||idx),
+    // v61.80: usar directamente el reembolso guardado en la devolución (ya viene
+    // correctamente calculado al momento de aplicarla). Antes se volvía a limitar
+    // contra v.totalPagado ACTUAL del recibo, que para entonces ya está reducido
+    // por la propia devolución, y siempre daba $0 de salida en caja.
     tipo:"salida",cantidad:Number(d.reembolso??d.monto??0),
     concepto:"Reembolso devolución · Recibo "+String(v.numero||v.id),
     metodo:normalizarMetodoFlujo(d.metodo||v.metodoPago||"Otro"),
@@ -8347,24 +8483,25 @@ function configuracionArrendamientoMes(mes){
 }
 function ventasBrutasMesArrendamiento(mes){
  if(!mes)return 0;
+ // v61.86: v.ingreso ya representa la venta NETA después de devoluciones.
+ // No se vuelve a sumar el importe devuelto, porque eso revivía ventas anuladas.
  return ventas.reduce((total,v)=>{
   const d=new Date(v.fecha);
   if(Number.isNaN(d.getTime()))return total;
   const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   if(vm!==mes)return total;
-  const dev=Array.isArray(v.devoluciones)?v.devoluciones.reduce((t,r)=>t+Number(r.monto??r.reembolso??0),0):0;
-  return total+Number(v.ingreso||0)+dev;
+  return total+Math.max(0,Number(v.ingreso||0));
  },0)
 }
 function costoVentasMesArrendamiento(mes){
  if(!mes)return 0;
+ // v61.86: v.costoTotal también es NETO después de devoluciones.
  return ventas.reduce((total,v)=>{
   const d=new Date(v.fecha);
   if(Number.isNaN(d.getTime()))return total;
   const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   if(vm!==mes)return total;
-  const costoDevuelto=itemsDeVenta(v).reduce((t,i)=>t+Math.max(0,Number(i.devuelto||0))*Number(i.costoUnitario||0),0);
-  return total+Number(v.costoTotal||0)+costoDevuelto;
+  return total+Math.max(0,Number(v.costoTotal||0));
  },0)
 }
 function cargarConfiguracionArrendamientoMes(){
@@ -8395,7 +8532,7 @@ function actualizarEstadoContribucionArrendamiento(){
  const input=document.getElementById("valorArrendamiento");
  if(modo==="percent"){
   if(label)label.textContent="Porcentaje sobre ventas brutas (%)";
-  if(detalle)detalle.textContent=`Arrendamiento (${valor.toFixed(2)}% de ventas brutas)`;
+  if(detalle)detalle.textContent=`Arrendamiento (${valor.toFixed(2)}% de ventas netas del mes)`;
   if(input){input.max="100";input.step="0.01"}
  }else{
   if(label)label.textContent="Pago fijo mensual ($)";
@@ -8433,6 +8570,33 @@ function limitesFinanzas(){
  }else{desde=new Date(ahora.getFullYear(),ahora.getMonth(),1);hasta=new Date(ahora.getFullYear(),ahora.getMonth()+1,1);texto="Este mes"}
  return {desde,hasta,texto}
 }
+
+/* ===== v61.86 · CONTRIBUCIÓN MENSUAL EN GANANCIA NETA ===== */
+function flkMesesEnPeriodoFinanzas(lim){
+ const meses=[];
+ if(!lim?.desde||!lim?.hasta)return meses;
+ let d=new Date(lim.desde.getFullYear(),lim.desde.getMonth(),1);
+ const fin=new Date(lim.hasta.getTime()-1);
+ const ultimo=new Date(fin.getFullYear(),fin.getMonth(),1);
+ while(d<=ultimo){
+  meses.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);
+  d=new Date(d.getFullYear(),d.getMonth()+1,1);
+ }
+ return meses
+}
+function flkArrendamientoMes(mes){
+ const conf=configuracionArrendamientoMes(mes);
+ if(!conf)return 0;
+ const modo=conf.mode||"percent";
+ const valor=Math.max(0,Number(conf.value||0));
+ const ventasMes=ventasBrutasMesArrendamiento(mes);
+ return modo==="percent"?ventasMes*(valor/100):valor
+}
+function flkArrendamientoPeriodo(lim){
+ return flkMesesEnPeriodoFinanzas(lim)
+  .reduce((t,mes)=>t+flkArrendamientoMes(mes),0)
+}
+
 function datosFinanzas(){
  const lim=limitesFinanzas();if(!lim)return null;
  const enRango=f=>{const d=new Date(f);return !Number.isNaN(d.getTime())&&d>=lim.desde&&d<lim.hasta};
@@ -8464,7 +8628,9 @@ function datosFinanzas(){
  const ingresosTotales=ventasTotal+prestIngresos;
  const bruta=brutaMercancia+prestNeto;
  const gastosTotal=gg.reduce((t,g)=>t+Number(g.cantidad||0),0);
- const neta=bruta-gastosTotal;
+ // La contribución/arrendamiento se descuenta UNA sola vez por cada mes configurado.
+ const arrendamientoPeriodo=flkArrendamientoPeriodo(lim);
+ const neta=bruta-gastosTotal-arrendamientoPeriodo;
 
  // Posición financiera actual
  const inventario=productos.reduce((t,p)=>t+Number(p.cantidad||0)*Number(p.costo||0),0);
@@ -8497,7 +8663,7 @@ function datosFinanzas(){
  const flujoCajaTotal=flujoOperativo+netoPropietario;
 
  return {
-  lim,ventasTotal,costo,brutaMercancia,prestIngresos,prestCostos,prestNeto,ingresosTotales,bruta,gastosTotal,neta,
+  lim,ventasTotal,costo,brutaMercancia,prestIngresos,prestCostos,prestNeto,ingresosTotales,bruta,gastosTotal,arrendamientoPeriodo,neta,
   caja,inventario,porCobrar,porPagar,activos,patrimonio,
   entradas,salidas,flujo:flujoOperativo,
   aportesPropietario,retirosPropietario,netoPropietario,flujoCajaTotal
@@ -8537,6 +8703,8 @@ function actualizarFinanzas(){
  money("finCosto",d.costo);
  money("finPrestCostosPeriodo",d.prestCostos);
  money("finBruta",d.bruta);money("finGastos",d.gastosTotal);money("finNeta",d.neta);
+ const finNetaEl=document.getElementById("finNeta");
+ if(finNetaEl)finNetaEl.title=`Incluye contribución/arrendamiento mensual: $${Number(d.arrendamientoPeriodo||0).toFixed(2)}`;
  money("finEntradas",d.entradas);money("finSalidas",d.salidas);money("finFlujoNeto",d.flujo);
  money("finAportesPropietario",d.aportesPropietario);
  money("finRetirosPropietario",d.retirosPropietario);
@@ -8872,7 +9040,7 @@ body.flk-v6125 #cuentasTotalPagado {
 .flk-etiqueta-qr .qrbox img,.flk-etiqueta-qr .qrbox canvas{width:30mm!important;height:30mm!important}
 @media(max-width:430px){.flk-qr-controles,.flk-qr-acciones{grid-template-columns:1fr}}
 </style>
-</head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas de mercancía</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Ingresos por prestaciones</span><strong>$${d.prestIngresos.toFixed(2)}</strong></div><div class="fila"><span>Ingresos totales</span><strong>$${d.ingresosTotales.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Costos externos de prestaciones</span><strong>$${d.prestCostos.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta total</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta total</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button>
+</head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas de mercancía</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Ingresos por prestaciones</span><strong>$${d.prestIngresos.toFixed(2)}</strong></div><div class="fila"><span>Ingresos totales</span><strong>$${d.ingresosTotales.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Costos externos de prestaciones</span><strong>$${d.prestCostos.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta total</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Contribución / arrendamiento mensual</span><strong>$${Number(d.arrendamientoPeriodo||0).toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta total</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button>
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
@@ -9091,31 +9259,6 @@ async function crearRespaldo(){
  }
 }
 function seleccionarRespaldo(){
-  const opcionCentro = prompt(
-    "Seleccione el centro destino para la restauración:\n\n1 - Centro Principal\n2 - Centro Prueba\n3 - Centro_Llenma\n\nEscriba el número:"
-  );
-  if(!opcionCentro) return;
-
-  const centros = {
-    "1":"Centro Principal",
-    "2":"Centro Prueba",
-    "3":"Centro_Llenma"
-  };
-
-  const centroDestino = centros[opcionCentro.trim()];
-
-  if(!centroDestino){
-    alert("Número de centro no válido.");
-    return;
-  }
-
-  const confirmar = confirm(
-    "Va a restaurar el respaldo en:\n\n" + centroDestino + "\n\n¿Continuar?"
-  );
-
-  if(!confirmar) return;
-
-  window.flkCentroRestauracionDestino = centroDestino;
   document.getElementById("archivoRespaldo").click();
 }
 
@@ -9172,33 +9315,33 @@ async function restaurarRespaldo(event){
    }
 
    const centroActivo=await flkResolverCentroBackup();
-   const centroDestinoNombre=String(window.flkCentroRestauracionDestino||centroActivo.nombre||"").trim();
 
-   // El propietario puede elegir el centro destino. La validación debe hacerse
-   // contra el centro seleccionado, no contra el centro de la sesión.
-   const destinoCoincide =
-      backupCentroNombre.toLowerCase().includes(centroDestinoNombre.toLowerCase()) ||
-      centroDestinoNombre.toLowerCase().includes(backupCentroNombre.toLowerCase());
-
-   if(!destinoCoincide && String(centroActivo.id)!==backupCentroId){
+   // Seguridad multicentro: comparar SIEMPRE contra el centro real de la sesión activa
+   // (centroActivo.id), nunca contra un nombre escrito a mano. Así se evita restaurar
+   // datos "a medias" que luego la sincronización con Supabase sobrescribe en silencio.
+   if(String(centroActivo.id)!==backupCentroId){
     return alert(
      "⛔ RESPALDO DE OTRO CENTRO\n\n"+
      "Respaldo: "+(backupCentroNombre||"Centro sin nombre")+" ("+backupCentroId.slice(0,8)+")\n"+
-     "Destino elegido: "+centroDestinoNombre+"\n\n"+
-     "La restauración fue bloqueada para evitar mezclar datos entre centros."
+     "Tu sesión actual: "+(centroActivo.nombre||"(sin nombre)")+" ("+String(centroActivo.id||"").slice(0,8)+")\n\n"+
+     "La restauración fue bloqueada porque este respaldo pertenece a otro centro.\n"+
+     "Inicia sesión con una cuenta de ese centro y vuelve a intentarlo."
     );
    }
 
-   const centroActual={id:backupCentroId,nombre:backupCentroNombre||centroDestinoNombre};
+   const centroActual={id:backupCentroId,nombre:backupCentroNombre||centroActivo.nombre};
 
    const ok=confirm(
     "✅ Centro verificado\n\n"+
     "Respaldo: "+(backupCentroNombre||centroActual.nombre)+"\n"+
-    "Centro destino: "+centroDestinoNombre+"\n\n"+
+    "Centro destino: "+centroActual.nombre+"\n\n"+
     "¿Quieres restaurar este respaldo?\n\n"+
     "Los datos locales actuales de ESTE CENTRO serán reemplazados por los datos del respaldo."
    );
-   if(!ok)return;
+   if(!ok){
+    mostrarEstadoRespaldo("❌ Restauración cancelada. No se modificó ningún dato.");
+    return;
+   }
 
    productos=datos.productos;
    historial=datos.historial;
@@ -9325,13 +9468,25 @@ recalcularSaldos();mostrarProductos();actualizarResumenHistorial();actualizarVen
 window.addEventListener("load",()=>{
  setTimeout(()=>flkValidarLicencia(),200);
 });
-window.addEventListener("online",()=>setTimeout(()=>flkValidarLicencia(),250));
+window.addEventListener("online",async()=>{
+ setTimeout(()=>flkValidarLicencia(),250);
+ // Al regresar Internet, sincroniza la cola offline sin cerrar sesión.
+ setTimeout(async()=>{
+  try{
+   if(typeof flkSincronizarSeguro==="function"){
+    await flkSincronizarSeguro();
+   }
+  }catch(e){
+   console.warn("Sincronización automática al volver Internet:",e);
+  }
+ },500);
+});
 window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.47",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.48",{updateViaCache:"none"});
    if(flkNubeDisponible())setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
