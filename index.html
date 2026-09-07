@@ -7367,6 +7367,10 @@ document.getElementById("formularioDevolucion").addEventListener("submit",async 
   alert("No se pudo guardar la devolución: "+(err.message||err));
  }finally{
   procesandoGuardado=false;
+  if(botonGuardarVenta){
+   botonGuardarVenta.disabled=false;
+   botonGuardarVenta.textContent=botonGuardarVenta.dataset.textoOriginal||"Guardar venta";
+  }
  }
 });
 
