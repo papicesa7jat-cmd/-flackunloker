@@ -8143,7 +8143,7 @@ function movimientosFlujoCaja(){
   devolucionesDeVenta(v).forEach((d,idx)=>{
    mov.push({
     id:"reembolso-"+String(d.supabaseId||d.offlineOperationId||d.id||idx),
-    tipo:"salida",cantidad:Number(d.reembolso??d.monto??0),
+    tipo:"salida",cantidad:Number(Math.min(Number(d.reembolso??d.monto??0), Number(v.totalPagado||v.pagado||v.totalPayment||0))),
     concepto:"Reembolso devolución · Recibo "+String(v.numero||v.id),
     metodo:normalizarMetodoFlujo(d.metodo||v.metodoPago||"Otro"),
     fecha:d.fecha||v.fecha||new Date().toISOString(),grupo:"reembolso"
