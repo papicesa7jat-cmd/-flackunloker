@@ -6607,15 +6607,21 @@ function mostrarProductos(){
 }
 
 function flkGananciaAjustadaVenta(v){
+  // La ganancia se revierte según el margen real del producto devuelto.
+  // No se descuenta el reembolso completo porque eso duplicaría la pérdida.
   let g=Number(v.ganancia||0);
   const devs=Array.isArray(v.devoluciones)?v.devoluciones:[];
   devs.forEach(d=>{
     const items=Array.isArray(d.items)?d.items:[];
-    const costoDev=items.reduce((t,i)=>t+Number(i.costoTotal||((i.costoUnitario||0)*(i.cantidad||0))),0);
-    const precioDev=Number(d.monto||d.reembolso||0);
-    if(costoDev) g-=Math.max(0,precioDev-costoDev);
+    const gananciaDevuelta=items.reduce((t,i)=>{
+      const cantidad=Number(i.cantidad||0);
+      const precio=Number(i.precioUnitario||i.precio||0);
+      const costo=Number(i.costoUnitario||i.costo||0);
+      return t + Math.max(0,(precio-costo)*cantidad);
+    },0);
+    g-=gananciaDevuelta;
   });
-  return g;
+  return Math.abs(g)<0.005 ? 0 : g;
 }
 
 function actualizarResumen(){
