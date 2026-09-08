@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-09-07-v61.86-metodos-pago-restaurados">
+<meta name="flackunloker-offline-version" content="2026-09-07-v61.86-operaciones-local-primero">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2790,7 +2790,10 @@ function flkEncolarOperacion(tipo,payload){
  const datos=(payload&&typeof payload==="object")?{...payload}:{};
  if(FLK_OPERACIONES_LOCAL_FIRST.has(tipo))datos.local_applied=true;
  const op={id:flkUUID(),tipo,payload:datos,device_id:flkDeviceId(),created_at:new Date().toISOString(),estado:"pendiente",intentos:0};
- q.push(op);flkGuardarColaOffline(q);return op
+ q.push(op);
+ flkGuardarColaOffline(q);
+ try{flkActualizarEstadoConexion()}catch(_){}
+ return op
 }
 function flkPendientesOffline(){
  return flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado)).length
@@ -3791,9 +3794,65 @@ function flkEsEfectivoCUP(metodo){
  return flkNormalizarMetodoPago(metodo)==="Efectivo CUP";
 }
 
+let flkOperacionLocalInmediataHasta=0;
 function flkNubeDisponible(){
- return !!navigator.onLine && localStorage.getItem(FLK_FORCE_OFFLINE_KEY)!=="1";
+ return !!navigator.onLine
+  && localStorage.getItem(FLK_FORCE_OFFLINE_KEY)!=="1"
+  && Date.now()>=Number(flkOperacionLocalInmediataHasta||0);
 }
+
+/* v61.86 · OPERACIONES LOCAL-PRIMERO
+   Cuando el usuario confirma una operación de negocio, se guarda primero
+   en la copia local/cola offline aunque navigator.onLine siga en true.
+   Así una señal mala no congela el botón esperando a Supabase.
+   La sincronización se intenta después en segundo plano. */
+const FLK_FORMULARIOS_OPERACION_LOCAL_PRIMERO=new Set([
+ "formularioProducto",
+ "formularioMovimiento",
+ "formularioVenta",
+ "formularioAbono",
+ "formularioDevolucion",
+ "formularioGasto",
+ "formularioRecepcionOrden",
+ "formularioPagoProveedor",
+ "formularioProveedor",
+ "formularioOrden",
+ "formularioMovimientoPropietario",
+ "formularioPrestacion"
+]);
+
+function flkPrepararOperacionLocalPrimero(formId){
+ if(!FLK_FORMULARIOS_OPERACION_LOCAL_PRIMERO.has(String(formId||"")))return false;
+
+ // Ventana corta suficiente para que el handler existente tome su ruta offline/local.
+ // No desactiva Internet del navegador ni elimina la sesión.
+ flkOperacionLocalInmediataHasta=Date.now()+2200;
+
+ setTimeout(()=>{
+  flkOperacionLocalInmediataHasta=0;
+  try{flkActualizarEstadoConexion()}catch(_){}
+
+  // Si realmente hay Internet, subir pendientes sin bloquear la interfaz.
+  if(navigator.onLine && localStorage.getItem(FLK_FORCE_OFFLINE_KEY)!=="1"){
+   setTimeout(()=>{
+    try{
+     if(typeof flkSincronizarSeguro==="function")flkSincronizarSeguro();
+     else if(typeof flkProcesarColaOffline==="function")flkProcesarColaOffline();
+    }catch(err){console.warn("Sincronización diferida:",err)}
+   },0);
+  }
+ },2250);
+
+ return true;
+}
+
+document.addEventListener("submit",function(ev){
+ const id=ev?.target?.id||"";
+ if(FLK_FORMULARIOS_OPERACION_LOCAL_PRIMERO.has(id)){
+  flkPrepararOperacionLocalPrimero(id);
+ }
+},true);
+
 function flkBytesHex(bytes){return Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");}
 function flkHexBytes(hex){
  const out=new Uint8Array(Math.floor(String(hex||"").length/2));
@@ -6546,7 +6605,7 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
 
  const btn=document.getElementById("botonConfirmarMovimiento");
  const est=document.getElementById("estadoMovimientoOffline");
- if(btn){btn.disabled=true;btn.textContent=flkNubeDisponible()?"Guardando...":"Guardando local..."}
+ if(btn){btn.disabled=true;btn.textContent="Guardando local..."}
  if(est)est.style.display=flkNubeDisponible()?"none":"block";
 
  try{
