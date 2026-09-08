@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-09-07-v61.86-metodos-pago-restaurados">
+<meta name="flackunloker-offline-version" content="2026-09-07-v61.86-cierre-caja-saldo-final-corregido">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1861,7 +1861,7 @@ textarea::placeholder{
 <div class="fila-estadistica"><span>Ventas a crédito del día</span><strong id="cierreCreditoHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>Saldo pendiente de esas ventas</span><strong id="cierreSaldoCreditoHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>Efectivo gastado hoy</span><strong id="cierreGastoEfectivoHoy">$0.00</strong></div>
-<div class="fila-estadistica"><span>💰 Efectivo neto de caja</span><strong id="cierreEfectivoNetoHoy">$0.00</strong></div>
+<div class="fila-estadistica"><span>💰 Saldo final de caja</span><strong id="cierreEfectivoNetoHoy">$0.00</strong></div>
 </div>
 <button id="botonGuardarCierre" class="boton-agregar" style="width:100%;padding:14px;margin-bottom:15px" onclick="guardarCierreHoy()">🔒 Guardar cierre de hoy</button>
 <div id="estadoCierreHoy" class="estado-respaldo"></div>
@@ -2790,7 +2790,10 @@ function flkEncolarOperacion(tipo,payload){
  const datos=(payload&&typeof payload==="object")?{...payload}:{};
  if(FLK_OPERACIONES_LOCAL_FIRST.has(tipo))datos.local_applied=true;
  const op={id:flkUUID(),tipo,payload:datos,device_id:flkDeviceId(),created_at:new Date().toISOString(),estado:"pendiente",intentos:0};
- q.push(op);flkGuardarColaOffline(q);return op
+ q.push(op);
+ flkGuardarColaOffline(q);
+ try{flkActualizarEstadoConexion()}catch(_){}
+ return op
 }
 function flkPendientesOffline(){
  return flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado)).length
@@ -3791,9 +3794,65 @@ function flkEsEfectivoCUP(metodo){
  return flkNormalizarMetodoPago(metodo)==="Efectivo CUP";
 }
 
+let flkOperacionLocalInmediataHasta=0;
 function flkNubeDisponible(){
- return !!navigator.onLine && localStorage.getItem(FLK_FORCE_OFFLINE_KEY)!=="1";
+ return !!navigator.onLine
+  && localStorage.getItem(FLK_FORCE_OFFLINE_KEY)!=="1"
+  && Date.now()>=Number(flkOperacionLocalInmediataHasta||0);
 }
+
+/* v61.86 · OPERACIONES LOCAL-PRIMERO
+   Cuando el usuario confirma una operación de negocio, se guarda primero
+   en la copia local/cola offline aunque navigator.onLine siga en true.
+   Así una señal mala no congela el botón esperando a Supabase.
+   La sincronización se intenta después en segundo plano. */
+const FLK_FORMULARIOS_OPERACION_LOCAL_PRIMERO=new Set([
+ "formularioProducto",
+ "formularioMovimiento",
+ "formularioVenta",
+ "formularioAbono",
+ "formularioDevolucion",
+ "formularioGasto",
+ "formularioRecepcionOrden",
+ "formularioPagoProveedor",
+ "formularioProveedor",
+ "formularioOrden",
+ "formularioMovimientoPropietario",
+ "formularioPrestacion"
+]);
+
+function flkPrepararOperacionLocalPrimero(formId){
+ if(!FLK_FORMULARIOS_OPERACION_LOCAL_PRIMERO.has(String(formId||"")))return false;
+
+ // Ventana corta suficiente para que el handler existente tome su ruta offline/local.
+ // No desactiva Internet del navegador ni elimina la sesión.
+ flkOperacionLocalInmediataHasta=Date.now()+2200;
+
+ setTimeout(()=>{
+  flkOperacionLocalInmediataHasta=0;
+  try{flkActualizarEstadoConexion()}catch(_){}
+
+  // Si realmente hay Internet, subir pendientes sin bloquear la interfaz.
+  if(navigator.onLine && localStorage.getItem(FLK_FORCE_OFFLINE_KEY)!=="1"){
+   setTimeout(()=>{
+    try{
+     if(typeof flkSincronizarSeguro==="function")flkSincronizarSeguro();
+     else if(typeof flkProcesarColaOffline==="function")flkProcesarColaOffline();
+    }catch(err){console.warn("Sincronización diferida:",err)}
+   },0);
+  }
+ },2250);
+
+ return true;
+}
+
+document.addEventListener("submit",function(ev){
+ const id=ev?.target?.id||"";
+ if(FLK_FORMULARIOS_OPERACION_LOCAL_PRIMERO.has(id)){
+  flkPrepararOperacionLocalPrimero(id);
+ }
+},true);
+
 function flkBytesHex(bytes){return Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");}
 function flkHexBytes(hex){
  const out=new Uint8Array(Math.floor(String(hex||"").length/2));
@@ -6546,7 +6605,7 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
 
  const btn=document.getElementById("botonConfirmarMovimiento");
  const est=document.getElementById("estadoMovimientoOffline");
- if(btn){btn.disabled=true;btn.textContent=flkNubeDisponible()?"Guardando...":"Guardando local..."}
+ if(btn){btn.disabled=true;btn.textContent="Guardando local..."}
  if(est)est.style.display=flkNubeDisponible()?"none":"block";
 
  try{
@@ -7798,9 +7857,7 @@ function resumenCierreFecha(fechaLocal){
  const gastoEfectivo=movimientosDia
   .filter(m=>m.tipo==="salida"&&m.grupo==="gasto"&&flkEsEfectivoCUP(m.metodo))
   .reduce((t,m)=>t+Number(m.cantidad||0),0);
- const efectivoNeto=movimientosDia
-  .filter(m=>flkEsEfectivoCUP(m.metodo))
-  .reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0);
+ const efectivoNeto=saldoCajaFisicaActual();
  return {fechaLocal,recibos,unidades,ventasTotal,costo,gananciaBruta,gastosTotal,gananciaNeta,cobrado,
   efectivo:cobros.efectivoCup,ath:0,tarjeta:0,
   otros:cobros.efectivoUsd+cobros.transferenciaCup+cobros.transferenciaUsd+cobros.transferenciaMlc+cobros.efectivoEuro+cobros.zelle+cobros.otros,
@@ -7833,10 +7890,10 @@ async function guardarCierreHoy(){
  guardarCierres();actualizarCierre();
  if(flkNubeDisponible())setTimeout(flkProcesarColaOffline,0);
 }
-function mostrarListaCierres(){const lista=document.getElementById("listaCierres"),arr=[...cierres].sort((a,b)=>String(b.fechaLocal).localeCompare(String(a.fechaLocal)));if(!arr.length){lista.innerHTML='<div class="sin-productos">Todavía no hay cierres guardados.</div>';return}lista.innerHTML=arr.map(c=>{const f=new Date(c.fechaLocal+"T12:00:00");return `<div class="cierre-card"><div class="venta-superior"><div><h3>Cierre · ${f.toLocaleDateString("es-PR")}</h3><p>Guardado ${new Date(c.guardado||Date.now()).toLocaleString("es-PR")}</p></div><div class="cierre-total">${formatoDineroCierre(c.gananciaNeta)}</div></div><div class="cierre-detalle">Ventas: <strong>${formatoDineroCierre(c.ventasTotal)}</strong> · Gastos: <strong>${formatoDineroCierre(c.gastosTotal)}</strong><br>Ganancia bruta: <strong>${formatoDineroCierre(c.gananciaBruta)}</strong> · Ganancia neta: <strong>${formatoDineroCierre(c.gananciaNeta)}</strong><br>Cobrado: <strong>${formatoDineroCierre(c.cobrado)}</strong> · Efectivo neto: <strong>${formatoDineroCierre(c.efectivoNeto)}</strong><br>Efectivo: ${formatoDineroCierre(c.efectivo)} · ATH: ${formatoDineroCierre(c.ath)} · Tarjeta: ${formatoDineroCierre(c.tarjeta)} · Otros: ${formatoDineroCierre(c.otros)}<br>Crédito: ${formatoDineroCierre(c.credito)} · Saldo pendiente: ${formatoDineroCierre(c.saldoCredito)}</div><div class="cierre-acciones"><button class="boton-cierre" onclick="imprimirCierre(${c.id})">🧾 Ver / imprimir</button><button class="boton-cierre boton-cierre-peligro" onclick="eliminarCierre(${c.id})">🗑️ Eliminar</button></div></div>`}).join("")}
+function mostrarListaCierres(){const lista=document.getElementById("listaCierres"),arr=[...cierres].sort((a,b)=>String(b.fechaLocal).localeCompare(String(a.fechaLocal)));if(!arr.length){lista.innerHTML='<div class="sin-productos">Todavía no hay cierres guardados.</div>';return}lista.innerHTML=arr.map(c=>{const f=new Date(c.fechaLocal+"T12:00:00");return `<div class="cierre-card"><div class="venta-superior"><div><h3>Cierre · ${f.toLocaleDateString("es-PR")}</h3><p>Guardado ${new Date(c.guardado||Date.now()).toLocaleString("es-PR")}</p></div><div class="cierre-total">${formatoDineroCierre(c.gananciaNeta)}</div></div><div class="cierre-detalle">Ventas: <strong>${formatoDineroCierre(c.ventasTotal)}</strong> · Gastos: <strong>${formatoDineroCierre(c.gastosTotal)}</strong><br>Ganancia bruta: <strong>${formatoDineroCierre(c.gananciaBruta)}</strong> · Ganancia neta: <strong>${formatoDineroCierre(c.gananciaNeta)}</strong><br>Cobrado: <strong>${formatoDineroCierre(c.cobrado)}</strong> · Saldo final caja: <strong>${formatoDineroCierre(c.efectivoNeto)}</strong><br>Efectivo: ${formatoDineroCierre(c.efectivo)} · ATH: ${formatoDineroCierre(c.ath)} · Tarjeta: ${formatoDineroCierre(c.tarjeta)} · Otros: ${formatoDineroCierre(c.otros)}<br>Crédito: ${formatoDineroCierre(c.credito)} · Saldo pendiente: ${formatoDineroCierre(c.saldoCredito)}</div><div class="cierre-acciones"><button class="boton-cierre" onclick="imprimirCierre(${c.id})">🧾 Ver / imprimir</button><button class="boton-cierre boton-cierre-peligro" onclick="eliminarCierre(${c.id})">🗑️ Eliminar</button></div></div>`}).join("")}
 function imprimirCierre(id){const c=cierres.find(x=>x.id===id);if(!c)return;const f=new Date(c.fechaLocal+"T12:00:00"),contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cierre ${c.fechaLocal}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#f4f7fb;color:#111;margin:0}.hoja{max-width:460px;margin:24px auto;background:#fff;padding:28px;border-radius:18px}.fila{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid #eee}.total{font-size:20px;font-weight:800}.btn{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700}@media print{body{background:#fff}.hoja{margin:0;max-width:none}.btn{display:none}}
 .cuenta-proveedor-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px;border-left:5px solid #f5a623}.cuenta-proveedor-card.vencida{border-left-color:#d93025}.cuenta-proveedor-card.pagada{border-left-color:#168044}.cuenta-proveedor-superior{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.cuenta-proveedor-superior h3{margin:0 0 5px;font-size:16px}.cuenta-proveedor-superior p{margin:0;color:#777;font-size:13px}.cuenta-proveedor-saldo{font-weight:800;color:#d93025;white-space:nowrap}.cuenta-proveedor-detalle{margin-top:12px;font-size:13px;line-height:1.75;color:#555}.acciones-cuenta-proveedor{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-cuenta-proveedor{border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.boton-pagar-proveedor{background:#e9f8ef;color:#168044}.boton-historial-proveedor{background:#eaf4ff;color:#0a84ff}.estado-cuenta{display:inline-block;margin-top:8px;padding:7px 10px;border-radius:10px;font-size:12px;font-weight:800}.estado-cuenta.pendiente{background:#fff7e8;color:#a15c00}.estado-cuenta.vencida{background:#ffecec;color:#d93025}.estado-cuenta.pagada{background:#e9f8ef;color:#168044}
-</style></head><body><div class="hoja"><h1>Flackunloker</h1><h2>Cierre de caja · ${f.toLocaleDateString("es-PR")}</h2><div class="fila"><span>Recibos / Unidades</span><strong>${c.recibos} / ${c.unidades}</strong></div><div class="fila"><span>Ventas</span><strong>${formatoDineroCierre(c.ventasTotal)}</strong></div><div class="fila"><span>Costo mercancía</span><strong>${formatoDineroCierre(c.costo)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>${formatoDineroCierre(c.gananciaBruta)}</strong></div><div class="fila"><span>Gastos</span><strong>${formatoDineroCierre(c.gastosTotal)}</strong></div><div class="fila total"><span>Ganancia neta</span><strong>${formatoDineroCierre(c.gananciaNeta)}</strong></div><div class="fila"><span>Total cobrado</span><strong>${formatoDineroCierre(c.cobrado)}</strong></div><div class="fila"><span>Efectivo</span><strong>${formatoDineroCierre(c.efectivo)}</strong></div><div class="fila"><span>ATH Móvil</span><strong>${formatoDineroCierre(c.ath)}</strong></div><div class="fila"><span>Tarjeta</span><strong>${formatoDineroCierre(c.tarjeta)}</strong></div><div class="fila"><span>Otros</span><strong>${formatoDineroCierre(c.otros)}</strong></div><div class="fila"><span>Ventas a crédito</span><strong>${formatoDineroCierre(c.credito)}</strong></div><div class="fila"><span>Saldo pendiente</span><strong>${formatoDineroCierre(c.saldoCredito)}</strong></div><div class="fila total"><span>Efectivo neto caja</span><strong>${formatoDineroCierre(c.efectivoNeto)}</strong></div><button class="btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div>
+</style></head><body><div class="hoja"><h1>Flackunloker</h1><h2>Cierre de caja · ${f.toLocaleDateString("es-PR")}</h2><div class="fila"><span>Recibos / Unidades</span><strong>${c.recibos} / ${c.unidades}</strong></div><div class="fila"><span>Ventas</span><strong>${formatoDineroCierre(c.ventasTotal)}</strong></div><div class="fila"><span>Costo mercancía</span><strong>${formatoDineroCierre(c.costo)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>${formatoDineroCierre(c.gananciaBruta)}</strong></div><div class="fila"><span>Gastos</span><strong>${formatoDineroCierre(c.gastosTotal)}</strong></div><div class="fila total"><span>Ganancia neta</span><strong>${formatoDineroCierre(c.gananciaNeta)}</strong></div><div class="fila"><span>Total cobrado</span><strong>${formatoDineroCierre(c.cobrado)}</strong></div><div class="fila"><span>Efectivo</span><strong>${formatoDineroCierre(c.efectivo)}</strong></div><div class="fila"><span>ATH Móvil</span><strong>${formatoDineroCierre(c.ath)}</strong></div><div class="fila"><span>Tarjeta</span><strong>${formatoDineroCierre(c.tarjeta)}</strong></div><div class="fila"><span>Otros</span><strong>${formatoDineroCierre(c.otros)}</strong></div><div class="fila"><span>Ventas a crédito</span><strong>${formatoDineroCierre(c.credito)}</strong></div><div class="fila"><span>Saldo pendiente</span><strong>${formatoDineroCierre(c.saldoCredito)}</strong></div><div class="fila total"><span>Saldo final de caja</span><strong>${formatoDineroCierre(c.efectivoNeto)}</strong></div><button class="btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div>
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
