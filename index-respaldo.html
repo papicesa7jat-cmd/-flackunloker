@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-09-07-v61.86-contribucion-mensual-neta">
+<meta name="flackunloker-offline-version" content="2026-09-07-v61.86-metodos-pago-restaurados">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -758,8 +758,11 @@ button.menu-toggle{
   color:#000 !important;
 }
 </style>
-<script id="flk-supabase-loader-v6148">
-/* v61.48: carga segura de Supabase. No bloquea el modo offline si CDN falla. */
+<script id="flk-supabase-loader-v6186-login-fix">
+/* v61.86 LOGIN MULTIDISPOSITIVO
+   Mantiene intacta la estructura online/offline.
+   Corrección puntual: evita que el fallback offline gane la carrera contra
+   Supabase cuando el dispositivo SÍ tiene Internet y la caché local fue limpiada. */
 (function(){
  var KEY="flk_lib_supabasejs_v2";
  var URL="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
@@ -774,17 +777,8 @@ button.menu-toggle{
   }
  }
 
- function cargarCDN(){
-  return new Promise(function(resolve){
-   var s=document.createElement("script");
-   s.src=URL;
-   s.async=true;
-   s.onload=function(){resolve(!!(window.supabase&&window.supabase.createClient));};
-   s.onerror=function(){console.warn("Supabase CDN no disponible. Continuando offline.");resolve(false);};
-   document.head.appendChild(s);
-  });
- }
-
+ /* Primero se conserva exactamente la estrategia offline existente:
+    si ya existe una copia local de supabase-js, se usa sin depender de Internet. */
  if(!(window.supabase&&window.supabase.createClient)){
   try{
    var guardado=localStorage.getItem(KEY);
@@ -792,16 +786,23 @@ button.menu-toggle{
   }catch(_){}
  }
 
+ /* Si no hay copia local y el navegador informa conexión, la librería debe
+    terminar de cargar ANTES de que se ejecute el fallback offline que está justo
+    después de este bloque. Así PC, iPhone y otros navegadores no quedan
+    falsamente atrapados en "offline" después de limpiar caché. */
  if(!(window.supabase&&window.supabase.createClient) && navigator.onLine){
-  cargarCDN().then(function(ok){
-   if(ok){
-    fetch(URL,{cache:"no-store"})
-    .then(function(r){return r.ok?r.text():Promise.reject();})
-    .then(function(c){try{localStorage.setItem(KEY,c);}catch(_){}});
-   }
-  });
+  document.write('<script src="'+URL+'"><\/script>');
  }
 
+ /* Después de una carga online correcta se renueva la copia local que ya usa
+    Flackunloker para poder arrancar nuevamente sin conexión. */
+ window.addEventListener("load",function(){
+  if(!(window.supabase&&window.supabase.createClient) || !navigator.onLine)return;
+  fetch(URL,{cache:"no-store"})
+   .then(function(r){return r.ok?r.text():Promise.reject(new Error("HTTP "+r.status));})
+   .then(function(c){try{localStorage.setItem(KEY,c);}catch(_){} })
+   .catch(function(e){console.warn("No se pudo renovar la copia local de Supabase:",e);});
+ },{once:true});
 })();
 </script>
 <script id="flk-supabase-offline-fallback-v6147">
@@ -1894,10 +1895,14 @@ textarea::placeholder{
 <div class="estadistica-card ancha azul"><span>Dinero realmente cobrado</span><strong id="reporteCobrado">$0.00</strong></div>
 </div>
 <div class="lista-estadisticas"><h3>💳 Métodos de cobro</h3>
-<div class="fila-estadistica"><span>💵 Efectivo</span><strong id="reporteEfectivo">$0.00</strong></div>
-<div class="fila-estadistica"><span>📱 ATH Móvil</span><strong id="reporteAth">$0.00</strong></div>
-<div class="fila-estadistica"><span>💳 Tarjeta</span><strong id="reporteTarjeta">$0.00</strong></div>
-<div class="fila-estadistica"><span>Otros métodos</span><strong id="reporteOtros">$0.00</strong></div>
+<div class="fila-estadistica"><span>💵 Efectivo CUP</span><strong id="reporteEfectivoCUP">$0.00</strong></div>
+<div class="fila-estadistica"><span>💵 Efectivo USD</span><strong id="reporteEfectivoUSD">$0.00</strong></div>
+<div class="fila-estadistica"><span>🏦 Transferencia CUP</span><strong id="reporteTransferenciaCUP">$0.00</strong></div>
+<div class="fila-estadistica"><span>🏦 Transferencia USD</span><strong id="reporteTransferenciaUSD">$0.00</strong></div>
+<div class="fila-estadistica"><span>🏦 Transferencia MLC</span><strong id="reporteTransferenciaMLC">$0.00</strong></div>
+<div class="fila-estadistica"><span>💶 Efectivo Euro</span><strong id="reporteEfectivoEuro">$0.00</strong></div>
+<div class="fila-estadistica"><span>💸 Zelle</span><strong id="reporteZelle">$0.00</strong></div>
+<div class="fila-estadistica"><span>Otros métodos históricos</span><strong id="reporteOtros">$0.00</strong></div>
 <div class="fila-estadistica"><span>Saldo pendiente de créditos</span><strong id="reporteSaldoCredito">$0.00</strong></div>
 </div>
 <div class="lista-estadisticas"><h3>🏆 Productos vendidos en el período</h3><div id="reporteProductos"></div></div>
@@ -2031,11 +2036,14 @@ textarea::placeholder{
 </div>
 
 <div class="lista-estadisticas"><h3>💳 Flujo neto por método</h3>
-<div class="fila-estadistica"><span>💵 Efectivo</span><strong id="flujoEfectivo">$0.00</strong></div>
-<div class="fila-estadistica"><span>📱 ATH Móvil</span><strong id="flujoAth">$0.00</strong></div>
-<div class="fila-estadistica"><span>💳 Tarjeta</span><strong id="flujoTarjeta">$0.00</strong></div>
-<div class="fila-estadistica"><span>🏦 Transferencia</span><strong id="flujoTransferencia">$0.00</strong></div>
-<div class="fila-estadistica"><span>Otros métodos</span><strong id="flujoOtros">$0.00</strong></div>
+<div class="fila-estadistica"><span>💵 Efectivo CUP</span><strong id="flujoEfectivoCUP">$0.00</strong></div>
+<div class="fila-estadistica"><span>💵 Efectivo USD</span><strong id="flujoEfectivoUSD">$0.00</strong></div>
+<div class="fila-estadistica"><span>🏦 Transferencia CUP</span><strong id="flujoTransferenciaCUP">$0.00</strong></div>
+<div class="fila-estadistica"><span>🏦 Transferencia USD</span><strong id="flujoTransferenciaUSD">$0.00</strong></div>
+<div class="fila-estadistica"><span>🏦 Transferencia MLC</span><strong id="flujoTransferenciaMLC">$0.00</strong></div>
+<div class="fila-estadistica"><span>💶 Efectivo Euro</span><strong id="flujoEfectivoEuro">$0.00</strong></div>
+<div class="fila-estadistica"><span>💸 Zelle</span><strong id="flujoZelle">$0.00</strong></div>
+<div class="fila-estadistica"><span>Otros métodos históricos</span><strong id="flujoOtros">$0.00</strong></div>
 </div>
 
 <div class="lista-estadisticas"><h3>🧾 Movimientos de efectivo del período</h3><div id="listaFlujoCaja"></div></div>
@@ -2159,7 +2167,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="campo"><label>Descripción de la prestación</label><input id="prestDescripcion" type="text" placeholder="Ej. Instalación / reparación / configuración"></div>
 <div class="campo"><label>Tipo</label><select id="prestTipo" onchange="flkCambiarTipoPrestacion()"><option value="ingreso">Solo ingreso</option><option value="ingreso_costo">Ingreso + costo externo</option></select></div>
 <div class="campo"><label>Ingreso</label><input id="prestIngreso" type="number" min="0" step="0.01" value="0"></div>
-<div class="campo"><label>Método de pago</label><select id="prestMetodo"><option value="Efectivo">Efectivo</option><option value="ATH Móvil">ATH Móvil</option><option value="Tarjeta">Tarjeta</option><option value="Transferencia">Transferencia</option><option value="Otro">Otro</option></select></div>
+<div class="campo"><label>Método de pago</label><select id="prestMetodo"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Transferencia CUP">Transferencia CUP</option><option value="Transferencia USD">Transferencia USD</option><option value="Transferencia MLC">Transferencia MLC</option><option value="Efectivo Euro">Efectivo Euro</option><option value="Zelle">Zelle</option></select></div>
 <div class="campo"><label>Costo externo</label><input id="prestCosto" type="number" min="0" step="0.01" value="0" disabled></div>
 </div><div class="prestacion-grid" style="grid-template-columns:1fr auto;margin-top:10px">
 <div class="campo"><label>Fecha</label><input id="prestFecha" type="date"></div><button class="boton-agregar" type="button" onclick="flkGuardarPrestacionServicio()">💾 Registrar prestación</button></div>
@@ -2292,7 +2300,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="seccion-titulo" style="margin:14px 0 8px"><h2 style="font-size:16px">Productos en este recibo</h2><strong id="contadorCarrito" style="color:#0a84ff">0</strong></div>
 <div id="carritoVenta" class="carrito-venta"></div>
 <div class="campo"><label for="estadoPagoVenta">Condición de pago</label><select id="estadoPagoVenta" onchange="actualizarCamposCredito()"><option value="pagado">✅ Pagado</option><option value="credito">💳 Crédito</option></select></div>
-<div class="campo"><label for="metodoPagoVenta">Método de pago / abono</label><select id="metodoPagoVenta"><option value="Efectivo">Efectivo</option><option value="ATH Móvil">ATH Móvil</option><option value="Tarjeta">Tarjeta</option><option value="Otro">Otro</option></select></div>
+<div class="campo"><label for="metodoPagoVenta">Método de pago / abono</label><select id="metodoPagoVenta"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Transferencia CUP">Transferencia CUP</option><option value="Transferencia USD">Transferencia USD</option><option value="Transferencia MLC">Transferencia MLC</option><option value="Efectivo Euro">Efectivo Euro</option><option value="Zelle">Zelle</option></select></div>
 <div class="campo campo-credito" id="campoAbonoInicial"><label for="abonoInicialVenta">Abono inicial</label><input id="abonoInicialVenta" type="number" min="0" step="0.01" value="0"><small class="ayuda-campo">Puedes dejarlo en $0.00 y registrar los abonos después desde el recibo o desde Clientes.</small></div>
 <div class="campo campo-credito" id="campoVencimientoCredito"><label for="fechaVencimientoVenta">Fecha de vencimiento</label><input id="fechaVencimientoVenta" type="date"><small class="ayuda-campo">La cuenta aparecerá como próxima a vencer durante los 7 días anteriores a esta fecha.</small></div>
 <div class="campo"><label for="notaVenta">Nota</label><input id="notaVenta" type="text" placeholder="Opcional"></div>
@@ -2324,7 +2332,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <h2>💵 Registrar abono</h2>
 <p class="mensaje-movimiento" id="textoAbono">Cuenta por cobrar</p>
 <div class="campo"><label for="cantidadAbono">Cantidad del abono</label><input id="cantidadAbono" type="number" min="0.01" step="0.01" required><small class="ayuda-campo" id="ayudaAbono"></small></div>
-<div class="campo"><label for="metodoAbono">Método de pago</label><select id="metodoAbono"><option value="Efectivo">Efectivo</option><option value="ATH Móvil">ATH Móvil</option><option value="Tarjeta">Tarjeta</option><option value="Otro">Otro</option></select></div>
+<div class="campo"><label for="metodoAbono">Método de pago</label><select id="metodoAbono"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Transferencia CUP">Transferencia CUP</option><option value="Transferencia USD">Transferencia USD</option><option value="Transferencia MLC">Transferencia MLC</option><option value="Efectivo Euro">Efectivo Euro</option><option value="Zelle">Zelle</option></select></div>
 <div class="campo"><label for="notaAbono">Nota</label><input id="notaAbono" type="text" placeholder="Opcional"></div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarAbono()">Cancelar</button><button type="submit" class="boton-guardar">Registrar abono</button></div>
 </form>
@@ -2355,7 +2363,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="campo"><label for="conceptoGasto">Concepto</label><input id="conceptoGasto" type="text" placeholder="Ej. Electricidad, transporte, compra de mercancía" required></div>
 <div class="campo"><label for="categoriaGasto">Categoría</label><select id="categoriaGasto"><option>Compra de mercancía</option><option>Renta</option><option>Electricidad</option><option>Agua</option><option>Internet / teléfono</option><option>Transporte</option><option>Publicidad</option><option>Reparaciones</option><option>Materiales</option><option>Comisiones</option><option>Otro</option></select></div>
 <div class="campo"><label for="cantidadGasto">Cantidad</label><input id="cantidadGasto" type="number" min="0.01" step="0.01" required></div>
-<div class="campo"><label for="metodoGasto">Método de pago</label><select id="metodoGasto"><option>Efectivo</option><option>ATH Móvil</option><option>Tarjeta</option><option>Transferencia</option><option>Otro</option></select></div>
+<div class="campo"><label for="metodoGasto">Método de pago</label><select id="metodoGasto"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Transferencia CUP">Transferencia CUP</option><option value="Transferencia USD">Transferencia USD</option><option value="Transferencia MLC">Transferencia MLC</option><option value="Efectivo Euro">Efectivo Euro</option><option value="Zelle">Zelle</option></select></div>
 <div class="campo"><label for="fechaGasto">Fecha</label><input id="fechaGasto" type="date" required></div>
 <div class="campo"><label for="notaGasto">Nota</label><input id="notaGasto" type="text" placeholder="Opcional"></div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarGasto()">Cancelar</button><button type="submit" class="boton-guardar">Guardar gasto</button></div>
@@ -2396,13 +2404,13 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <form class="formulario" id="formularioRecepcionOrden">
 <h2>✅ Recibir orden</h2><p class="mensaje-movimiento" id="textoRecepcionOrden">Confirma la recepción y cómo se pagó la compra.</p>
 <div class="campo"><label for="condicionPagoProveedor">Condición de pago</label><select id="condicionPagoProveedor" onchange="actualizarCamposCreditoProveedor()"><option value="pagado">✅ Pagada</option><option value="credito">💳 A crédito</option></select></div>
-<div class="campo"><label for="metodoPagoProveedor">Método de pago / abono inicial</label><select id="metodoPagoProveedor"><option>Efectivo</option><option>ATH Móvil</option><option>Tarjeta</option><option>Transferencia</option><option>Otro</option></select></div>
+<div class="campo"><label for="metodoPagoProveedor">Método de pago / abono inicial</label><select id="metodoPagoProveedor"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Transferencia CUP">Transferencia CUP</option><option value="Transferencia USD">Transferencia USD</option><option value="Transferencia MLC">Transferencia MLC</option><option value="Efectivo Euro">Efectivo Euro</option><option value="Zelle">Zelle</option></select></div>
 <div class="campo campo-credito" id="campoAbonoProveedor"><label for="abonoInicialProveedor">Abono inicial</label><input id="abonoInicialProveedor" type="number" min="0" step="0.01" value="0"></div>
 <div class="campo campo-credito" id="campoVencimientoProveedor"><label for="fechaVencimientoProveedor">Fecha de vencimiento</label><input id="fechaVencimientoProveedor" type="date"></div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarRecepcionOrden()">Cancelar</button><button type="submit" class="boton-guardar">Recibir mercancía</button></div>
 </form></div>
 
-<div class="modal" id="modalPagoProveedor"><form class="formulario" id="formularioPagoProveedor"><h2>💵 Registrar pago</h2><p class="mensaje-movimiento" id="textoPagoProveedor">Cuenta por pagar</p><div class="campo"><label for="cantidadPagoProveedor">Cantidad</label><input id="cantidadPagoProveedor" type="number" min="0.01" step="0.01" required><small id="ayudaPagoProveedor" class="ayuda-campo"></small></div><div class="campo"><label for="metodoPagoCuentaProveedor">Método de pago</label><select id="metodoPagoCuentaProveedor"><option>Efectivo</option><option>ATH Móvil</option><option>Tarjeta</option><option>Transferencia</option><option>Otro</option></select></div><div class="campo"><label for="notaPagoProveedor">Nota</label><input id="notaPagoProveedor" type="text" placeholder="Opcional"></div><div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarPagoProveedor()">Cancelar</button><button type="submit" class="boton-guardar">Registrar pago</button></div></form></div>
+<div class="modal" id="modalPagoProveedor"><form class="formulario" id="formularioPagoProveedor"><h2>💵 Registrar pago</h2><p class="mensaje-movimiento" id="textoPagoProveedor">Cuenta por pagar</p><div class="campo"><label for="cantidadPagoProveedor">Cantidad</label><input id="cantidadPagoProveedor" type="number" min="0.01" step="0.01" required><small id="ayudaPagoProveedor" class="ayuda-campo"></small></div><div class="campo"><label for="metodoPagoCuentaProveedor">Método de pago</label><select id="metodoPagoCuentaProveedor"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Transferencia CUP">Transferencia CUP</option><option value="Transferencia USD">Transferencia USD</option><option value="Transferencia MLC">Transferencia MLC</option><option value="Efectivo Euro">Efectivo Euro</option><option value="Zelle">Zelle</option></select></div><div class="campo"><label for="notaPagoProveedor">Nota</label><input id="notaPagoProveedor" type="text" placeholder="Opcional"></div><div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarPagoProveedor()">Cancelar</button><button type="submit" class="boton-guardar">Registrar pago</button></div></form></div>
 
 <div class="modal" id="modalHistorialPagosProveedor"><div class="formulario"><h2>📋 Historial de pagos</h2><p class="mensaje-movimiento" id="textoHistorialPagosProveedor"></p><div id="listaHistorialPagosProveedor"></div><div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarHistorialPagosProveedor()">Cerrar</button></div></div></div>
 
@@ -2866,7 +2874,7 @@ function flkVentaLocalDesdeOperacion(op){
   items:d.items||[],cantidad:Number(d.cantidad||0),ingreso:Number(d.ingreso||0),
   costoTotal:Number(d.costoTotal||0),ganancia:Number(d.ganancia||0),
   fecha:d.fecha,cliente:d.cliente||"Cliente general",telefono:d.telefono||"",
-  metodoPago:d.metodoPago||"Efectivo",estadoPago:d.estadoPago||"pagado",
+  metodoPago:flkNormalizarMetodoPago(d.metodoPago||"Efectivo"),estadoPago:d.estadoPago||"pagado",
   totalPagado:Number(d.totalPagado||0),saldo:Number(d.saldo||0),
   pagos:d.pagos||[],fechaVencimiento:d.fechaVencimiento||"",nota:d.nota||"",
   offlinePendiente:true
@@ -2883,7 +2891,7 @@ function flkGastoLocalDesdeOperacion(op){
   concepto:d.concept||"Gasto",
   categoria:d.category||"Otro",
   cantidad:Number(d.amount||0),
-  metodo:d.payment_method||"Efectivo",
+  metodo:flkNormalizarMetodoPago(d.payment_method||"Efectivo"),
   fechaLocal:d.expense_date||fechaLocalISO(new Date()),
   fecha:(d.expense_date||fechaLocalISO(new Date()))+"T12:00:00-04:00",
   nota:d.note||"",
@@ -2921,7 +2929,7 @@ function flkAplicarAbonoLocal(op){
   offlinePendiente:true,
   cantidad:aplicado,
   fecha:op.created_at||new Date().toISOString(),
-  metodo:p.payment_method||"Efectivo",
+  metodo:flkNormalizarMetodoPago(p.payment_method||"Efectivo"),
   nota:p.note||"",
   saldoAnterior,
   saldoRestante
@@ -3107,7 +3115,7 @@ function flkAplicarRecepcionOrdenLocal(op){
  o.estado="recibida";
  o.fechaRecibida=op.created_at||new Date().toISOString();
  o.condicionPagoProveedor=saldo>0?"credito":"pagado";
- o.metodoPagoProveedor=p.payment_method||"Efectivo";
+ o.metodoPagoProveedor=flkNormalizarMetodoPago(p.payment_method||"Efectivo");
  o.totalPagadoProveedor=abono;
  o.saldoProveedor=saldo;
  o.fechaVencimientoProveedor=saldo>0?(p.due_date||""):"";
@@ -3118,7 +3126,7 @@ function flkAplicarRecepcionOrdenLocal(op){
   o.pagosProveedor.push({
    id:Number(p.local_payment_id||Date.now()+Math.floor(Math.random()*100000)),
    offlineReceiveOperationId:op.id,offlinePendiente:true,cantidad:abono,
-   fecha:op.created_at||new Date().toISOString(),metodo:p.payment_method||"Efectivo",
+   fecha:op.created_at||new Date().toISOString(),metodo:flkNormalizarMetodoPago(p.payment_method||"Efectivo"),
    nota:saldo>0?"Abono inicial":"Pago al recibir",saldoAnterior:total,saldoRestante:saldo
   })
  }
@@ -3143,7 +3151,7 @@ function flkAplicarPagoProveedorLocal(op){
  o.pagosProveedor.push({
   id:Number(p.local_payment_id||Date.now()+Math.floor(Math.random()*100000)),
   offlineOperationId:op.id,offlinePendiente:true,cantidad:aplicado,
-  fecha:op.created_at||new Date().toISOString(),metodo:p.payment_method||"Efectivo",
+  fecha:op.created_at||new Date().toISOString(),metodo:flkNormalizarMetodoPago(p.payment_method||"Efectivo"),
   nota:p.note||"",saldoAnterior:antes,saldoRestante:despues
  });
  o.totalPagadoProveedor=Number(o.totalPagadoProveedor||0)+aplicado;
@@ -3748,6 +3756,41 @@ const FLK_ROLE_CACHE_KEY="flackunloker_role_cache_v1";
 // Se conserva un verificador PBKDF2 local; nunca se guarda la contraseña en texto plano.
 const FLK_OFFLINE_AUTH_KEY="flackunloker_offline_auth_v1";
 const FLK_FORCE_OFFLINE_KEY="flackunloker_force_offline_v1";
+/* ===== v61.86 · MÉTODOS DE PAGO RESTAURADOS =====
+   Compatibilidad con datos ya operantes:
+   - registros históricos "Efectivo"/"cash" se leen como "Efectivo CUP";
+   - NO se reescriben ni se borran pagos existentes de Supabase. */
+const FLK_METODOS_PAGO=[
+ "Efectivo CUP","Efectivo USD","Transferencia CUP","Transferencia USD",
+ "Transferencia MLC","Efectivo Euro","Zelle"
+];
+function flkNormalizarMetodoPago(metodo){
+ const raw=String(metodo||"").trim();
+ const x=raw.toLowerCase();
+
+ if(!raw || x==="efectivo" || x==="cash")return "Efectivo CUP";
+ if(x==="efectivo cup" || x==="cash cup")return "Efectivo CUP";
+ if(x==="efectivo usd" || x==="cash usd")return "Efectivo USD";
+ if(x==="efectivo euro" || x==="efectivo eur" || x==="cash euro" || x==="cash eur")return "Efectivo Euro";
+
+ if((x.includes("transfer")||x.includes("trasfer")) && x.includes("mlc"))return "Transferencia MLC";
+ if((x.includes("transfer")||x.includes("trasfer")) && x.includes("usd"))return "Transferencia USD";
+ if((x.includes("transfer")||x.includes("trasfer")) && x.includes("cup"))return "Transferencia CUP";
+ if(x==="transferencia" || x==="trasferencia")return "Transferencia CUP";
+
+ if(x.includes("zelle"))return "Zelle";
+
+ // Compatibilidad con métodos antiguos que ya pudieran existir:
+ if(x.includes("ath"))return "ATH Móvil";
+ if(x.includes("tarjeta"))return "Tarjeta";
+ if(x==="otro"||x==="otros")return "Otro";
+
+ return raw;
+}
+function flkEsEfectivoCUP(metodo){
+ return flkNormalizarMetodoPago(metodo)==="Efectivo CUP";
+}
+
 function flkNubeDisponible(){
  return !!navigator.onLine && localStorage.getItem(FLK_FORCE_OFFLINE_KEY)!=="1";
 }
@@ -4100,10 +4143,10 @@ async function flkRecuperacionEmergenciaNube(){
      fechaCreacion:o.created_at,fechaOrdenada:o.ordered_at,fechaRecibida:o.received_at,
      costoTotal:Number(o.total_amount||0),condicionPagoProveedor:o.payment_condition,
      totalPagadoProveedor:Number(o.paid_amount||0),saldoProveedor:Number(o.balance_due||0),
-     fechaVencimientoProveedor:o.due_date||"",metodoPagoProveedor:o.payment_method||"",
+     fechaVencimientoProveedor:o.due_date||"",metodoPagoProveedor:flkNormalizarMetodoPago(o.payment_method||"Efectivo"),
      pagosProveedor:ps.map(p=>({
       id:idLocalDesdeLegacy(null,p.id),supabaseId:p.id,cantidad:Number(p.amount||0),
-      fecha:p.payment_date||p.created_at,metodo:p.payment_method||"",nota:p.note||""
+      fecha:p.payment_date||p.created_at,metodo:flkNormalizarMetodoPago(p.payment_method||"Efectivo"),nota:p.note||""
      }))
     }
    });
@@ -6252,7 +6295,7 @@ function gastoDesdeSupabase(r){
   concepto:r.concept||"",
   categoria:r.category||"Otro",
   cantidad:Number(r.amount||0),
-  metodo:r.payment_method||"Efectivo",
+  metodo:flkNormalizarMetodoPago(r.payment_method||"Efectivo"),
   fechaLocal:r.expense_date||"",
   fecha:(r.expense_date?r.expense_date+"T12:00:00-04:00":r.created_at),
   nota:r.note||"",
@@ -6384,7 +6427,7 @@ async function cargarComprasSupabase(){
  ordenesCompra=(ro.data||[]).map(o=>{
   const pr=proveedores.find(p=>p.supabaseId===o.supplier_id),prod=productos.find(p=>p.supabaseId===o.product_id);
   const ps=pagos.filter(p=>p.purchase_order_id===o.id);
-  return {id:idLocalDesdeLegacy(o.legacy_id,o.id),supabaseId:o.id,numero:o.order_number,productoId:prod?.id,nombre:prod?.nombre||"Producto",sku:prod?.sku||"",proveedor:pr?.nombre||"Proveedor",cantidad:Number(o.quantity||0),costoUnitario:Number(o.unit_cost||0),fechaOrden:o.order_date,nota:o.note||"",estado:o.status==="received"?"recibida":o.status==="ordered"?"ordenada":"pendiente",fechaCreacion:o.created_at,fechaOrdenada:o.ordered_at,fechaRecibida:o.received_at,costoTotal:Number(o.total_amount||0),condicionPagoProveedor:o.payment_condition,totalPagadoProveedor:Number(o.paid_amount||0),saldoProveedor:Number(o.balance_due||0),fechaVencimientoProveedor:o.due_date||"",metodoPagoProveedor:o.payment_method||"",pagosProveedor:(()=>{let saldo=Number(o.total_amount||0);return [...ps].sort((a,b)=>new Date(a.payment_date)-new Date(b.payment_date)).map(p=>{const anterior=saldo,cant=Number(p.amount||0);saldo=Math.max(0,saldo-cant);return {id:idLocalDesdeLegacy(null,p.id),supabaseId:p.id,cantidad:cant,fecha:p.payment_date,metodo:p.payment_method||"",nota:p.note||"",saldoAnterior:anterior,saldoRestante:saldo}})})()}
+  return {id:idLocalDesdeLegacy(o.legacy_id,o.id),supabaseId:o.id,numero:o.order_number,productoId:prod?.id,nombre:prod?.nombre||"Producto",sku:prod?.sku||"",proveedor:pr?.nombre||"Proveedor",cantidad:Number(o.quantity||0),costoUnitario:Number(o.unit_cost||0),fechaOrden:o.order_date,nota:o.note||"",estado:o.status==="received"?"recibida":o.status==="ordered"?"ordenada":"pendiente",fechaCreacion:o.created_at,fechaOrdenada:o.ordered_at,fechaRecibida:o.received_at,costoTotal:Number(o.total_amount||0),condicionPagoProveedor:o.payment_condition,totalPagadoProveedor:Number(o.paid_amount||0),saldoProveedor:Number(o.balance_due||0),fechaVencimientoProveedor:o.due_date||"",metodoPagoProveedor:flkNormalizarMetodoPago(o.payment_method||"Efectivo"),pagosProveedor:(()=>{let saldo=Number(o.total_amount||0);return [...ps].sort((a,b)=>new Date(a.payment_date)-new Date(b.payment_date)).map(p=>{const anterior=saldo,cant=Number(p.amount||0);saldo=Math.max(0,saldo-cant);return {id:idLocalDesdeLegacy(null,p.id),supabaseId:p.id,cantidad:cant,fecha:p.payment_date,metodo:flkNormalizarMetodoPago(p.payment_method||"Efectivo"),nota:p.note||"",saldoAnterior:anterior,saldoRestante:saldo}})})()}
  });
  guardarProveedores();guardarOrdenesCompra();actualizarOpcionesOrganizacion();actualizarProveedores();actualizarOrdenesCompra();actualizarCuentasPagar();return true
 }
@@ -6754,7 +6797,7 @@ function ventaDesdeSupabase(v){
   fecha:v.created_at,
   cliente:v.customer_name||"Cliente general",
   telefono:v.customer_phone||"",
-  metodoPago:v.payment_method||"cash",
+  metodoPago:flkNormalizarMetodoPago(v.payment_method||"Efectivo"),
   estadoPago:saldo>0.009?"credito":"pagado",
   totalPagado,
   saldo,
@@ -7564,7 +7607,8 @@ function mostrarListaHistorial(){
   const el=document.createElement("div");el.className="movimiento";const f=new Date(m.fecha),entrada=m.tipo==="entrada";
   const saldo=m.saldo!==undefined&&m.saldo!==null?Number(m.saldo):"No disponible";
   const detalle=m.detalle?`<br>Origen: <strong>${escapeHtml(m.detalle)}</strong>`:"";
-  const etiqueta=/Venta/i.test(m.detalle||"")?"💰 Venta":/Devolución/i.test(m.detalle||"")?"↩️ Devolución":/Recepción de orden/i.test(m.detalle||"")?"📦 Compra":entrada?"＋ Entrada":"− Salida";
+  const detalleTxt=String(m.detalle||"");
+   const etiqueta=/inventario inicial/i.test(detalleTxt)?"＋ Entrada":/Venta/i.test(detalleTxt)?"💰 Venta":/Devolución/i.test(detalleTxt)?"↩️ Devolución":/Recepción de orden/i.test(detalleTxt)?"📦 Compra":entrada?"＋ Entrada":"− Salida";
   const acciones=m.supabaseId?`<div class="saldo-movimiento">🔒 Registro guardado en Supabase. Para corregir inventario, registra un nuevo movimiento de Entrada o Salida.</div>`:"";
   const idComp=String(m.id||m.supabaseId||"").replace(/'/g,"\\'");
   el.innerHTML=`<div class="movimiento-superior"><div class="movimiento-info"><h3>${escapeHtml(m.nombre)}</h3><p>SKU: ${escapeHtml(m.sku)}</p></div><div class="movimiento-tipo ${entrada?"entrada":"salida"}">${etiqueta}</div></div><div class="movimiento-detalle">Cantidad: <strong>${Number(m.cantidad)}</strong> &nbsp;·&nbsp; ${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}${detalle}<div class="saldo-movimiento">Saldo después del movimiento: <strong>${saldo}</strong></div></div>${acciones}<button type="button" class="boton-comprobante" onclick="imprimirComprobanteMovimiento('${idComp}')">🧾 Ver comprobante</button>`;
@@ -7728,12 +7772,20 @@ document.getElementById("busquedaGastos").addEventListener("input",mostrarListaG
 async function mostrarGastos(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;if(flkNubeDisponible())setTimeout(()=>cargarGastosSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="none";document.getElementById("vistaGastos").style.display="block";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("gastos");actualizarGastos();scrollTop()}
 
-function metodoCajaClave(metodo){const m=String(metodo||"").trim().toLowerCase();if(m.includes("efectivo"))return "efectivo";if(m.includes("ath"))return "ath";if(m.includes("tarjeta"))return "tarjeta";return "otros"}
+function metodoCajaClave(metodo){
+ const m=flkNormalizarMetodoPago(metodo);
+ const mapa={
+  "Efectivo CUP":"efectivoCup","Efectivo USD":"efectivoUsd",
+  "Transferencia CUP":"transferenciaCup","Transferencia USD":"transferenciaUsd",
+  "Transferencia MLC":"transferenciaMlc","Efectivo Euro":"efectivoEuro","Zelle":"zelle"
+ };
+ return mapa[m]||"otros"
+}
 function resumenCierreFecha(fechaLocal){
  const ventasDia=ventas.filter(v=>fechaLocalDeValor(v.fecha)===fechaLocal);
  const gastosDia=gastos.filter(g=>(g.fechaLocal||String(g.fecha||"").slice(0,10))===fechaLocal);
  const recibos=ventasDia.length,unidades=ventasDia.reduce((t,v)=>t+unidadesNetasVenta(v),0),ventasTotal=ventasDia.reduce((t,v)=>t+Number(v.ingreso||0),0),costo=ventasDia.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasDia.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosDia.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
- const cobros={efectivo:0,ath:0,tarjeta:0,otros:0};
+ const cobros={efectivoCup:0,efectivoUsd:0,transferenciaCup:0,transferenciaUsd:0,transferenciaMlc:0,efectivoEuro:0,zelle:0,otros:0};
  const movimientosDia=movimientosFlujoCaja().filter(m=>fechaLocalDeValor(m.fecha)===fechaLocal);
  movimientosDia.forEach(m=>{
   if(m.tipo!=="entrada"||!["venta","abono"].includes(m.grupo))return;
@@ -7744,12 +7796,15 @@ function resumenCierreFecha(fechaLocal){
  const credito=ventasCredito.reduce((t,v)=>t+Number(v.ingreso||0),0),
        saldoCredito=ventasCredito.reduce((t,v)=>t+Number(v.saldo||0),0);
  const gastoEfectivo=movimientosDia
-  .filter(m=>m.tipo==="salida"&&m.grupo==="gasto"&&normalizarMetodoFlujo(m.metodo)==="Efectivo")
+  .filter(m=>m.tipo==="salida"&&m.grupo==="gasto"&&flkEsEfectivoCUP(m.metodo))
   .reduce((t,m)=>t+Number(m.cantidad||0),0);
  const efectivoNeto=movimientosDia
-  .filter(m=>normalizarMetodoFlujo(m.metodo)==="Efectivo")
+  .filter(m=>flkEsEfectivoCUP(m.metodo))
   .reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0);
- return {fechaLocal,recibos,unidades,ventasTotal,costo,gananciaBruta,gastosTotal,gananciaNeta,cobrado,efectivo:cobros.efectivo,ath:cobros.ath,tarjeta:cobros.tarjeta,otros:cobros.otros,credito,saldoCredito,gastoEfectivo,efectivoNeto}
+ return {fechaLocal,recibos,unidades,ventasTotal,costo,gananciaBruta,gastosTotal,gananciaNeta,cobrado,
+  efectivo:cobros.efectivoCup,ath:0,tarjeta:0,
+  otros:cobros.efectivoUsd+cobros.transferenciaCup+cobros.transferenciaUsd+cobros.transferenciaMlc+cobros.efectivoEuro+cobros.zelle+cobros.otros,
+  metodosPago:cobros,credito,saldoCredito,gastoEfectivo,efectivoNeto}
 }
 function formatoDineroCierre(n){n=Number(n||0);return (n<0?"-$":"$")+Math.abs(n).toFixed(2)}
 function actualizarCierre(){
@@ -7816,14 +7871,21 @@ function cambiarPeriodoReporte(){const personalizado=document.getElementById("pe
 function datosReporte(){
  const r=rangoReporteActual(),enRango=f=>{const x=fechaLocalDeValor(f);return x&&x>=r.inicio&&x<=r.fin},ventasR=ventas.filter(v=>enRango(v.fecha)),gastosR=gastos.filter(g=>enRango(g.fechaLocal||g.fecha));
  const recibos=ventasR.length,unidades=ventasR.reduce((t,v)=>t+unidadesNetasVenta(v),0),ingresos=ventasR.reduce((t,v)=>t+Number(v.ingreso||0),0),costo=ventasR.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasR.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosR.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
- const cobros={efectivo:0,ath:0,tarjeta:0,otros:0};ventas.forEach(v=>{normalizarCuentaVenta(v);const ps=pagosDeVenta(v);if(ps.length){ps.forEach(p=>{if(enRango(p.fecha))cobros[metodoCajaClave(p.metodo)]+=Number(p.cantidad||0)})}else if(enRango(v.fecha)&&Number(v.totalPagado||0)>0)cobros[metodoCajaClave(v.metodoPago)]+=Math.min(Number(v.totalPagado||0),Number(v.ingreso||0))});
+ const cobros={efectivoCup:0,efectivoUsd:0,transferenciaCup:0,transferenciaUsd:0,transferenciaMlc:0,efectivoEuro:0,zelle:0,otros:0};ventas.forEach(v=>{normalizarCuentaVenta(v);const ps=pagosDeVenta(v);if(ps.length){ps.forEach(p=>{if(enRango(p.fecha))cobros[metodoCajaClave(p.metodo)]+=Number(p.cantidad||0)})}else if(enRango(v.fecha)&&Number(v.totalPagado||0)>0)cobros[metodoCajaClave(v.metodoPago)]+=Math.min(Number(v.totalPagado||0),Number(v.ingreso||0))});
  const cobrado=Object.values(cobros).reduce((a,b)=>a+b,0),saldoCredito=ventasR.reduce((t,v)=>{normalizarCuentaVenta(v);return t+Number(v.saldo||0)},0),productosR={},categorias={};
  ventasR.forEach(v=>itemsDeVenta(v).forEach(i=>{const k=String(i.productoId??i.sku??i.nombre),cant=cantidadNetaItemVenta(i),ing=cant*Number(i.precioUnitario||0);if(!productosR[k])productosR[k]={nombre:i.nombre||"Producto",unidades:0,ingresos:0};productosR[k].unidades+=cant;productosR[k].ingresos+=ing}));
  gastosR.forEach(g=>{const k=String(g.categoria||"Otro");categorias[k]=(categorias[k]||0)+Number(g.cantidad||0)});
  return {...r,recibos,unidades,ingresos,costo,gananciaBruta,gastosTotal,gananciaNeta,cobrado,...cobros,saldoCredito,productos:Object.values(productosR).sort((a,b)=>b.unidades-a.unidades||b.ingresos-a.ingresos),categorias:Object.entries(categorias).sort((a,b)=>b[1]-a[1])}
 }
 function actualizarReporte(){
- const d=datosReporte();document.getElementById("textoPeriodoReporte").value=d.texto;document.getElementById("reporteRecibos").textContent=d.recibos;document.getElementById("reporteUnidades").textContent=d.unidades;document.getElementById("reporteIngresos").textContent=formatoDineroCierre(d.ingresos);document.getElementById("reporteCosto").textContent=formatoDineroCierre(d.costo);document.getElementById("reporteGananciaBruta").textContent=formatoDineroCierre(d.gananciaBruta);document.getElementById("reporteGastos").textContent=formatoDineroCierre(d.gastosTotal);const neto=document.getElementById("reporteGananciaNeta");neto.textContent=formatoDineroCierre(d.gananciaNeta);neto.classList.toggle("reporte-negativo",d.gananciaNeta<0);neto.classList.toggle("reporte-positivo",d.gananciaNeta>=0);document.getElementById("reporteCobrado").textContent=formatoDineroCierre(d.cobrado);document.getElementById("reporteEfectivo").textContent=formatoDineroCierre(d.efectivo);document.getElementById("reporteAth").textContent=formatoDineroCierre(d.ath);document.getElementById("reporteTarjeta").textContent=formatoDineroCierre(d.tarjeta);document.getElementById("reporteOtros").textContent=formatoDineroCierre(d.otros);document.getElementById("reporteSaldoCredito").textContent=formatoDineroCierre(d.saldoCredito);
+ const d=datosReporte();document.getElementById("textoPeriodoReporte").value=d.texto;document.getElementById("reporteRecibos").textContent=d.recibos;document.getElementById("reporteUnidades").textContent=d.unidades;document.getElementById("reporteIngresos").textContent=formatoDineroCierre(d.ingresos);document.getElementById("reporteCosto").textContent=formatoDineroCierre(d.costo);document.getElementById("reporteGananciaBruta").textContent=formatoDineroCierre(d.gananciaBruta);document.getElementById("reporteGastos").textContent=formatoDineroCierre(d.gastosTotal);const neto=document.getElementById("reporteGananciaNeta");neto.textContent=formatoDineroCierre(d.gananciaNeta);neto.classList.toggle("reporte-negativo",d.gananciaNeta<0);neto.classList.toggle("reporte-positivo",d.gananciaNeta>=0);document.getElementById("reporteCobrado").textContent=formatoDineroCierre(d.cobrado);document.getElementById("reporteEfectivoCUP").textContent=formatoDineroCierre(d.efectivoCup||0);
+ document.getElementById("reporteEfectivoUSD").textContent=formatoDineroCierre(d.efectivoUsd||0);
+ document.getElementById("reporteTransferenciaCUP").textContent=formatoDineroCierre(d.transferenciaCup||0);
+ document.getElementById("reporteTransferenciaUSD").textContent=formatoDineroCierre(d.transferenciaUsd||0);
+ document.getElementById("reporteTransferenciaMLC").textContent=formatoDineroCierre(d.transferenciaMlc||0);
+ document.getElementById("reporteEfectivoEuro").textContent=formatoDineroCierre(d.efectivoEuro||0);
+ document.getElementById("reporteZelle").textContent=formatoDineroCierre(d.zelle||0);
+ document.getElementById("reporteOtros").textContent=formatoDineroCierre(d.otros||0);document.getElementById("reporteSaldoCredito").textContent=formatoDineroCierre(d.saldoCredito);
  document.getElementById("reporteProductos").innerHTML=d.productos.length?d.productos.slice(0,10).map(x=>`<div class="fila-estadistica"><span>${escapeHtml(x.nombre)}</span><strong>${x.unidades} u. · ${formatoDineroCierre(x.ingresos)}</strong></div>`).join(""):'<div class="fila-estadistica"><span>No hay ventas en este período.</span><strong>—</strong></div>';
  document.getElementById("reporteCategoriasGasto").innerHTML=d.categorias.length?d.categorias.map(([n,v])=>`<div class="fila-estadistica"><span>${escapeHtml(n)}</span><strong>${formatoDineroCierre(v)}</strong></div>`).join(""):'<div class="fila-estadistica"><span>No hay gastos en este período.</span><strong>—</strong></div>'
 }
@@ -8203,12 +8265,7 @@ async function cargarMovimientosCajaSupabase(){
  return true
 }
 function normalizarMetodoFlujo(m){
- const x=String(m||"Otro").trim().toLowerCase();
- if(x.includes("efectivo")||x==="cash"||x.includes("cash"))return "Efectivo";
- if(x.includes("ath"))return "ATH Móvil";
- if(x.includes("tarjeta"))return "Tarjeta";
- if(x.includes("transfer"))return "Transferencia";
- return "Otro"
+ return flkNormalizarMetodoPago(m)
 }
 function fechaMovimientoFlujo(v){const d=new Date(v);return Number.isNaN(d.getTime())?null:d}
 function limitesFlujo(){
@@ -8346,7 +8403,7 @@ function datosFlujoCaja(){
  const entradas=suma("entrada"),salidas=suma("salida"),metodos={};
  const aportesPropietario=mov.filter(m=>m.grupo==="propietario"&&m.tipo==="entrada").reduce((t,m)=>t+Number(m.cantidad||0),0);
  const retirosPropietario=mov.filter(m=>m.grupo==="propietario"&&m.tipo==="salida").reduce((t,m)=>t+Number(m.cantidad||0),0);
- ["Efectivo","ATH Móvil","Tarjeta","Transferencia","Otro"].forEach(k=>metodos[k]=mov.filter(m=>m.metodo===k).reduce((t,m)=>t+(m.tipo==="entrada"?m.cantidad:-m.cantidad),0));
+ [...FLK_METODOS_PAGO,"ATH Móvil","Tarjeta","Otro"].forEach(k=>metodos[k]=mov.filter(m=>normalizarMetodoFlujo(m.metodo)===k).reduce((t,m)=>t+(m.tipo==="entrada"?m.cantidad:-m.cantidad),0));
  return {
   lim,mov,entradas,salidas,neto:entradas-salidas,
   ventas:suma("entrada","venta"),abonos:suma("entrada","abono"),prestaciones:suma("entrada","prestacion"),
@@ -8362,7 +8419,7 @@ function cambiarPeriodoFlujo(){
  actualizarFlujoCaja()
 }
 function saldoCajaFisicaActual(){
- return movimientosFlujoCaja().filter(m=>normalizarMetodoFlujo(m.metodo)==="Efectivo").reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0)
+ return movimientosFlujoCaja().filter(m=>flkEsEfectivoCUP(m.metodo)).reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0)
 }
 function actualizarSaldoCajaFisica(){
  const el=document.getElementById("saldoCajaFisica");if(!el)return;
@@ -8416,11 +8473,16 @@ function actualizarFlujoCaja(){
   netoProp.textContent=(d.netoPropietario<0?"−":"+")+"$"+Math.abs(d.netoPropietario).toFixed(2);
   netoProp.style.color=d.netoPropietario<0?"#d93025":"#111";
  }
- document.getElementById("flujoEfectivo").textContent="$"+d.metodos["Efectivo"].toFixed(2);
- document.getElementById("flujoAth").textContent="$"+d.metodos["ATH Móvil"].toFixed(2);
- document.getElementById("flujoTarjeta").textContent="$"+d.metodos["Tarjeta"].toFixed(2);
- document.getElementById("flujoTransferencia").textContent="$"+d.metodos["Transferencia"].toFixed(2);
- document.getElementById("flujoOtros").textContent="$"+d.metodos["Otro"].toFixed(2);
+ document.getElementById("flujoEfectivoCUP").textContent="$"+Number(d.metodos["Efectivo CUP"]||0).toFixed(2);
+ document.getElementById("flujoEfectivoUSD").textContent="$"+Number(d.metodos["Efectivo USD"]||0).toFixed(2);
+ document.getElementById("flujoTransferenciaCUP").textContent="$"+Number(d.metodos["Transferencia CUP"]||0).toFixed(2);
+ document.getElementById("flujoTransferenciaUSD").textContent="$"+Number(d.metodos["Transferencia USD"]||0).toFixed(2);
+ document.getElementById("flujoTransferenciaMLC").textContent="$"+Number(d.metodos["Transferencia MLC"]||0).toFixed(2);
+ document.getElementById("flujoEfectivoEuro").textContent="$"+Number(d.metodos["Efectivo Euro"]||0).toFixed(2);
+ document.getElementById("flujoZelle").textContent="$"+Number(d.metodos["Zelle"]||0).toFixed(2);
+ document.getElementById("flujoOtros").textContent="$"+(
+  Number(d.metodos["ATH Móvil"]||0)+Number(d.metodos["Tarjeta"]||0)+Number(d.metodos["Otro"]||0)
+ ).toFixed(2);
  const lista=document.getElementById("listaFlujoCaja"),arr=[...d.mov].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
  lista.innerHTML=arr.length?arr.map(m=>`<div class="fila-estadistica"><span>${m.tipo==="entrada"?"⬇️":"⬆️"} ${escapeHtml(m.concepto)}<br><small>${new Date(m.fecha).toLocaleString("es-PR")} · ${escapeHtml(m.metodo)}</small></span><strong style="color:${m.tipo==="entrada"?"#168044":"#d93025"}">${m.tipo==="entrada"?"+":"-"}$${m.cantidad.toFixed(2)}</strong></div>`).join(""):'<div class="fila-estadistica"><span>No hay movimientos de dinero en este período.</span><strong>—</strong></div>'
 }
