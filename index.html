@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-09-07-v61.86-contribucion-mensual-neta">
+<meta name="flackunloker-offline-version" content="2026-09-07-v61.87-login-conexion-estable">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -758,8 +758,13 @@ button.menu-toggle{
   color:#000 !important;
 }
 </style>
-<script id="flk-supabase-loader-v6148">
-/* v61.48: carga segura de Supabase. No bloquea el modo offline si CDN falla. */
+<script id="flk-supabase-loader-v6187">
+/* v61.87 · Supabase estable entre PC/iPhone.
+   1) Usa primero la copia local si existe.
+   2) Si no existe y hay Internet, carga la librería de forma BLOQUEANTE
+      antes de que el resto de Flackunloker cree flkSupabase.
+   Esto elimina la carrera que podía dejar un dispositivo usando el
+   cliente offline falso aunque sí tuviera Internet. */
 (function(){
  var KEY="flk_lib_supabasejs_v2";
  var URL="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
@@ -774,34 +779,26 @@ button.menu-toggle{
   }
  }
 
- function cargarCDN(){
-  return new Promise(function(resolve){
-   var s=document.createElement("script");
-   s.src=URL;
-   s.async=true;
-   s.onload=function(){resolve(!!(window.supabase&&window.supabase.createClient));};
-   s.onerror=function(){console.warn("Supabase CDN no disponible. Continuando offline.");resolve(false);};
-   document.head.appendChild(s);
-  });
+ var listo=false;
+ try{
+  var guardado=localStorage.getItem(KEY);
+  if(guardado) listo=ejecutar(guardado);
+ }catch(_){}
+
+ if(!listo && navigator.onLine){
+  /* document.write aquí es intencional: este script todavía está siendo
+     procesado por el parser y necesitamos que la librería termine de cargar
+     ANTES de continuar con la creación de flkSupabase. */
+  document.write('<script src="'+URL+'"><\/script>');
  }
 
- if(!(window.supabase&&window.supabase.createClient)){
-  try{
-   var guardado=localStorage.getItem(KEY);
-   if(guardado) ejecutar(guardado);
-  }catch(_){}
- }
-
- if(!(window.supabase&&window.supabase.createClient) && navigator.onLine){
-  cargarCDN().then(function(ok){
-   if(ok){
-    fetch(URL,{cache:"no-store"})
-    .then(function(r){return r.ok?r.text():Promise.reject();})
-    .then(function(c){try{localStorage.setItem(KEY,c);}catch(_){}});
-   }
-  });
- }
-
+ window.addEventListener("load",function(){
+  if(!(window.supabase&&window.supabase.createClient)||!navigator.onLine)return;
+  fetch(URL,{cache:"no-store"})
+   .then(function(r){return r.ok?r.text():Promise.reject(new Error("HTTP "+r.status));})
+   .then(function(c){try{localStorage.setItem(KEY,c);}catch(_){} })
+   .catch(function(e){console.warn("No se pudo actualizar la copia local de Supabase:",e);});
+ },{once:true});
 })();
 </script>
 <script id="flk-supabase-offline-fallback-v6147">
@@ -4257,6 +4254,50 @@ async function cerrarSesionFlackunloker(){
  }catch(_){}
  location.reload();
 }
+
+/* ===== v61.87 · LOGIN ONLINE ROBUSTO ===== */
+async function flkSupabaseResponde(timeoutMs=5000){
+ if(!navigator.onLine)return false;
+ try{
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),timeoutMs);
+  try{
+   await fetch(FLK_SUPABASE_URL+"/auth/v1/health?flk_login="+Date.now(),{
+    cache:"no-store",
+    signal:ctrl.signal,
+    headers:{"apikey":FLK_SUPABASE_KEY}
+   });
+   return true; // cualquier respuesta HTTP confirma que la red llegó a Supabase
+  }finally{
+   clearTimeout(timer);
+  }
+ }catch(_){
+  return false;
+ }
+}
+
+async function flkLoginOnlineConReintento(email,password){
+ let ultimo=null;
+ for(let intento=1;intento<=2;intento++){
+  try{
+   const r=await flkSupabase.auth.signInWithPassword({email,password});
+   if(!r?.error)return r;
+   ultimo=r;
+   if(!flkEsErrorConexion(r.error))return r;
+  }catch(err){
+   ultimo={data:null,error:err};
+   if(!flkEsErrorConexion(err))return ultimo;
+  }
+
+  if(intento===1){
+   const responde=await flkSupabaseResponde(5000);
+   if(!responde)break;
+   await new Promise(resolve=>setTimeout(resolve,350));
+  }
+ }
+ return ultimo||{data:null,error:{message:"No se pudo contactar con Supabase.",name:"NetworkError"}};
+}
+
 document.getElementById("formAuth").addEventListener("submit",async e=>{
  e.preventDefault();
  const email=document.getElementById("authEmail").value.trim();
@@ -4287,7 +4328,7 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
    return;
   }
   try{
-   const {data,error}=await flkSupabase.auth.signInWithPassword({email,password});
+   const {data,error}=await flkLoginOnlineConReintento(email,password);
    if(error){
     const cache=flkSesionOfflineDisponible();
     if(flkEsErrorConexion(error)){
@@ -4304,7 +4345,12 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
     const msg=String(error.message||"").toLowerCase();
     if(msg.includes("invalid login credentials")||msg.includes("invalid credentials"))mostrarMensajeAuth("❌ Usuario o contraseña incorrectos. Revisa la contraseña.","error");
     else if(msg.includes("email not confirmed"))mostrarMensajeAuth("❌ La cuenta todavía no está confirmada.","error");
-    else mostrarMensajeAuth("❌ No se pudo iniciar sesión: "+error.message,"error");
+    else if(flkEsErrorConexion(error)){
+     const responde=await flkSupabaseResponde(3500);
+     mostrarMensajeAuth(responde
+      ?"❌ Supabase respondió, pero el inicio de sesión no pudo completarse. Vuelve a intentar."
+      :"❌ Hay conexión en el dispositivo, pero no se puede llegar a Supabase ahora mismo.","error");
+    }else mostrarMensajeAuth("❌ No se pudo iniciar sesión: "+error.message,"error");
     return;
    }
    if(!data?.session){
@@ -4337,7 +4383,14 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
      flkLimpiarPasswordLogin();return;
     }
    }
-   mostrarMensajeAuth("❌ No se pudo iniciar sesión: "+String(err?.message||err),"error");
+   if(flkEsErrorConexion(err)){
+    const responde=await flkSupabaseResponde(3500);
+    mostrarMensajeAuth(responde
+     ?"❌ Supabase respondió, pero el inicio de sesión no pudo completarse. Vuelve a intentar."
+     :"❌ No se puede llegar a Supabase en este momento. Revisa la conexión y vuelve a intentar.","error");
+   }else{
+    mostrarMensajeAuth("❌ No se pudo iniciar sesión: "+String(err?.message||err),"error");
+   }
   }
  }
 });
@@ -9470,6 +9523,22 @@ window.addEventListener("load",()=>{
 });
 window.addEventListener("online",async()=>{
  setTimeout(()=>flkValidarLicencia(),250);
+
+ // v61.87: no quedarse pegado artificialmente en "offline".
+ // Solo quitamos la marca si Supabase realmente responde Y existe sesión nube.
+ setTimeout(async()=>{
+  try{
+   const responde=typeof flkSupabaseResponde==="function"
+    ? await flkSupabaseResponde(5000)
+    : false;
+   if(responde && typeof flkReactivarNubeSiDisponible==="function"){
+    await flkReactivarNubeSiDisponible();
+   }
+  }catch(e){
+   console.warn("Reactivación automática de nube:",e);
+  }
+ },200);
+
  // Al regresar Internet, sincroniza la cola offline sin cerrar sesión.
  setTimeout(async()=>{
   try{
@@ -9479,15 +9548,30 @@ window.addEventListener("online",async()=>{
   }catch(e){
    console.warn("Sincronización automática al volver Internet:",e);
   }
- },500);
+ },700);
 });
 window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.48",{updateViaCache:"none"});
-   if(flkNubeDisponible())setTimeout(()=>reg.update().catch(()=>{}),0);
+   const reg=await navigator.serviceWorker.register("./sw.js?v=61.87",{updateViaCache:"none"});
+
+   // v61.87: revisar siempre el SW publicado, no solo cuando la app cree estar online.
+   setTimeout(()=>reg.update().catch(()=>{}),0);
+
+   // Si hay una versión esperando y el SW entiende SKIP_WAITING, activarla.
+   if(reg.waiting){
+    try{reg.waiting.postMessage({type:"SKIP_WAITING"});}catch(_){}
+   }
+
+   // Evita bucles: una sola recarga cuando cambia el controlador.
+   let recargado=false;
+   navigator.serviceWorker.addEventListener("controllerchange",()=>{
+    if(recargado)return;
+    recargado=true;
+    location.reload();
+   });
   }catch(err){console.error("Service Worker:",err)}
  });
 }
