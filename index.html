@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-09-07-v61.86-login-multidispositivo-estable">
+<meta name="flackunloker-offline-version" content="2026-09-07-v61.86-login-estable-historial-entrada-inicial">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -7565,7 +7565,8 @@ function mostrarListaHistorial(){
   const el=document.createElement("div");el.className="movimiento";const f=new Date(m.fecha),entrada=m.tipo==="entrada";
   const saldo=m.saldo!==undefined&&m.saldo!==null?Number(m.saldo):"No disponible";
   const detalle=m.detalle?`<br>Origen: <strong>${escapeHtml(m.detalle)}</strong>`:"";
-  const etiqueta=/Venta/i.test(m.detalle||"")?"💰 Venta":/Devolución/i.test(m.detalle||"")?"↩️ Devolución":/Recepción de orden/i.test(m.detalle||"")?"📦 Compra":entrada?"＋ Entrada":"− Salida";
+  const detalleTxt=String(m.detalle||"");
+   const etiqueta=/inventario inicial/i.test(detalleTxt)?"＋ Entrada":/Venta/i.test(detalleTxt)?"💰 Venta":/Devolución/i.test(detalleTxt)?"↩️ Devolución":/Recepción de orden/i.test(detalleTxt)?"📦 Compra":entrada?"＋ Entrada":"− Salida";
   const acciones=m.supabaseId?`<div class="saldo-movimiento">🔒 Registro guardado en Supabase. Para corregir inventario, registra un nuevo movimiento de Entrada o Salida.</div>`:"";
   const idComp=String(m.id||m.supabaseId||"").replace(/'/g,"\\'");
   el.innerHTML=`<div class="movimiento-superior"><div class="movimiento-info"><h3>${escapeHtml(m.nombre)}</h3><p>SKU: ${escapeHtml(m.sku)}</p></div><div class="movimiento-tipo ${entrada?"entrada":"salida"}">${etiqueta}</div></div><div class="movimiento-detalle">Cantidad: <strong>${Number(m.cantidad)}</strong> &nbsp;·&nbsp; ${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}${detalle}<div class="saldo-movimiento">Saldo después del movimiento: <strong>${saldo}</strong></div></div>${acciones}<button type="button" class="boton-comprobante" onclick="imprimirComprobanteMovimiento('${idComp}')">🧾 Ver comprobante</button>`;
