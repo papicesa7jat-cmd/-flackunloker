@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-09-07-v61.86-cierre-caja-saldo-final-corregido">
+<meta name="flackunloker-offline-version" content="2026-09-08-v61.86-proveedores-filtro">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1658,6 +1658,12 @@ textarea::placeholder{
 #vistaPrestacionesServicio .seccion-titulo h2{font-size:20px !important;}
 #vistaPrestacionesServicio .lista-estadisticas h3{font-size:16px !important;}
 </style>
+
+<style id="flk-filtro-proveedores-v6186">
+.filtros-proveedores-flk{display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:10px;margin-bottom:12px}
+.filtros-proveedores-flk .busqueda-historial,.filtros-proveedores-flk .filtro-inventario{margin:0;width:100%}
+@media(max-width:560px){.filtros-proveedores-flk{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 
@@ -1973,7 +1979,16 @@ textarea::placeholder{
 <div class="estadistica-card negativa"><span>Saldo por pagar</span><strong id="saldoPorPagarProveedores">$0.00</strong></div>
 <div class="estadistica-card ancha negativa"><span>Deuda vencida</span><strong id="deudaVencidaProveedores">$0.00</strong></div>
 </div>
+<div class="filtros-proveedores-flk">
 <input id="busquedaProveedores" class="busqueda-historial" type="search" placeholder="Buscar por proveedor, contacto, teléfono o email...">
+<select id="filtroEstadoProveedor" class="filtro-inventario">
+<option value="">Todos los proveedores</option>
+<option value="con_deuda">Con deuda</option>
+<option value="sin_deuda">Sin deuda</option>
+<option value="pendientes">Con órdenes pendientes</option>
+<option value="vencida">Con deuda vencida</option>
+</select>
+</div>
 <div class="lista-estadisticas"><h3>ℹ️ Directorio de compras</h3><div class="fila-estadistica"><span>Productos asociados</span><strong>Según proveedor del inventario</strong></div><div class="fila-estadistica"><span>Compras y pendientes</span><strong>Según órdenes de compra</strong></div></div>
 <div id="listaProveedoresVista"></div>
 </div>
@@ -8086,7 +8101,47 @@ document.getElementById("formularioProveedor").addEventListener("submit",async e
 });
 function eliminarProveedor(id){const p=proveedores.find(x=>x.id===id);if(!p)return;const productosAsociados=productos.filter(x=>nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(p.nombre)).length,ordenesAsociadas=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)).length;if(!confirm(`¿Eliminar ${p.nombre} del directorio?\n\nSus ${productosAsociados} producto(s) y ${ordenesAsociadas} orden(es) conservarán el nombre del proveedor como historial.`))return;proveedores=proveedores.filter(x=>x.id!==id);guardarProveedores();actualizarProveedores();actualizarOpcionesOrganizacion()}
 function nuevaOrdenProveedor(id){const p=proveedores.find(x=>x.id===id);if(!p)return;abrirOrdenCompra(null,p.nombre)}
-function mostrarListaProveedores(){const q=document.getElementById("busquedaProveedores").value.toLowerCase().trim(),lista=document.getElementById("listaProveedoresVista");const arr=[...proveedores].filter(p=>[p.nombre,p.contacto,p.telefono,p.email,p.direccion,p.nota].some(v=>String(v||"").toLowerCase().includes(q))).sort((a,b)=>String(a.nombre||"").localeCompare(String(b.nombre||""),"es",{sensitivity:"base"}));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay proveedores con esa búsqueda.</div>';return}lista.innerHTML=arr.map(p=>{const prods=productos.filter(x=>nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(p.nombre)),ords=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)),pend=ords.filter(o=>o.estado!=="recibida").length,rec=ords.filter(o=>o.estado==="recibida"),total=rec.reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),vencidas=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").length;return `<div class="proveedor-card"><div class="proveedor-superior"><div><h3>${escapeHtml(p.nombre)}</h3><p>${p.contacto?`Contacto: ${escapeHtml(p.contacto)}`:"Proveedor registrado"}</p></div><div class="proveedor-total">$${saldo.toFixed(2)} por pagar</div></div><div class="proveedor-detalle">Productos asociados: <strong>${prods.length}</strong><br>Órdenes totales: <strong>${ords.length}</strong> · Pendientes/ordenadas: <strong>${pend}</strong><br>Compras recibidas: <strong>${rec.length}</strong> · Total: <strong>$${total.toFixed(2)}</strong><br>Pagado: <strong>$${pagado.toFixed(2)}</strong> · Saldo: <strong>$${saldo.toFixed(2)}</strong>${vencidas?`<br>🔴 Deudas vencidas: <strong>${vencidas}</strong>`:""}${p.telefono?`<br>Teléfono: <strong>${escapeHtml(p.telefono)}</strong>`:""}${p.email?`<br>Email: <strong>${escapeHtml(p.email)}</strong>`:""}${p.direccion?`<br>Dirección: ${escapeHtml(p.direccion)}`:""}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><div class="acciones-proveedor"><button class="boton-proveedor boton-proveedor-orden" onclick="abrirOrdenCompra(null,'${escapeHtml(p.nombre).replace(/'/g,"&#039;")}')">📦 Nueva orden</button>${saldo>0.009?`<button class="boton-proveedor boton-proveedor-orden" onclick="mostrarCuentasPagar();document.getElementById('filtroProveedorCuentas').value='${escapeHtml(p.nombre).replace(/'/g,"&#039;")}';mostrarListaCuentasPagar()">💳 Ver deuda</button>`:""}<button class="boton-proveedor boton-proveedor-editar" onclick="abrirProveedor(${p.id})">✏️ Editar</button><button class="boton-proveedor boton-proveedor-eliminar" onclick="eliminarProveedor(${p.id})">🗑️ Eliminar</button></div></div>`}).join("")}
+function mostrarListaProveedores(){
+ const q=document.getElementById("busquedaProveedores").value.toLowerCase().trim(),
+       filtro=document.getElementById("filtroEstadoProveedor")?.value||"",
+       lista=document.getElementById("listaProveedoresVista");
+
+ const arr=[...proveedores].filter(p=>{
+  const coincideTexto=[p.nombre,p.contacto,p.telefono,p.email,p.direccion,p.nota]
+   .some(v=>String(v||"").toLowerCase().includes(q));
+  if(!coincideTexto)return false;
+
+  const ords=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre));
+  const rec=ords.filter(o=>o.estado==="recibida");
+  const saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0);
+  const tienePendientes=ords.some(o=>o.estado!=="recibida");
+  const tieneVencida=rec.some(o=>estadoCuentaProveedor(o).clave==="vencida");
+
+  if(filtro==="con_deuda")return saldo>0.009;
+  if(filtro==="sin_deuda")return saldo<=0.009;
+  if(filtro==="pendientes")return tienePendientes;
+  if(filtro==="vencida")return tieneVencida;
+  return true;
+ }).sort((a,b)=>String(a.nombre||"").localeCompare(String(b.nombre||""),"es",{sensitivity:"base"}));
+
+ if(!arr.length){
+  lista.innerHTML='<div class="sin-productos">No hay proveedores con esa búsqueda o filtro.</div>';
+  return
+ }
+
+ lista.innerHTML=arr.map(p=>{
+  const prods=productos.filter(x=>nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(p.nombre)),
+        ords=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)),
+        pend=ords.filter(o=>o.estado!=="recibida").length,
+        rec=ords.filter(o=>o.estado==="recibida"),
+        total=rec.reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0),
+        pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),
+        saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),
+        vencidas=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").length;
+
+  return `<div class="proveedor-card"><div class="proveedor-superior"><div><h3>${escapeHtml(p.nombre)}</h3><p>${p.contacto?`Contacto: ${escapeHtml(p.contacto)}`:"Proveedor registrado"}</p></div><div class="proveedor-total">$${saldo.toFixed(2)} por pagar</div></div><div class="proveedor-detalle">Productos asociados: <strong>${prods.length}</strong><br>Órdenes totales: <strong>${ords.length}</strong> · Pendientes/ordenadas: <strong>${pend}</strong><br>Compras recibidas: <strong>${rec.length}</strong> · Total: <strong>$${total.toFixed(2)}</strong><br>Pagado: <strong>$${pagado.toFixed(2)}</strong> · Saldo: <strong>$${saldo.toFixed(2)}</strong>${vencidas?`<br>🔴 Deudas vencidas: <strong>${vencidas}</strong>`:""}${p.telefono?`<br>Teléfono: <strong>${escapeHtml(p.telefono)}</strong>`:""}${p.email?`<br>Email: <strong>${escapeHtml(p.email)}</strong>`:""}${p.direccion?`<br>Dirección: ${escapeHtml(p.direccion)}`:""}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><div class="acciones-proveedor"><button class="boton-proveedor boton-proveedor-orden" onclick="abrirOrdenCompra(null,'${escapeHtml(p.nombre).replace(/'/g,"&#039;")}')">📦 Nueva orden</button>${saldo>0.009?`<button class="boton-proveedor boton-proveedor-orden" onclick="mostrarCuentasPagar();document.getElementById('filtroProveedorCuentas').value='${escapeHtml(p.nombre).replace(/'/g,"&#039;")}';mostrarListaCuentasPagar()">💳 Ver deuda</button>`:""}<button class="boton-proveedor boton-proveedor-editar" onclick="abrirProveedor(${p.id})">✏️ Editar</button><button class="boton-proveedor boton-proveedor-eliminar" onclick="eliminarProveedor(${p.id})">🗑️ Eliminar</button></div></div>`
+ }).join("")
+}
 function actualizarProveedores(){const rec=ordenesCompra.filter(o=>o.estado==="recibida"),total=rec.reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),vencido=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").reduce((t,o)=>t+Number(o.saldoProveedor||0),0);document.getElementById("totalProveedores").textContent=proveedores.length;document.getElementById("proveedoresPendientes").textContent=proveedores.filter(p=>ordenesCompra.some(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)&&o.estado!=="recibida")).length;document.getElementById("totalCompradoProveedores").textContent="$"+total.toFixed(2);document.getElementById("totalPagadoProveedores").textContent="$"+pagado.toFixed(2);document.getElementById("saldoPorPagarProveedores").textContent="$"+saldo.toFixed(2);document.getElementById("deudaVencidaProveedores").textContent="$"+vencido.toFixed(2);mostrarListaProveedores()}
 function mostrarProveedores(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;
@@ -8096,6 +8151,7 @@ function mostrarProveedores(){flkOcultarTodasLasVistas();
  if(flkNubeDisponible())setTimeout(()=>cargarComprasSupabase().then(()=>actualizarProveedores()).catch(()=>{}),0);
 }
 document.getElementById("busquedaProveedores").addEventListener("input",mostrarListaProveedores);
+document.getElementById("filtroEstadoProveedor").addEventListener("change",mostrarListaProveedores);
 
 function numeroOrdenCompra(o){return "OC-"+String(o.numero||o.id).slice(-6)}
 function cargarProductosOrden(idPreferido=null){const sel=document.getElementById("productoOrden");sel.innerHTML=productos.length?productos.map(p=>`<option value="${p.id}">${escapeHtml(p.nombre)} · SKU ${escapeHtml(p.sku)} · Stock ${Number(p.cantidad)}</option>`).join(""):'<option value="">No hay productos</option>';if(idPreferido!==null&&productos.some(p=>String(p.id)===String(idPreferido)))sel.value=String(idPreferido);actualizarDatosProductoOrden()}
