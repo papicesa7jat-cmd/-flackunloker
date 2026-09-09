@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-09-07-v61.86-metodos-pago-restaurados">
+<meta name="flackunloker-offline-version" content="2026-09-08-v61.86-proveedores-filtro">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1658,6 +1658,12 @@ textarea::placeholder{
 #vistaPrestacionesServicio .seccion-titulo h2{font-size:20px !important;}
 #vistaPrestacionesServicio .lista-estadisticas h3{font-size:16px !important;}
 </style>
+
+<style id="flk-filtro-proveedores-v6186">
+.filtros-proveedores-flk{display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:10px;margin-bottom:12px}
+.filtros-proveedores-flk .busqueda-historial,.filtros-proveedores-flk .filtro-inventario{margin:0;width:100%}
+@media(max-width:560px){.filtros-proveedores-flk{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 
@@ -1861,7 +1867,7 @@ textarea::placeholder{
 <div class="fila-estadistica"><span>Ventas a crédito del día</span><strong id="cierreCreditoHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>Saldo pendiente de esas ventas</span><strong id="cierreSaldoCreditoHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>Efectivo gastado hoy</span><strong id="cierreGastoEfectivoHoy">$0.00</strong></div>
-<div class="fila-estadistica"><span>💰 Efectivo neto de caja</span><strong id="cierreEfectivoNetoHoy">$0.00</strong></div>
+<div class="fila-estadistica"><span>💰 Saldo final de caja</span><strong id="cierreEfectivoNetoHoy">$0.00</strong></div>
 </div>
 <button id="botonGuardarCierre" class="boton-agregar" style="width:100%;padding:14px;margin-bottom:15px" onclick="guardarCierreHoy()">🔒 Guardar cierre de hoy</button>
 <div id="estadoCierreHoy" class="estado-respaldo"></div>
@@ -1973,7 +1979,16 @@ textarea::placeholder{
 <div class="estadistica-card negativa"><span>Saldo por pagar</span><strong id="saldoPorPagarProveedores">$0.00</strong></div>
 <div class="estadistica-card ancha negativa"><span>Deuda vencida</span><strong id="deudaVencidaProveedores">$0.00</strong></div>
 </div>
+<div class="filtros-proveedores-flk">
 <input id="busquedaProveedores" class="busqueda-historial" type="search" placeholder="Buscar por proveedor, contacto, teléfono o email...">
+<select id="filtroEstadoProveedor" class="filtro-inventario">
+<option value="">Todos los proveedores</option>
+<option value="con_deuda">Con deuda</option>
+<option value="sin_deuda">Sin deuda</option>
+<option value="pendientes">Con órdenes pendientes</option>
+<option value="vencida">Con deuda vencida</option>
+</select>
+</div>
 <div class="lista-estadisticas"><h3>ℹ️ Directorio de compras</h3><div class="fila-estadistica"><span>Productos asociados</span><strong>Según proveedor del inventario</strong></div><div class="fila-estadistica"><span>Compras y pendientes</span><strong>Según órdenes de compra</strong></div></div>
 <div id="listaProveedoresVista"></div>
 </div>
@@ -2073,6 +2088,10 @@ textarea::placeholder{
 <div class="finanzas-card ancha activo"><span>Activos operativos</span><strong id="finActivos">$0.00</strong></div>
 <div class="finanzas-card ancha pasivo"><span>💳 Cuentas por pagar</span><strong id="finPorPagar">$0.00</strong></div>
 <div class="finanzas-card ancha azul"><span>💼 Patrimonio operativo neto</span><strong id="finPatrimonio">$0.00</strong></div>
+</div>
+<div class="lista-estadisticas">
+<h3>👥 Comprobantes por cobrar</h3>
+<div id="finDetallePorCobrar"><div class="fila-estadistica"><span>No hay comprobantes pendientes.</span><strong>$0.00</strong></div></div>
 </div>
 <div class="lista-estadisticas">
 <h3>🧮 Cómo se calcula el patrimonio</h3>
@@ -2790,7 +2809,10 @@ function flkEncolarOperacion(tipo,payload){
  const datos=(payload&&typeof payload==="object")?{...payload}:{};
  if(FLK_OPERACIONES_LOCAL_FIRST.has(tipo))datos.local_applied=true;
  const op={id:flkUUID(),tipo,payload:datos,device_id:flkDeviceId(),created_at:new Date().toISOString(),estado:"pendiente",intentos:0};
- q.push(op);flkGuardarColaOffline(q);return op
+ q.push(op);
+ flkGuardarColaOffline(q);
+ try{flkActualizarEstadoConexion()}catch(_){}
+ return op
 }
 function flkPendientesOffline(){
  return flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado)).length
@@ -3791,9 +3813,65 @@ function flkEsEfectivoCUP(metodo){
  return flkNormalizarMetodoPago(metodo)==="Efectivo CUP";
 }
 
+let flkOperacionLocalInmediataHasta=0;
 function flkNubeDisponible(){
- return !!navigator.onLine && localStorage.getItem(FLK_FORCE_OFFLINE_KEY)!=="1";
+ return !!navigator.onLine
+  && localStorage.getItem(FLK_FORCE_OFFLINE_KEY)!=="1"
+  && Date.now()>=Number(flkOperacionLocalInmediataHasta||0);
 }
+
+/* v61.86 · OPERACIONES LOCAL-PRIMERO
+   Cuando el usuario confirma una operación de negocio, se guarda primero
+   en la copia local/cola offline aunque navigator.onLine siga en true.
+   Así una señal mala no congela el botón esperando a Supabase.
+   La sincronización se intenta después en segundo plano. */
+const FLK_FORMULARIOS_OPERACION_LOCAL_PRIMERO=new Set([
+ "formularioProducto",
+ "formularioMovimiento",
+ "formularioVenta",
+ "formularioAbono",
+ "formularioDevolucion",
+ "formularioGasto",
+ "formularioRecepcionOrden",
+ "formularioPagoProveedor",
+ "formularioProveedor",
+ "formularioOrden",
+ "formularioMovimientoPropietario",
+ "formularioPrestacion"
+]);
+
+function flkPrepararOperacionLocalPrimero(formId){
+ if(!FLK_FORMULARIOS_OPERACION_LOCAL_PRIMERO.has(String(formId||"")))return false;
+
+ // Ventana corta suficiente para que el handler existente tome su ruta offline/local.
+ // No desactiva Internet del navegador ni elimina la sesión.
+ flkOperacionLocalInmediataHasta=Date.now()+2200;
+
+ setTimeout(()=>{
+  flkOperacionLocalInmediataHasta=0;
+  try{flkActualizarEstadoConexion()}catch(_){}
+
+  // Si realmente hay Internet, subir pendientes sin bloquear la interfaz.
+  if(navigator.onLine && localStorage.getItem(FLK_FORCE_OFFLINE_KEY)!=="1"){
+   setTimeout(()=>{
+    try{
+     if(typeof flkSincronizarSeguro==="function")flkSincronizarSeguro();
+     else if(typeof flkProcesarColaOffline==="function")flkProcesarColaOffline();
+    }catch(err){console.warn("Sincronización diferida:",err)}
+   },0);
+  }
+ },2250);
+
+ return true;
+}
+
+document.addEventListener("submit",function(ev){
+ const id=ev?.target?.id||"";
+ if(FLK_FORMULARIOS_OPERACION_LOCAL_PRIMERO.has(id)){
+  flkPrepararOperacionLocalPrimero(id);
+ }
+},true);
+
 function flkBytesHex(bytes){return Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");}
 function flkHexBytes(hex){
  const out=new Uint8Array(Math.floor(String(hex||"").length/2));
@@ -6546,7 +6624,7 @@ document.getElementById("formularioMovimiento").addEventListener("submit",async 
 
  const btn=document.getElementById("botonConfirmarMovimiento");
  const est=document.getElementById("estadoMovimientoOffline");
- if(btn){btn.disabled=true;btn.textContent=flkNubeDisponible()?"Guardando...":"Guardando local..."}
+ if(btn){btn.disabled=true;btn.textContent="Guardando local..."}
  if(est)est.style.display=flkNubeDisponible()?"none":"block";
 
  try{
@@ -6712,7 +6790,42 @@ function actualizarPrecioProductoRecibo(){
 }
 document.getElementById("productoRecibo").addEventListener("change",actualizarPrecioProductoRecibo);
 document.getElementById("filtroProductoVenta").addEventListener("input",filtrarSelectorProductosRecibo);
-function fechaLocalISO(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),dia=String(d.getDate()).padStart(2,"0");return `${y}-${m}-${dia}`}
+const FLK_ZONA_HORARIA_CONTABLE="America/Havana";
+function flkClaveFechaContable(v=new Date()){
+ if(typeof v==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(v))return v;
+ const d=v instanceof Date?v:new Date(v);
+ if(Number.isNaN(d.getTime()))return "";
+ const p=new Intl.DateTimeFormat("en-CA",{timeZone:FLK_ZONA_HORARIA_CONTABLE,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(d);
+ const x={};p.forEach(a=>x[a.type]=a.value);
+ return `${x.year}-${x.month}-${x.day}`
+}
+function flkSumarDiasClave(clave,dias){
+ const m=String(clave||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return "";
+ const d=new Date(Date.UTC(Number(m[1]),Number(m[2])-1,Number(m[3])+Number(dias||0),12));
+ return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}-${String(d.getUTCDate()).padStart(2,"0")}`
+}
+function flkPrimerDiaMesClave(clave){return String(clave||"").slice(0,7)+"-01"}
+function flkPrimerDiaMesSiguienteClave(clave){
+ const m=String(clave||"").match(/^(\d{4})-(\d{2})/);if(!m)return "";
+ const d=new Date(Date.UTC(Number(m[1]),Number(m[2]),1,12));
+ return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}-01`
+}
+function flkEnRangoFechaContable(v,desdeClave,hastaClave){
+ const k=flkClaveFechaContable(v);return !!k&&k>=desdeClave&&k<hastaClave
+}
+function flkFormatoFechaContable(v,opciones={}){
+ const d=v instanceof Date?v:new Date(v);if(Number.isNaN(d.getTime()))return "—";
+ return d.toLocaleDateString("es-PR",{timeZone:FLK_ZONA_HORARIA_CONTABLE,...opciones})
+}
+function flkFormatoHoraContable(v,opciones={}){
+ const d=v instanceof Date?v:new Date(v);if(Number.isNaN(d.getTime()))return "—";
+ return d.toLocaleTimeString("es-PR",{timeZone:FLK_ZONA_HORARIA_CONTABLE,...opciones})
+}
+function flkFormatoFechaHoraContable(v){
+ const d=v instanceof Date?v:new Date(v);if(Number.isNaN(d.getTime()))return "—";
+ return d.toLocaleString("es-PR",{timeZone:FLK_ZONA_HORARIA_CONTABLE})
+}
+function fechaLocalISO(d){return flkClaveFechaContable(d)}
 function fechaVencimientoPredeterminada(){const d=new Date();d.setDate(d.getDate()+30);return fechaLocalISO(d)}
 function actualizarCamposCredito(){const esCredito=document.getElementById("estadoPagoVenta").value==="credito";document.getElementById("campoAbonoInicial").classList.toggle("visible",esCredito);document.getElementById("campoVencimientoCredito").classList.toggle("visible",esCredito);if(esCredito&&!document.getElementById("fechaVencimientoVenta").value)document.getElementById("fechaVencimientoVenta").value=fechaVencimientoPredeterminada();if(!esCredito){document.getElementById("abonoInicialVenta").value="0";document.getElementById("fechaVencimientoVenta").value=""}}
 function abrirVenta(id=null){
@@ -7082,7 +7195,7 @@ Saldo pendiente: $${saldo.toFixed(2)}`:""}`)
  }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó la venta: "+(err.message||err))}
  finally{procesandoGuardado=false}
 });
-function esMismoDia(fechaA,fechaB){const a=new Date(fechaA),b=new Date(fechaB);return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
+function esMismoDia(fechaA,fechaB){return flkClaveFechaContable(fechaA)===flkClaveFechaContable(fechaB)}
 function itemsDeVenta(v){return Array.isArray(v.items)?v.items:[]}
 
 function cantidadNetaItemVenta(i){
@@ -7132,14 +7245,14 @@ function recalcularTotalesVenta(v){
  normalizarCuentaVenta(v)
 }
 function actualizarDashboardVentas(){
- const ahora=new Date(),inicioHoy=new Date(ahora.getFullYear(),ahora.getMonth(),ahora.getDate()),inicioSemana=new Date(inicioHoy);inicioSemana.setDate(inicioSemana.getDate()-6);const inicioMes=new Date(ahora.getFullYear(),ahora.getMonth(),1);
- const enPeriodo=(v,inicio)=>{const f=new Date(v.fecha);return !Number.isNaN(f.getTime())&&f>=inicio&&f<=ahora};
+ const ahora=new Date(),hoyClave=flkClaveFechaContable(ahora),inicioHoy=hoyClave,inicioSemana=flkSumarDiasClave(hoyClave,-6),inicioMes=flkPrimerDiaMesClave(hoyClave),finMes=flkPrimerDiaMesSiguienteClave(hoyClave);
+ const enPeriodo=(v,inicio,fin=flkSumarDiasClave(hoyClave,1))=>flkEnRangoFechaContable(v.fecha,inicio,fin);
  const resumen=arr=>({ingresos:arr.reduce((t,v)=>t+Number(v.ingreso??0),0),ganancia:arr.reduce((t,v)=>t+flkGananciaAjustadaVenta(v),0)});
  const formato=r=>`$${r.ingresos.toFixed(2)} / $${r.ganancia.toFixed(2)}`;
  document.getElementById("dashboardHoy").textContent=formato(resumen(ventas.filter(v=>enPeriodo(v,inicioHoy))));
  document.getElementById("dashboardSemana").textContent=formato(resumen(ventas.filter(v=>enPeriodo(v,inicioSemana))));
- document.getElementById("dashboardMes").textContent=formato(resumen(ventas.filter(v=>enPeriodo(v,inicioMes))));
- const ganMes=resumen(ventas.filter(v=>enPeriodo(v,inicioMes))).ganancia,gastoMes=gastos.filter(g=>{const f=fechaGastoObj(g);return f>=inicioMes&&f<=ahora}).reduce((t,g)=>t+Number(g.cantidad||0),0);document.getElementById("dashboardNetoMes").textContent=`$${gastoMes.toFixed(2)} / $${(ganMes-gastoMes).toFixed(2)}`;
+ document.getElementById("dashboardMes").textContent=formato(resumen(ventas.filter(v=>enPeriodo(v,inicioMes,finMes))));
+ const ganMes=resumen(ventas.filter(v=>enPeriodo(v,inicioMes,finMes))).ganancia,gastoMes=gastos.filter(g=>flkEnRangoFechaContable(g.fechaLocal||g.fecha,inicioMes,finMes)).reduce((t,g)=>t+Number(g.cantidad||0),0);document.getElementById("dashboardNetoMes").textContent=`$${gastoMes.toFixed(2)} / $${(ganMes-gastoMes).toFixed(2)}`;
  const conteo={};
  ventas.forEach(v=>itemsDeVenta(v).forEach(i=>{const k=String(i.productoId??i.sku??i.nombre),netas=cantidadNetaItemVenta(i);if(!conteo[k])conteo[k]={nombre:i.nombre||"Producto",unidades:0,ingresos:0};conteo[k].unidades+=netas;conteo[k].ingresos+=netas*Number(i.precioUnitario||0)}));
  const top=Object.values(conteo).sort((a,b)=>b.unidades-a.unidades||b.ingresos-a.ingresos).slice(0,5);
@@ -7173,7 +7286,7 @@ function mostrarListaVentas(){
   const itemsHtml=items.filter(i=>Number(i.cantidad)>0).map(i=>`<div class="recibo-item"><span>${Number(i.cantidad)} × ${escapeHtml(i.nombre)}</span><strong>$${Number(i.ingreso??(Number(i.cantidad)*Number(i.precioUnitario))).toFixed(2)}</strong></div>`).join("")||'<div class="recibo-item"><span>Todos los artículos fueron devueltos</span><strong>$0.00</strong></div>';
   const devTxt=devoluciones.length?`<br>Devoluciones parciales: <strong>${devoluciones.length}</strong><br>${devoluciones.map(d=>`<button class="boton-recibo-venta" style="margin-top:7px" onclick="imprimirComprobanteDevolucion(${v.id},\'${d.supabaseId||d.offlineOperationId||d.id||""}\')">🖨️ Devolución ${d.numeroDevolucion?"#"+String(d.numeroDevolucion).padStart(6,"0"):""}</button>`).join(" ")}`:"";
   const puedeDevolver=items.some(i=>(Number(i.cantidad||0)-Number(i.devuelto||0))>0);   normalizarCuentaVenta(v);const ev=estadoVencimientoVenta(v),estadoTxt=`<span class="estado-pago ${ev.clave}">${ev.texto}${v.saldo>0?` · Debe $${Number(v.saldo).toFixed(2)}`:""}</span>`;
-   el.innerHTML=`<div class="venta-superior"><div><h3>Recibo #${escapeHtml(numero)}</h3><p>${cliente}${telefono}</p>${estadoTxt}</div><div class="venta-total">$${Number(v.ingreso??0).toFixed(2)}</div></div><div class="recibo-items">${itemsHtml}</div><div class="venta-detalle">Unidades netas: <strong>${items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0)}</strong> · Productos netos: <strong>${items.filter(i=>cantidadNetaItemVenta(i)>0).length}</strong><br>Ganancia real: <strong class="ganancia-venta">$${Number(v.ganancia??0).toFixed(2)}</strong><br>Pagado: <strong>$${Number(v.totalPagado||0).toFixed(2)}</strong> · Saldo: <strong>$${Number(v.saldo||0).toFixed(2)}</strong>${v.saldo>0&&v.fechaVencimiento?`<br>Vencimiento: <strong>${new Date(v.fechaVencimiento+"T00:00:00").toLocaleDateString("es-PR")}</strong>`:""}${v.metodoPago?`<br>Método inicial: <strong>${escapeHtml(v.metodoPago)}</strong>`:""}${devTxt}${nota}<br>${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</div><div class="acciones-venta"><button class="boton-recibo-venta" onclick="generarReciboVenta(${v.id})">🧾 Ver recibo</button>${v.saldo>0?`<button class="boton-abono-venta" onclick="abrirAbono(${v.id})">💵 Registrar abono</button>`:""}${pagosDeVenta(v).length?`<button class="boton-historial-abonos" onclick="verHistorialAbonos(${v.id})">📋 Historial abonos</button>`:""}${puedeDevolver?`<button class="boton-devolver-venta" onclick="abrirDevolucion(${v.id})">↩️ Devolver producto</button>`:""}<button class="boton-eliminar-venta" onclick="eliminarVenta(${v.id})">⛔ Anular recibo</button></div>`;
+   el.innerHTML=`<div class="venta-superior"><div><h3>Recibo #${escapeHtml(numero)}</h3><p>${cliente}${telefono}</p>${estadoTxt}</div><div class="venta-total">$${Number(v.ingreso??0).toFixed(2)}</div></div><div class="recibo-items">${itemsHtml}</div><div class="venta-detalle">Unidades netas: <strong>${items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0)}</strong> · Productos netos: <strong>${items.filter(i=>cantidadNetaItemVenta(i)>0).length}</strong><br>Ganancia real: <strong class="ganancia-venta">$${Number(v.ganancia??0).toFixed(2)}</strong><br>Pagado: <strong>$${Number(v.totalPagado||0).toFixed(2)}</strong> · Saldo: <strong>$${Number(v.saldo||0).toFixed(2)}</strong>${v.saldo>0&&v.fechaVencimiento?`<br>Vencimiento: <strong>${new Date(v.fechaVencimiento+"T00:00:00").toLocaleDateString("es-PR")}</strong>`:""}${v.metodoPago?`<br>Método inicial: <strong>${escapeHtml(v.metodoPago)}</strong>`:""}${devTxt}${nota}<br>${flkFormatoFechaContable(f,{day:"2-digit",month:"2-digit",year:"numeric"})} · ${flkFormatoHoraContable(f,{hour:"2-digit",minute:"2-digit"})}</div><div class="acciones-venta"><button class="boton-recibo-venta" onclick="generarReciboVenta(${v.id})">🧾 Ver recibo</button>${v.saldo>0?`<button class="boton-abono-venta" onclick="abrirAbono(${v.id})">💵 Registrar abono</button>`:""}${pagosDeVenta(v).length?`<button class="boton-historial-abonos" onclick="verHistorialAbonos(${v.id})">📋 Historial abonos</button>`:""}${puedeDevolver?`<button class="boton-devolver-venta" onclick="abrirDevolucion(${v.id})">↩️ Devolver producto</button>`:""}<button class="boton-eliminar-venta" onclick="eliminarVenta(${v.id})">⛔ Anular recibo</button></div>`;
   lista.appendChild(el)
  })
 }
@@ -7231,7 +7344,7 @@ function imprimirComprobanteDevolucion(ventaId,devolucionSupabaseId){
  const item=itemsDeVenta(v).find(i=>i.productoId===d.productoId)||{};
  const numero=d.numeroDevolucion?String(d.numeroDevolucion).padStart(6,"0"):String(d.id).slice(-6);
  const fecha=new Date(d.fecha),monto=Number(d.monto??d.reembolso??0),cantidad=Number(d.cantidad||0),unitario=cantidad>0?monto/cantidad:0;
- const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Devolución ${numero}</title><style>${flkCssComprobanteProfesional("#f25b18")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">↩ Devolución de cliente</span><span class="numero">N.º DV-${numero}</span></div></header><section class="meta"><div>Recibo original<strong>#${escapeHtml(v.numero||"")}</strong></div><div>Fecha y hora<strong>${fecha.toLocaleDateString("es-PR")} · ${fecha.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${escapeHtml(v.cliente||"Cliente general")}</strong></div><div>Teléfono<strong>${escapeHtml(v.telefono||"—")}</strong></div></section><section class="seccion"><h3>Detalle de devolución</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cant.</th><th class="num">Precio unit.</th><th class="num">Reembolso</th></tr></thead><tbody><tr><td>${escapeHtml(item.nombre||d.nombre||"Producto")}</td><td>${escapeHtml(item.sku||d.sku||"—")}</td><td class="num">${cantidad}</td><td class="num">$${unitario.toFixed(2)}</td><td class="num"><strong>$${monto.toFixed(2)}</strong></td></tr></tbody></table></section><section class="seccion"><div class="resumen"><div class="r"><span>Cantidad devuelta</span><strong>${cantidad}</strong></div><div class="r total"><span>TOTAL DEVOLUCIÓN</span><strong>$${monto.toFixed(2)}</strong></div></div></section><section class="seccion"><h3>Motivo / observaciones</h3><div class="nota">${escapeHtml(d.motivo||"No especificado")}</div><div class="firma"><div>Cliente / recibe devolución</div><div>Autorización administrativa</div></div></section><div class="pie">Comprobante generado por Flackunloker · Documento de control interno</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div>
+ const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Devolución ${numero}</title><style>${flkCssComprobanteProfesional("#f25b18")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">↩ Devolución de cliente</span><span class="numero">N.º DV-${numero}</span></div></header><section class="meta"><div>Recibo original<strong>#${escapeHtml(v.numero||"")}</strong></div><div>Fecha y hora<strong>${flkFormatoFechaContable(fecha)} · ${flkFormatoHoraContable(fecha,{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${escapeHtml(v.cliente||"Cliente general")}</strong></div><div>Teléfono<strong>${escapeHtml(v.telefono||"—")}</strong></div></section><section class="seccion"><h3>Detalle de devolución</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cant.</th><th class="num">Precio unit.</th><th class="num">Reembolso</th></tr></thead><tbody><tr><td>${escapeHtml(item.nombre||d.nombre||"Producto")}</td><td>${escapeHtml(item.sku||d.sku||"—")}</td><td class="num">${cantidad}</td><td class="num">$${unitario.toFixed(2)}</td><td class="num"><strong>$${monto.toFixed(2)}</strong></td></tr></tbody></table></section><section class="seccion"><div class="resumen"><div class="r"><span>Cantidad devuelta</span><strong>${cantidad}</strong></div><div class="r total"><span>TOTAL DEVOLUCIÓN</span><strong>$${monto.toFixed(2)}</strong></div></div></section><section class="seccion"><h3>Motivo / observaciones</h3><div class="nota">${escapeHtml(d.motivo||"No especificado")}</div><div class="firma"><div>Cliente / recibe devolución</div><div>Autorización administrativa</div></div></section><div class="pie">Comprobante generado por Flackunloker · Documento de control interno</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div>
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
@@ -7266,7 +7379,7 @@ function generarReciboVenta(id){
  const filas=items.filter(i=>Number(i.cantidad)>0).map(i=>{const cant=Number(i.cantidad||0),pu=Number(i.precioUnitario??0),tot=Number(i.ingreso??(cant*pu));return `<tr><td>${escapeHtml(i.nombre)}<div class="muted">Producto vendido</div></td><td>${escapeHtml(i.sku||"—")}</td><td class="num">${cant}</td><td class="num">$${pu.toFixed(2)}</td><td class="num"><strong>$${tot.toFixed(2)}</strong></td></tr>`}).join("")||'<tr><td colspan="5">Sin artículos activos.</td></tr>';
  const devolucionesTxt=devoluciones.length?`${devoluciones.length} devolución(es) · -$${devoluciones.reduce((t,d)=>t+Number(d.reembolso??d.monto??0),0).toFixed(2)}`:"Ninguna";
  const pagosTxt=pagos.length?`${pagos.length} abono(s) registrado(s)`:"Sin abonos";
- const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recibo ${escapeHtml(numero)}</title><style>${flkCssComprobanteProfesional("#0a67d1")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">🧾 Recibo de venta</span><span class="numero">N.º SA-${escapeHtml(numero)}</span></div></header><section class="meta"><div>Fecha y hora<strong>${f.toLocaleDateString("es-PR")} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${cliente}</strong></div><div>Teléfono<strong>${telefono||"—"}</strong></div><div>Estado de pago<strong>${escapeHtml(estadoVencimientoVenta(v).texto)}</strong></div></section><section class="seccion"><h3>Productos</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cant.</th><th class="num">Precio unit.</th><th class="num">Total</th></tr></thead><tbody>${filas}</tbody></table></section><section class="seccion"><div class="resumen"><div class="r"><span>Método inicial</span><strong>${escapeHtml(v.metodoPago||"—")}</strong></div><div class="r"><span>Pagado</span><strong>$${Number(v.totalPagado||0).toFixed(2)}</strong></div><div class="r"><span>Saldo pendiente</span><strong>$${Number(v.saldo||0).toFixed(2)}</strong></div><div class="r"><span>Devoluciones</span><strong>${devolucionesTxt}</strong></div><div class="r"><span>Abonos</span><strong>${pagosTxt}</strong></div><div class="r total"><span>TOTAL NETO</span><strong>$${Number(v.ingreso??0).toFixed(2)}</strong></div></div></section>${nota?`<section class="seccion"><h3>Observaciones</h3><div class="nota">${nota}</div></section>`:""}<section class="seccion"><div class="firma"><div>Vendido / entregado por</div><div>Cliente / recibido por</div></div></section>${qrReciboData?`<div style="text-align:center;margin:2mm 0"><img src="${qrReciboData}" style="width:24mm;height:24mm"><div style="font-size:1.8mm;margin-top:.8mm">QR del recibo</div></div>`:""}<div class="pie">Gracias por su compra · Comprobante generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div>
+ const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recibo ${escapeHtml(numero)}</title><style>${flkCssComprobanteProfesional("#0a67d1")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">🧾 Recibo de venta</span><span class="numero">N.º SA-${escapeHtml(numero)}</span></div></header><section class="meta"><div>Fecha y hora<strong>${flkFormatoFechaContable(f)} · ${flkFormatoHoraContable(f,{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${cliente}</strong></div><div>Teléfono<strong>${telefono||"—"}</strong></div><div>Estado de pago<strong>${escapeHtml(estadoVencimientoVenta(v).texto)}</strong></div></section><section class="seccion"><h3>Productos</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cant.</th><th class="num">Precio unit.</th><th class="num">Total</th></tr></thead><tbody>${filas}</tbody></table></section><section class="seccion"><div class="resumen"><div class="r"><span>Método inicial</span><strong>${escapeHtml(v.metodoPago||"—")}</strong></div><div class="r"><span>Pagado</span><strong>$${Number(v.totalPagado||0).toFixed(2)}</strong></div><div class="r"><span>Saldo pendiente</span><strong>$${Number(v.saldo||0).toFixed(2)}</strong></div><div class="r"><span>Devoluciones</span><strong>${devolucionesTxt}</strong></div><div class="r"><span>Abonos</span><strong>${pagosTxt}</strong></div><div class="r total"><span>TOTAL NETO</span><strong>$${Number(v.ingreso??0).toFixed(2)}</strong></div></div></section>${nota?`<section class="seccion"><h3>Observaciones</h3><div class="nota">${nota}</div></section>`:""}<section class="seccion"><div class="firma"><div>Vendido / entregado por</div><div>Cliente / recibido por</div></div></section>${qrReciboData?`<div style="text-align:center;margin:2mm 0"><img src="${qrReciboData}" style="width:24mm;height:24mm"><div style="font-size:1.8mm;margin-top:.8mm">QR del recibo</div></div>`:""}<div class="pie">Gracias por su compra · Comprobante generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div>
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
@@ -7530,12 +7643,12 @@ document.getElementById("formularioAbono").addEventListener("submit",async e=>{
  }catch(err){console.error(err);if(!flkSilenciarSiEsConexion(err))alert("Supabase rechazó el abono: "+(err.message||err))}
  finally{procesandoGuardado=false}
 });
-function verHistorialAbonos(id){const v=ventas.find(x=>x.id===id);if(!v)return;normalizarCuentaVenta(v);const pagos=[...pagosDeVenta(v)].sort((a,b)=>new Date(b.fecha||0)-new Date(a.fecha||0)||Number(b.id||0)-Number(a.id||0)),numero=v.numero||String(v.id).slice(-8);document.getElementById("textoHistorialAbonos").textContent=`Recibo #${numero} · ${v.cliente||"Cliente general"} · ${pagos.length} abono(s)`;const lista=document.getElementById("listaHistorialAbonos");lista.innerHTML=pagos.length?pagos.map((p,n)=>{const f=new Date(p.fecha);return `<div class="abono-card"><div class="abono-superior"><strong>Abono #${pagos.length-n}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}<br>Método: <strong>${escapeHtml(p.metodo||"No indicado")}</strong><br>Saldo anterior: <strong>$${Number(p.saldoAnterior??0).toFixed(2)}</strong><br>Saldo restante: <strong>$${Number(p.saldoRestante??0).toFixed(2)}</strong>${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><button type="button" class="boton-comprobante" onclick="generarComprobanteAbono(${v.id},${p.id})">🧾 Ver comprobante</button></div>`}).join(""):'<div class="sin-productos">Este recibo todavía no tiene abonos registrados.</div>';document.getElementById("modalHistorialAbonos").classList.add("visible")}
+function verHistorialAbonos(id){const v=ventas.find(x=>x.id===id);if(!v)return;normalizarCuentaVenta(v);const pagos=[...pagosDeVenta(v)].sort((a,b)=>new Date(b.fecha||0)-new Date(a.fecha||0)||Number(b.id||0)-Number(a.id||0)),numero=v.numero||String(v.id).slice(-8);document.getElementById("textoHistorialAbonos").textContent=`Recibo #${numero} · ${v.cliente||"Cliente general"} · ${pagos.length} abono(s)`;const lista=document.getElementById("listaHistorialAbonos");lista.innerHTML=pagos.length?pagos.map((p,n)=>{const f=new Date(p.fecha);return `<div class="abono-card"><div class="abono-superior"><strong>Abono #${pagos.length-n}</strong><span>$${Number(p.cantidad||0).toFixed(2)}</span></div><div class="abono-detalle">${flkFormatoFechaContable(f,{day:"2-digit",month:"2-digit",year:"numeric"})} · ${flkFormatoHoraContable(f,{hour:"2-digit",minute:"2-digit"})}<br>Método: <strong>${escapeHtml(p.metodo||"No indicado")}</strong><br>Saldo anterior: <strong>$${Number(p.saldoAnterior??0).toFixed(2)}</strong><br>Saldo restante: <strong>$${Number(p.saldoRestante??0).toFixed(2)}</strong>${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><button type="button" class="boton-comprobante" onclick="generarComprobanteAbono(${v.id},${p.id})">🧾 Ver comprobante</button></div>`}).join(""):'<div class="sin-productos">Este recibo todavía no tiene abonos registrados.</div>';document.getElementById("modalHistorialAbonos").classList.add("visible")}
 function cerrarHistorialAbonos(){document.getElementById("modalHistorialAbonos").classList.remove("visible")}
 function generarComprobanteAbono(ventaId,pagoId){
  const v=ventas.find(x=>x.id===ventaId);if(!v)return;normalizarCuentaVenta(v);const pagos=pagosDeVenta(v),p=pagos.find(x=>x.id===pagoId);if(!p)return alert("No encontramos ese abono.");
  const numero=v.numero||String(v.id).slice(-8),indice=pagos.findIndex(x=>x.id===pagoId)+1,f=new Date(p.fecha),cliente=escapeHtml(v.cliente||"Cliente general"),telefono=escapeHtml(v.telefono||""),nota=escapeHtml(p.nota||"");
- const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comprobante de abono</title><style>${flkCssComprobanteProfesional("#168044")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">💵 Abono recibido</span><span class="numero">Recibo #${escapeHtml(numero)} · AB-${String(indice).padStart(3,"0")}</span></div></header><section class="meta"><div>Fecha y hora<strong>${f.toLocaleDateString("es-PR")} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${cliente}</strong></div><div>Teléfono<strong>${telefono||"—"}</strong></div><div>Método<strong>${escapeHtml(p.metodo||"No indicado")}</strong></div></section><section class="seccion"><h3>Detalle del pago</h3><div class="resumen"><div class="r"><span>Saldo anterior</span><strong>$${Number(p.saldoAnterior??0).toFixed(2)}</strong></div><div class="r total"><span>ABONO RECIBIDO</span><strong>$${Number(p.cantidad||0).toFixed(2)}</strong></div><div class="r"><span>Saldo restante</span><strong>$${Number(p.saldoRestante??0).toFixed(2)}</strong></div></div></section>${nota?`<section class="seccion"><h3>Observaciones</h3><div class="nota">${nota}</div></section>`:""}<section class="seccion"><div class="firma"><div>Recibido por</div><div>Cliente / pagador</div></div></section><div class="pie">Gracias por su pago · Comprobante generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div>
+ const contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comprobante de abono</title><style>${flkCssComprobanteProfesional("#168044")}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">💵 Abono recibido</span><span class="numero">Recibo #${escapeHtml(numero)} · AB-${String(indice).padStart(3,"0")}</span></div></header><section class="meta"><div>Fecha y hora<strong>${flkFormatoFechaContable(f)} · ${flkFormatoHoraContable(f,{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Cliente<strong>${cliente}</strong></div><div>Teléfono<strong>${telefono||"—"}</strong></div><div>Método<strong>${escapeHtml(p.metodo||"No indicado")}</strong></div></section><section class="seccion"><h3>Detalle del pago</h3><div class="resumen"><div class="r"><span>Saldo anterior</span><strong>$${Number(p.saldoAnterior??0).toFixed(2)}</strong></div><div class="r total"><span>ABONO RECIBIDO</span><strong>$${Number(p.cantidad||0).toFixed(2)}</strong></div><div class="r"><span>Saldo restante</span><strong>$${Number(p.saldoRestante??0).toFixed(2)}</strong></div></div></section>${nota?`<section class="seccion"><h3>Observaciones</h3><div class="nota">${nota}</div></section>`:""}<section class="seccion"><div class="firma"><div>Recibido por</div><div>Cliente / pagador</div></div></section><div class="pie">Gracias por su pago · Comprobante generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div>
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
@@ -7585,7 +7698,7 @@ function imprimirComprobanteMovimiento(id){
  const m=historial.find(x=>String(x.id)===String(id)||String(x.supabaseId||"")===String(id));if(!m)return alert("Movimiento no encontrado.");
  const f=new Date(m.fecha),entrada=m.tipo==="entrada",color=entrada?"#138a43":"#0a67d1",pref=entrada?"EN":"SA",numero=flkNumeroComprobanteConsecutivo(pref,m.supabaseId||m.id||m.fecha);
  const saldo=m.saldo!==undefined&&m.saldo!==null?Number(m.saldo):null;
- const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${entrada?"Entrada":"Salida"} de inventario</title><style>${flkCssComprobanteProfesional(color)}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">${entrada?"↓ Entrada de inventario":"↑ Salida de inventario"}</span><span class="numero">N.º ${pref}-${numero}</span></div></header><section class="meta"><div>Fecha y hora<strong>${f.toLocaleDateString("es-PR")} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Tipo de movimiento<strong>${entrada?"Entrada":"Salida"}</strong></div><div>Origen / detalle<strong>${escapeHtml(m.detalle||"Movimiento de inventario")}</strong></div><div>Saldo posterior<strong>${saldo===null?"No disponible":saldo+" unidades"}</strong></div></section><section class="seccion"><h3>Detalle del movimiento</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cantidad</th><th class="num">Saldo posterior</th></tr></thead><tbody><tr><td>${escapeHtml(m.nombre||"Producto")}</td><td>${escapeHtml(m.sku||"—")}</td><td class="num"><strong>${Number(m.cantidad||0)}</strong></td><td class="num">${saldo===null?"—":saldo}</td></tr></tbody></table></section><section class="seccion"><div class="firma"><div>Registrado por</div><div>Revisión / conformidad</div></div></section><div class="pie">Documento de control de inventario · Generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div>
+ const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${entrada?"Entrada":"Salida"} de inventario</title><style>${flkCssComprobanteProfesional(color)}</style></head><body><div class="doc"><div class="barra"></div><header class="cab"><div class="marca"><div class="simbolo" title="Flackunloker">☻☞</div><div><h1>Flackunloker</h1><small>ALMACÉN Y TIENDA</small></div></div><div class="tipo"><span class="etiqueta">${entrada?"↓ Entrada de inventario":"↑ Salida de inventario"}</span><span class="numero">N.º ${pref}-${numero}</span></div></header><section class="meta"><div>Fecha y hora<strong>${flkFormatoFechaContable(f)} · ${flkFormatoHoraContable(f,{hour:"2-digit",minute:"2-digit"})}</strong></div><div>Tipo de movimiento<strong>${entrada?"Entrada":"Salida"}</strong></div><div>Origen / detalle<strong>${escapeHtml(m.detalle||"Movimiento de inventario")}</strong></div><div>Saldo posterior<strong>${saldo===null?"No disponible":saldo+" unidades"}</strong></div></section><section class="seccion"><h3>Detalle del movimiento</h3><table><thead><tr><th>Producto</th><th>SKU</th><th class="num">Cantidad</th><th class="num">Saldo posterior</th></tr></thead><tbody><tr><td>${escapeHtml(m.nombre||"Producto")}</td><td>${escapeHtml(m.sku||"—")}</td><td class="num"><strong>${Number(m.cantidad||0)}</strong></td><td class="num">${saldo===null?"—":saldo}</td></tr></tbody></table></section><section class="seccion"><div class="firma"><div>Registrado por</div><div>Revisión / conformidad</div></div></section><div class="pie">Documento de control de inventario · Generado por Flackunloker</div><div class="acciones"><button class="imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div></div>
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
@@ -7611,7 +7724,7 @@ function mostrarListaHistorial(){
    const etiqueta=/inventario inicial/i.test(detalleTxt)?"＋ Entrada":/Venta/i.test(detalleTxt)?"💰 Venta":/Devolución/i.test(detalleTxt)?"↩️ Devolución":/Recepción de orden/i.test(detalleTxt)?"📦 Compra":entrada?"＋ Entrada":"− Salida";
   const acciones=m.supabaseId?`<div class="saldo-movimiento">🔒 Registro guardado en Supabase. Para corregir inventario, registra un nuevo movimiento de Entrada o Salida.</div>`:"";
   const idComp=String(m.id||m.supabaseId||"").replace(/'/g,"\\'");
-  el.innerHTML=`<div class="movimiento-superior"><div class="movimiento-info"><h3>${escapeHtml(m.nombre)}</h3><p>SKU: ${escapeHtml(m.sku)}</p></div><div class="movimiento-tipo ${entrada?"entrada":"salida"}">${etiqueta}</div></div><div class="movimiento-detalle">Cantidad: <strong>${Number(m.cantidad)}</strong> &nbsp;·&nbsp; ${f.toLocaleDateString("es-PR",{day:"2-digit",month:"2-digit",year:"numeric"})} · ${f.toLocaleTimeString("es-PR",{hour:"2-digit",minute:"2-digit"})}${detalle}<div class="saldo-movimiento">Saldo después del movimiento: <strong>${saldo}</strong></div></div>${acciones}<button type="button" class="boton-comprobante" onclick="imprimirComprobanteMovimiento('${idComp}')">🧾 Ver comprobante</button>`;
+  el.innerHTML=`<div class="movimiento-superior"><div class="movimiento-info"><h3>${escapeHtml(m.nombre)}</h3><p>SKU: ${escapeHtml(m.sku)}</p></div><div class="movimiento-tipo ${entrada?"entrada":"salida"}">${etiqueta}</div></div><div class="movimiento-detalle">Cantidad: <strong>${Number(m.cantidad)}</strong> &nbsp;·&nbsp; ${flkFormatoFechaContable(f,{day:"2-digit",month:"2-digit",year:"numeric"})} · ${flkFormatoHoraContable(f,{hour:"2-digit",minute:"2-digit"})}${detalle}<div class="saldo-movimiento">Saldo después del movimiento: <strong>${saldo}</strong></div></div>${acciones}<button type="button" class="boton-comprobante" onclick="imprimirComprobanteMovimiento('${idComp}')">🧾 Ver comprobante</button>`;
   lista.appendChild(el)
  })
 }
@@ -7757,9 +7870,9 @@ function actualizarFiltrosGastos(){
  const meses=[...new Set(gastos.map(g=>(g.fechaLocal||String(g.fecha||"").slice(0,7)).slice(0,7)).filter(Boolean))].sort().reverse();mes.innerHTML='<option value="">Todos los meses</option>'+meses.map(x=>{const [y,m]=x.split("-");const txt=new Date(Number(y),Number(m)-1,1).toLocaleDateString("es-PR",{month:"long",year:"numeric"});return `<option value="${x}">${txt}</option>`}).join("");if(meses.includes(mesPrev))mes.value=mesPrev
 }
 function actualizarGastos(){
- actualizarFiltrosGastos();const ahora=new Date(),inicioHoy=new Date(ahora.getFullYear(),ahora.getMonth(),ahora.getDate()),inicioSemana=new Date(inicioHoy);inicioSemana.setDate(inicioSemana.getDate()-6);const inicioMes=new Date(ahora.getFullYear(),ahora.getMonth(),1),finMes=new Date(ahora.getFullYear(),ahora.getMonth()+1,1);
- const suma=arr=>arr.reduce((t,g)=>t+Number(g.cantidad||0),0),enRango=(g,a,b)=>{const f=fechaGastoObj(g);return f>=a&&f<b};const gastosHoy=suma(gastos.filter(g=>esMismoDia(fechaGastoObj(g),ahora))),gastosSemana=suma(gastos.filter(g=>{const f=fechaGastoObj(g);return f>=inicioSemana&&f<=ahora})),gastosMes=suma(gastos.filter(g=>enRango(g,inicioMes,finMes)));
- const ventasMes=ventas.filter(v=>{const f=new Date(v.fecha);return f>=inicioMes&&f<finMes}),ingresosMes=ventasMes.reduce((t,v)=>t+Number(v.ingreso||0),0),gananciaBruta=ventasMes.reduce((t,v)=>t+Number(v.ganancia||0),0),gananciaNeta=gananciaBruta-gastosMes;
+ actualizarFiltrosGastos();const ahora=new Date(),hoyClave=flkClaveFechaContable(ahora),inicioHoy=hoyClave,inicioSemana=flkSumarDiasClave(hoyClave,-6),inicioMes=flkPrimerDiaMesClave(hoyClave),finMes=flkPrimerDiaMesSiguienteClave(hoyClave),finHoy=flkSumarDiasClave(hoyClave,1);
+ const suma=arr=>arr.reduce((t,g)=>t+Number(g.cantidad||0),0),claveG=g=>flkClaveFechaContable(g.fechaLocal||g.fecha);const gastosHoy=suma(gastos.filter(g=>{const k=claveG(g);return k>=inicioHoy&&k<finHoy})),gastosSemana=suma(gastos.filter(g=>{const k=claveG(g);return k>=inicioSemana&&k<finHoy})),gastosMes=suma(gastos.filter(g=>{const k=claveG(g);return k>=inicioMes&&k<finMes}));
+ const ventasMes=ventas.filter(v=>flkEnRangoFechaContable(v.fecha,inicioMes,finMes)),ingresosMes=ventasMes.reduce((t,v)=>t+Number(v.ingreso||0),0),gananciaBruta=ventasMes.reduce((t,v)=>t+Number(v.ganancia||0),0),gananciaNeta=gananciaBruta-gastosMes;
  document.getElementById("gastosHoy").textContent="$"+gastosHoy.toFixed(2);document.getElementById("gastosSemana").textContent="$"+gastosSemana.toFixed(2);document.getElementById("gastosMes").textContent="$"+gastosMes.toFixed(2);document.getElementById("gananciaNetaMes").textContent="$"+gananciaNeta.toFixed(2);document.getElementById("ingresosMesGastos").textContent="$"+ingresosMes.toFixed(2);document.getElementById("gananciaBrutaMesGastos").textContent="$"+gananciaBruta.toFixed(2);document.getElementById("totalGastosMesResumen").textContent="$"+gastosMes.toFixed(2);document.getElementById("gananciaNetaMesResumen").textContent="$"+gananciaNeta.toFixed(2);mostrarListaGastos()
 }
 function mostrarListaGastos(){
@@ -7798,9 +7911,7 @@ function resumenCierreFecha(fechaLocal){
  const gastoEfectivo=movimientosDia
   .filter(m=>m.tipo==="salida"&&m.grupo==="gasto"&&flkEsEfectivoCUP(m.metodo))
   .reduce((t,m)=>t+Number(m.cantidad||0),0);
- const efectivoNeto=movimientosDia
-  .filter(m=>flkEsEfectivoCUP(m.metodo))
-  .reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0);
+ const efectivoNeto=saldoCajaFisicaActual();
  return {fechaLocal,recibos,unidades,ventasTotal,costo,gananciaBruta,gastosTotal,gananciaNeta,cobrado,
   efectivo:cobros.efectivoCup,ath:0,tarjeta:0,
   otros:cobros.efectivoUsd+cobros.transferenciaCup+cobros.transferenciaUsd+cobros.transferenciaMlc+cobros.efectivoEuro+cobros.zelle+cobros.otros,
@@ -7833,10 +7944,10 @@ async function guardarCierreHoy(){
  guardarCierres();actualizarCierre();
  if(flkNubeDisponible())setTimeout(flkProcesarColaOffline,0);
 }
-function mostrarListaCierres(){const lista=document.getElementById("listaCierres"),arr=[...cierres].sort((a,b)=>String(b.fechaLocal).localeCompare(String(a.fechaLocal)));if(!arr.length){lista.innerHTML='<div class="sin-productos">Todavía no hay cierres guardados.</div>';return}lista.innerHTML=arr.map(c=>{const f=new Date(c.fechaLocal+"T12:00:00");return `<div class="cierre-card"><div class="venta-superior"><div><h3>Cierre · ${f.toLocaleDateString("es-PR")}</h3><p>Guardado ${new Date(c.guardado||Date.now()).toLocaleString("es-PR")}</p></div><div class="cierre-total">${formatoDineroCierre(c.gananciaNeta)}</div></div><div class="cierre-detalle">Ventas: <strong>${formatoDineroCierre(c.ventasTotal)}</strong> · Gastos: <strong>${formatoDineroCierre(c.gastosTotal)}</strong><br>Ganancia bruta: <strong>${formatoDineroCierre(c.gananciaBruta)}</strong> · Ganancia neta: <strong>${formatoDineroCierre(c.gananciaNeta)}</strong><br>Cobrado: <strong>${formatoDineroCierre(c.cobrado)}</strong> · Efectivo neto: <strong>${formatoDineroCierre(c.efectivoNeto)}</strong><br>Efectivo: ${formatoDineroCierre(c.efectivo)} · ATH: ${formatoDineroCierre(c.ath)} · Tarjeta: ${formatoDineroCierre(c.tarjeta)} · Otros: ${formatoDineroCierre(c.otros)}<br>Crédito: ${formatoDineroCierre(c.credito)} · Saldo pendiente: ${formatoDineroCierre(c.saldoCredito)}</div><div class="cierre-acciones"><button class="boton-cierre" onclick="imprimirCierre(${c.id})">🧾 Ver / imprimir</button><button class="boton-cierre boton-cierre-peligro" onclick="eliminarCierre(${c.id})">🗑️ Eliminar</button></div></div>`}).join("")}
+function mostrarListaCierres(){const lista=document.getElementById("listaCierres"),arr=[...cierres].sort((a,b)=>String(b.fechaLocal).localeCompare(String(a.fechaLocal)));if(!arr.length){lista.innerHTML='<div class="sin-productos">Todavía no hay cierres guardados.</div>';return}lista.innerHTML=arr.map(c=>{const f=new Date(c.fechaLocal+"T12:00:00");return `<div class="cierre-card"><div class="venta-superior"><div><h3>Cierre · ${f.toLocaleDateString("es-PR")}</h3><p>Guardado ${new Date(c.guardado||Date.now()).toLocaleString("es-PR")}</p></div><div class="cierre-total">${formatoDineroCierre(c.gananciaNeta)}</div></div><div class="cierre-detalle">Ventas: <strong>${formatoDineroCierre(c.ventasTotal)}</strong> · Gastos: <strong>${formatoDineroCierre(c.gastosTotal)}</strong><br>Ganancia bruta: <strong>${formatoDineroCierre(c.gananciaBruta)}</strong> · Ganancia neta: <strong>${formatoDineroCierre(c.gananciaNeta)}</strong><br>Cobrado: <strong>${formatoDineroCierre(c.cobrado)}</strong> · Saldo final caja: <strong>${formatoDineroCierre(c.efectivoNeto)}</strong><br>Efectivo: ${formatoDineroCierre(c.efectivo)} · ATH: ${formatoDineroCierre(c.ath)} · Tarjeta: ${formatoDineroCierre(c.tarjeta)} · Otros: ${formatoDineroCierre(c.otros)}<br>Crédito: ${formatoDineroCierre(c.credito)} · Saldo pendiente: ${formatoDineroCierre(c.saldoCredito)}</div><div class="cierre-acciones"><button class="boton-cierre" onclick="imprimirCierre(${c.id})">🧾 Ver / imprimir</button><button class="boton-cierre boton-cierre-peligro" onclick="eliminarCierre(${c.id})">🗑️ Eliminar</button></div></div>`}).join("")}
 function imprimirCierre(id){const c=cierres.find(x=>x.id===id);if(!c)return;const f=new Date(c.fechaLocal+"T12:00:00"),contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cierre ${c.fechaLocal}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#f4f7fb;color:#111;margin:0}.hoja{max-width:460px;margin:24px auto;background:#fff;padding:28px;border-radius:18px}.fila{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid #eee}.total{font-size:20px;font-weight:800}.btn{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700}@media print{body{background:#fff}.hoja{margin:0;max-width:none}.btn{display:none}}
 .cuenta-proveedor-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px;border-left:5px solid #f5a623}.cuenta-proveedor-card.vencida{border-left-color:#d93025}.cuenta-proveedor-card.pagada{border-left-color:#168044}.cuenta-proveedor-superior{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.cuenta-proveedor-superior h3{margin:0 0 5px;font-size:16px}.cuenta-proveedor-superior p{margin:0;color:#777;font-size:13px}.cuenta-proveedor-saldo{font-weight:800;color:#d93025;white-space:nowrap}.cuenta-proveedor-detalle{margin-top:12px;font-size:13px;line-height:1.75;color:#555}.acciones-cuenta-proveedor{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-cuenta-proveedor{border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.boton-pagar-proveedor{background:#e9f8ef;color:#168044}.boton-historial-proveedor{background:#eaf4ff;color:#0a84ff}.estado-cuenta{display:inline-block;margin-top:8px;padding:7px 10px;border-radius:10px;font-size:12px;font-weight:800}.estado-cuenta.pendiente{background:#fff7e8;color:#a15c00}.estado-cuenta.vencida{background:#ffecec;color:#d93025}.estado-cuenta.pagada{background:#e9f8ef;color:#168044}
-</style></head><body><div class="hoja"><h1>Flackunloker</h1><h2>Cierre de caja · ${f.toLocaleDateString("es-PR")}</h2><div class="fila"><span>Recibos / Unidades</span><strong>${c.recibos} / ${c.unidades}</strong></div><div class="fila"><span>Ventas</span><strong>${formatoDineroCierre(c.ventasTotal)}</strong></div><div class="fila"><span>Costo mercancía</span><strong>${formatoDineroCierre(c.costo)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>${formatoDineroCierre(c.gananciaBruta)}</strong></div><div class="fila"><span>Gastos</span><strong>${formatoDineroCierre(c.gastosTotal)}</strong></div><div class="fila total"><span>Ganancia neta</span><strong>${formatoDineroCierre(c.gananciaNeta)}</strong></div><div class="fila"><span>Total cobrado</span><strong>${formatoDineroCierre(c.cobrado)}</strong></div><div class="fila"><span>Efectivo</span><strong>${formatoDineroCierre(c.efectivo)}</strong></div><div class="fila"><span>ATH Móvil</span><strong>${formatoDineroCierre(c.ath)}</strong></div><div class="fila"><span>Tarjeta</span><strong>${formatoDineroCierre(c.tarjeta)}</strong></div><div class="fila"><span>Otros</span><strong>${formatoDineroCierre(c.otros)}</strong></div><div class="fila"><span>Ventas a crédito</span><strong>${formatoDineroCierre(c.credito)}</strong></div><div class="fila"><span>Saldo pendiente</span><strong>${formatoDineroCierre(c.saldoCredito)}</strong></div><div class="fila total"><span>Efectivo neto caja</span><strong>${formatoDineroCierre(c.efectivoNeto)}</strong></div><button class="btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div>
+</style></head><body><div class="hoja"><h1>Flackunloker</h1><h2>Cierre de caja · ${f.toLocaleDateString("es-PR")}</h2><div class="fila"><span>Recibos / Unidades</span><strong>${c.recibos} / ${c.unidades}</strong></div><div class="fila"><span>Ventas</span><strong>${formatoDineroCierre(c.ventasTotal)}</strong></div><div class="fila"><span>Costo mercancía</span><strong>${formatoDineroCierre(c.costo)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>${formatoDineroCierre(c.gananciaBruta)}</strong></div><div class="fila"><span>Gastos</span><strong>${formatoDineroCierre(c.gastosTotal)}</strong></div><div class="fila total"><span>Ganancia neta</span><strong>${formatoDineroCierre(c.gananciaNeta)}</strong></div><div class="fila"><span>Total cobrado</span><strong>${formatoDineroCierre(c.cobrado)}</strong></div><div class="fila"><span>Efectivo</span><strong>${formatoDineroCierre(c.efectivo)}</strong></div><div class="fila"><span>ATH Móvil</span><strong>${formatoDineroCierre(c.ath)}</strong></div><div class="fila"><span>Tarjeta</span><strong>${formatoDineroCierre(c.tarjeta)}</strong></div><div class="fila"><span>Otros</span><strong>${formatoDineroCierre(c.otros)}</strong></div><div class="fila"><span>Ventas a crédito</span><strong>${formatoDineroCierre(c.credito)}</strong></div><div class="fila"><span>Saldo pendiente</span><strong>${formatoDineroCierre(c.saldoCredito)}</strong></div><div class="fila total"><span>Saldo final de caja</span><strong>${formatoDineroCierre(c.efectivoNeto)}</strong></div><button class="btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div>
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
@@ -8029,7 +8140,47 @@ document.getElementById("formularioProveedor").addEventListener("submit",async e
 });
 function eliminarProveedor(id){const p=proveedores.find(x=>x.id===id);if(!p)return;const productosAsociados=productos.filter(x=>nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(p.nombre)).length,ordenesAsociadas=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)).length;if(!confirm(`¿Eliminar ${p.nombre} del directorio?\n\nSus ${productosAsociados} producto(s) y ${ordenesAsociadas} orden(es) conservarán el nombre del proveedor como historial.`))return;proveedores=proveedores.filter(x=>x.id!==id);guardarProveedores();actualizarProveedores();actualizarOpcionesOrganizacion()}
 function nuevaOrdenProveedor(id){const p=proveedores.find(x=>x.id===id);if(!p)return;abrirOrdenCompra(null,p.nombre)}
-function mostrarListaProveedores(){const q=document.getElementById("busquedaProveedores").value.toLowerCase().trim(),lista=document.getElementById("listaProveedoresVista");const arr=[...proveedores].filter(p=>[p.nombre,p.contacto,p.telefono,p.email,p.direccion,p.nota].some(v=>String(v||"").toLowerCase().includes(q))).sort((a,b)=>String(a.nombre||"").localeCompare(String(b.nombre||""),"es",{sensitivity:"base"}));if(!arr.length){lista.innerHTML='<div class="sin-productos">No hay proveedores con esa búsqueda.</div>';return}lista.innerHTML=arr.map(p=>{const prods=productos.filter(x=>nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(p.nombre)),ords=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)),pend=ords.filter(o=>o.estado!=="recibida").length,rec=ords.filter(o=>o.estado==="recibida"),total=rec.reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),vencidas=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").length;return `<div class="proveedor-card"><div class="proveedor-superior"><div><h3>${escapeHtml(p.nombre)}</h3><p>${p.contacto?`Contacto: ${escapeHtml(p.contacto)}`:"Proveedor registrado"}</p></div><div class="proveedor-total">$${saldo.toFixed(2)} por pagar</div></div><div class="proveedor-detalle">Productos asociados: <strong>${prods.length}</strong><br>Órdenes totales: <strong>${ords.length}</strong> · Pendientes/ordenadas: <strong>${pend}</strong><br>Compras recibidas: <strong>${rec.length}</strong> · Total: <strong>$${total.toFixed(2)}</strong><br>Pagado: <strong>$${pagado.toFixed(2)}</strong> · Saldo: <strong>$${saldo.toFixed(2)}</strong>${vencidas?`<br>🔴 Deudas vencidas: <strong>${vencidas}</strong>`:""}${p.telefono?`<br>Teléfono: <strong>${escapeHtml(p.telefono)}</strong>`:""}${p.email?`<br>Email: <strong>${escapeHtml(p.email)}</strong>`:""}${p.direccion?`<br>Dirección: ${escapeHtml(p.direccion)}`:""}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><div class="acciones-proveedor"><button class="boton-proveedor boton-proveedor-orden" onclick="abrirOrdenCompra(null,'${escapeHtml(p.nombre).replace(/'/g,"&#039;")}')">📦 Nueva orden</button>${saldo>0.009?`<button class="boton-proveedor boton-proveedor-orden" onclick="mostrarCuentasPagar();document.getElementById('filtroProveedorCuentas').value='${escapeHtml(p.nombre).replace(/'/g,"&#039;")}';mostrarListaCuentasPagar()">💳 Ver deuda</button>`:""}<button class="boton-proveedor boton-proveedor-editar" onclick="abrirProveedor(${p.id})">✏️ Editar</button><button class="boton-proveedor boton-proveedor-eliminar" onclick="eliminarProveedor(${p.id})">🗑️ Eliminar</button></div></div>`}).join("")}
+function mostrarListaProveedores(){
+ const q=document.getElementById("busquedaProveedores").value.toLowerCase().trim(),
+       filtro=document.getElementById("filtroEstadoProveedor")?.value||"",
+       lista=document.getElementById("listaProveedoresVista");
+
+ const arr=[...proveedores].filter(p=>{
+  const coincideTexto=[p.nombre,p.contacto,p.telefono,p.email,p.direccion,p.nota]
+   .some(v=>String(v||"").toLowerCase().includes(q));
+  if(!coincideTexto)return false;
+
+  const ords=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre));
+  const rec=ords.filter(o=>o.estado==="recibida");
+  const saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0);
+  const tienePendientes=ords.some(o=>o.estado!=="recibida");
+  const tieneVencida=rec.some(o=>estadoCuentaProveedor(o).clave==="vencida");
+
+  if(filtro==="con_deuda")return saldo>0.009;
+  if(filtro==="sin_deuda")return saldo<=0.009;
+  if(filtro==="pendientes")return tienePendientes;
+  if(filtro==="vencida")return tieneVencida;
+  return true;
+ }).sort((a,b)=>String(a.nombre||"").localeCompare(String(b.nombre||""),"es",{sensitivity:"base"}));
+
+ if(!arr.length){
+  lista.innerHTML='<div class="sin-productos">No hay proveedores con esa búsqueda o filtro.</div>';
+  return
+ }
+
+ lista.innerHTML=arr.map(p=>{
+  const prods=productos.filter(x=>nombreProveedorNorm(x.proveedor)===nombreProveedorNorm(p.nombre)),
+        ords=ordenesCompra.filter(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)),
+        pend=ords.filter(o=>o.estado!=="recibida").length,
+        rec=ords.filter(o=>o.estado==="recibida"),
+        total=rec.reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0),
+        pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),
+        saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),
+        vencidas=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").length;
+
+  return `<div class="proveedor-card"><div class="proveedor-superior"><div><h3>${escapeHtml(p.nombre)}</h3><p>${p.contacto?`Contacto: ${escapeHtml(p.contacto)}`:"Proveedor registrado"}</p></div><div class="proveedor-total">$${saldo.toFixed(2)} por pagar</div></div><div class="proveedor-detalle">Productos asociados: <strong>${prods.length}</strong><br>Órdenes totales: <strong>${ords.length}</strong> · Pendientes/ordenadas: <strong>${pend}</strong><br>Compras recibidas: <strong>${rec.length}</strong> · Total: <strong>$${total.toFixed(2)}</strong><br>Pagado: <strong>$${pagado.toFixed(2)}</strong> · Saldo: <strong>$${saldo.toFixed(2)}</strong>${vencidas?`<br>🔴 Deudas vencidas: <strong>${vencidas}</strong>`:""}${p.telefono?`<br>Teléfono: <strong>${escapeHtml(p.telefono)}</strong>`:""}${p.email?`<br>Email: <strong>${escapeHtml(p.email)}</strong>`:""}${p.direccion?`<br>Dirección: ${escapeHtml(p.direccion)}`:""}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><div class="acciones-proveedor"><button class="boton-proveedor boton-proveedor-orden" onclick="abrirOrdenCompra(null,'${escapeHtml(p.nombre).replace(/'/g,"&#039;")}')">📦 Nueva orden</button>${saldo>0.009?`<button class="boton-proveedor boton-proveedor-orden" onclick="mostrarCuentasPagar();document.getElementById('filtroProveedorCuentas').value='${escapeHtml(p.nombre).replace(/'/g,"&#039;")}';mostrarListaCuentasPagar()">💳 Ver deuda</button>`:""}<button class="boton-proveedor boton-proveedor-editar" onclick="abrirProveedor(${p.id})">✏️ Editar</button><button class="boton-proveedor boton-proveedor-eliminar" onclick="eliminarProveedor(${p.id})">🗑️ Eliminar</button></div></div>`
+ }).join("")
+}
 function actualizarProveedores(){const rec=ordenesCompra.filter(o=>o.estado==="recibida"),total=rec.reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),vencido=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").reduce((t,o)=>t+Number(o.saldoProveedor||0),0);document.getElementById("totalProveedores").textContent=proveedores.length;document.getElementById("proveedoresPendientes").textContent=proveedores.filter(p=>ordenesCompra.some(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)&&o.estado!=="recibida")).length;document.getElementById("totalCompradoProveedores").textContent="$"+total.toFixed(2);document.getElementById("totalPagadoProveedores").textContent="$"+pagado.toFixed(2);document.getElementById("saldoPorPagarProveedores").textContent="$"+saldo.toFixed(2);document.getElementById("deudaVencidaProveedores").textContent="$"+vencido.toFixed(2);mostrarListaProveedores()}
 function mostrarProveedores(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;
@@ -8039,6 +8190,7 @@ function mostrarProveedores(){flkOcultarTodasLasVistas();
  if(flkNubeDisponible())setTimeout(()=>cargarComprasSupabase().then(()=>actualizarProveedores()).catch(()=>{}),0);
 }
 document.getElementById("busquedaProveedores").addEventListener("input",mostrarListaProveedores);
+document.getElementById("filtroEstadoProveedor").addEventListener("change",mostrarListaProveedores);
 
 function numeroOrdenCompra(o){return "OC-"+String(o.numero||o.id).slice(-6)}
 function cargarProductosOrden(idPreferido=null){const sel=document.getElementById("productoOrden");sel.innerHTML=productos.length?productos.map(p=>`<option value="${p.id}">${escapeHtml(p.nombre)} · SKU ${escapeHtml(p.sku)} · Stock ${Number(p.cantidad)}</option>`).join(""):'<option value="">No hay productos</option>';if(idPreferido!==null&&productos.some(p=>String(p.id)===String(idPreferido)))sel.value=String(idPreferido);actualizarDatosProductoOrden()}
@@ -8269,18 +8421,19 @@ function normalizarMetodoFlujo(m){
 }
 function fechaMovimientoFlujo(v){const d=new Date(v);return Number.isNaN(d.getTime())?null:d}
 function limitesFlujo(){
- const tipo=document.getElementById("periodoFlujo")?.value||"mes",ahora=new Date(),hoy=new Date(ahora.getFullYear(),ahora.getMonth(),ahora.getDate());
- let desde,hasta,texto;
- if(tipo==="hoy"){desde=hoy;hasta=new Date(hoy);hasta.setDate(hasta.getDate()+1);texto="Hoy"}
- else if(tipo==="7dias"){desde=new Date(hoy);desde.setDate(desde.getDate()-6);hasta=new Date(hoy);hasta.setDate(hasta.getDate()+1);texto="Últimos 7 días"}
+ const tipo=document.getElementById("periodoFlujo")?.value||"mes",hoyClave=flkClaveFechaContable(new Date());
+ let desdeClave,hastaClave,texto;
+ if(tipo==="hoy"){desdeClave=hoyClave;hastaClave=flkSumarDiasClave(hoyClave,1);texto="Hoy"}
+ else if(tipo==="7dias"){desdeClave=flkSumarDiasClave(hoyClave,-6);hastaClave=flkSumarDiasClave(hoyClave,1);texto="Últimos 7 días"}
  else if(tipo==="personalizado"){
   const di=document.getElementById("fechaDesdeFlujo")?.value,ha=document.getElementById("fechaHastaFlujo")?.value;
   if(!di||!ha)return null;
-  desde=new Date(di+"T00:00:00");hasta=new Date(ha+"T00:00:00");hasta.setDate(hasta.getDate()+1);
-  if(hasta<=desde)return null;
-  texto=`${desde.toLocaleDateString("es-PR")} – ${new Date(hasta.getTime()-1).toLocaleDateString("es-PR")}`
- }else{desde=new Date(ahora.getFullYear(),ahora.getMonth(),1);hasta=new Date(ahora.getFullYear(),ahora.getMonth()+1,1);texto="Este mes"}
- return {desde,hasta,texto}
+  desdeClave=di;hastaClave=flkSumarDiasClave(ha,1);
+  if(hastaClave<=desdeClave)return null;
+  texto=`${di} – ${ha}`
+ }else{desdeClave=flkPrimerDiaMesClave(hoyClave);hastaClave=flkPrimerDiaMesSiguienteClave(hoyClave);texto="Este mes"}
+ const desde=new Date(desdeClave+"T12:00:00Z"),hasta=new Date(hastaClave+"T12:00:00Z");
+ return {desde,hasta,desdeClave,hastaClave,texto}
 }
 function movimientosFlujoCaja(){
  const mov=[];
@@ -8398,7 +8551,7 @@ function movimientosFlujoCaja(){
 }
 function datosFlujoCaja(){
  const lim=limitesFlujo();if(!lim)return null;
- const mov=movimientosFlujoCaja().filter(m=>{const f=fechaMovimientoFlujo(m.fecha);return f&&f>=lim.desde&&f<lim.hasta});
+ const mov=movimientosFlujoCaja().filter(m=>flkEnRangoFechaContable(m.fecha,lim.desdeClave,lim.hastaClave));
  const suma=(tipo,grupo)=>mov.filter(m=>(!tipo||m.tipo===tipo)&&(!grupo||m.grupo===grupo)).reduce((t,m)=>t+m.cantidad,0);
  const entradas=suma("entrada"),salidas=suma("salida"),metodos={};
  const aportesPropietario=mov.filter(m=>m.grupo==="propietario"&&m.tipo==="entrada").reduce((t,m)=>t+Number(m.cantidad||0),0);
@@ -8484,7 +8637,7 @@ function actualizarFlujoCaja(){
   Number(d.metodos["ATH Móvil"]||0)+Number(d.metodos["Tarjeta"]||0)+Number(d.metodos["Otro"]||0)
  ).toFixed(2);
  const lista=document.getElementById("listaFlujoCaja"),arr=[...d.mov].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
- lista.innerHTML=arr.length?arr.map(m=>`<div class="fila-estadistica"><span>${m.tipo==="entrada"?"⬇️":"⬆️"} ${escapeHtml(m.concepto)}<br><small>${new Date(m.fecha).toLocaleString("es-PR")} · ${escapeHtml(m.metodo)}</small></span><strong style="color:${m.tipo==="entrada"?"#168044":"#d93025"}">${m.tipo==="entrada"?"+":"-"}$${m.cantidad.toFixed(2)}</strong></div>`).join(""):'<div class="fila-estadistica"><span>No hay movimientos de dinero en este período.</span><strong>—</strong></div>'
+ lista.innerHTML=arr.length?arr.map(m=>`<div class="fila-estadistica"><span>${m.tipo==="entrada"?"⬇️":"⬆️"} ${escapeHtml(m.concepto)}<br><small>${flkFormatoFechaHoraContable(m.fecha)} · ${escapeHtml(m.metodo)}</small></span><strong style="color:${m.tipo==="entrada"?"#168044":"#d93025"}">${m.tipo==="entrada"?"+":"-"}$${m.cantidad.toFixed(2)}</strong></div>`).join(""):'<div class="fila-estadistica"><span>No hay movimientos de dinero en este período.</span><strong>—</strong></div>'
 }
 function mostrarFlujoCaja(){flkOcultarTodasLasVistas();
  if(!requiereAdmin())return;
@@ -8500,7 +8653,7 @@ function mostrarFlujoCaja(){flkOcultarTodasLasVistas();
 }
 function imprimirFlujoCaja(){
  const d=datosFlujoCaja();if(!d)return alert("Selecciona un período válido.");
- const filas=[...d.mov].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).map(m=>`<tr><td>${new Date(m.fecha).toLocaleString("es-PR")}</td><td>${escapeHtml(m.concepto)}</td><td>${escapeHtml(m.metodo)}</td><td style="text-align:right">${m.tipo==="entrada"?"+":"-"}$${m.cantidad.toFixed(2)}</td></tr>`).join("");
+ const filas=[...d.mov].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).map(m=>`<tr><td>${flkFormatoFechaHoraContable(m.fecha)}</td><td>${escapeHtml(m.concepto)}</td><td>${escapeHtml(m.metodo)}</td><td style="text-align:right">${m.tipo==="entrada"?"+":"-"}$${m.cantidad.toFixed(2)}</td></tr>`).join("");
  const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Flujo de caja</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{margin-bottom:4px}p{color:#666}.res{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0}.c{border:1px solid #ddd;border-radius:12px;padding:14px}.c strong{display:block;font-size:22px;margin-top:6px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:9px;border-bottom:1px solid #ddd;text-align:left}.print{margin-top:20px;padding:12px 18px}@media print{.print{display:none}}</style></head><body><h1>Flackunloker · Flujo de caja</h1><p>${escapeHtml(d.lim.texto)}</p><div class="res"><div class="c">Entradas<strong>$${d.entradas.toFixed(2)}</strong></div><div class="c">Salidas<strong>$${d.salidas.toFixed(2)}</strong></div><div class="c">Flujo neto<strong>$${d.neto.toFixed(2)}</strong></div></div><table><thead><tr><th>Fecha</th><th>Movimiento</th><th>Método</th><th style="text-align:right">Importe</th></tr></thead><tbody>${filas||'<tr><td colspan="4">Sin movimientos.</td></tr>'}</tbody></table><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button>
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
@@ -8620,29 +8773,29 @@ async function guardarConfiguracionArrendamiento(){
 }
 
 function limitesFinanzas(){
- const tipo=document.getElementById("periodoFinanzas")?.value||"mes",ahora=new Date(),hoy=new Date(ahora.getFullYear(),ahora.getMonth(),ahora.getDate());
- let desde,hasta,texto;
- if(tipo==="anio"){desde=new Date(ahora.getFullYear(),0,1);hasta=new Date(ahora.getFullYear()+1,0,1);texto="Este año"}
+ const tipo=document.getElementById("periodoFinanzas")?.value||"mes",hoyClave=flkClaveFechaContable(new Date());
+ let desdeClave,hastaClave,texto;
+ if(tipo==="anio"){desdeClave=hoyClave.slice(0,4)+"-01-01";hastaClave=(Number(hoyClave.slice(0,4))+1)+"-01-01";texto="Este año"}
  else if(tipo==="personalizado"){
   const di=document.getElementById("fechaDesdeFinanzas")?.value,ha=document.getElementById("fechaHastaFinanzas")?.value;
   if(!di||!ha)return null;
-  desde=new Date(di+"T00:00:00");hasta=new Date(ha+"T00:00:00");hasta.setDate(hasta.getDate()+1);
-  if(hasta<=desde)return null;
-  texto=`${desde.toLocaleDateString("es-PR")} – ${new Date(hasta.getTime()-1).toLocaleDateString("es-PR")}`
- }else{desde=new Date(ahora.getFullYear(),ahora.getMonth(),1);hasta=new Date(ahora.getFullYear(),ahora.getMonth()+1,1);texto="Este mes"}
- return {desde,hasta,texto}
+  desdeClave=di;hastaClave=flkSumarDiasClave(ha,1);
+  if(hastaClave<=desdeClave)return null;
+  texto=`${di} – ${ha}`
+ }else{desdeClave=flkPrimerDiaMesClave(hoyClave);hastaClave=flkPrimerDiaMesSiguienteClave(hoyClave);texto="Este mes"}
+ const desde=new Date(desdeClave+"T12:00:00Z"),hasta=new Date(hastaClave+"T12:00:00Z");
+ return {desde,hasta,desdeClave,hastaClave,texto}
 }
 
 /* ===== v61.86 · CONTRIBUCIÓN MENSUAL EN GANANCIA NETA ===== */
 function flkMesesEnPeriodoFinanzas(lim){
  const meses=[];
- if(!lim?.desde||!lim?.hasta)return meses;
- let d=new Date(lim.desde.getFullYear(),lim.desde.getMonth(),1);
- const fin=new Date(lim.hasta.getTime()-1);
- const ultimo=new Date(fin.getFullYear(),fin.getMonth(),1);
- while(d<=ultimo){
-  meses.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);
-  d=new Date(d.getFullYear(),d.getMonth()+1,1);
+ if(!lim?.desdeClave||!lim?.hastaClave)return meses;
+ let actual=lim.desdeClave.slice(0,7)+"-01";
+ const ultimo=flkSumarDiasClave(lim.hastaClave,-1).slice(0,7)+"-01";
+ while(actual<=ultimo){
+  meses.push(actual.slice(0,7));
+  actual=flkPrimerDiaMesSiguienteClave(actual)
  }
  return meses
 }
@@ -8661,7 +8814,7 @@ function flkArrendamientoPeriodo(lim){
 
 function datosFinanzas(){
  const lim=limitesFinanzas();if(!lim)return null;
- const enRango=f=>{const d=new Date(f);return !Number.isNaN(d.getTime())&&d>=lim.desde&&d<lim.hasta};
+ const enRango=f=>flkEnRangoFechaContable(f,lim.desdeClave,lim.hastaClave);
 
  // Resultados del período
  const vv=ventas.filter(v=>enRango(v.fecha));
@@ -8757,6 +8910,11 @@ function actualizarFinanzas(){
  document.getElementById("textoPeriodoFinanzas").value=d.lim.texto;
  const money=(id,n)=>document.getElementById(id).textContent="$"+Number(n).toFixed(2);
  money("finCaja",d.caja);money("finInventario",d.inventario);money("finPorCobrar",d.porCobrar);money("finActivos",d.activos);money("finPorPagar",d.porPagar);money("finPatrimonio",d.patrimonio);
+ const detallePorCobrar=document.getElementById("finDetallePorCobrar");
+ if(detallePorCobrar){
+  const pendientes=ventas.map(v=>{if(typeof normalizarCuentaVenta==="function")normalizarCuentaVenta(v);return v}).filter(v=>Number(v.saldo||0)>0.009).sort((a,b)=>Number(b.saldo||0)-Number(a.saldo||0));
+  detallePorCobrar.innerHTML=pendientes.length?pendientes.map(v=>`<div class="fila-estadistica"><span>Comprobante #${escapeHtml(String(v.numero||String(v.id).slice(-8)))} · ${escapeHtml(v.cliente||"Cliente general")}</span><strong>$${Number(v.saldo||0).toFixed(2)}</strong></div>`).join(""):`<div class="fila-estadistica"><span>No hay comprobantes pendientes.</span><strong>$0.00</strong></div>`
+ }
  const formula=document.getElementById("finFormulaPatrimonio");
  if(formula)formula.textContent=`$${d.caja.toFixed(2)} + $${d.inventario.toFixed(2)} + $${d.porCobrar.toFixed(2)} − $${d.porPagar.toFixed(2)} = $${d.patrimonio.toFixed(2)}`;
  money("finVentas",d.ventasTotal);
@@ -9102,7 +9260,7 @@ body.flk-v6125 #cuentasTotalPagado {
 .flk-etiqueta-qr .qrbox img,.flk-etiqueta-qr .qrbox canvas{width:30mm!important;height:30mm!important}
 @media(max-width:430px){.flk-qr-controles,.flk-qr-acciones{grid-template-columns:1fr}}
 </style>
-</head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas de mercancía</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Ingresos por prestaciones</span><strong>$${d.prestIngresos.toFixed(2)}</strong></div><div class="fila"><span>Ingresos totales</span><strong>$${d.ingresosTotales.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Costos externos de prestaciones</span><strong>$${d.prestCostos.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta total</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Contribución / arrendamiento mensual</span><strong>$${Number(d.arrendamientoPeriodo||0).toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta total</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button>
+</head><body><h1>Flackunloker · Estado financiero</h1><p>${escapeHtml(d.lim.texto)}</p><h2>Posición financiera actual</h2><div class="fila"><span>Caja física</span><strong>$${d.caja.toFixed(2)}</strong></div><div class="fila"><span>Inventario a costo</span><strong>$${d.inventario.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por cobrar</span><strong>$${d.porCobrar.toFixed(2)}</strong></div><h2>Comprobantes por cobrar</h2>${ventas.filter(v=>{if(typeof normalizarCuentaVenta==="function")normalizarCuentaVenta(v);return Number(v.saldo||0)>0.009}).map(v=>`<div class="fila"><span>Comprobante #${escapeHtml(String(v.numero||String(v.id).slice(-8)))} · ${escapeHtml(v.cliente||"Cliente general")}</span><strong>$${Number(v.saldo||0).toFixed(2)}</strong></div>`).join("")||'<div class="fila"><span>No hay comprobantes pendientes.</span><strong>$0.00</strong></div>'}<div class="fila"><span>Activos operativos</span><strong>$${d.activos.toFixed(2)}</strong></div><div class="fila"><span>Cuentas por pagar</span><strong>$${d.porPagar.toFixed(2)}</strong></div><div class="fila"><span>Patrimonio operativo neto</span><strong>$${d.patrimonio.toFixed(2)}</strong></div><div class="fila"><span>Fórmula</span><strong>Caja + Inventario + Por cobrar − Por pagar</strong></div><h2>Resultados · ${escapeHtml(d.lim.texto)}</h2><div class="fila"><span>Ventas de mercancía</span><strong>$${d.ventasTotal.toFixed(2)}</strong></div><div class="fila"><span>Ingresos por prestaciones</span><strong>$${d.prestIngresos.toFixed(2)}</strong></div><div class="fila"><span>Ingresos totales</span><strong>$${d.ingresosTotales.toFixed(2)}</strong></div><div class="fila"><span>Costo vendido</span><strong>$${d.costo.toFixed(2)}</strong></div><div class="fila"><span>Costos externos de prestaciones</span><strong>$${d.prestCostos.toFixed(2)}</strong></div><div class="fila"><span>Ganancia bruta total</span><strong>$${d.bruta.toFixed(2)}</strong></div><div class="fila"><span>Gastos</span><strong>$${d.gastosTotal.toFixed(2)}</strong></div><div class="fila"><span>Contribución / arrendamiento mensual</span><strong>$${Number(d.arrendamientoPeriodo||0).toFixed(2)}</strong></div><div class="fila"><span>Ganancia neta total</span><strong>$${d.neta.toFixed(2)}</strong></div><h2>Flujo de caja</h2><div class="fila"><span>Entradas</span><strong>$${d.entradas.toFixed(2)}</strong></div><div class="fila"><span>Salidas</span><strong>$${d.salidas.toFixed(2)}</strong></div><div class="fila"><span>Flujo neto</span><strong>$${d.flujo.toFixed(2)}</strong></div><h2>Indicadores</h2><div class="fila"><span>Margen bruto</span><strong>${pct(d.bruta)}</strong></div><div class="fila"><span>Margen neto</span><strong>${pct(d.neta)}</strong></div><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button>
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
@@ -11453,15 +11611,15 @@ async function flkDeepStorageCopy(){
 'use strict';
 var prestacionesServicio=[];
 function money(n){n=Number(n||0);return (n<0?'-$':'$')+Math.abs(n).toFixed(2);}
-function fechaISO(d){var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+dd;}
+function fechaISO(d){return typeof flkClaveFechaContable==='function'?flkClaveFechaContable(d):(new Date(d)).toISOString().slice(0,10);}
 function businessId(){try{if(typeof flkBusinessGuardado==='function')return String(flkBusinessGuardado()||'global');}catch(e){}try{if(typeof FLK_BUSINESS_ID!=='undefined'&&FLK_BUSINESS_ID)return String(FLK_BUSINESS_ID);}catch(e){}return 'global';}
 function key(){return 'flackunloker_prestaciones_servicio_v1::'+businessId();}
 function load(){try{var x=JSON.parse(localStorage.getItem(key())||'[]');prestacionesServicio=Array.isArray(x)?x:[];}catch(e){prestacionesServicio=[];}}
 function save(){try{localStorage.setItem(key(),JSON.stringify(prestacionesServicio));}catch(e){console.error('Prestaciones:',e);}}
 function esc(s){if(typeof escapeHtml==='function')return escapeHtml(String(s||''));return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c];});}
-function resumen(desde,hasta){var a=prestacionesServicio.filter(function(p){var d=new Date(String(p.fecha||'')+'T12:00:00');return d>=desde&&d<hasta;});var i=a.reduce(function(t,p){return t+Number(p.ingreso||0);},0),c=a.reduce(function(t,p){return t+Number(p.costo||0);},0);return {arr:a,ingresos:i,costos:c,neto:i-c};}
-function hoy(){var d=new Date(),a=new Date(d.getFullYear(),d.getMonth(),d.getDate()),b=new Date(a);b.setDate(b.getDate()+1);return resumen(a,b);}
-function mes(){var d=new Date(),a=new Date(d.getFullYear(),d.getMonth(),1),b=new Date(d.getFullYear(),d.getMonth()+1,1);return resumen(a,b);}
+function resumen(desde,hasta){var a=prestacionesServicio.filter(function(p){var k=String(p.fecha||'');return k>=desde&&k<hasta;});var i=a.reduce(function(t,p){return t+Number(p.ingreso||0);},0),c=a.reduce(function(t,p){return t+Number(p.costo||0);},0);return {arr:a,ingresos:i,costos:c,neto:i-c};}
+function hoy(){var k=fechaISO(new Date());return resumen(k,flkSumarDiasClave(k,1));}
+function mes(){var k=fechaISO(new Date()),a=flkPrimerDiaMesClave(k),b=flkPrimerDiaMesSiguienteClave(k);return resumen(a,b);}
 function set(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
 function pintar(){load();var h=hoy(),m=mes();set('prestIngresosHoy',money(h.ingresos));set('prestCostosHoy',money(h.costos));set('prestNetoHoy',money(h.neto));set('prestIngresosMes',money(m.ingresos));set('prestCostosMes',money(m.costos));set('prestNetoMes',money(m.neto));set('cierrePrestIngresos',money(h.ingresos));set('cierrePrestCostos',money(h.costos));set('cierrePrestNeto',money(h.neto));set('finPrestIngresos',money(m.ingresos));set('finPrestCostos',money(m.costos));set('finPrestNeto',money(m.neto));set('estadPrestHoy',money(h.ingresos));set('estadPrestMes',money(m.ingresos));set('estadPrestCostosMes',money(m.costos));set('estadPrestNetoMes',money(m.neto));var box=document.getElementById('listaPrestacionesServicio');if(box)box.innerHTML=prestacionesServicio.length?prestacionesServicio.slice().sort(function(a,b){return String(b.fecha).localeCompare(String(a.fecha))||String(b.created_at||'').localeCompare(String(a.created_at||''));}).map(function(p){return '<div class="prestacion-item"><div class="prestacion-item-top"><div><h3>'+esc(p.descripcion)+'</h3><p>'+esc(p.fecha)+' · '+(p.tipo==='ingreso_costo'?'Ingreso + costo externo':'Solo ingreso')+' · '+esc(p.metodo||'Efectivo')+'</p></div><div class="prestacion-importes">Ingreso '+money(p.ingreso)+'<br>Costo '+money(p.costo)+'<br>Neto '+money(Number(p.ingreso)-Number(p.costo))+'</div></div><button type="button" class="boton-eliminar solo-admin" onclick="flkEliminarPrestacionServicio(&quot;'+esc(String(p.id))+'&quot;)">Eliminar</button></div>';}).join(''):'<div class="sin-productos">No hay prestaciones registradas.</div>'; }
 function flkMetodoPrestNube(v){return ({efectivo:'Efectivo',ath_movil:'ATH Móvil',tarjeta:'Tarjeta',transferencia:'Transferencia',otro:'Otro'})[v]||v||'Efectivo';}
