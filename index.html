@@ -4254,7 +4254,8 @@ async function flkRecuperacionEmergenciaNube(){
      concepto:m.description||"Movimiento",
      metodo:normalizarMetodoFlujo(m.payment_method||"Otro"),
      fecha:m.occurred_at||m.created_at,
-     grupo:String(m.description||"").startsWith("Gasto ·")?"gasto":
+     grupo:m.service_provision_id?"prestacion":
+       String(m.description||"").startsWith("Gasto ·")?"gasto":
        String(m.description||"").startsWith("Abono ·")?"abono":
        String(m.description||"").startsWith("Venta ·")?"venta":
        String(m.description||"").startsWith("Pago proveedor ·")?"proveedor":
@@ -8391,7 +8392,7 @@ async function cargarMovimientosCajaSupabase(){
  if(flkNubeDisponible()&&!flkSesionActiva)return false;
  if(!flkNubeDisponible()){flkAplicarPendientesSobreDatos();if(typeof actualizarSaldoCajaFisica==="function")actualizarSaldoCajaFisica();return true}
  const {data,error}=await flkSupabase.from("cash_movements")
-  .select("id,type,amount,description,payment_method,occurred_at,created_at,sale_id")
+  .select("id,type,amount,description,payment_method,occurred_at,created_at,sale_id,service_provision_id")
   .order("occurred_at",{ascending:true});
  if(error){
   console.error("Supabase flujo caja:",error);
@@ -8405,11 +8406,11 @@ async function cargarMovimientosCajaSupabase(){
   concepto:m.description||"Movimiento",
   metodo:normalizarMetodoFlujo(m.payment_method||"Otro"),
   fecha:m.occurred_at||m.created_at,
-  grupo:String(m.description||"").startsWith("Gasto ·")?"gasto":
+  grupo:m.service_provision_id?"prestacion":
+        String(m.description||"").startsWith("Gasto ·")?"gasto":
         String(m.description||"").startsWith("Abono ·")?"abono":
         String(m.description||"").startsWith("Venta ·")?"venta":
         String(m.description||"").startsWith("Pago proveedor ·")?"proveedor":
-        String(m.description||"").startsWith("Prestación de servicio ·")?"prestacion":
         (String(m.description||"")==="Retiro del propietario"||String(m.description||"")==="Aporte del propietario")?"propietario":
         String(m.description||"").startsWith("Reembolso devolución ·")?"reembolso":"otro"
  }));
