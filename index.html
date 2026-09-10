@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-09-10-v61.90-caja-retiros-sync">
+<meta name="flackunloker-offline-version" content="2026-09-08-v61.86-proveedores-filtro">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2800,32 +2800,6 @@ function flkColaOffline(){
   return q;
  }catch(e){return []}
 }
-async function flkEliminarRetiroPendienteDuplicado(){
- try{
-  if(!flkNubeDisponible()||typeof flkSupabase==='undefined')return;
-  const q=flkColaOffline();
-  const ops=q.filter(o=>o&&o.tipo==='owner_cash_movement'&&(o.estado==='error'||o.estado==='conflicto'||o.estado==='pendiente'));
-  if(!ops.length)return;
-  const bid=typeof flkBusinessGuardado==='function'?String(flkBusinessGuardado()||''):'';
-  let rq=flkSupabase.from('owner_cash_movements').select('id,movement_type,amount,note,created_at,business_id').order('created_at',{ascending:false}).limit(100);
-  if(bid&&bid!=='global')rq=rq.eq('business_id',bid);
-  const {data,error}=await rq;if(error||!Array.isArray(data))return;
-  let cambio=false;
-  for(const op of ops){
-   const p=op.payload||{};
-   const match=data.find(x=>
-    Number(x.amount||0)===Number(p.amount||0) &&
-    String(x.movement_type||'')===String(p.type||'') &&
-    String(x.note||'')===String(p.note||'')
-   );
-   if(match){
-    const i=q.findIndex(x=>x.id===op.id);
-    if(i>=0){q.splice(i,1);cambio=true;}
-   }
-  }
-  if(cambio)flkGuardarColaOffline(q);
- }catch(e){console.warn('Limpieza de retiro pendiente duplicado:',e)}
-}
 function flkGuardarColaOffline(q){
  localStorage.setItem(flkLocalKey(FLK_OFFLINE_QUEUE_KEY),JSON.stringify(q));
  flkActualizarEstadoConexion()
@@ -3213,11 +3187,6 @@ function flkAplicarPagoProveedorLocal(op){
 function flkAplicarMovimientoPropietarioLocal(op){
  const p=op.payload||{};
  if((movimientosCajaSupabase||[]).some(m=>m.offlineOperationId===op.id))return true;
- // La operación ya cambió la caja local al momento de confirmarse.
- // Marcarla como aplicada evita que, tras una sincronización fallida,
- // una operación de retiro que quedó en estado "error/conflicto" vuelva
- // a restarse del saldo local. Solo Supabase decide si finalmente entra.
- p.local_applied=true;
  const esAporte=p.type==="contribution";
  movimientosCajaSupabase.push({
   id:"local-"+op.id,
@@ -3662,7 +3631,6 @@ async function flkProcesarColaOffline(){
   }
  }finally{
   flkSincronizando=false;
-  await flkEliminarRetiroPendienteDuplicado();
   flkActualizarEstadoConexion(q.some(x=>x.estado==="error")?"error":null)
  }
 }
@@ -4286,8 +4254,7 @@ async function flkRecuperacionEmergenciaNube(){
      concepto:m.description||"Movimiento",
      metodo:normalizarMetodoFlujo(m.payment_method||"Otro"),
      fecha:m.occurred_at||m.created_at,
-     grupo:m.service_provision_id?"prestacion":
-       String(m.description||"").startsWith("Gasto ·")?"gasto":
+     grupo:String(m.description||"").startsWith("Gasto ·")?"gasto":
        String(m.description||"").startsWith("Abono ·")?"abono":
        String(m.description||"").startsWith("Venta ·")?"venta":
        String(m.description||"").startsWith("Pago proveedor ·")?"proveedor":
@@ -8424,7 +8391,7 @@ async function cargarMovimientosCajaSupabase(){
  if(flkNubeDisponible()&&!flkSesionActiva)return false;
  if(!flkNubeDisponible()){flkAplicarPendientesSobreDatos();if(typeof actualizarSaldoCajaFisica==="function")actualizarSaldoCajaFisica();return true}
  const {data,error}=await flkSupabase.from("cash_movements")
-  .select("id,type,amount,description,payment_method,occurred_at,created_at,sale_id,service_provision_id")
+  .select("id,type,amount,description,payment_method,occurred_at,created_at,sale_id")
   .order("occurred_at",{ascending:true});
  if(error){
   console.error("Supabase flujo caja:",error);
@@ -8438,11 +8405,11 @@ async function cargarMovimientosCajaSupabase(){
   concepto:m.description||"Movimiento",
   metodo:normalizarMetodoFlujo(m.payment_method||"Otro"),
   fecha:m.occurred_at||m.created_at,
-  grupo:m.service_provision_id?"prestacion":
-        String(m.description||"").startsWith("Gasto ·")?"gasto":
+  grupo:String(m.description||"").startsWith("Gasto ·")?"gasto":
         String(m.description||"").startsWith("Abono ·")?"abono":
         String(m.description||"").startsWith("Venta ·")?"venta":
         String(m.description||"").startsWith("Pago proveedor ·")?"proveedor":
+        String(m.description||"").startsWith("Prestación de servicio ·")?"prestacion":
         (String(m.description||"")==="Retiro del propietario"||String(m.description||"")==="Aporte del propietario")?"propietario":
         String(m.description||"").startsWith("Reembolso devolución ·")?"reembolso":"otro"
  }));
@@ -8637,7 +8604,6 @@ document.getElementById("formularioMovimientoPropietario").addEventListener("sub
 
  const op=flkEncolarOperacion("owner_cash_movement",{type:tipo,amount:cantidad,note:nota||null});
  flkAplicarMovimientoPropietarioLocal(op);
- flkGuardarColaOffline(flkColaOffline());
  guardarMovimientosCajaLocal();
  actualizarFlujoCaja();actualizarCierre();actualizarSaldoCajaFisica();
  cerrarMovimientoPropietario();
