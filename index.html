@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-09-10-v61.87-caja-prestaciones">
+<meta name="flackunloker-offline-version" content="2026-09-10-v61.90-caja-retiros-sync">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2800,6 +2800,32 @@ function flkColaOffline(){
   return q;
  }catch(e){return []}
 }
+async function flkEliminarRetiroPendienteDuplicado(){
+ try{
+  if(!flkNubeDisponible()||typeof flkSupabase==='undefined')return;
+  const q=flkColaOffline();
+  const ops=q.filter(o=>o&&o.tipo==='owner_cash_movement'&&(o.estado==='error'||o.estado==='conflicto'||o.estado==='pendiente'));
+  if(!ops.length)return;
+  const bid=typeof flkBusinessGuardado==='function'?String(flkBusinessGuardado()||''):'';
+  let rq=flkSupabase.from('owner_cash_movements').select('id,movement_type,amount,note,created_at,business_id').order('created_at',{ascending:false}).limit(100);
+  if(bid&&bid!=='global')rq=rq.eq('business_id',bid);
+  const {data,error}=await rq;if(error||!Array.isArray(data))return;
+  let cambio=false;
+  for(const op of ops){
+   const p=op.payload||{};
+   const match=data.find(x=>
+    Number(x.amount||0)===Number(p.amount||0) &&
+    String(x.movement_type||'')===String(p.type||'') &&
+    String(x.note||'')===String(p.note||'')
+   );
+   if(match){
+    const i=q.findIndex(x=>x.id===op.id);
+    if(i>=0){q.splice(i,1);cambio=true;}
+   }
+  }
+  if(cambio)flkGuardarColaOffline(q);
+ }catch(e){console.warn('Limpieza de retiro pendiente duplicado:',e)}
+}
 function flkGuardarColaOffline(q){
  localStorage.setItem(flkLocalKey(FLK_OFFLINE_QUEUE_KEY),JSON.stringify(q));
  flkActualizarEstadoConexion()
@@ -3187,6 +3213,11 @@ function flkAplicarPagoProveedorLocal(op){
 function flkAplicarMovimientoPropietarioLocal(op){
  const p=op.payload||{};
  if((movimientosCajaSupabase||[]).some(m=>m.offlineOperationId===op.id))return true;
+ // La operación ya cambió la caja local al momento de confirmarse.
+ // Marcarla como aplicada evita que, tras una sincronización fallida,
+ // una operación de retiro que quedó en estado "error/conflicto" vuelva
+ // a restarse del saldo local. Solo Supabase decide si finalmente entra.
+ p.local_applied=true;
  const esAporte=p.type==="contribution";
  movimientosCajaSupabase.push({
   id:"local-"+op.id,
@@ -3631,6 +3662,7 @@ async function flkProcesarColaOffline(){
   }
  }finally{
   flkSincronizando=false;
+  await flkEliminarRetiroPendienteDuplicado();
   flkActualizarEstadoConexion(q.some(x=>x.estado==="error")?"error":null)
  }
 }
@@ -4254,7 +4286,8 @@ async function flkRecuperacionEmergenciaNube(){
      concepto:m.description||"Movimiento",
      metodo:normalizarMetodoFlujo(m.payment_method||"Otro"),
      fecha:m.occurred_at||m.created_at,
-     grupo:String(m.description||"").startsWith("Gasto ·")?"gasto":
+     grupo:m.service_provision_id?"prestacion":
+       String(m.description||"").startsWith("Gasto ·")?"gasto":
        String(m.description||"").startsWith("Abono ·")?"abono":
        String(m.description||"").startsWith("Venta ·")?"venta":
        String(m.description||"").startsWith("Pago proveedor ·")?"proveedor":
@@ -8390,11 +8423,9 @@ async function cargarMovimientosCajaSupabase(){
  if(flkModoRecuperacionPassword)return false;
  if(flkNubeDisponible()&&!flkSesionActiva)return false;
  if(!flkNubeDisponible()){flkAplicarPendientesSobreDatos();if(typeof actualizarSaldoCajaFisica==="function")actualizarSaldoCajaFisica();return true}
- const bid=typeof flkExigirCentroActual==="function"?await flkExigirCentroActual():(typeof flkBusinessGuardado==="function"?flkBusinessGuardado():null);
- let consultaCaja=flkSupabase.from("cash_movements")
-  .select("id,type,amount,description,payment_method,occurred_at,created_at,sale_id,business_id,service_provision_id");
- if(bid)consultaCaja=consultaCaja.eq("business_id",bid);
- const {data,error}=await consultaCaja.order("occurred_at",{ascending:true});
+ const {data,error}=await flkSupabase.from("cash_movements")
+  .select("id,type,amount,description,payment_method,occurred_at,created_at,sale_id,service_provision_id")
+  .order("occurred_at",{ascending:true});
  if(error){
   console.error("Supabase flujo caja:",error);
   if(!flkSilenciarSiEsConexion(error))alert("No se pudo cargar el flujo de caja desde Supabase.");
@@ -8407,8 +8438,6 @@ async function cargarMovimientosCajaSupabase(){
   concepto:m.description||"Movimiento",
   metodo:normalizarMetodoFlujo(m.payment_method||"Otro"),
   fecha:m.occurred_at||m.created_at,
-  businessId:m.business_id||null,
-  serviceProvisionId:m.service_provision_id||null,
   grupo:m.service_provision_id?"prestacion":
         String(m.description||"").startsWith("Gasto ·")?"gasto":
         String(m.description||"").startsWith("Abono ·")?"abono":
@@ -8524,25 +8553,17 @@ function movimientosFlujoCaja(){
   }
  });
 
- // Prestaciones de servicio: cash_movements es la fuente autoritativa cuando
- // la prestación ya está sincronizada. Solo se reconstruyen localmente las
- // prestaciones pendientes offline o legacy que todavía no tienen movimiento asociado.
+ // Prestaciones de servicio cobradas. Se reconstruyen desde el almacenamiento local
+ // de Prestaciones. Los registros antiguos sin método se consideran Efectivo.
  try{
   let bid="global";
   try{if(typeof flkBusinessGuardado==="function")bid=String(flkBusinessGuardado()||"global");}
   catch(_){try{if(typeof FLK_BUSINESS_ID!=="undefined"&&FLK_BUSINESS_ID)bid=String(FLK_BUSINESS_ID);}catch(__){}}
   const keyPrest="flackunloker_prestaciones_servicio_v1::"+bid;
   const arrPrest=JSON.parse(localStorage.getItem(keyPrest)||"[]");
-  const prestacionesConMovimiento=new Set(
-   (Array.isArray(movimientosCajaSupabase)?movimientosCajaSupabase:[])
-    .map(m=>String(m.serviceProvisionId||""))
-    .filter(Boolean)
-  );
   (Array.isArray(arrPrest)?arrPrest:[]).forEach(p=>{
    const ingreso=Number(p.ingreso||0);
    if(!(ingreso>0))return;
-   const prestacionId=String(p.cloud_id||p.id||"");
-   if(prestacionId&&prestacionesConMovimiento.has(prestacionId))return;
    mov.push({
     id:"prestacion-"+String(p.id||p.created_at||Math.random()),
     tipo:"entrada",cantidad:ingreso,
@@ -8557,7 +8578,7 @@ function movimientosFlujoCaja(){
  // Conservar de cash_movements solo operaciones que no se pueden reconstruir
  // de las tablas anteriores (propietario y movimientos manuales/otros).
  (Array.isArray(movimientosCajaSupabase)?movimientosCajaSupabase:[]).forEach(m=>{
-  if(["venta","abono","gasto","proveedor","reembolso"].includes(m.grupo))return;
+  if(["venta","abono","gasto","proveedor","reembolso","prestacion"].includes(m.grupo))return;
   mov.push({...m,metodo:normalizarMetodoFlujo(m.metodo)})
  });
 
@@ -8616,6 +8637,7 @@ document.getElementById("formularioMovimientoPropietario").addEventListener("sub
 
  const op=flkEncolarOperacion("owner_cash_movement",{type:tipo,amount:cantidad,note:nota||null});
  flkAplicarMovimientoPropietarioLocal(op);
+ flkGuardarColaOffline(flkColaOffline());
  guardarMovimientosCajaLocal();
  actualizarFlujoCaja();actualizarCierre();actualizarSaldoCajaFisica();
  cerrarMovimientoPropietario();
