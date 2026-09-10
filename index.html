@@ -7220,6 +7220,16 @@ function costoNetoVenta(v){
 
 function devolucionesDeVenta(v){return Array.isArray(v.devoluciones)?v.devoluciones:[]}
 function pagosDeVenta(v){return Array.isArray(v.pagos)?v.pagos:[]}
+// Ventas cobradas: para el total del día de la venta solo cuenta el dinero realmente cobrado ese día.
+// Los saldos pendientes no se suman como ingreso y los abonos posteriores permanecen separados como abonos.
+function cobradoVentaEnFechaVenta(v){
+ const fechaVenta=flkClaveFechaContable(v?.fecha);
+ const pagos=pagosDeVenta(v);
+ if(pagos.length){
+  return pagos.reduce((t,p)=>flkClaveFechaContable(p?.fecha)===fechaVenta?t+Number(p?.cantidad||0):t,0);
+ }
+ return Math.min(Math.max(0,Number(v?.totalPagado||0)),Math.max(0,Number(v?.ingreso||0)));
+}
 function normalizarCuentaVenta(v){if(!Array.isArray(v.pagos))v.pagos=[];const pagosOrden=[...v.pagos].sort((a,b)=>new Date(a.fecha||0)-new Date(b.fecha||0)||Number(a.id||0)-Number(b.id||0));let saldoSec=Number(v.ingreso||0);pagosOrden.forEach(p=>{p.cantidad=Math.max(0,Number(p.cantidad||0));if(p.saldoAnterior===undefined||p.saldoAnterior===null)p.saldoAnterior=saldoSec;saldoSec=Math.max(0,saldoSec-p.cantidad);if(p.saldoRestante===undefined||p.saldoRestante===null)p.saldoRestante=saldoSec});if(v.totalPagado===undefined||v.totalPagado===null)v.totalPagado=v.estadoPago==="credito"?v.pagos.reduce((t,p)=>t+Number(p.cantidad||0),0):Number(v.ingreso||0);v.totalPagado=Math.max(0,Math.min(Number(v.totalPagado||0),Number(v.ingreso||0)));v.saldo=Math.max(0,Number(v.ingreso||0)-v.totalPagado);v.estadoPago=v.saldo>0.009?"credito":"pagado";if(v.saldo<=0.009){v.saldo=0;v.fechaVencimiento=""}else if(!v.fechaVencimiento){const base=new Date(v.fecha||Date.now());base.setDate(base.getDate()+30);v.fechaVencimiento=fechaLocalISO(base)}return v}
 
 function ventaFueCredito(v){
@@ -7249,7 +7259,7 @@ function recalcularTotalesVenta(v){
 function actualizarDashboardVentas(){
  const ahora=new Date(),hoyClave=flkClaveFechaContable(ahora),inicioHoy=hoyClave,inicioSemana=flkSumarDiasClave(hoyClave,-6),inicioMes=flkPrimerDiaMesClave(hoyClave),finMes=flkPrimerDiaMesSiguienteClave(hoyClave);
  const enPeriodo=(v,inicio,fin=flkSumarDiasClave(hoyClave,1))=>flkEnRangoFechaContable(v.fecha,inicio,fin);
- const resumen=arr=>({ingresos:arr.reduce((t,v)=>t+Number(v.ingreso??0),0),ganancia:arr.reduce((t,v)=>t+flkGananciaAjustadaVenta(v),0)});
+ const resumen=arr=>({ingresos:arr.reduce((t,v)=>t+cobradoVentaEnFechaVenta(v),0),ganancia:arr.reduce((t,v)=>t+flkGananciaAjustadaVenta(v),0)});
  const formato=r=>`$${r.ingresos.toFixed(2)} / $${r.ganancia.toFixed(2)}`;
  document.getElementById("dashboardHoy").textContent=formato(resumen(ventas.filter(v=>enPeriodo(v,inicioHoy))));
  document.getElementById("dashboardSemana").textContent=formato(resumen(ventas.filter(v=>enPeriodo(v,inicioSemana))));
@@ -7268,12 +7278,12 @@ function actualizarVentas(){
  const sumar=(arr,campo)=>arr.reduce((t,v)=>t+Number(v[campo]??0),0);
  document.getElementById("ventasHoy").textContent=ventasHoyArr.length;
  document.getElementById("unidadesVendidasHoy").textContent=ventasHoyArr.reduce((t,v)=>t+unidadesNetasVenta(v),0);
- document.getElementById("ingresosHoy").textContent="$"+sumar(ventasHoyArr,"ingreso").toFixed(2);
+ document.getElementById("ingresosHoy").textContent="$"+ventasHoyArr.reduce((t,v)=>t+cobradoVentaEnFechaVenta(v),0).toFixed(2);
  document.getElementById("costoVendidoHoy").textContent="$"+sumar(ventasHoyArr,"costoTotal").toFixed(2);
  document.getElementById("gananciaHoy").textContent="$"+sumar(ventasHoyArr,"ganancia").toFixed(2);
  document.getElementById("totalVentas").textContent=ventas.length;
  document.getElementById("totalUnidadesVendidas").textContent=ventas.reduce((t,v)=>t+unidadesNetasVenta(v),0);
- document.getElementById("totalIngresosVentas").textContent="$"+sumar(ventas,"ingreso").toFixed(2);
+ document.getElementById("totalIngresosVentas").textContent="$"+ventas.reduce((t,v)=>t+cobradoVentaEnFechaVenta(v),0).toFixed(2);
  document.getElementById("totalCostoVentas").textContent="$"+sumar(ventas,"costoTotal").toFixed(2);
  document.getElementById("totalGananciaVentas").textContent="$"+sumar(ventas,"ganancia").toFixed(2);
  mostrarListaVentas();actualizarIndicadorAlertas()
@@ -7983,7 +7993,7 @@ function rangoReporteActual(){
 function cambiarPeriodoReporte(){const personalizado=document.getElementById("periodoReporte").value==="personalizado",box=document.getElementById("rangoPersonalizadoReporte");box.classList.toggle("oculto",!personalizado);if(personalizado){const hoy=fechaLocalISO(new Date());if(!document.getElementById("fechaDesdeReporte").value){const d=new Date();d.setDate(d.getDate()-6);document.getElementById("fechaDesdeReporte").value=fechaLocalISO(d)}if(!document.getElementById("fechaHastaReporte").value)document.getElementById("fechaHastaReporte").value=hoy}actualizarReporte()}
 function datosReporte(){
  const r=rangoReporteActual(),enRango=f=>{const x=fechaLocalDeValor(f);return x&&x>=r.inicio&&x<=r.fin},ventasR=ventas.filter(v=>enRango(v.fecha)),gastosR=gastos.filter(g=>enRango(g.fechaLocal||g.fecha));
- const recibos=ventasR.length,unidades=ventasR.reduce((t,v)=>t+unidadesNetasVenta(v),0),ingresos=ventasR.reduce((t,v)=>t+Number(v.ingreso||0),0),costo=ventasR.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasR.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosR.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
+ const recibos=ventasR.length,unidades=ventasR.reduce((t,v)=>t+unidadesNetasVenta(v),0),ingresos=ventasR.reduce((t,v)=>t+cobradoVentaEnFechaVenta(v),0),costo=ventasR.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasR.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosR.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
  const cobros={efectivoCup:0,efectivoUsd:0,transferenciaCup:0,transferenciaUsd:0,transferenciaMlc:0,efectivoEuro:0,zelle:0,otros:0};ventas.forEach(v=>{normalizarCuentaVenta(v);const ps=pagosDeVenta(v);if(ps.length){ps.forEach(p=>{if(enRango(p.fecha))cobros[metodoCajaClave(p.metodo)]+=Number(p.cantidad||0)})}else if(enRango(v.fecha)&&Number(v.totalPagado||0)>0)cobros[metodoCajaClave(v.metodoPago)]+=Math.min(Number(v.totalPagado||0),Number(v.ingreso||0))});
  const cobrado=Object.values(cobros).reduce((a,b)=>a+b,0),saldoCredito=ventasR.reduce((t,v)=>{normalizarCuentaVenta(v);return t+Number(v.saldo||0)},0),productosR={},categorias={};
  ventasR.forEach(v=>itemsDeVenta(v).forEach(i=>{const k=String(i.productoId??i.sku??i.nombre),cant=cantidadNetaItemVenta(i),ing=cant*Number(i.precioUnitario||0);if(!productosR[k])productosR[k]={nombre:i.nombre||"Producto",unidades:0,ingresos:0};productosR[k].unidades+=cant;productosR[k].ingresos+=ing}));
