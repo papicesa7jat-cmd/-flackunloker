@@ -2099,14 +2099,15 @@ textarea::placeholder{
 </div>
 
 <div class="lista-estadisticas"><h3>📈 Resultados del período</h3>
-<div class="fila-estadistica"><span>Ventas de mercancía</span><strong id="finVentas">$0.00</strong></div>
-<div class="fila-estadistica"><span>Ingresos por prestaciones</span><strong id="finPrestacionesPeriodo">$0.00</strong></div>
-<div class="fila-estadistica"><span>Ingresos totales</span><strong id="finIngresosTotales">$0.00</strong></div>
-<div class="fila-estadistica"><span>Costo de mercancía vendida</span><strong id="finCosto">$0.00</strong></div>
-<div class="fila-estadistica"><span>Costos externos de prestaciones</span><strong id="finPrestCostosPeriodo">$0.00</strong></div>
-<div class="fila-estadistica"><span>Ganancia bruta total</span><strong id="finBruta">$0.00</strong></div>
-<div class="fila-estadistica"><span>Gastos</span><strong id="finGastos">$0.00</strong></div>
+<div class="fila-estadistica"><span>📦 Ventas de mercancía cobradas</span><strong id="finVentas">$0.00</strong></div>
+<div class="fila-estadistica"><span>📦 Costo de mercancía vendida</span><strong id="finCosto">$0.00</strong></div>
+<div class="fila-estadistica"><span>🛠️ Ingresos por prestaciones de servicio</span><strong id="finPrestacionesPeriodo">$0.00</strong></div>
+<div class="fila-estadistica"><span>🛠️ Costos externos de prestaciones</span><strong id="finPrestCostosPeriodo">$0.00</strong></div>
+<div class="fila-estadistica"><span>💵 Ingresos operativos totales (mercancía + prestaciones)</span><strong id="finIngresosTotales">$0.00</strong></div>
+<div class="fila-estadistica"><span>📈 Ganancia bruta total</span><strong id="finBruta">$0.00</strong></div>
+<div class="fila-estadistica"><span>💸 Gastos generales</span><strong id="finGastos">$0.00</strong></div>
 <div class="fila-estadistica"><span>💰 Ganancia neta total</span><strong id="finNeta">$0.00</strong></div>
+<p style="margin:10px 0 0;color:#667085;font-size:12px;line-height:1.5">Las prestaciones se muestran separadas de la venta de mercancía. Sus costos externos no se mezclan con el costo de mercancía vendida.</p>
 </div>
 
 
@@ -2207,6 +2208,13 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="lista-estadisticas"><h3>📦 Productos con mayor existencia</h3><div id="rankingProductos"></div></div>
 <div class="lista-estadisticas"><h3>🔄 Productos con más movimientos</h3><div id="rankingMovimientos"></div></div>
 <div class="lista-estadisticas"><h3>⚠️ Productos con stock bajo</h3><div id="rankingStockBajo"></div></div>
+<div class="lista-estadisticas" id="resumenPrestacionesEstadisticas"><h3>🛠️ Estadísticas de prestaciones de servicio</h3>
+<div class="fila-estadistica"><span>Prestaciones cobradas hoy</span><strong id="estadPrestHoy">$0.00</strong></div>
+<div class="fila-estadistica"><span>Prestaciones cobradas este mes</span><strong id="estadPrestMes">$0.00</strong></div>
+<div class="fila-estadistica"><span>Costos externos de prestaciones este mes</span><strong id="estadPrestCostosMes">$0.00</strong></div>
+<div class="fila-estadistica"><span>Resultado neto de prestaciones este mes</span><strong id="estadPrestNetoMes">$0.00</strong></div>
+<p style="margin:10px 0 0;color:#667085;font-size:12px;line-height:1.5">Estas cifras corresponden únicamente a servicios prestados y no forman parte de las estadísticas de unidades, movimientos o valor del inventario.</p>
+</div>
 </div>
 </div>
 
@@ -2485,7 +2493,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 
 
 
-<div class="lista-estadisticas" id="resumenPrestacionesEstadisticas"><h3>🛠️ Prestaciones de servicio</h3><div class="fila-estadistica"><span>Ingresos de hoy</span><strong id="estadPrestHoy">$0.00</strong></div><div class="fila-estadistica"><span>Ingresos del mes</span><strong id="estadPrestMes">$0.00</strong></div><div class="fila-estadistica"><span>Costos del mes</span><strong id="estadPrestCostosMes">$0.00</strong></div><div class="fila-estadistica"><span>Resultado del mes</span><strong id="estadPrestNetoMes">$0.00</strong></div></div>
+
 <div id="vistaAdminSoftware" style="display:none">
  <div class="seccion-titulo">
   <h2>⚙️ Administración del Software</h2>
@@ -7884,7 +7892,7 @@ function actualizarFiltrosGastos(){
 function actualizarGastos(){
  actualizarFiltrosGastos();const ahora=new Date(),hoyClave=flkClaveFechaContable(ahora),inicioHoy=hoyClave,inicioSemana=flkSumarDiasClave(hoyClave,-6),inicioMes=flkPrimerDiaMesClave(hoyClave),finMes=flkPrimerDiaMesSiguienteClave(hoyClave),finHoy=flkSumarDiasClave(hoyClave,1);
  const suma=arr=>arr.reduce((t,g)=>t+Number(g.cantidad||0),0),claveG=g=>flkClaveFechaContable(g.fechaLocal||g.fecha);const gastosHoy=suma(gastos.filter(g=>{const k=claveG(g);return k>=inicioHoy&&k<finHoy})),gastosSemana=suma(gastos.filter(g=>{const k=claveG(g);return k>=inicioSemana&&k<finHoy})),gastosMes=suma(gastos.filter(g=>{const k=claveG(g);return k>=inicioMes&&k<finMes}));
- const ventasMes=ventas.filter(v=>flkEnRangoFechaContable(v.fecha,inicioMes,finMes)),ingresosMes=ventasMes.reduce((t,v)=>t+Number(v.ingreso||0),0),gananciaBruta=ventasMes.reduce((t,v)=>t+Number(v.ganancia||0),0),gananciaNeta=gananciaBruta-gastosMes;
+ const ventasMes=ventas.filter(v=>flkEnRangoFechaContable(v.fecha,inicioMes,finMes)),ingresosMes=ventasMes.reduce((t,v)=>t+cobradoVentaEnFechaVenta(v),0),gananciaBruta=ventasMes.reduce((t,v)=>t+Number(v.ganancia||0),0),gananciaNeta=gananciaBruta-gastosMes;
  document.getElementById("gastosHoy").textContent="$"+gastosHoy.toFixed(2);document.getElementById("gastosSemana").textContent="$"+gastosSemana.toFixed(2);document.getElementById("gastosMes").textContent="$"+gastosMes.toFixed(2);document.getElementById("gananciaNetaMes").textContent="$"+gananciaNeta.toFixed(2);document.getElementById("ingresosMesGastos").textContent="$"+ingresosMes.toFixed(2);document.getElementById("gananciaBrutaMesGastos").textContent="$"+gananciaBruta.toFixed(2);document.getElementById("totalGastosMesResumen").textContent="$"+gastosMes.toFixed(2);document.getElementById("gananciaNetaMesResumen").textContent="$"+gananciaNeta.toFixed(2);mostrarListaGastos()
 }
 function mostrarListaGastos(){
@@ -7909,7 +7917,7 @@ function metodoCajaClave(metodo){
 function resumenCierreFecha(fechaLocal){
  const ventasDia=ventas.filter(v=>fechaLocalDeValor(v.fecha)===fechaLocal);
  const gastosDia=gastos.filter(g=>(g.fechaLocal||String(g.fecha||"").slice(0,10))===fechaLocal);
- const recibos=ventasDia.length,unidades=ventasDia.reduce((t,v)=>t+unidadesNetasVenta(v),0),ventasTotal=ventasDia.reduce((t,v)=>t+Number(v.ingreso||0),0),costo=ventasDia.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasDia.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosDia.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
+ const recibos=ventasDia.length,unidades=ventasDia.reduce((t,v)=>t+unidadesNetasVenta(v),0),ventasTotal=ventasDia.reduce((t,v)=>t+cobradoVentaEnFechaVenta(v),0),costo=ventasDia.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasDia.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosDia.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
  const cobros={efectivoCup:0,efectivoUsd:0,transferenciaCup:0,transferenciaUsd:0,transferenciaMlc:0,efectivoEuro:0,zelle:0,otros:0};
  const movimientosDia=movimientosFlujoCaja().filter(m=>fechaLocalDeValor(m.fecha)===fechaLocal);
  movimientosDia.forEach(m=>{
@@ -8832,9 +8840,10 @@ function datosFinanzas(){
  // Resultados del período
  const vv=ventas.filter(v=>enRango(v.fecha));
  const gg=gastos.filter(g=>enRango(g.fecha||g.fechaLocal));
- const ventasTotal=vv.reduce((t,v)=>t+Number(v.ingreso||0),0);
+ const ventasTotal=vv.reduce((t,v)=>t+cobradoVentaEnFechaVenta(v),0);
+ const ventasDevengadas=vv.reduce((t,v)=>t+Number(v.ingreso||0),0);
  const costo=vv.reduce((t,v)=>t+Number(v.costoTotal||0),0);
- const brutaMercancia=ventasTotal-costo;
+ const brutaMercancia=ventasDevengadas-costo;
 
  // Prestaciones de servicio del mismo período financiero.
  // El ingreso cuenta como ingreso operativo; el costo externo reduce la ganancia,
