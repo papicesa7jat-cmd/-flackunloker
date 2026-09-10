@@ -3419,13 +3419,14 @@ async function flkProcesarOperacionOffline(op){
  }
  if(op.tipo==="sale_payment"){
   const p=op.payload||{};
-  const {error}=await flkSupabase.rpc("flk_add_sale_payment_offline",{
+  const {error}=await flkSupabase.rpc("flk_add_sale_payment_offline_at",{
    p_operation_id:op.id,
    p_sale_id:p.sale_id||null,
    p_sale_operation_id:p.sale_operation_id||null,
    p_amount:Number(p.amount||0),
    p_payment_method:p.payment_method||"Efectivo",
-   p_note:p.note||null
+   p_note:p.note||null,
+   p_occurred_at:op.created_at||new Date().toISOString()
   });
   if(error)throw error;
   return
@@ -7634,7 +7635,7 @@ document.getElementById("formularioAbono").addEventListener("submit",async e=>{
  if(!v.supabaseId)return alert("Este recibo todavía no está vinculado con Supabase.");
  procesandoGuardado=true;
  try{
-  const {error}=await flkSupabase.rpc("flk_add_sale_payment",{p_sale_id:v.supabaseId,p_amount:cantidad,p_payment_method:metodo,p_note:nota||null});
+  const {error}=await flkSupabase.rpc("flk_add_sale_payment_at",{p_sale_id:v.supabaseId,p_amount:cantidad,p_payment_method:metodo,p_note:nota||null,p_occurred_at:new Date().toISOString()});
   if(error)throw error;
   await cargarVentasSupabase();
   const actualizado=ventas.find(x=>x.supabaseId===v.supabaseId);
