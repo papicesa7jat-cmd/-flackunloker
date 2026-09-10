@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-09-08-v61.86-proveedores-filtro">
+<meta name="flackunloker-offline-version" content="2026-09-10-v61.87-seguridad-offline-reforzada">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2766,8 +2766,49 @@ function flkCambiarContextoLocalCentro(businessId){
 }
 
 const FLK_OFFLINE_QUEUE_KEY="flackunloker_offline_queue_v1";
+const FLK_OFFLINE_QUEUE_EMERGENCY_KEY="flackunloker_offline_queue_emergency_v2";
+const FLK_SYNC_CONFIRMED_KEY="flackunloker_sync_confirmed_v2";
+const FLK_OFFLINE_ARCHIVE_KEY="flackunloker_offline_archive_v2";
 const FLK_DEVICE_KEY="flackunloker_device_id_v1";
 let flkSincronizando=false;
+
+function flkLeerArrayLocal(key){
+ try{
+  const v=JSON.parse(localStorage.getItem(key)||"[]");
+  return Array.isArray(v)?v:[];
+ }catch(_){return []}
+}
+function flkFusionarColas(a,b){
+ const mapa=new Map();
+ [...(a||[]),...(b||[])].forEach(op=>{
+  if(op&&op.id)mapa.set(op.id,op);
+ });
+ return [...mapa.values()].sort((x,y)=>String(x.created_at||"").localeCompare(String(y.created_at||"")));
+}
+function flkClaveEmergenciaCola(){
+ return flkLocalKey(FLK_OFFLINE_QUEUE_EMERGENCY_KEY);
+}
+function flkClaveConfirmacionSync(){
+ return flkLocalKey(FLK_SYNC_CONFIRMED_KEY);
+}
+function flkClaveArchivoSync(){
+ return flkLocalKey(FLK_OFFLINE_ARCHIVE_KEY);
+}
+function flkMarcarConfirmacionServidor(){
+ localStorage.setItem(flkClaveConfirmacionSync(),new Date().toISOString());
+}
+function flkTieneConfirmacionServidor(){
+ return !!localStorage.getItem(flkClaveConfirmacionSync());
+}
+function flkArchivarOperacionConfirmada(op){
+ try{
+  const k=flkClaveArchivoSync();
+  let a=flkLeerArrayLocal(k);
+  a.push({...op,archived_at:new Date().toISOString()});
+  if(a.length>500)a=a.slice(-500);
+  localStorage.setItem(k,JSON.stringify(a));
+ }catch(_){}
+}
 
 function flkUUID(){
  if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();
@@ -2788,12 +2829,11 @@ const FLK_OPERACIONES_LOCAL_FIRST=new Set([
 
 function flkColaOffline(){
  try{
-  const q=JSON.parse(localStorage.getItem(flkLocalKey(FLK_OFFLINE_QUEUE_KEY))||"[]");
-  if(!Array.isArray(q))return [];
+  const principal=flkLeerArrayLocal(flkLocalKey(FLK_OFFLINE_QUEUE_KEY));
+  const emergencia=flkLeerArrayLocal(flkClaveEmergenciaCola());
+  let q=flkFusionarColas(principal,emergencia);
   let cambio=false;
 
-  // Las operaciones de la arquitectura actual ya modificaron y guardaron
-  // la copia local al momento de crearse. Normalizar también colas antiguas.
   q.forEach(op=>{
    if(FLK_OPERACIONES_LOCAL_FIRST.has(op.tipo)){
     if(!op.payload||typeof op.payload!=="object")op.payload={};
@@ -2804,23 +2844,60 @@ function flkColaOffline(){
    }
   });
 
-  if(cambio)localStorage.setItem(flkLocalKey(FLK_OFFLINE_QUEUE_KEY),JSON.stringify(q));
+  const serial=JSON.stringify(q);
+  if(cambio || JSON.stringify(principal)!==serial){
+   localStorage.setItem(flkLocalKey(FLK_OFFLINE_QUEUE_KEY),serial);
+  }
+  if(JSON.stringify(emergencia)!==serial){
+   localStorage.setItem(flkClaveEmergenciaCola(),serial);
+  }
   return q;
- }catch(e){return []}
+ }catch(e){
+  console.error("Flackunloker: no se pudo leer la cola offline persistente.",e);
+  return flkLeerArrayLocal(flkClaveEmergenciaCola());
+ }
 }
 function flkGuardarColaOffline(q){
- localStorage.setItem(flkLocalKey(FLK_OFFLINE_QUEUE_KEY),JSON.stringify(q));
- flkActualizarEstadoConexion()
+ const copia=Array.isArray(q)?q:[];
+ const serial=JSON.stringify(copia);
+ const principalKey=flkLocalKey(FLK_OFFLINE_QUEUE_KEY);
+ const emergenciaKey=flkClaveEmergenciaCola();
+
+ localStorage.setItem(principalKey,serial);
+ localStorage.setItem(emergenciaKey,serial);
+
+ // COMPROBACIÓN OBLIGATORIA: ambas copias deben poder leerse inmediatamente.
+ const principal=flkLeerArrayLocal(principalKey);
+ const emergencia=flkLeerArrayLocal(emergenciaKey);
+ const idsEsperados=copia.map(x=>x&&x.id).filter(Boolean).sort().join("|");
+ const idsPrincipal=principal.map(x=>x&&x.id).filter(Boolean).sort().join("|");
+ const idsEmergencia=emergencia.map(x=>x&&x.id).filter(Boolean).sort().join("|");
+
+ if(principal.length!==copia.length || emergencia.length!==copia.length ||
+    idsPrincipal!==idsEsperados || idsEmergencia!==idsEsperados){
+  throw new Error("FALLO CRÍTICO: la operación no quedó persistida localmente. No continúe trabajando.");
+ }
+ flkActualizarEstadoConexion();
 }
 function flkEncolarOperacion(tipo,payload){
  const q=flkColaOffline();
  const datos=(payload&&typeof payload==="object")?{...payload}:{};
  if(FLK_OPERACIONES_LOCAL_FIRST.has(tipo))datos.local_applied=true;
- const op={id:flkUUID(),tipo,payload:datos,device_id:flkDeviceId(),created_at:new Date().toISOString(),estado:"pendiente",intentos:0};
+ const op={
+  id:flkUUID(),tipo,payload:datos,device_id:flkDeviceId(),
+  business_id:(typeof flkBusinessIdLocalSeguro==="function"?flkBusinessIdLocalSeguro():null),
+  created_at:new Date().toISOString(),estado:"pendiente",intentos:0
+ };
  q.push(op);
  flkGuardarColaOffline(q);
+
+ // Segunda verificación por ID: si no reaparece, se detiene aquí.
+ const verificada=flkColaOffline().some(x=>x.id===op.id && x.estado==="pendiente");
+ if(!verificada){
+  throw new Error("FALLO CRÍTICO: operación offline no persistida. No continúe trabajando.");
+ }
  try{flkActualizarEstadoConexion()}catch(_){}
- return op
+ return op;
 }
 function flkPendientesOffline(){
  return flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado)).length
@@ -2893,8 +2970,16 @@ function flkActualizarEstadoConexion(estadoEspecial){
  if(c){box.classList.add("error");txt.textContent="⚠️ Conflicto pendiente";pen.textContent=`${c} conflicto${c===1?"":"s"}`;return}
  if(estadoEspecial==="error"){box.classList.add("error");txt.textContent="⚠️ Error de sincronización";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"";return}
  if(!flkNubeDisponible()){box.classList.add("offline");txt.textContent=navigator.onLine?"🟠 Internet · sesión local":"🟠 Sin Internet";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:(navigator.onLine?"Inicia sesión online para sincronizar":"Sin cambios pendientes");return}
- txt.textContent=n?"🟢 En línea":"🟢 Sincronizado";
- pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:""
+ if(n){
+  txt.textContent="🟢 En línea";
+  pen.textContent=`${n} pendiente${n===1?"":"s"}`;
+ }else if(flkTieneConfirmacionServidor()){
+  txt.textContent="🟢 Sincronizado";
+  pen.textContent="Confirmado por servidor";
+ }else{
+  txt.textContent="🟢 En línea";
+  pen.textContent="Sin pendientes · falta confirmación del servidor";
+ }
 }
 function flkVentaLocalDesdeOperacion(op){
  const d=op.payload?.local_sale;if(!d)return null;
@@ -3598,6 +3683,7 @@ async function flkSincronizarSeguro(){
    await flkCargarPrestacionesNube();
   }
 
+  flkMarcarConfirmacionServidor();
   flkActualizarEstadoConexion();
   return true;
  }catch(err){
@@ -3622,6 +3708,8 @@ async function flkProcesarColaOffline(){
    op.intentos=Number(op.intentos||0)+1;
    await flkProcesarOperacionOffline(op);
    op.estado="sincronizado";op.synced_at=new Date().toISOString();op.ultimo_error="";
+   flkMarcarConfirmacionServidor();
+   flkArchivarOperacionConfirmada(op);
    huboCambios=true
   }catch(err){
    const msg=String(err?.message||err);
