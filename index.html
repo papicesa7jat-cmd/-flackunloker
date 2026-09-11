@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-09-10-v61.87-seguridad-offline-reforzada">
+<meta name="flackunloker-offline-version" content="2026-09-11-v61.96-pin-reset-electron">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1793,9 +1793,9 @@ textarea::placeholder{
 <div id="vistaVentas" style="display:none">
 <div class="seccion-titulo"><h2>🧾 Ventas por recibos</h2><button class="boton-agregar" onclick="abrirVenta()">+ Nuevo recibo</button></div>
 <div class="lista-estadisticas"><h3>📊 Dashboard del negocio</h3>
-<div class="fila-estadistica"><span>Hoy · Ingresos / Ganancia</span><strong id="dashboardHoy">$0.00 / $0.00</strong></div>
-<div class="fila-estadistica"><span>Últimos 7 días · Ingresos / Ganancia</span><strong id="dashboardSemana">$0.00 / $0.00</strong></div>
-<div class="fila-estadistica"><span>Este mes · Ingresos / Ganancia bruta</span><strong id="dashboardMes">$0.00 / $0.00</strong></div>
+<div class="fila-estadistica"><span>Hoy · Ventas netas / Ganancia</span><strong id="dashboardHoy">$0.00 / $0.00</strong></div>
+<div class="fila-estadistica"><span>Últimos 7 días · Ventas netas / Ganancia</span><strong id="dashboardSemana">$0.00 / $0.00</strong></div>
+<div class="fila-estadistica"><span>Este mes · Ventas netas / Ganancia bruta</span><strong id="dashboardMes">$0.00 / $0.00</strong></div>
 <div class="fila-estadistica"><span>Este mes · Gastos / Ganancia neta</span><strong id="dashboardNetoMes">$0.00 / $0.00</strong></div>
 </div>
 <div class="lista-estadisticas"><h3>🏆 Productos más vendidos</h3><div id="dashboardMasVendidos"></div></div>
@@ -1803,7 +1803,7 @@ textarea::placeholder{
 <div class="estadisticas-grid">
 <div class="estadistica-card azul"><span>Ventas de hoy</span><strong id="ventasHoy">0</strong></div>
 <div class="estadistica-card azul"><span>Unidades hoy</span><strong id="unidadesVendidasHoy">0</strong></div>
-<div class="estadistica-card ancha positiva"><span>Ingresos de hoy</span><strong id="ingresosHoy">$0.00</strong></div>
+<div class="estadistica-card ancha positiva"><span>Ventas netas de hoy</span><strong id="ingresosHoy">$0.00</strong></div>
 <div class="estadistica-card ancha"><span>Costo vendido hoy</span><strong id="costoVendidoHoy">$0.00</strong></div>
 <div class="estadistica-card ancha positiva"><span>Ganancia real de hoy</span><strong id="gananciaHoy">$0.00</strong></div>
 </div>
@@ -1811,7 +1811,7 @@ textarea::placeholder{
 <div class="lista-estadisticas"><h3>📈 Totales de ventas registradas</h3>
 <div class="fila-estadistica"><span>Recibos</span><strong id="totalVentas">0</strong></div>
 <div class="fila-estadistica"><span>Unidades vendidas</span><strong id="totalUnidadesVendidas">0</strong></div>
-<div class="fila-estadistica"><span>Ingresos</span><strong id="totalIngresosVentas">$0.00</strong></div>
+<div class="fila-estadistica"><span>Ventas netas</span><strong id="totalIngresosVentas">$0.00</strong></div>
 <div class="fila-estadistica"><span>Costo de mercancía vendida</span><strong id="totalCostoVentas">$0.00</strong></div>
 <div class="fila-estadistica"><span>Ganancia real</span><strong id="totalGananciaVentas">$0.00</strong></div>
 </div>
@@ -1843,7 +1843,7 @@ textarea::placeholder{
 </div>
 <input id="busquedaGastos" class="busqueda-historial" type="search" placeholder="Buscar por concepto, categoría, método o nota...">
 <div class="filtros-inventario"><select id="filtroCategoriaGasto" class="filtro-inventario" onchange="mostrarListaGastos()"><option value="">Todas las categorías</option></select><select id="filtroMesGasto" class="filtro-inventario" onchange="mostrarListaGastos()"><option value="">Todos los meses</option></select></div>
-<div class="lista-estadisticas"><h3>📊 Resumen financiero del mes</h3><div class="fila-estadistica"><span>Ingresos por ventas</span><strong id="ingresosMesGastos">$0.00</strong></div><div class="fila-estadistica"><span>Ganancia bruta de ventas</span><strong id="gananciaBrutaMesGastos">$0.00</strong></div><div class="fila-estadistica"><span>Gastos registrados</span><strong id="totalGastosMesResumen">$0.00</strong></div><div class="fila-estadistica"><span>Ganancia neta</span><strong id="gananciaNetaMesResumen">$0.00</strong></div></div>
+<div class="lista-estadisticas"><h3>📊 Resumen financiero del mes</h3><div class="fila-estadistica"><span>Ventas netas del mes</span><strong id="ingresosMesGastos">$0.00</strong></div><div class="fila-estadistica"><span>Ganancia bruta de ventas</span><strong id="gananciaBrutaMesGastos">$0.00</strong></div><div class="fila-estadistica"><span>Gastos registrados</span><strong id="totalGastosMesResumen">$0.00</strong></div><div class="fila-estadistica"><span>Ganancia neta</span><strong id="gananciaNetaMesResumen">$0.00</strong></div></div>
 <div id="listaGastos"></div>
 </div>
 
@@ -1852,7 +1852,7 @@ textarea::placeholder{
 <div class="lista-estadisticas"><h3>📅 Resumen de hoy</h3>
 <div class="fila-estadistica"><span>Fecha</span><strong id="cierreFechaHoy">—</strong></div>
 <div class="fila-estadistica"><span>Recibos / Unidades</span><strong id="cierreRecibosUnidades">0 / 0</strong></div>
-<div class="fila-estadistica"><span>Ventas del día</span><strong id="cierreVentasHoy">$0.00</strong></div>
+<div class="fila-estadistica"><span>Ventas netas del día</span><strong id="cierreVentasHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>Costo de mercancía</span><strong id="cierreCostoHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>Ganancia bruta</span><strong id="cierreGananciaBrutaHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>Gastos del día</span><strong id="cierreGastosHoy">$0.00</strong></div>
@@ -2797,9 +2797,58 @@ function flkClaveArchivoSync(){
 function flkMarcarConfirmacionServidor(){
  localStorage.setItem(flkClaveConfirmacionSync(),new Date().toISOString());
 }
+let flkServidorAlcanzableActual=false;
+let flkComprobacionServidorEnCurso=false;
+
 function flkTieneConfirmacionServidor(){
- return !!localStorage.getItem(flkClaveConfirmacionSync());
+ return flkServidorAlcanzableActual===true && !!localStorage.getItem(flkClaveConfirmacionSync());
 }
+
+async function flkComprobarServidorEnVivo(){
+ if(flkComprobacionServidorEnCurso)return flkServidorAlcanzableActual;
+ flkComprobacionServidorEnCurso=true;
+ try{
+  const ctrl=new AbortController();
+  const t=setTimeout(()=>ctrl.abort(),3500);
+  await fetch(FLK_SUPABASE_URL+"/auth/v1/health?flk_estado="+Date.now(),{
+   cache:"no-store",
+   signal:ctrl.signal,
+   headers:{"apikey":FLK_SUPABASE_KEY}
+  });
+  clearTimeout(t);
+  flkServidorAlcanzableActual=true;
+ }catch(_){
+  flkServidorAlcanzableActual=false;
+ }finally{
+  flkComprobacionServidorEnCurso=false;
+  try{flkActualizarEstadoConexion()}catch(_){}
+ }
+ return flkServidorAlcanzableActual;
+}
+
+// v61.89: comprobación liviana y periódica. Al recuperar conectividad real,
+// dispara la sincronización sin bloquear la interfaz. También comprueba al
+// volver el foco a la app, útil en Electron después de una caída de red.
+let flkUltimoEstadoServidorVivo=false;
+async function flkVigilarServidorYReaccionar(){
+ const antes=flkServidorAlcanzableActual===true;
+ const ahora=await flkComprobarServidorEnVivo();
+ if(ahora && !antes && flkSesionActiva){
+  setTimeout(()=>{
+   try{ if(typeof flkSincronizarSeguro==="function")flkSincronizarSeguro(); }catch(_){}
+  },180);
+ }
+ flkUltimoEstadoServidorVivo=ahora;
+ return ahora;
+}
+setInterval(()=>{
+ if(document.visibilityState!=="hidden")flkVigilarServidorYReaccionar();
+},12000);
+window.addEventListener("focus",()=>setTimeout(flkVigilarServidorYReaccionar,80));
+document.addEventListener("visibilitychange",()=>{
+ if(!document.hidden)setTimeout(flkVigilarServidorYReaccionar,80);
+});
+
 function flkArchivarOperacionConfirmada(op){
  try{
   const k=flkClaveArchivoSync();
@@ -2922,7 +2971,7 @@ function flkMostrarAvisoConexionTemporal(){
 function flkEstadoConexionClave(estadoEspecial){
  if(estadoEspecial==="sync")return "sync";
  if(estadoEspecial==="error")return "error";
- if(!navigator.onLine)return "offline";
+ if(!navigator.onLine || flkServidorAlcanzableActual!==true)return "offline";
  const c=flkConflictosOffline();
  if(c)return "conflicto";
  const n=flkPendientesOffline();
@@ -2969,7 +3018,8 @@ function flkActualizarEstadoConexion(estadoEspecial){
  if(estadoEspecial==="sync"){box.classList.add("sync");txt.textContent="🔄 Sincronizando";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"";return}
  if(c){box.classList.add("error");txt.textContent="⚠️ Conflicto pendiente";pen.textContent=`${c} conflicto${c===1?"":"s"}`;return}
  if(estadoEspecial==="error"){box.classList.add("error");txt.textContent="⚠️ Error de sincronización";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"";return}
- if(!flkNubeDisponible()){box.classList.add("offline");txt.textContent=navigator.onLine?"🟠 Internet · sesión local":"🟠 Sin Internet";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:(navigator.onLine?"Inicia sesión online para sincronizar":"Sin cambios pendientes");return}
+ if(!navigator.onLine || flkServidorAlcanzableActual!==true){box.classList.add("offline");txt.textContent="🟠 Sin conexión al servidor";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"Sin cambios pendientes";return}
+ if(!flkNubeDisponible()){box.classList.add("offline");txt.textContent="🟠 Internet · sesión local";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"Inicia sesión online para sincronizar";return}
  if(n){
   txt.textContent="🟢 En línea";
   pen.textContent=`${n} pendiente${n===1?"":"s"}`;
@@ -3749,7 +3799,16 @@ window.addEventListener("online",async()=>{
   if(cache?.user)flkPintarSesionLocal(cache.user);
  }
 });
-window.addEventListener("offline",()=>flkActualizarEstadoConexion());
+window.addEventListener("offline",()=>{
+ flkServidorAlcanzableActual=false;
+ flkActualizarEstadoConexion();
+});
+window.addEventListener("online",()=>setTimeout(()=>flkComprobarServidorEnVivo(),100));
+if(document.readyState==="loading"){
+ document.addEventListener("DOMContentLoaded",()=>setTimeout(()=>flkComprobarServidorEnVivo(),150),{once:true});
+}else{
+ setTimeout(()=>flkComprobarServidorEnVivo(),150);
+}
 
 function flkActualizarModoRendimiento(){
  document.documentElement.classList.toggle("flk-offline",!flkNubeDisponible());
@@ -3912,7 +3971,11 @@ function flkEsEfectivoCUP(metodo){
 
 let flkOperacionLocalInmediataHasta=0;
 function flkNubeDisponible(){
+ // v61.89: no basta con navigator.onLine. Electron/Windows puede mantenerlo
+ // en true aunque Supabase no sea alcanzable. Evita esperas de red y
+ // mantiene formularios/operaciones en ruta local inmediatamente.
  return !!navigator.onLine
+  && flkServidorAlcanzableActual===true
   && localStorage.getItem(FLK_FORCE_OFFLINE_KEY)!=="1"
   && Date.now()>=Number(flkOperacionLocalInmediataHasta||0);
 }
@@ -4040,6 +4103,7 @@ async function flkReactivarNubeSiDisponible(){
    headers:{"apikey":FLK_SUPABASE_KEY}
   });
   clearTimeout(t);
+  flkServidorAlcanzableActual=true;
   /* Tener Internet no significa que exista una sesión autenticada en Supabase.
      Tras entrar offline después de Cerrar sesión, la app conserva solo la
      autenticación local; no debemos habilitar consultas cloud como anónimo. */
@@ -4060,7 +4124,11 @@ async function flkReactivarNubeSiDisponible(){
   try{flkActualizarModoRendimiento()}catch(_){}
   try{flkActualizarEstadoConexion()}catch(_){}
   return true;
- }catch(_){return false}
+ }catch(_){
+  flkServidorAlcanzableActual=false;
+  try{flkActualizarEstadoConexion()}catch(_){}
+  return false
+ }
 }
 
 // v61.56 · Si la página arranca con Internet ya restablecido, no esperamos
@@ -4154,28 +4222,37 @@ function flkPintarSesionLocal(user){
   return;
  }
 
+ // v61.98: al restaurar la sesión, el propietario validado en caché nunca debe
+ // pintarse temporalmente como empleado. Esto evita permisos visuales incorrectos
+ // al reabrir Electron mientras Supabase termina de confirmar sesión/rol.
  const rolGuardado=flkRolLocal(user?.id);
- rolSesion=rolGuardado||"employee";
+ const ownerCache=(typeof flkLeerPropietarioSoftwareCache==="function")?flkLeerPropietarioSoftwareCache():false;
+ rolSesion=ownerCache?"admin":(rolGuardado||"employee");
+ if(ownerCache && typeof flkPintarPropietarioSoftware==="function")flkPintarPropietarioSoftware(true);
  document.getElementById("authUsuarioEmail").textContent=user?.email||"Usuario";
- document.getElementById("authUsuarioRol").textContent=(typeof flkEsPropietarioSoftware!=="undefined" && flkEsPropietarioSoftware)?"👑 Propietario":(rolSesion==="admin"?"👑 Administrador":"👤 Empleado");
+ document.getElementById("authUsuarioRol").textContent=ownerCache?"👑 Propietario":(rolSesion==="admin"?"👑 Administrador":"👤 Empleado");
  document.getElementById("authUsuario").classList.add("visible");
  document.getElementById("authOverlay").classList.add("oculto");
  aplicarPermisosVisuales();
-  setTimeout(()=>flkComprobarPropietarioSoftware(),0);
- if(typeof flkAplicarPendientesSobreDatos==="function")flkAplicarPendientesSobreDatos();
- if(typeof mostrarProductos==="function")mostrarProductos();
- if(typeof actualizarResumenHistorial==="function")actualizarResumenHistorial();
- if(typeof mostrarListaHistorial==="function")mostrarListaHistorial();
- if(typeof actualizarVentas==="function")actualizarVentas();
- if(typeof actualizarClientes==="function")actualizarClientes();
- if(typeof actualizarGastos==="function")actualizarGastos();
- if(typeof actualizarCierre==="function")actualizarCierre();
- if(typeof actualizarOrdenesCompra==="function")actualizarOrdenesCompra();
- if(typeof actualizarProveedores==="function")actualizarProveedores();
- if(typeof actualizarCuentasPagar==="function")actualizarCuentasPagar();
- if(typeof actualizarFlujoCaja==="function")actualizarFlujoCaja();
- if(typeof actualizarFinanzas==="function")actualizarFinanzas();
- if(typeof actualizarEstadisticas==="function")actualizarEstadisticas();
+ setTimeout(()=>flkComprobarPropietarioSoftware(),0);
+ // v61.98: liberar primero la interfaz. Los repintados pesados se hacen después
+ // para que campos como Crear centro acepten foco/escritura inmediatamente.
+ setTimeout(()=>{
+  try{if(typeof flkAplicarPendientesSobreDatos==="function")flkAplicarPendientesSobreDatos()}catch(_){}
+  try{if(typeof mostrarProductos==="function")mostrarProductos()}catch(_){}
+  try{if(typeof actualizarResumenHistorial==="function")actualizarResumenHistorial()}catch(_){}
+  try{if(typeof mostrarListaHistorial==="function")mostrarListaHistorial()}catch(_){}
+  try{if(typeof actualizarVentas==="function")actualizarVentas()}catch(_){}
+  try{if(typeof actualizarClientes==="function")actualizarClientes()}catch(_){}
+  try{if(typeof actualizarGastos==="function")actualizarGastos()}catch(_){}
+  try{if(typeof actualizarCierre==="function")actualizarCierre()}catch(_){}
+  try{if(typeof actualizarOrdenesCompra==="function")actualizarOrdenesCompra()}catch(_){}
+  try{if(typeof actualizarProveedores==="function")actualizarProveedores()}catch(_){}
+  try{if(typeof actualizarCuentasPagar==="function")actualizarCuentasPagar()}catch(_){}
+  try{if(typeof actualizarFlujoCaja==="function")actualizarFlujoCaja()}catch(_){}
+  try{if(typeof actualizarFinanzas==="function")actualizarFinanzas()}catch(_){}
+  try{if(typeof actualizarEstadisticas==="function")actualizarEstadisticas()}catch(_){}
+ },80);
 }
 async function flkActualizarNubeDespuesArranque(){
  if(!flkNubeDisponible()||!flkSesionActiva||flkModoRecuperacionPassword)return false;
@@ -4191,13 +4268,16 @@ async function flkActualizarNubeDespuesArranque(){
 }
 
 async function cargarRolUsuario(user){
- rolSesion=flkRolLocal(user?.id)||"employee";
+ const ownerCache=(typeof flkLeerPropietarioSoftwareCache==="function")?flkLeerPropietarioSoftwareCache():false;
+ rolSesion=ownerCache?"admin":(flkRolLocal(user?.id)||"employee");
  if(flkNubeDisponible()){
   try{
    const {data,error}=await flkSupabase.from("profiles").select("role").eq("id",user.id).maybeSingle();
    if(!error&&data&&data.role){
-    rolSesion=data.role;
-    flkGuardarRolLocal(user.id,rolSesion);
+    // v61.98: el rol especial owner tiene permisos administrativos en la UI.
+    const rolNube=String(data.role||"").toLowerCase();
+    rolSesion=rolNube==="owner"?"admin":rolNube;
+    if(["admin","employee"].includes(rolSesion))flkGuardarRolLocal(user.id,rolSesion);
    }
   }catch(e){}
  }
@@ -4396,7 +4476,15 @@ async function flkRecuperacionEmergenciaNube(){
   actualizarCuentasPagar();actualizarFlujoCaja();actualizarFinanzas();actualizarEstadisticas();
 
   if(fallos.length){
-   alert("Recuperación parcial.\n\n"+fallos.join("\n\n"));
+   // v61.89: una caída de Internet durante la recuperación no es un error
+   // funcional. Se conserva la copia local y no se interrumpe al usuario
+   // con ventanas de "Failed to fetch". Solo se muestran fallos reales.
+   const fallosReales=fallos.filter(x=>!/(failed to fetch|fetch failed|networkerror|network error|network request failed|load failed|timeout|timed out|err_internet_disconnected|err_network_changed|err_connection)/i.test(String(x||"")));
+   if(fallosReales.length){
+    alert("Recuperación parcial.\n\n"+fallosReales.join("\n\n"));
+    return false;
+   }
+   console.warn("Recuperación interrumpida por falta de conexión; se conserva la copia local.");
    return false;
   }
 
@@ -4456,24 +4544,33 @@ async function mostrarAppConSesion(session){
   document.getElementById("authUsuario").classList.remove("visible");
  }
 }
-async function cerrarSesionFlackunloker(){
+function cerrarSesionFlackunloker(){
+ // v61.94: cierre visual/local inmediato. No esperar a Supabase ni a la red.
  try{flkActualizarSnapshotOffline()}catch(_){}
  try{
   const email=document.getElementById("authUsuarioEmail")?.textContent||document.getElementById("authEmail")?.value||"";
   if(email&&email.includes("@"))flkRecordarUsuarioLogin(email);
   flkLimpiarPasswordLogin();
-  await flkSupabase.auth.signOut();
- }catch(err){console.error(err)}
+ }catch(_){}
+
+ // La salida remota se intenta en segundo plano. Una red lenta o caída no bloquea el botón.
+ try{
+  const salida=flkSupabase?.auth?.signOut?.();
+  if(salida&&typeof salida.catch==="function")salida.catch(err=>console.warn("Cierre remoto pendiente/no disponible:",err));
+ }catch(err){console.warn("Cierre remoto no disponible:",err)}
+
+ // Borrar inmediatamente la sesión propia y cualquier token Supabase persistido.
  try{flkLimpiarSesionLocal()}catch(_){}
- // v61.81: si signOut() falló (por ejemplo, sin conexión), el token de Supabase
- // puede quedar guardado en localStorage y la app lo retoma solo al recargar.
- // Se limpia manualmente para garantizar que la sesión sí termine.
  try{
   for(let i=localStorage.length-1;i>=0;i--){
    const k=localStorage.key(i)||"";
    if(/^sb-.*-auth-token$/.test(k))localStorage.removeItem(k);
   }
  }catch(_){}
+
+ // Mostrar la salida al instante y reiniciar ya sin credenciales locales.
+ try{document.getElementById("authUsuario")?.classList.remove("visible")}catch(_){}
+ try{document.getElementById("authOverlay")?.classList.remove("oculto")}catch(_){}
  location.reload();
 }
 document.getElementById("formAuth").addEventListener("submit",async e=>{
@@ -5343,7 +5440,7 @@ async function flkEnriquecerCentrosConLicencias(){
  }
 }
 
-async function flkRenovarLicenciaCentro(licenseKey,nombreCentro,fechaActual){
+function flkRenovarLicenciaCentro(licenseKey,nombreCentro,fechaActual){
  if(!flkEsPropietarioSoftware)return;
  const actual=new Date(fechaActual||Date.now());
  const base=Number.isNaN(actual.getTime())?new Date():actual;
@@ -5352,26 +5449,12 @@ async function flkRenovarLicenciaCentro(licenseKey,nombreCentro,fechaActual){
  const yyyy=sugerida.getFullYear();
  const mm=String(sugerida.getMonth()+1).padStart(2,"0");
  const dd=String(sugerida.getDate()).padStart(2,"0");
- const valor=prompt(
-  "Nueva fecha de vencimiento para "+nombreCentro+"\n\nFormato: AAAA-MM-DD",
-  `${yyyy}-${mm}-${dd}`
- );
- if(valor===null)return;
- const nueva=new Date(String(valor).trim()+"T23:59:59");
- if(Number.isNaN(nueva.getTime())||nueva<=new Date())return alert("La fecha debe ser válida y futura.");
- if(!confirm("¿Renovar la licencia de "+nombreCentro+" hasta "+nueva.toLocaleDateString("es-PR")+"?"))return;
- try{
-  const {error}=await flkSupabase.rpc("flk_renew_license",{
-   p_license_key:licenseKey,
-   p_new_expires_at:nueva.toISOString()
-  });
-  if(error)throw error;
-  alert("Licencia renovada correctamente.");
-  await cargarAdminSoftware();
- }catch(err){
-  console.error("Renovar licencia centro:",err);
-  alert("No se pudo renovar la licencia.\n\n"+(err?.message||"Error desconocido"));
- }
+ flkRenovarLicenciaKey=String(licenseKey||"");
+ document.getElementById("flkRenovarLicenciaCentroNombre").textContent="Centro: "+String(nombreCentro||"Centro");
+ document.getElementById("flkRenovarLicenciaFecha").value=`${yyyy}-${mm}-${dd}`;
+ flkRenovarLicenciaMensaje("");
+ document.getElementById("flkModalRenovarLicencia")?.classList.add("visible");
+ setTimeout(()=>document.getElementById("flkRenovarLicenciaFecha")?.focus(),0);
 }
 
 async function flkCambiarEstadoLicenciaCentro(licenseKey,nombreCentro,nuevoEstado){
@@ -7355,7 +7438,7 @@ function recalcularTotalesVenta(v){
 function actualizarDashboardVentas(){
  const ahora=new Date(),hoyClave=flkClaveFechaContable(ahora),inicioHoy=hoyClave,inicioSemana=flkSumarDiasClave(hoyClave,-6),inicioMes=flkPrimerDiaMesClave(hoyClave),finMes=flkPrimerDiaMesSiguienteClave(hoyClave);
  const enPeriodo=(v,inicio,fin=flkSumarDiasClave(hoyClave,1))=>flkEnRangoFechaContable(v.fecha,inicio,fin);
- const resumen=arr=>({ingresos:arr.reduce((t,v)=>t+cobradoVentaEnFechaVenta(v),0),ganancia:arr.reduce((t,v)=>t+flkGananciaAjustadaVenta(v),0)});
+ const resumen=arr=>({ingresos:arr.reduce((t,v)=>t+Number(v.ingreso||0),0),ganancia:arr.reduce((t,v)=>t+flkGananciaAjustadaVenta(v),0)});
  const formato=r=>`$${r.ingresos.toFixed(2)} / $${r.ganancia.toFixed(2)}`;
  document.getElementById("dashboardHoy").textContent=formato(resumen(ventas.filter(v=>enPeriodo(v,inicioHoy))));
  document.getElementById("dashboardSemana").textContent=formato(resumen(ventas.filter(v=>enPeriodo(v,inicioSemana))));
@@ -7374,12 +7457,12 @@ function actualizarVentas(){
  const sumar=(arr,campo)=>arr.reduce((t,v)=>t+Number(v[campo]??0),0);
  document.getElementById("ventasHoy").textContent=ventasHoyArr.length;
  document.getElementById("unidadesVendidasHoy").textContent=ventasHoyArr.reduce((t,v)=>t+unidadesNetasVenta(v),0);
- document.getElementById("ingresosHoy").textContent="$"+ventasHoyArr.reduce((t,v)=>t+cobradoVentaEnFechaVenta(v),0).toFixed(2);
+ document.getElementById("ingresosHoy").textContent="$"+ventasHoyArr.reduce((t,v)=>t+Number(v.ingreso||0),0).toFixed(2);
  document.getElementById("costoVendidoHoy").textContent="$"+sumar(ventasHoyArr,"costoTotal").toFixed(2);
  document.getElementById("gananciaHoy").textContent="$"+sumar(ventasHoyArr,"ganancia").toFixed(2);
  document.getElementById("totalVentas").textContent=ventas.length;
  document.getElementById("totalUnidadesVendidas").textContent=ventas.reduce((t,v)=>t+unidadesNetasVenta(v),0);
- document.getElementById("totalIngresosVentas").textContent="$"+ventas.reduce((t,v)=>t+cobradoVentaEnFechaVenta(v),0).toFixed(2);
+ document.getElementById("totalIngresosVentas").textContent="$"+ventas.reduce((t,v)=>t+Number(v.ingreso||0),0).toFixed(2);
  document.getElementById("totalCostoVentas").textContent="$"+sumar(ventas,"costoTotal").toFixed(2);
  document.getElementById("totalGananciaVentas").textContent="$"+sumar(ventas,"ganancia").toFixed(2);
  mostrarListaVentas();actualizarIndicadorAlertas()
@@ -7980,7 +8063,7 @@ function actualizarFiltrosGastos(){
 function actualizarGastos(){
  actualizarFiltrosGastos();const ahora=new Date(),hoyClave=flkClaveFechaContable(ahora),inicioHoy=hoyClave,inicioSemana=flkSumarDiasClave(hoyClave,-6),inicioMes=flkPrimerDiaMesClave(hoyClave),finMes=flkPrimerDiaMesSiguienteClave(hoyClave),finHoy=flkSumarDiasClave(hoyClave,1);
  const suma=arr=>arr.reduce((t,g)=>t+Number(g.cantidad||0),0),claveG=g=>flkClaveFechaContable(g.fechaLocal||g.fecha);const gastosHoy=suma(gastos.filter(g=>{const k=claveG(g);return k>=inicioHoy&&k<finHoy})),gastosSemana=suma(gastos.filter(g=>{const k=claveG(g);return k>=inicioSemana&&k<finHoy})),gastosMes=suma(gastos.filter(g=>{const k=claveG(g);return k>=inicioMes&&k<finMes}));
- const ventasMes=ventas.filter(v=>flkEnRangoFechaContable(v.fecha,inicioMes,finMes)),ingresosMes=ventasMes.reduce((t,v)=>t+cobradoVentaEnFechaVenta(v),0),gananciaBruta=ventasMes.reduce((t,v)=>t+Number(v.ganancia||0),0),gananciaNeta=gananciaBruta-gastosMes;
+ const ventasMes=ventas.filter(v=>flkEnRangoFechaContable(v.fecha,inicioMes,finMes)),ingresosMes=ventasMes.reduce((t,v)=>t+Number(v.ingreso||0),0),gananciaBruta=ventasMes.reduce((t,v)=>t+Number(v.ganancia||0),0),gananciaNeta=gananciaBruta-gastosMes;
  document.getElementById("gastosHoy").textContent="$"+gastosHoy.toFixed(2);document.getElementById("gastosSemana").textContent="$"+gastosSemana.toFixed(2);document.getElementById("gastosMes").textContent="$"+gastosMes.toFixed(2);document.getElementById("gananciaNetaMes").textContent="$"+gananciaNeta.toFixed(2);document.getElementById("ingresosMesGastos").textContent="$"+ingresosMes.toFixed(2);document.getElementById("gananciaBrutaMesGastos").textContent="$"+gananciaBruta.toFixed(2);document.getElementById("totalGastosMesResumen").textContent="$"+gastosMes.toFixed(2);document.getElementById("gananciaNetaMesResumen").textContent="$"+gananciaNeta.toFixed(2);mostrarListaGastos()
 }
 function mostrarListaGastos(){
@@ -8005,7 +8088,7 @@ function metodoCajaClave(metodo){
 function resumenCierreFecha(fechaLocal){
  const ventasDia=ventas.filter(v=>fechaLocalDeValor(v.fecha)===fechaLocal);
  const gastosDia=gastos.filter(g=>(g.fechaLocal||String(g.fecha||"").slice(0,10))===fechaLocal);
- const recibos=ventasDia.length,unidades=ventasDia.reduce((t,v)=>t+unidadesNetasVenta(v),0),ventasTotal=ventasDia.reduce((t,v)=>t+cobradoVentaEnFechaVenta(v),0),costo=ventasDia.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasDia.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosDia.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
+ const recibos=ventasDia.length,unidades=ventasDia.reduce((t,v)=>t+unidadesNetasVenta(v),0),ventasTotal=ventasDia.reduce((t,v)=>t+Number(v.ingreso||0),0),costo=ventasDia.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasDia.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosDia.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
  const cobros={efectivoCup:0,efectivoUsd:0,transferenciaCup:0,transferenciaUsd:0,transferenciaMlc:0,efectivoEuro:0,zelle:0,otros:0};
  const movimientosDia=movimientosFlujoCaja().filter(m=>fechaLocalDeValor(m.fecha)===fechaLocal);
  movimientosDia.forEach(m=>{
@@ -11957,5 +12040,208 @@ body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
   display:none!important;
 }
 </style>
+\n<!-- v61.95 · CAMBIO DE CONTRASEÑA COMPATIBLE CON ELECTRON (sin prompt) -->
+<style id="flk-v6195-password-style">
+#flkModalPasswordCentro{z-index:7000}
+#flkModalPasswordCentro .formulario{max-width:460px}
+#flkModalPasswordCentro .flk-pass-centro{margin:-10px 0 18px;color:#667085;font-size:13px}
+#flkModalPasswordCentro .flk-pass-error{display:none;margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#ffecec;color:#b42318;font-size:12px;font-weight:700}
+#flkModalPasswordCentro .flk-pass-error.visible{display:block}
+</style>
+<div class="modal" id="flkModalPasswordCentro">
+ <div class="formulario">
+  <h2>🔑 Cambiar contraseña</h2>
+  <p class="flk-pass-centro" id="flkPasswordCentroNombre"></p>
+  <div class="flk-pass-error" id="flkPasswordCentroError"></div>
+  <div class="campo"><label for="flkPasswordCentroUsuario">Usuario</label><select id="flkPasswordCentroUsuario"></select></div>
+  <div class="campo"><label for="flkPasswordCentroNueva">Nueva contraseña</label><input id="flkPasswordCentroNueva" type="password" autocomplete="new-password" minlength="6" placeholder="Mínimo 6 caracteres"></div>
+  <div class="campo"><label for="flkPasswordCentroConfirmar">Confirmar contraseña</label><input id="flkPasswordCentroConfirmar" type="password" autocomplete="new-password" minlength="6" placeholder="Repite la contraseña"></div>
+  <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="flkCerrarModalPasswordCentro()">Cancelar</button><button type="button" class="boton-guardar" id="flkPasswordCentroGuardar" onclick="flkGuardarPasswordCentroElectron()">Cambiar contraseña</button></div>
+ </div>
+</div>
+<script id="flk-v6195-password-electron">
+let flkPasswordCentroBusinessId="";
+function flkPasswordCentroMensaje(texto){
+ const e=document.getElementById("flkPasswordCentroError"); if(!e)return;
+ e.textContent=texto||""; e.classList.toggle("visible",!!texto);
+}
+function flkCerrarModalPasswordCentro(){
+ const m=document.getElementById("flkModalPasswordCentro"); if(m)m.classList.remove("visible");
+ flkPasswordCentroBusinessId="";
+ const a=document.getElementById("flkPasswordCentroNueva"),b=document.getElementById("flkPasswordCentroConfirmar");
+ if(a)a.value=""; if(b)b.value=""; flkPasswordCentroMensaje("");
+}
+async function cambiarPasswordCentroAdminSoftware(businessId){
+ await flkComprobarPropietarioSoftware();
+ if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
+ const centro=flkAdminSoftwareCentros.find(c=>String(c.business_id)===String(businessId));
+ if(!centro)return alert("Centro no encontrado.");
+ try{
+  const {data,error}=await flkSupabase.rpc("flk_software_admin_list_users");
+  if(error)throw error;
+  const usuarios=(Array.isArray(data)?data:[]).filter(u=>String(u.business_id)===String(businessId));
+  if(!usuarios.length)return alert("Este centro no tiene usuarios asignados.");
+  const sel=document.getElementById("flkPasswordCentroUsuario");
+  sel.innerHTML="";
+  usuarios.forEach(u=>{const o=document.createElement("option");o.value=String(u.user_id||"");o.textContent=String(u.email||"Usuario");sel.appendChild(o)});
+  flkPasswordCentroBusinessId=String(businessId);
+  document.getElementById("flkPasswordCentroNombre").textContent="Centro: "+String(centro.name||centro.code||"");
+  document.getElementById("flkPasswordCentroNueva").value="";
+  document.getElementById("flkPasswordCentroConfirmar").value="";
+  flkPasswordCentroMensaje("");
+  document.getElementById("flkModalPasswordCentro").classList.add("visible");
+  setTimeout(()=>document.getElementById("flkPasswordCentroNueva")?.focus(),0);
+ }catch(e){
+  console.error("Cambio contraseña centro:",e);
+  alert("No se pudo preparar el cambio de contraseña: "+(e?.message||"Error desconocido"));
+ }
+}
+async function flkGuardarPasswordCentroElectron(){
+ const userId=String(document.getElementById("flkPasswordCentroUsuario")?.value||"");
+ const nueva=String(document.getElementById("flkPasswordCentroNueva")?.value||"");
+ const confirmar=String(document.getElementById("flkPasswordCentroConfirmar")?.value||"");
+ if(!userId)return flkPasswordCentroMensaje("Selecciona un usuario.");
+ if(nueva.length<6)return flkPasswordCentroMensaje("La contraseña debe tener al menos 6 caracteres.");
+ if(nueva!==confirmar)return flkPasswordCentroMensaje("Las contraseñas no coinciden.");
+ const btn=document.getElementById("flkPasswordCentroGuardar");
+ if(btn){btn.disabled=true;btn.textContent="Guardando…"}
+ flkPasswordCentroMensaje("");
+ try{
+  const {error}=await flkSupabase.rpc("flk_software_admin_change_password",{p_user_id:userId,p_new_password:nueva});
+  if(error)throw error;
+  flkCerrarModalPasswordCentro();
+  alert("Contraseña cambiada correctamente.");
+ }catch(e){
+  console.error("Cambio contraseña centro:",e);
+  flkPasswordCentroMensaje("No se pudo cambiar la contraseña: "+(e?.message||"Error desconocido"));
+ }finally{
+  if(btn){btn.disabled=false;btn.textContent="Cambiar contraseña"}
+ }
+}
+document.getElementById("flkModalPasswordCentro")?.addEventListener("click",function(e){if(e.target===this)flkCerrarModalPasswordCentro()});
+</script>
+
+<!-- v61.96 · CAMBIO DE PIN RESET COMPATIBLE CON ELECTRON (sin prompt) -->
+<style id="flk-v6196-pinreset-style">
+#flkModalPinResetCentro{z-index:7100}
+#flkModalPinResetCentro .formulario{max-width:430px}
+#flkModalPinResetCentro .flk-pin-centro{margin:-10px 0 18px;color:#667085;font-size:13px}
+#flkModalPinResetCentro .flk-pin-error{display:none;margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#ffecec;color:#b42318;font-size:12px;font-weight:700}
+#flkModalPinResetCentro .flk-pin-error.visible{display:block}
+</style>
+<div class="modal" id="flkModalPinResetCentro">
+ <div class="formulario">
+  <h2>🔑 Cambiar PIN reset</h2>
+  <p class="flk-pin-centro" id="flkPinResetCentroNombre"></p>
+  <div class="flk-pin-error" id="flkPinResetCentroError"></div>
+  <div class="campo"><label for="flkPinResetNuevo">Nuevo PIN de restablecimiento</label><input id="flkPinResetNuevo" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" placeholder="6 dígitos"></div>
+  <div class="campo"><label for="flkPinResetConfirmar">Confirmar nuevo PIN</label><input id="flkPinResetConfirmar" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" placeholder="Repite los 6 dígitos"></div>
+  <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="flkCerrarModalPinResetCentro()">Cancelar</button><button type="button" class="boton-guardar" id="flkPinResetGuardar" onclick="flkGuardarPinResetCentroElectron()">Cambiar PIN</button></div>
+ </div>
+</div>
+<script id="flk-v6196-pinreset-electron">
+let flkPinResetBusinessId="";
+function flkPinResetMensaje(texto){
+ const e=document.getElementById("flkPinResetCentroError");if(!e)return;
+ e.textContent=texto||"";e.classList.toggle("visible",!!texto);
+}
+function flkCerrarModalPinResetCentro(){
+ document.getElementById("flkModalPinResetCentro")?.classList.remove("visible");
+ flkPinResetBusinessId="";
+ const a=document.getElementById("flkPinResetNuevo"),b=document.getElementById("flkPinResetConfirmar");
+ if(a)a.value="";if(b)b.value="";flkPinResetMensaje("");
+}
+async function cambiarPinResetCentroAdminSoftware(businessId){
+ try{
+  if(!flkEsPropietarioSoftware)await flkComprobarPropietarioSoftware();
+  const esAdminDeSuPropioCentro=rolSesion==="admin"&&flkUuidValido(FLK_BUSINESS_ID)&&String(businessId)===String(FLK_BUSINESS_ID);
+  if(!flkEsPropietarioSoftware&&!esAdminDeSuPropioCentro)return alert("Solo el propietario o el administrador de este centro pueden cambiar su PIN de restablecimiento.");
+  const centro=(Array.isArray(flkAdminSoftwareCentros)?flkAdminSoftwareCentros:[]).find(c=>String(c.business_id)===String(businessId));
+  flkPinResetBusinessId=String(businessId||"");
+  document.getElementById("flkPinResetCentroNombre").textContent="Centro: "+String(centro?.name||centro?.code||"Centro actual");
+  document.getElementById("flkPinResetNuevo").value="";
+  document.getElementById("flkPinResetConfirmar").value="";
+  flkPinResetMensaje("");
+  document.getElementById("flkModalPinResetCentro").classList.add("visible");
+  setTimeout(()=>document.getElementById("flkPinResetNuevo")?.focus(),0);
+ }catch(e){
+  console.error("Preparar cambio PIN restablecimiento:",e);
+  alert("No se pudo preparar el cambio del PIN: "+(e?.message||e));
+ }
+}
+async function flkGuardarPinResetCentroElectron(){
+ const pin=String(document.getElementById("flkPinResetNuevo")?.value||"").trim();
+ const confirmar=String(document.getElementById("flkPinResetConfirmar")?.value||"").trim();
+ if(!/^\d{6}$/.test(pin))return flkPinResetMensaje("El PIN debe tener exactamente 6 dígitos.");
+ if(pin!==confirmar)return flkPinResetMensaje("Los PIN no coinciden.");
+ if(!flkPinResetBusinessId)return flkPinResetMensaje("No se pudo identificar el centro.");
+ const btn=document.getElementById("flkPinResetGuardar");if(btn){btn.disabled=true;btn.textContent="Guardando…"}
+ flkPinResetMensaje("");
+ try{
+  const {error}=await flkSupabase.rpc("flk_change_center_reset_pin",{p_business_id:flkPinResetBusinessId,p_new_pin:pin});
+  if(error)throw error;
+  flkCerrarModalPinResetCentro();
+  alert("PIN de restablecimiento actualizado correctamente.");
+ }catch(e){
+  console.error("Cambio PIN restablecimiento:",e);
+  flkPinResetMensaje("No se pudo cambiar el PIN: "+(e?.message||e));
+ }finally{if(btn){btn.disabled=false;btn.textContent="Cambiar PIN"}}
+}
+["flkPinResetNuevo","flkPinResetConfirmar"].forEach(id=>document.getElementById(id)?.addEventListener("input",function(){this.value=this.value.replace(/\D/g,"").slice(0,6)}));
+document.getElementById("flkModalPinResetCentro")?.addEventListener("click",function(e){if(e.target===this)flkCerrarModalPinResetCentro()});
+</script>
+
+
+<!-- v61.97 · RENOVAR LICENCIA COMPATIBLE CON ELECTRON (sin prompt) -->
+<style id="flk-v6197-renovar-licencia-style">
+#flkModalRenovarLicencia{z-index:7200}
+#flkModalRenovarLicencia .formulario{max-width:430px}
+#flkModalRenovarLicencia .flk-renovar-centro{margin:-10px 0 18px;color:#667085;font-size:13px}
+#flkModalRenovarLicencia .flk-renovar-error{display:none;margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#ffecec;color:#b42318;font-size:12px;font-weight:700}
+#flkModalRenovarLicencia .flk-renovar-error.visible{display:block}
+</style>
+<div class="modal" id="flkModalRenovarLicencia">
+ <div class="formulario">
+  <h2>📅 Renovar licencia</h2>
+  <p class="flk-renovar-centro" id="flkRenovarLicenciaCentroNombre"></p>
+  <div class="flk-renovar-error" id="flkRenovarLicenciaError"></div>
+  <div class="campo"><label for="flkRenovarLicenciaFecha">Nueva fecha de vencimiento</label><input id="flkRenovarLicenciaFecha" type="date"></div>
+  <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="flkCerrarModalRenovarLicencia()">Cancelar</button><button type="button" class="boton-guardar" id="flkRenovarLicenciaGuardar" onclick="flkGuardarRenovacionLicenciaElectron()">Renovar licencia</button></div>
+ </div>
+</div>
+<script id="flk-v6197-renovar-licencia-electron">
+let flkRenovarLicenciaKey="";
+function flkRenovarLicenciaMensaje(texto){
+ const e=document.getElementById("flkRenovarLicenciaError");if(!e)return;
+ e.textContent=texto||"";e.classList.toggle("visible",!!texto);
+}
+function flkCerrarModalRenovarLicencia(){
+ document.getElementById("flkModalRenovarLicencia")?.classList.remove("visible");
+ flkRenovarLicenciaKey="";
+ flkRenovarLicenciaMensaje("");
+}
+async function flkGuardarRenovacionLicenciaElectron(){
+ const valor=String(document.getElementById("flkRenovarLicenciaFecha")?.value||"").trim();
+ if(!valor)return flkRenovarLicenciaMensaje("Selecciona una fecha de vencimiento.");
+ const nueva=new Date(valor+"T23:59:59");
+ if(Number.isNaN(nueva.getTime())||nueva<=new Date())return flkRenovarLicenciaMensaje("La fecha debe ser válida y futura.");
+ if(!flkRenovarLicenciaKey)return flkRenovarLicenciaMensaje("No se pudo identificar la licencia.");
+ if(!confirm("¿Renovar la licencia hasta "+nueva.toLocaleDateString("es-PR")+"?"))return;
+ const btn=document.getElementById("flkRenovarLicenciaGuardar");if(btn){btn.disabled=true;btn.textContent="Renovando…"}
+ flkRenovarLicenciaMensaje("");
+ try{
+  const {error}=await flkSupabase.rpc("flk_renew_license",{p_license_key:flkRenovarLicenciaKey,p_new_expires_at:nueva.toISOString()});
+  if(error)throw error;
+  flkCerrarModalRenovarLicencia();
+  alert("Licencia renovada correctamente.");
+  await cargarAdminSoftware();
+ }catch(err){
+  console.error("Renovar licencia centro:",err);
+  flkRenovarLicenciaMensaje("No se pudo renovar la licencia: "+(err?.message||"Error desconocido"));
+ }finally{if(btn){btn.disabled=false;btn.textContent="Renovar licencia"}}
+}
+document.getElementById("flkModalRenovarLicencia")?.addEventListener("click",function(e){if(e.target===this)flkCerrarModalRenovarLicencia()});
+</script>
+
 </body>
 </html>
