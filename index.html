@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-09-11-v61.96-pin-reset-electron">
+<meta name="flackunloker-offline-version" content="2026-09-12-v61.99-android-sync-indicator">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -16,7 +16,7 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 .titulo{margin:15px 0 5px;font-size:28px;font-weight:700}.subtitulo{margin:0;color:#777;font-size:15px}
 .resumen{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:22px}
 .tarjeta,.producto,.movimiento,.lista-estadisticas,.respaldo-box,.estadistica-card,.tarjeta-historial{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06)}
-.tarjeta{padding:18px}.tarjeta span,.estadistica-card span,.tarjeta-historial span{display:block;color:#777;font-size:13px;margin-bottom:8px}.tarjeta strong{font-size:24px}.tarjeta.valor{grid-column:1/-1}.tarjeta.valor strong{color:#0a84ff}.tarjeta.ganancia strong{color:#168044}
+.tarjeta{padding:18px}.tarjeta span,.estadistica-card span,.tarjeta-historial span{display:block;color:#777;font-size:13px;margin-bottom:8px}.tarjeta strong{font-size:24px}.tarjeta.valor{grid-column:1/-1}.tarjeta.valor strong{color:#0a84ff}.tarjeta.ganancia strong{color:#39e75f}
 .alerta-inventario{display:none;background:#fff7e8;border:1px solid #ffd27a;border-radius:18px;padding:16px;margin-bottom:20px}.alerta-inventario.visible{display:block}.alerta-titulo{display:flex;gap:8px;font-size:16px;font-weight:700;color:#a15c00;margin-bottom:10px}.alerta-descripcion{color:#795000;font-size:13px;margin-bottom:12px}.producto-alerta{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #f0d99d}.producto-alerta-info strong{display:block;font-size:14px}.producto-alerta-info small{display:block;color:#876c3e;margin-top:3px;font-size:12px}.producto-alerta-cantidad{font-weight:700;white-space:nowrap;color:#a15c00}
 .busqueda,.busqueda-historial{width:100%;border:0;outline:none;background:#fff;border-radius:15px;padding:15px 17px;font-size:15px;box-shadow:0 5px 20px rgba(0,0,0,.06)}.busqueda{margin-bottom:20px}.busqueda-historial{margin-bottom:12px}.filtros-inventario{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:-8px 0 20px}.filtro-inventario{width:100%;border:0;outline:none;background:#fff;border-radius:13px;padding:12px 13px;font-size:13px;color:#555;box-shadow:0 5px 20px rgba(0,0,0,.06)}.filtro-inventario:focus{box-shadow:0 5px 20px rgba(10,132,255,.15)}
 .seccion-titulo{display:flex;justify-content:space-between;align-items:center;margin:20px 0 12px}.seccion-titulo h2{margin:0;font-size:20px}.boton-agregar{border:0;background:#0a84ff;color:#fff;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}
@@ -3733,8 +3733,20 @@ async function flkSincronizarSeguro(){
    await flkCargarPrestacionesNube();
   }
 
+  // v61.99 Android/APK: si la sincronización llegó hasta aquí, Supabase respondió
+  // correctamente. Marcamos el servidor como alcanzable ANTES de pintar el aviso;
+  // así el indicador no queda mostrando el estado offline anterior hasta reabrir la app.
+  flkServidorAlcanzableActual=true;
   flkMarcarConfirmacionServidor();
   flkActualizarEstadoConexion();
+  // Algunos eventos online/reconexión terminan casi al mismo tiempo. Repintar una vez
+  // después de esa carrera mantiene el aviso en "Sincronizado" sin cerrar sesión.
+  setTimeout(()=>{
+   if(flkNubeDisponible() && flkPendientesOffline()===0){
+    flkServidorAlcanzableActual=true;
+    flkActualizarEstadoConexion();
+   }
+  },700);
   return true;
  }catch(err){
   console.error("Sincronización segura:",err);
@@ -5056,8 +5068,38 @@ function flkToggleLicenciaDetalle(){
  document.getElementById("flkLicenciaEstado")?.classList.toggle("expandido")
 }
 async function flkValidarLicencia(){
+ // v61.97 Android/APK:
+ // Nunca bloquear por licencia antes de que exista una sesión identificada.
+ // En una instalación nueva de la APK todavía no hay sesión ni caché de licencia.
+ let sesionPrevia=null;
+ try{
+  const r=await flkSupabase.auth.getSession();
+  sesionPrevia=r?.data?.session||null;
+ }catch(_){}
+
+ let sesionLocalPrevia=null;
+ try{
+  sesionLocalPrevia=typeof flkSesionOfflineDisponible==="function"
+   ? flkSesionOfflineDisponible()
+   : null;
+ }catch(_){}
+
+ const hayUsuarioIdentificado=!!(
+  sesionPrevia?.user ||
+  flkSesionActiva ||
+  sesionLocalPrevia?.user
+ );
+
+ if(!hayUsuarioIdentificado){
+  flkOcultarBloqueoLicencia();
+  const cajaPre=document.getElementById("flkLicenciaEstado");
+  if(cajaPre)cajaPre.style.display="none";
+  return null;
+ }
+
  const caja=document.getElementById("flkLicenciaEstado");
  if(caja){
+  caja.style.display="";
   caja.classList.remove("activa","gracia","vencida","suspendida","error");
   caja.classList.add("comprobando");
  }
@@ -5920,21 +5962,66 @@ async function cargarListaLicencias(){
 
 async function renovarLicenciaLista(key){
  if(!flkEsPropietarioSoftware)return;
- const valor=prompt("Nueva fecha de vencimiento (AAAA-MM-DD):");
- if(!valor)return;
- const fecha=new Date(valor+"T23:59:59");
- if(Number.isNaN(fecha.getTime())||fecha<=new Date())return alert("La fecha debe ser futura.");
- try{
-  const {error}=await flkSupabase.rpc("flk_renew_license",{
-   p_license_key:key,
-   p_new_expires_at:fecha.toISOString()
-  });
-  if(error)throw error;
-  alert("Licencia renovada.");
-  await cargarListaLicencias();
- }catch(err){
-  alert("No se pudo renovar: "+(err?.message||"Error desconocido"));
- }
+
+ const existente=document.getElementById("flkModalRenovarLicenciaLista");
+ if(existente)existente.remove();
+
+ const manana=new Date();
+ manana.setDate(manana.getDate()+1);
+ const sugerida=manana.toISOString().slice(0,10);
+
+ const overlay=document.createElement("div");
+ overlay.id="flkModalRenovarLicenciaLista";
+ overlay.style.cssText="position:fixed;inset:0;z-index:2147483647;background:rgba(10,30,50,.58);display:flex;align-items:center;justify-content:center;padding:18px;";
+ overlay.innerHTML=`
+  <div style="width:min(460px,96vw);background:#fff;border-radius:24px;padding:24px;box-shadow:0 22px 60px rgba(0,0,0,.32);font-family:inherit;color:#152536">
+   <div style="font-size:24px;font-weight:800;margin-bottom:8px">📅 Renovar licencia</div>
+   <div style="font-size:14px;color:#607080;margin-bottom:18px">Selecciona la nueva fecha de vencimiento.</div>
+   <label style="display:block;font-weight:700;margin-bottom:7px">Nueva fecha</label>
+   <input id="flkFechaRenovarLicenciaLista" type="date" min="${sugerida}" value="${sugerida}"
+    style="box-sizing:border-box;width:100%;padding:13px 14px;border:2px solid #c7d5e2;border-radius:13px;font-size:17px;outline:none">
+   <div id="flkErrorRenovarLicenciaLista" style="min-height:20px;color:#c62828;font-size:13px;margin-top:8px"></div>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+    <button type="button" id="flkCancelarRenovarLicenciaLista"
+     style="border:0;border-radius:13px;padding:13px;font-weight:800;font-size:15px;cursor:pointer">Cancelar</button>
+    <button type="button" id="flkAceptarRenovarLicenciaLista"
+     style="border:0;border-radius:13px;padding:13px;background:#087ff5;color:#fff;font-weight:800;font-size:15px;cursor:pointer">Renovar licencia</button>
+   </div>
+  </div>`;
+
+ document.body.appendChild(overlay);
+
+ const cerrar=()=>{ if(overlay.isConnected)overlay.remove(); };
+ overlay.querySelector("#flkCancelarRenovarLicenciaLista").onclick=cerrar;
+ overlay.addEventListener("click",e=>{ if(e.target===overlay)cerrar(); });
+
+ overlay.querySelector("#flkAceptarRenovarLicenciaLista").onclick=async()=>{
+  const btn=overlay.querySelector("#flkAceptarRenovarLicenciaLista");
+  const errBox=overlay.querySelector("#flkErrorRenovarLicenciaLista");
+  const valor=String(overlay.querySelector("#flkFechaRenovarLicenciaLista").value||"").trim();
+  const fecha=new Date(valor+"T23:59:59");
+  if(!valor||Number.isNaN(fecha.getTime())||fecha<=new Date()){
+   errBox.textContent="La fecha debe ser futura.";
+   return;
+  }
+  btn.disabled=true;
+  btn.textContent="Renovando…";
+  errBox.textContent="";
+  try{
+   const {error}=await flkSupabase.rpc("flk_renew_license",{
+    p_license_key:key,
+    p_new_expires_at:fecha.toISOString()
+   });
+   if(error)throw error;
+   cerrar();
+   alert("Licencia renovada.");
+   await cargarListaLicencias();
+  }catch(err){
+   errBox.textContent="No se pudo renovar: "+(err?.message||"Error desconocido");
+   btn.disabled=false;
+   btn.textContent="Renovar licencia";
+  }
+ };
 }
 
 async function cambiarEstadoLicenciaLista(key,estado){
@@ -6932,7 +7019,7 @@ function actualizarResumen(){
  const gananciaRealVentas=ventas.reduce((t,v)=>t+flkGananciaAjustadaVenta(v),0),totalGastos= gastos.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNetaTotal=gananciaRealVentas-totalGastos;
  document.getElementById("totalProductos").textContent=productos.length;document.getElementById("totalUnidades").textContent=unidades;document.getElementById("valorInventario").textContent="$"+valorCosto.toFixed(2);document.getElementById("ventaPotencial").textContent="$"+ventaPotencial.toFixed(2);document.getElementById("gananciaPotencial").textContent="$"+gananciaPotencial.toFixed(2);
  const gastoInventario=document.getElementById("gastoTotalInventario");if(gastoInventario)gastoInventario.textContent="$"+totalGastos.toFixed(2);
- const neto=document.getElementById("gananciaNetaTotal");if(neto){neto.textContent=(gananciaNetaTotal<0?"-$":"$")+Math.abs(gananciaNetaTotal).toFixed(2);neto.style.color=gananciaNetaTotal<0?"#d93025":"#168044"}
+ const neto=document.getElementById("gananciaNetaTotal");if(neto){neto.textContent=(gananciaNetaTotal<0?"-$":"$")+Math.abs(gananciaNetaTotal).toFixed(2);neto.style.color=gananciaNetaTotal<0?"#d93025":"#39e75f"}
  actualizarIndicadorAlertas();
 }
 function actualizarAlertasInventario(){
@@ -11521,7 +11608,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   <p style="font-size:13px;line-height:1.45;margin:0">Solo lee las ventas locales de este navegador. No modifica inventario ni Supabase.</p>
   <div id="flkDetectorVentasResultado">Pulsa Analizar ventas locales.</div>
   <div class="flk-dv-grid">
-   <button class="p" onclick="flkAnalizarVentasRescate()">🔎 Analizar ventas locales</button>
+   <button id="flkBtnAnalizarVentasLocal" class="p" onclick="flkAnalizarVentasRescate()">🔎 Analizar ventas locales</button>
    <button class="p" onclick="flkExportarVentasRescate()">💾 Exportar recuperación</button>
    <button onclick="flkCopiarVentasRescate()">📋 Copiar resumen</button>
    <button onclick="document.getElementById('flkDetectorVentas').style.display='none'">Cerrar</button>
@@ -11541,6 +11628,11 @@ function flkItemCampo(i,nombres){
  return null;
 }
 function flkAnalizarVentasRescate(){
+ const flkBtnDiag=document.getElementById("flkBtnAnalizarVentasLocal");
+ const flkOutDiag=document.getElementById("flkDetectorVentasResultado");
+ if(flkBtnDiag){flkBtnDiag.disabled=true;flkBtnDiag.textContent="⏳ Analizando…";}
+ if(flkOutDiag)flkOutDiag.textContent="⏳ Analizando ventas locales…";
+ try{
  const centro=(typeof flkBusinessGuardado==="function"?flkBusinessGuardado():null)||
               (typeof FLK_BUSINESS_ID!=="undefined"?FLK_BUSINESS_ID:null);
  const keys=[];
@@ -11610,8 +11702,15 @@ function flkAnalizarVentasRescate(){
  }else{
   out.push("Las ventas existen, pero no contienen líneas de productos reconocibles con la estructura actual.");
  }
- document.getElementById("flkDetectorVentasResultado").textContent=out.join("\n");
+ document.getElementById("flkDetectorVentasResultado").textContent=out.join("\n")+"\n\n✅ Análisis completado · "+new Date().toLocaleTimeString();
  return FLK_RESCATE_VENTAS;
+ }catch(err){
+  if(flkOutDiag)flkOutDiag.textContent="❌ No se pudo completar el análisis: "+(err?.message||err);
+  console.error("Diagnóstico ventas:",err);
+  return null;
+ }finally{
+  if(flkBtnDiag){flkBtnDiag.disabled=false;flkBtnDiag.textContent="🔎 Analizar de nuevo";}
+ }
 }
 async function flkExportarVentasRescate(){
  const d=flkAnalizarVentasRescate(),txt=JSON.stringify(d,null,2);
@@ -11650,7 +11749,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   <p style="margin:0;font-size:13px;line-height:1.45">Modo lectura. Revisa IndexedDB, Cache Storage y registros del Service Worker. No restaura, no borra y no escribe en Supabase.</p>
   <div id="flkDeepStorageOut">Pulsa Analizar almacenamiento.</div>
   <div class="flk-ds-grid">
-   <button class="p" onclick="flkDeepStorageScan()">🔎 Analizar almacenamiento</button>
+   <button id="flkBtnDeepStorageScan" class="p" onclick="flkDeepStorageScan()">🔎 Analizar almacenamiento</button>
    <button class="p" onclick="flkDeepStorageExport()">💾 Exportar hallazgos</button>
    <button onclick="flkDeepStorageCopy()">📋 Copiar resumen</button>
    <button onclick="document.getElementById('flkDeepStorage').style.display='none'">Cerrar</button>
@@ -11747,7 +11846,10 @@ async function flkScanSW(){
 }
 async function flkDeepStorageScan(){
  const box=document.getElementById("flkDeepStorageOut");
- box.textContent="Analizando… No cierres esta ventana.";
+ const flkBtnDiag=document.getElementById("flkBtnDeepStorageScan");
+ if(flkBtnDiag){flkBtnDiag.disabled=true;flkBtnDiag.textContent="⏳ Analizando…";}
+ box.textContent="⏳ Analizando almacenamiento…";
+ try{
  const [idb,cache,sw]=await Promise.all([flkScanIndexedDB(),flkScanCaches(),flkScanSW()]);
  const centro=(typeof flkBusinessGuardado==="function"?flkBusinessGuardado():null)||
               (typeof FLK_BUSINESS_ID!=="undefined"?FLK_BUSINESS_ID:null);
@@ -11777,8 +11879,15 @@ async function flkDeepStorageScan(){
  ];
  if(useful||cacheUseful)lines.push("","⚠️ HAY DATOS POTENCIALMENTE RECUPERABLES. Pulsa Exportar hallazgos y pásame el JSON.");
  else lines.push("","No aparecieron muestras recuperables en estas áreas con este navegador.");
- box.textContent=lines.join("\n");
+ box.textContent=lines.join("\n")+"\n\n✅ Análisis completado · "+new Date().toLocaleTimeString();
  return FLK_DEEP_STORAGE_RESULT;
+ }catch(err){
+  box.textContent="❌ No se pudo completar el análisis: "+(err?.message||err);
+  console.error("Diagnóstico almacenamiento:",err);
+  return null;
+ }finally{
+  if(flkBtnDiag){flkBtnDiag.disabled=false;flkBtnDiag.textContent="🔎 Analizar de nuevo";}
+ }
 }
 async function flkDeepStorageExport(){
  const d=await flkDeepStorageScan(),txt=JSON.stringify(d,null,2);
