@@ -1664,6 +1664,59 @@ textarea::placeholder{
 .filtros-proveedores-flk .busqueda-historial,.filtros-proveedores-flk .filtro-inventario{margin:0;width:100%}
 @media(max-width:560px){.filtros-proveedores-flk{grid-template-columns:1fr}}
 </style>
+
+<style id="flk-finanzas-margenes-movil-v1">
+/* Ajuste exclusivo del módulo Finanzas en teléfono: márgenes y ancho útil. */
+@media (max-width:600px){
+  #vistaFinanzas{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    margin:0 auto !important;
+    padding:0 2px !important;
+    overflow-x:hidden !important;
+  }
+  #vistaFinanzas .seccion-titulo,
+  #vistaFinanzas .reporte-controles,
+  #vistaFinanzas .lista-estadisticas,
+  #vistaFinanzas .finanzas-balance{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    margin-left:0 !important;
+    margin-right:0 !important;
+  }
+  #vistaFinanzas .reporte-controles,
+  #vistaFinanzas .lista-estadisticas,
+  #vistaFinanzas .finanzas-card{
+    box-sizing:border-box !important;
+  }
+  #vistaFinanzas .reporte-controles-grid,
+  #vistaFinanzas .reporte-rango,
+  #vistaFinanzas .reporte-botones,
+  #vistaFinanzas .finanzas-balance{
+    grid-template-columns:minmax(0,1fr) !important;
+  }
+  #vistaFinanzas .campo,
+  #vistaFinanzas input,
+  #vistaFinanzas select,
+  #vistaFinanzas button{
+    min-width:0 !important;
+    max-width:100% !important;
+  }
+  #vistaFinanzas .fila-formula-patrimonio{
+    flex-direction:column !important;
+    align-items:flex-start !important;
+    gap:6px !important;
+  }
+  #vistaFinanzas .fila-formula-patrimonio strong{
+    white-space:normal !important;
+    word-break:break-word !important;
+    overflow-wrap:anywhere !important;
+    text-align:left !important;
+  }
+}
+</style>
 </head>
 <body>
 
@@ -2095,7 +2148,7 @@ textarea::placeholder{
 </div>
 <div class="lista-estadisticas">
 <h3>🧮 Cómo se calcula el patrimonio</h3>
-<div class="fila-estadistica"><span>Caja + Inventario + Por cobrar − Por pagar</span><strong id="finFormulaPatrimonio">—</strong></div>
+<div class="fila-estadistica fila-formula-patrimonio"><span>Caja + Inventario + Por cobrar − Por pagar</span><strong id="finFormulaPatrimonio">—</strong></div>
 </div>
 
 <div class="lista-estadisticas"><h3>📈 Resultados del período</h3>
@@ -10756,7 +10809,8 @@ function imprimirEtiquetaQRProducto(){
  const vista=document.getElementById("flkEtiquetaQRVista"),img=vista.querySelector("img"),canvas=vista.querySelector("canvas");
  const qr=canvas?canvas.toDataURL("image/png"):(img?img.src:"");
  const p=flkProductoEtiquetaActual,w=window.open("","_blank");if(!w)return alert("El navegador bloqueó la impresión.");
- const html=`<!doctype html><html><head><meta charset="utf-8"><title>Etiqueta QR</title><style>@page{size:58mm auto;margin:2mm}body{margin:0;width:54mm;font-family:Arial,sans-serif}.et{width:52mm;padding:2mm;text-align:center}.et img{width:30mm;height:30mm}.et h3{font-size:4mm;margin:1mm 0}.et p{font-size:2.7mm;margin:.5mm 0}.manual{margin-top:1mm;padding-top:1mm;border-top:.25mm dashed #777;font-size:2.8mm;font-weight:700}</style></head><body><div class="et"><strong>FLACKUNLOKER</strong><br><img src="'+qr+'"><h3>'+flkQrEsc(p.nombre)+'</h3><p>SKU: <strong>'+flkQrEsc(p.sku)+'</strong></p><p class="manual">Código manual: <strong>'+flkQrEsc(p.sku)+'</strong></p></div>
+ const html=`<!doctype html><html><head><meta charset="utf-8"><title>Etiqueta QR</title><style>@page{size:58mm auto;margin:2mm}body{margin:0;width:54mm;font-family:Arial,sans-serif}.et{width:52mm;padding:2mm;text-align:center}.et img{width:30mm;height:30mm}.et h3{font-size:4mm;margin:1mm 0}.et p{font-size:2.7mm;margin:.5mm 0}.manual{margin-top:1mm;padding-top:1mm;border-top:.25mm dashed #777;font-size:2.8mm;font-weight:700}</style>
+</head><body><div class="et"><strong>FLACKUNLOKER</strong><br><img src="'+qr+'"><h3>'+flkQrEsc(p.nombre)+'</h3><p>SKU: <strong>'+flkQrEsc(p.sku)+'</strong></p><p class="manual">Código manual: <strong>'+flkQrEsc(p.sku)+'</strong></p></div>
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
