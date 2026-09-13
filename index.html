@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-09-12-v61.99-android-sync-indicator">
+<meta name="flackunloker-offline-version" content="2026-09-12-v62.00-henex-hid">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -10696,14 +10696,35 @@ async function flkQrLeer(){
  }catch(_){}
  if(flkQrActivo)requestAnimationFrame(flkQrLeer);
 }
+function flkQrClaveHID(v){
+ return String(v??"").trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Z0-9]/g,"");
+}
 function flkQrValor(c){
  const raw=String(c||"").trim(),p=raw.split("|");
  if(p.length>=3&&String(p[0]).toUpperCase()==="FLK")return{tipo:String(p[1]).toUpperCase(),valor:p.slice(2).join("|")};
+
+ // Compatibilidad con lectores HID (p. ej. HENEX) cuando Windows cambia
+ // separadores del QR por la distribución del teclado: FLK|SKU|SMU-001
+ // puede llegar como FLKÇSKUÇSMU'001.
+ const up=raw.toUpperCase();
+ if(up.startsWith("FLK")){
+  for(const tipo of ["SKU","SALE","RECIBO","VENTA"]){
+   const pos=up.indexOf(tipo,3);
+   if(pos>=0){
+    const valor=raw.slice(pos+tipo.length).replace(/^[^A-Za-z0-9]+/,"").trim();
+    if(valor)return{tipo:tipo==="SALE"||tipo==="RECIBO"||tipo==="VENTA"?"SALE":"SKU",valor:valor,hid:true};
+   }
+  }
+ }
  return{tipo:"AUTO",valor:raw};
 }
 function flkQrBuscarProducto(x){
  const valor=String(x.valor||"").trim().toLowerCase();
- return productos.find(z=>String(z.sku||"").trim().toLowerCase()===valor||String(z.id)===String(x.valor))||null;
+ const clave=flkQrClaveHID(x.valor);
+ return productos.find(z=>{
+  const sku=String(z.sku||"").trim();
+  return sku.toLowerCase()===valor || String(z.id)===String(x.valor) || (clave && flkQrClaveHID(sku)===clave);
+ })||null;
 }
 function flkQrBuscarVenta(x){
  const valor=String(x.valor||"").trim().toLowerCase();
