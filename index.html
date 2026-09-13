@@ -1704,6 +1704,17 @@ textarea::placeholder{
     min-width:0 !important;
     max-width:100% !important;
   }
+  #vistaFinanzas .fila-formula-patrimonio{
+    flex-direction:column !important;
+    align-items:flex-start !important;
+    gap:6px !important;
+  }
+  #vistaFinanzas .fila-formula-patrimonio strong{
+    white-space:normal !important;
+    word-break:break-word !important;
+    overflow-wrap:anywhere !important;
+    text-align:left !important;
+  }
 }
 </style>
 </head>
@@ -2137,7 +2148,7 @@ textarea::placeholder{
 </div>
 <div class="lista-estadisticas">
 <h3>🧮 Cómo se calcula el patrimonio</h3>
-<div class="fila-estadistica"><span>Caja + Inventario + Por cobrar − Por pagar</span><strong id="finFormulaPatrimonio">—</strong></div>
+<div class="fila-estadistica fila-formula-patrimonio"><span>Caja + Inventario + Por cobrar − Por pagar</span><strong id="finFormulaPatrimonio">—</strong></div>
 </div>
 
 <div class="lista-estadisticas"><h3>📈 Resultados del período</h3>
