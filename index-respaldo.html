@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-09-12-v62.07-qr-all-modes">
+<meta name="flackunloker-offline-version" content="2026-09-13-v62.09-reset-centro-supabase-fix">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -12377,41 +12377,51 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 // RESTAURADO: funciones administración centros
 async function abrirResetCentroAdminSoftware(businessId){
- await flkComprobarPropietarioSoftware();
- const esAdminDeSuPropioCentro=rolSesion==="admin" && flkUuidValido(FLK_BUSINESS_ID) && String(businessId)===String(FLK_BUSINESS_ID);
- if(!flkEsPropietarioSoftware && !esAdminDeSuPropioCentro)return alert("Solo el propietario o el administrador de este centro pueden restablecerlo.");
- let centro=flkAdminSoftwareCentros.find(c=>String(c.business_id)===String(businessId));
- if(!centro && esAdminDeSuPropioCentro){
-  try{const info=await flkResolverCentroBackup();centro={business_id:info.id,name:info.nombre}}catch(_){}
- }
- if(!centro)return alert("Centro no encontrado.");
-
- const ok=confirm("⚠️ RESTABLECER CENTRO\n\nCentro: "+centro.name+"\n\nSe borrarán los datos operativos de este centro solamente.\n\n¿Continuar?");
- if(!ok)return;
-
- const pin=String(prompt("Introduce el PIN de restablecimiento (6 dígitos):")||"").trim();
- if(!pin)return;
- if(!/^[0-9]{6}$/.test(pin))return alert("El PIN debe tener exactamente 6 dígitos.");
-
- const texto=prompt("Escribe exactamente RESTABLECER para confirmar:");
- if(String(texto||"").trim().toUpperCase()!=="RESTABLECER")return alert("Confirmación inválida.");
-
  try{
-  const {error}=await flkSupabase.rpc("flk_full_system_reset_center",{
-    p_business_id:centro.business_id,
-    p_pin:pin,
-    p_confirmation:"RESTABLECER"
-  });
-  if(error)throw error;
+  await flkComprobarPropietarioSoftware();
 
-  alert("✅ Centro restablecido correctamente: "+centro.name);
-  cargarAdminSoftware();
+  const esAdminDeSuPropioCentro=
+   rolSesion==="admin" &&
+   flkUuidValido(FLK_BUSINESS_ID) &&
+   String(businessId)===String(FLK_BUSINESS_ID);
+
+  if(!flkEsPropietarioSoftware && !esAdminDeSuPropioCentro)
+   return alert("Solo el propietario o el administrador de este centro pueden restablecerlo.");
+
+  let centro=(Array.isArray(flkAdminSoftwareCentros)?flkAdminSoftwareCentros:[])
+   .find(c=>String(c.business_id)===String(businessId));
+
+  if(!centro && esAdminDeSuPropioCentro){
+   try{
+    const info=await flkResolverCentroBackup();
+    centro={business_id:info.id,name:info.nombre};
+   }catch(_){}
+  }
+
+  if(!centro)return alert("Centro no encontrado.");
+
+  flkResetCentroBusinessId=String(centro.business_id||"");
+  flkResetCentroNombreActual=String(centro.name||centro.code||"Centro actual");
+
+  const nombre=document.getElementById("flkResetCentroNombre");
+  const pin=document.getElementById("flkResetCentroPin");
+  const confirmar=document.getElementById("flkResetCentroConfirmacion");
+
+  if(nombre)nombre.textContent="Centro: "+flkResetCentroNombreActual;
+  if(pin)pin.value="";
+  if(confirmar)confirmar.value="";
+  flkResetCentroMensaje("");
+
+  const modal=document.getElementById("flkModalResetCentro");
+  if(!modal)return alert("No se pudo abrir la ventana de restablecimiento.");
+  modal.classList.add("visible");
+  setTimeout(()=>pin?.focus(),0);
+
  }catch(err){
-  console.error("Reset centro:",err);
-  alert("No se pudo restablecer el centro:\n\n"+(err?.message||err));
+  console.error("Preparar reset centro:",err);
+  alert("No se pudo preparar el restablecimiento: "+(err?.message||err));
  }
 }
-
 
 async function cambiarPinResetCentroAdminSoftware(businessId){
  try{
@@ -12699,6 +12709,115 @@ async function flkGuardarRenovacionLicenciaElectron(){
  }finally{if(btn){btn.disabled=false;btn.textContent="Renovar licencia"}}
 }
 document.getElementById("flkModalRenovarLicencia")?.addEventListener("click",function(e){if(e.target===this)flkCerrarModalRenovarLicencia()});
+</script>
+
+
+<!-- v62.08 · RESET CENTRO COMPATIBLE CON ELECTRON/APK (sin prompt/confirm) -->
+<style id="flk-v6208-reset-centro-style">
+#flkModalResetCentro{z-index:7300}
+#flkModalResetCentro .formulario{max-width:440px}
+#flkModalResetCentro .flk-reset-centro{margin:-10px 0 14px;color:#667085;font-size:13px;font-weight:700}
+#flkModalResetCentro .flk-reset-aviso{margin:0 0 14px;padding:11px 12px;border-radius:11px;background:#fff4e5;color:#8a4b00;font-size:12px;font-weight:700;line-height:1.5}
+#flkModalResetCentro .flk-reset-error{display:none;margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#ffecec;color:#b42318;font-size:12px;font-weight:700}
+#flkModalResetCentro .flk-reset-error.visible{display:block}
+</style>
+
+<div class="modal" id="flkModalResetCentro">
+ <div class="formulario">
+  <h2>⚠️ Restablecer centro</h2>
+  <p class="flk-reset-centro" id="flkResetCentroNombre"></p>
+  <div class="flk-reset-aviso">Se borrarán solamente los datos operativos de este centro. Los demás centros no se modificarán.</div>
+  <div class="flk-reset-error" id="flkResetCentroError"></div>
+
+  <div class="campo">
+   <label for="flkResetCentroPin">PIN de restablecimiento</label>
+   <input id="flkResetCentroPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="6 dígitos">
+  </div>
+
+  <div class="campo">
+   <label for="flkResetCentroConfirmacion">Confirmación</label>
+   <input id="flkResetCentroConfirmacion" type="text" autocomplete="off" placeholder="Escribe RESTABLECER">
+  </div>
+
+  <div class="botones-formulario">
+   <button type="button" class="boton-cancelar" onclick="flkCerrarModalResetCentro()">Cancelar</button>
+   <button type="button" class="boton-guardar" id="flkResetCentroGuardar" onclick="flkEjecutarResetCentroElectron()">Restablecer centro</button>
+  </div>
+ </div>
+</div>
+
+<script id="flk-v6208-reset-centro-electron">
+let flkResetCentroBusinessId="";
+let flkResetCentroNombreActual="";
+
+function flkResetCentroMensaje(texto){
+ const e=document.getElementById("flkResetCentroError");
+ if(!e)return;
+ e.textContent=texto||"";
+ e.classList.toggle("visible",!!texto);
+}
+
+function flkCerrarModalResetCentro(){
+ document.getElementById("flkModalResetCentro")?.classList.remove("visible");
+ flkResetCentroBusinessId="";
+ flkResetCentroNombreActual="";
+ const pin=document.getElementById("flkResetCentroPin");
+ const confirmar=document.getElementById("flkResetCentroConfirmacion");
+ if(pin)pin.value="";
+ if(confirmar)confirmar.value="";
+ flkResetCentroMensaje("");
+}
+
+async function flkEjecutarResetCentroElectron(){
+ const pin=String(document.getElementById("flkResetCentroPin")?.value||"").trim();
+ const texto=String(document.getElementById("flkResetCentroConfirmacion")?.value||"").trim().toUpperCase();
+
+ if(!/^\d{6}$/.test(pin))
+  return flkResetCentroMensaje("El PIN debe tener exactamente 6 dígitos.");
+
+ if(texto!=="RESTABLECER")
+  return flkResetCentroMensaje("Escribe exactamente RESTABLECER para confirmar.");
+
+ if(!flkResetCentroBusinessId)
+  return flkResetCentroMensaje("No se pudo identificar el centro.");
+
+ if(typeof flkSupabase==="undefined" || typeof flkSupabase?.rpc!=="function")
+  return flkResetCentroMensaje("Supabase no está disponible en este momento.");
+
+ const btn=document.getElementById("flkResetCentroGuardar");
+ if(btn){btn.disabled=true;btn.textContent="Restableciendo…";}
+ flkResetCentroMensaje("");
+
+ try{
+  const {error}=await flkSupabase.rpc("flk_full_system_reset_center",{
+   p_business_id:flkResetCentroBusinessId,
+   p_pin:pin,
+   p_confirmation:"RESTABLECER"
+  });
+
+  if(error)throw error;
+
+  const nombre=flkResetCentroNombreActual;
+  flkCerrarModalResetCentro();
+
+  try{await cargarAdminSoftware();}catch(_){}
+  alert("✅ Centro restablecido correctamente: "+nombre);
+
+ }catch(err){
+  console.error("Reset centro:",err);
+  flkResetCentroMensaje("No se pudo restablecer el centro: "+(err?.message||err));
+ }finally{
+  if(btn){btn.disabled=false;btn.textContent="Restablecer centro";}
+ }
+}
+
+document.getElementById("flkResetCentroPin")?.addEventListener("input",function(){
+ this.value=this.value.replace(/\D/g,"").slice(0,6);
+});
+
+document.getElementById("flkModalResetCentro")?.addEventListener("click",function(e){
+ if(e.target===this)flkCerrarModalResetCentro();
+});
 </script>
 
 </body>
