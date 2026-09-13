@@ -1790,12 +1790,26 @@ textarea::placeholder{
   <h2>📷 Movimiento por QR</h2>
   <p class="mensaje-movimiento">Selecciona la operación y Flackunloker abrirá directamente el escáner en ese modo.</p>
   <div class="flk-qr-selector-grid">
-   <button type="button" class="flk-qr-selector-compra" onclick="abrirModoQRDesdePrincipalConCamara('entrada')">📥 Compra / Entrada</button>
+   <button type="button" class="flk-qr-selector-compra" onclick="abrirSelectorEntradaSalidaQR()">📦 Entrada / Salida</button>
    <button type="button" class="flk-qr-selector-venta" onclick="abrirModoQRDesdePrincipalConCamara('venta')">🧾 Venta</button>
    <button type="button" class="flk-qr-selector-devolucion" onclick="abrirModoQRDesdePrincipalConCamara('devolucion')">↩️ Devolución</button>
   </div>
   <div class="botones-formulario">
    <button type="button" class="boton-cancelar" onclick="cerrarSelectorQRPrincipal()">Cancelar</button>
+  </div>
+ </div>
+</div>
+
+<div class="modal" id="modalSelectorEntradaSalidaQR">
+ <div class="formulario flk-qr-selector-principal">
+  <h2>📦 Movimiento de inventario</h2>
+  <p class="mensaje-movimiento">¿Qué operación quieres realizar con el producto escaneado?</p>
+  <div class="flk-qr-selector-grid">
+   <button type="button" class="flk-qr-selector-compra" onclick="elegirMovimientoInventarioQR('entrada')">📥 Entrada</button>
+   <button type="button" class="flk-qr-selector-devolucion" onclick="elegirMovimientoInventarioQR('salida')">📤 Salida</button>
+  </div>
+  <div class="botones-formulario">
+   <button type="button" class="boton-cancelar" onclick="volverSelectorQRPrincipal()">Volver</button>
   </div>
  </div>
 </div>
@@ -11296,14 +11310,13 @@ function continuarVentaQR(){
  // v62.02: al venir del lector físico/QR, el formulario de venta podía
  // conservar la posición de scroll de una venta anterior y abrir por la mitad.
  // Forzar el inicio del formulario para que Cliente y Teléfono queden visibles.
+ // v62.14: NO volver a enfocar aquí. abrirVenta() ya puso el foco en "Cliente"
+ // de forma síncrona; llamar a focus() una segunda vez sobre el mismo campo
+ // hacía que el teclado no respondiera (campo "congelado") en varios teléfonos.
  setTimeout(function(){
   const modal=document.getElementById("modalVenta");
   const form=modal?.querySelector(".formulario");
   if(form)form.scrollTop=0;
-  const cliente=document.getElementById("clienteVenta");
-  if(cliente){
-   try{cliente.focus({preventScroll:true})}catch(_){cliente.focus()}
-  }
  },80);
 }
 window.addEventListener("pagehide",function(){detenerEscanerQR(false)});
@@ -11316,6 +11329,21 @@ function abrirSelectorQRPrincipal(){
 function cerrarSelectorQRPrincipal(){
  document.getElementById("modalSelectorQRPrincipal")?.classList.remove("visible");
 }
+function abrirSelectorEntradaSalidaQR(){
+ cerrarSelectorQRPrincipal();
+ document.getElementById("modalSelectorEntradaSalidaQR")?.classList.add("visible");
+}
+function cerrarSelectorEntradaSalidaQR(){
+ document.getElementById("modalSelectorEntradaSalidaQR")?.classList.remove("visible");
+}
+function volverSelectorQRPrincipal(){
+ cerrarSelectorEntradaSalidaQR();
+ abrirSelectorQRPrincipal();
+}
+function elegirMovimientoInventarioQR(modo){
+ cerrarSelectorEntradaSalidaQR();
+ abrirModoQRDesdePrincipalConCamara(modo);
+}
 function abrirModoQRDesdePrincipal(modo){
  cerrarSelectorQRPrincipal();
  abrirEscanerQR();
@@ -11323,7 +11351,7 @@ function abrirModoQRDesdePrincipal(modo){
    seleccionarModoQR(modo);
    const estado=document.getElementById("flkQrEstado");
    if(estado){
-    const nombres={entrada:"Compra / Entrada",venta:"Venta",devolucion:"Devolución"};
+    const nombres={entrada:"Entrada",salida:"Salida",venta:"Venta",devolucion:"Devolución"};
     estado.textContent="Modo "+(nombres[modo]||modo)+" listo. Activa cámara o lector físico.";
    }
  },30);
@@ -11420,7 +11448,8 @@ async function abrirModoQRDesdePrincipalConCamara(modo){
 
  const estado=document.getElementById("flkQrEstado");
  const nombres={
-  entrada:"Compra / Entrada",
+  entrada:"Entrada",
+  salida:"Salida",
   venta:"Venta",
   devolucion:"Devolución"
  };
@@ -11811,7 +11840,7 @@ abrirModoQRDesdePrincipalConCamara=async function(modo){
  abrirEscanerQR();
  seleccionarModoQR(modo);
  const estado=document.getElementById("flkQrEstado");
- const nombres={entrada:"Compra / Entrada",venta:"Venta",devolucion:"Devolución"};
+ const nombres={entrada:"Entrada",salida:"Salida",venta:"Venta",devolucion:"Devolución"};
  if(estado)estado.textContent="Modo "+(nombres[modo]||modo)+" seleccionado. Abriendo cámara trasera…";
  await window.iniciarEscanerQRCamaraTrasera();
 };
