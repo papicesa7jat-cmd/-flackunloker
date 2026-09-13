@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
-<meta name="flackunloker-offline-version" content="2026-09-13-v62.09-reset-centro-supabase-fix">
+<meta name="flackunloker-offline-version" content="2026-09-13-v62.13-reset-centro-offline-first">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2873,7 +2873,7 @@ const FLK_OPERACIONES_LOCAL_FIRST=new Set([
  "expense_save","expense_delete","supplier_save","purchase_order_save",
  "purchase_order_ordered","purchase_order_receive","supplier_payment",
  "owner_cash_movement","cash_closure_save","cash_closure_delete",
- "service_provision_save","service_provision_delete"
+ "service_provision_save","service_provision_delete","center_reset"
 ]);
 
 function flkColaOffline(){
@@ -3477,6 +3477,18 @@ function flkAplicarPendientesSobreDatos(){
  if(typeof actualizarGastos==="function")actualizarGastos();
 }
 async function flkProcesarOperacionOffline(op){
+ if(op.tipo==="center_reset"){
+  const p=op.payload||{};
+  const bid=String(p.business_id||op.business_id||"");
+  if(!bid)throw new Error("Restablecimiento sin centro.");
+  const {error}=await flkSupabase.rpc("flk_full_system_reset_center",{
+   p_business_id:bid,
+   p_pin:String(p.pin||""),
+   p_confirmation:"RESTABLECER"
+  });
+  if(error)throw error;
+  return
+ }
  if(op.tipo==="product_save"){
   const p=op.payload||{};
   const {error}=await flkSupabase.rpc("flk_save_product_offline",{
@@ -9845,6 +9857,125 @@ async function flkSincronizarRespaldoRestaurado(){
  }
 }
 
+
+/* ===== v62.10 · RESTAURAR JSON NUEVO DEL BAT =====
+   Compatible con el exportador PowerShell json_por_centro.
+   Restaura datos operativos crudos en Supabase conservando usuarios,
+   membresías, PINes y licencias del centro. */
+function flkEsRespaldoBat(datos){
+ return !!(datos && datos.aplicacion==="Flackunloker" && datos.tipo_respaldo==="json_por_centro" && datos.tablas && typeof datos.tablas==="object");
+}
+function flkFilasBat(datos,tabla){
+ const x=datos?.tablas?.[tabla];
+ return Array.isArray(x)?x:[];
+}
+function flkLimpiarFilaBat(row,businessId){
+ const x={...(row||{})};
+ if("business_id" in x)x.business_id=businessId;
+ return x;
+}
+async function flkUpsertBat(tabla,filas,businessId,{ignorar=[]}={}){
+ if(!Array.isArray(filas)||!filas.length)return 0;
+ const payload=filas.map(r=>{
+  const x=flkLimpiarFilaBat(r,businessId);
+  ignorar.forEach(k=>delete x[k]);
+  return x;
+ });
+ const {error}=await flkSupabase.from(tabla).upsert(payload,{onConflict:"id"});
+ if(error)throw new Error(tabla+": "+error.message);
+ return payload.length;
+}
+async function flkRestaurarJsonBat(datos,centroActivo){
+ if(!flkNubeDisponible())throw new Error("El JSON del BAT necesita conexión a Supabase para restaurarse.");
+ if(!flkSesionActiva)throw new Error("Inicia sesión antes de restaurar el JSON del BAT.");
+ if(rolSesion!=="admin")throw new Error("Solo un Administrador puede restaurar el JSON del BAT.");
+
+ const businessId=String(datos?.business_id||"").trim();
+ const nombre=String(datos?.centro||"").trim()||centroActivo.nombre||"Centro";
+ if(!flkUuidValido(businessId))throw new Error("El JSON del BAT no contiene un business_id válido.");
+ if(String(centroActivo.id)!==businessId){
+  throw new Error("Este respaldo pertenece a otro centro ("+nombre+"). Inicia sesión en ese centro para restaurarlo.");
+ }
+
+ const resumen=datos?.resumen||{};
+ const detalle=[
+  `Productos: ${Number(resumen.products||flkFilasBat(datos,"products").length)}`,
+  `Movimientos: ${Number(resumen.stock_movements||flkFilasBat(datos,"stock_movements").length)}`,
+  `Ventas: ${Number(resumen.sales||flkFilasBat(datos,"sales").length)}`,
+  `Items de venta: ${Number(resumen.sale_items||flkFilasBat(datos,"sale_items").length)}`,
+  `Pagos: ${Number(resumen.sale_payments||flkFilasBat(datos,"sale_payments").length)}`,
+  `Devoluciones: ${Number(resumen.sale_returns||flkFilasBat(datos,"sale_returns").length)}`
+ ].join("\n");
+ const ok=confirm(
+  "✅ RESPALDO DEL BAT DETECTADO\n\n"+
+  "Centro: "+nombre+"\n"+detalle+"\n\n"+
+  "Se restaurarán los datos operativos de este respaldo en Supabase.\n"+
+  "Usuarios, membresías, PINes y licencias NO se reemplazarán.\n\n"+
+  "¿Continuar?"
+ );
+ if(!ok)return {cancelado:true};
+
+ mostrarEstadoRespaldo("⏳ Restaurando JSON del BAT en "+nombre+"...");
+
+ // Padres primero. Los enlaces circulares caja/gastos se completan en una segunda pasada.
+ await flkUpsertBat("products",flkFilasBat(datos,"products"),businessId);
+ await flkUpsertBat("suppliers",flkFilasBat(datos,"suppliers"),businessId);
+ await flkUpsertBat("customers",flkFilasBat(datos,"customers"),businessId);
+ await flkUpsertBat("monthly_lease_settings",flkFilasBat(datos,"monthly_lease_settings"),businessId);
+
+ await flkUpsertBat("sales",flkFilasBat(datos,"sales"),businessId);
+ // sale_items.subtotal es una columna GENERADA por PostgreSQL.
+ // El JSON del BAT la trae porque la lee de la tabla, pero PostgreSQL no permite
+ // insertar un valor explícito en ella. Se omite y la base la recalcula sola.
+ await flkUpsertBat("sale_items",flkFilasBat(datos,"sale_items"),businessId,{ignorar:["subtotal"]});
+ await flkUpsertBat("sale_payments",flkFilasBat(datos,"sale_payments"),businessId);
+ await flkUpsertBat("sale_returns",flkFilasBat(datos,"sale_returns"),businessId);
+
+ // expenses.cash_movement_id puede apuntar a cash_movements que todavía no existe.
+ await flkUpsertBat("expenses",flkFilasBat(datos,"expenses"),businessId,{ignorar:["cash_movement_id"]});
+ await flkUpsertBat("cash_movements",flkFilasBat(datos,"cash_movements"),businessId);
+ await flkUpsertBat("cash_closures",flkFilasBat(datos,"cash_closures"),businessId);
+ await flkUpsertBat("owner_cash_movements",flkFilasBat(datos,"owner_cash_movements"),businessId);
+
+ await flkUpsertBat("purchase_orders",flkFilasBat(datos,"purchase_orders"),businessId);
+ await flkUpsertBat("purchase_items",flkFilasBat(datos,"purchase_items"),businessId);
+ await flkUpsertBat("purchases",flkFilasBat(datos,"purchases"),businessId);
+ await flkUpsertBat("supplier_payments",flkFilasBat(datos,"supplier_payments"),businessId);
+
+ await flkUpsertBat("stock_movements",flkFilasBat(datos,"stock_movements"),businessId);
+ await flkUpsertBat("inventory_movements",flkFilasBat(datos,"inventory_movements"),businessId);
+
+ // Completar el enlace expenses -> cash_movements si existía en la salva.
+ const gastosConCaja=flkFilasBat(datos,"expenses").filter(x=>x&&x.cash_movement_id);
+ if(gastosConCaja.length){
+  await flkUpsertBat("expenses",gastosConCaja,businessId);
+ }
+
+ // Vaciar SOLO la copia local antes de recargar. Los cargadores de Administrador
+ // tienen lógica de migración local -> nube; si dejáramos datos viejos aquí podrían
+ // reinsertarse después de restaurar el BAT.
+ productos=[]; historial=[]; ventas=[]; gastos=[]; cierres=[]; ordenesCompra=[]; proveedores=[];
+ try{
+  guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();
+  guardarOrdenesCompra();guardarProveedores();
+ }catch(_){}
+
+ // Recargar desde Supabase para reconstruir exactamente el modelo usado por web/Android.
+ if(typeof cargarInventarioSupabase==="function")await cargarInventarioSupabase();
+ if(typeof cargarHistorialSupabase==="function")await cargarHistorialSupabase();
+ if(typeof cargarVentasSupabase==="function")await cargarVentasSupabase();
+ if(typeof cargarGastosSupabase==="function")await cargarGastosSupabase();
+ if(typeof cargarCierresSupabase==="function")await cargarCierresSupabase();
+ if(typeof cargarComprasSupabase==="function")await cargarComprasSupabase();
+
+ mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();
+ actualizarVentas();actualizarClientes();actualizarGastos();actualizarCierre();
+ actualizarReporte();actualizarFlujoCaja();actualizarFinanzas();actualizarCentroAlertas();
+ actualizarOrdenesCompra();actualizarProveedores();actualizarCuentasPagar();actualizarEstadisticas();
+
+ return {ok:true,nombre};
+}
+
 async function restaurarRespaldo(event){
  const archivo=event.target.files[0];
  if(!archivo)return;
@@ -9855,6 +9986,21 @@ async function restaurarRespaldo(event){
    const datos=JSON.parse(lector.result);
    if(!datos||datos.aplicacion!=="Flackunloker")
     return alert("El archivo seleccionado no es un respaldo válido de Flackunloker.");
+
+   // JSON nuevo creado por el BAT de la laptop.
+   if(flkEsRespaldoBat(datos)){
+    const centroActivo=await flkResolverCentroBackup();
+    const r=await flkRestaurarJsonBat(datos,centroActivo);
+    if(r?.cancelado){
+     mostrarEstadoRespaldo("❌ Restauración cancelada. No se modificó ningún dato.");
+     return;
+    }
+    mostrarEstadoRespaldo(`✅ JSON del BAT restaurado correctamente en ${r.nombre}.`);
+    alert("✅ Respaldo del BAT restaurado correctamente.\n\nLa app volvió a cargar los datos desde Supabase.");
+    return;
+   }
+
+   // Formato clásico creado desde la propia app.
    if(!Array.isArray(datos.productos)||!Array.isArray(datos.historial))
     return alert("El respaldo está incompleto o dañado.");
 
@@ -12781,31 +12927,92 @@ async function flkEjecutarResetCentroElectron(){
  if(!flkResetCentroBusinessId)
   return flkResetCentroMensaje("No se pudo identificar el centro.");
 
- if(typeof flkSupabase==="undefined" || typeof flkSupabase?.rpc!=="function")
-  return flkResetCentroMensaje("Supabase no está disponible en este momento.");
+ const businessIdRestablecido=String(flkResetCentroBusinessId);
+ const nombre=flkResetCentroNombreActual||"Centro";
 
  const btn=document.getElementById("flkResetCentroGuardar");
  if(btn){btn.disabled=true;btn.textContent="Restableciendo…";}
  flkResetCentroMensaje("");
 
  try{
-  const {error}=await flkSupabase.rpc("flk_full_system_reset_center",{
-   p_business_id:flkResetCentroBusinessId,
-   p_pin:pin,
-   p_confirmation:"RESTABLECER"
-  });
+  // v62.13 · OFFLINE FIRST:
+  // 1) cortar las operaciones antiguas pendientes del centro;
+  // 2) guardar el reset como nueva frontera de sincronización;
+  // 3) limpiar inmediatamente la copia local;
+  // 4) dejar que Supabase reciba el reset en segundo plano.
+  let cola=typeof flkColaOffline==="function"?flkColaOffline():[];
 
-  if(error)throw error;
+  // Un reset invalida cualquier operación anterior todavía no sincronizada
+  // de este mismo centro: no deben reaparecer datos viejos después del borrado.
+  cola=cola.filter(op=>String(op?.business_id||"")!==businessIdRestablecido);
 
-  const nombre=flkResetCentroNombreActual;
+  if(typeof flkGuardarColaOffline==="function")flkGuardarColaOffline(cola);
+
+  const op=typeof flkEncolarOperacion==="function"
+   ? flkEncolarOperacion("center_reset",{
+      business_id:businessIdRestablecido,
+      pin:pin,
+      confirmation:"RESTABLECER",
+      requested_at:new Date().toISOString()
+     })
+   : null;
+
+  if(!op)throw new Error("No se pudo guardar el restablecimiento en la cola offline.");
+
+  const clavesCentro=[
+   "flackunloker_productos","flackunloker_historial","flackunloker_ventas",
+   "flackunloker_clientes","flackunloker_gastos","flackunloker_cierres",
+   "flackunloker_proveedores","flackunloker_ordenes_compra",
+   "flackunloker_compras","flackunloker_pagos_proveedor",
+   "flackunloker_movimientos_caja","flackunloker_owner_cash_movements"
+  ];
+
+  for(const clave of clavesCentro){
+   try{localStorage.removeItem(flkLocalKey(clave,businessIdRestablecido));}catch(_){}
+   try{localStorage.removeItem(flkLocalKey(clave));}catch(_){}
+  }
+
+  // Vaciar también las colecciones vivas para que la interfaz quede en cero
+  // sin esperar respuesta de red.
+  try{productos=[];}catch(_){}
+  try{historial=[];}catch(_){}
+  try{ventas=[];}catch(_){}
+  try{clientes=[];}catch(_){}
+  try{gastos=[];}catch(_){}
+  try{cierres=[];}catch(_){}
+  try{proveedores=[];}catch(_){}
+  try{ordenesCompra=[];}catch(_){}
+
+  try{guardarDatos();}catch(_){}
+  try{guardarHistorial();}catch(_){}
+  try{guardarVentas();}catch(_){}
+  try{guardarGastos();}catch(_){}
+  try{guardarCierres();}catch(_){}
+  try{guardarProveedores();}catch(_){}
+  try{guardarOrdenesCompra();}catch(_){}
+
   flkCerrarModalResetCentro();
 
-  try{await cargarAdminSoftware();}catch(_){}
-  alert("✅ Centro restablecido correctamente: "+nombre);
+  // La app queda limpia YA. La nube se sincroniza aparte.
+  try{flkActualizarEstadoConexion();}catch(_){}
+  alert("✅ Centro restablecido localmente: "+nombre+
+        "\n\nFlackunloker quedó en cero de inmediato. El restablecimiento de Supabase quedó pendiente de sincronización.");
+
+  // Si hay nube, intentar sincronizar sin bloquear la interfaz ni el mensaje.
+  if(typeof flkNubeDisponible==="function" && flkNubeDisponible()){
+   setTimeout(()=>{
+    try{
+     if(typeof flkSincronizarSeguro==="function")flkSincronizarSeguro();
+     else if(typeof flkProcesarColaOffline==="function")flkProcesarColaOffline();
+    }catch(_){}
+   },50);
+  }
+
+  location.reload();
 
  }catch(err){
-  console.error("Reset centro:",err);
-  flkResetCentroMensaje("No se pudo restablecer el centro: "+(err?.message||err));
+  console.error("Reset centro offline-first:",err);
+  flkResetCentroMensaje("No se pudo preparar el restablecimiento local: "+(err?.message||err));
  }finally{
   if(btn){btn.disabled=false;btn.textContent="Restablecer centro";}
  }
