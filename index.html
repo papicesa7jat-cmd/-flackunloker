@@ -1287,22 +1287,8 @@ body:not(.es-propietario) #botonLicencias{display:none!important}
  .lic-registro-grid{grid-template-columns:1fr}
  .lic-registro-acciones{grid-template-columns:1fr}
 }
-1288  .lic-registro-acciones{grid-template-columns:1fr}
-1289  }
-1290  
-1291  /* ===== v62.16 · GUÍA RÁPIDA DEL PANEL DE LICENCIAS ===== */
-1292  .lic-ayuda{
-1293    background:#fff;
-...   (bloque CSS pegado)
-1313  @media(max-width:520px){
-1314    .lic-ayuda{padding:14px}
-1315    .lic-ayuda-item p{font-size:12px}
-1316  }
-1317  </style>
-1318  
-1319  <style>
-1320  /* ===== v60 · ADMINISTRACIÓN DEL SOFTWARE ===== */      
 </style>
+
 
 <style>
 /* ===== v60 · ADMINISTRACIÓN DEL SOFTWARE ===== */
@@ -2666,11 +2652,10 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
     <label for="licNuevoVencimiento">Vencimiento</label>
     <input id="licNuevoVencimiento" type="datetime-local">
    </div>
-   <<div class="campo">
- <label for="licNuevaGracia">Gracia offline (días)</label>
- <input id="licNuevaGracia" type="number" min="0" max="90" value="15">
- <small class="ayuda-campo">Días que la instalación sigue funcionando sin Internet. Recomendado: 15–30 para zonas con conexión inestable.</small>
-</div>
+   <div class="campo">
+    <label for="licNuevaGracia">Gracia offline (días)</label>
+    <input id="licNuevaGracia" type="number" min="0" max="30" value="3">
+   </div>
    <div class="campo">
     <label for="licNuevasNotas">Notas</label>
     <input id="licNuevasNotas" type="text" maxlength="250" placeholder="Opcional">
@@ -2707,14 +2692,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   <div class="lic-resumen-card suspendida"><span>Suspendidas</span><strong id="licCountSuspendidas">0</strong></div>
   <div class="lic-resumen-card vencida"><span>Vencidas</span><strong id="licCountVencidas">0</strong></div>
  </div>
-2709   </div>
-2710   <div class="lic-ayuda" id="licAyudaPanel">
-2711    <div class="lic-ayuda-cabecera" onclick="flkToggleAyudaLicencias()">
-2712     <h3>ℹ️ Guía rápida del panel de licencias</h3>
-...
-2731   </div>
-2732   (vacía)
-2733   <div id="listaLicenciasRegistradas">
+
  <div id="listaLicenciasRegistradas">
   <div class="sin-productos">Pulsa Actualizar para cargar las licencias.</div>
  </div>
@@ -2863,27 +2841,9 @@ let flkSincronizando=false;
 
 function flkLeerArrayLocal(key){
  try{
-  const raw = localStorage.getItem(key);
-  if(raw === null || raw === "") return [];
-  const v = JSON.parse(raw);
-  if(!Array.isArray(v)){
-   console.error("⚠️ FLK: Datos corruptos en " + key + " (no es array). Se conserva copia.");
-   try{
-    localStorage.setItem(key + "_corrupto_" + Date.now(), raw);
-   }catch(_){}
-   return [];
-  }
-  return v;
- }catch(e){
-  console.error("⚠️ FLK: Error parseando " + key + ":", e);
-  try{
-   const raw = localStorage.getItem(key);
-   if(raw !== null){
-    localStorage.setItem(key + "_corrupto_" + Date.now(), raw);
-   }
-  }catch(_){}
-  return [];
- }
+  const v=JSON.parse(localStorage.getItem(key)||"[]");
+  return Array.isArray(v)?v:[];
+ }catch(_){return []}
 }
 function flkFusionarColas(a,b){
  const mapa=new Map();
@@ -5383,21 +5343,12 @@ async function flkValidarLicencia(){
   }
  }
 
-  const cache=flkLeerCacheLicencia();
+ const cache=flkLeerCacheLicencia();
  if(cache){
   const info=cache.info;
-
-  // v62.15 · Gracia offline reforzada para zonas con Internet inestable.
-  // El mínimo efectivo es 15 días aunque el servidor tenga guardado un valor menor.
-  // Esto protege al propietario y a los clientes ante caídas largas de Internet
-  // (huracanes, cortes de cable, apagones de red prolongados, etc.).
-  const GRACIA_MINIMA_OFFLINE=15;
-  const graciaServidor=Math.max(0,Number(info.offline_grace_days||0));
-  const gracia=Math.max(graciaServidor,GRACIA_MINIMA_OFFLINE);
+  const gracia=Math.max(0,Number(info.offline_grace_days||0));
   const dias=flkDiasDesde(cache.validated_at);
-
   flkLicenciaUltimaValidacion=cache.validated_at;
-
   if(info.valid&&String(info.license_status)==="active"&&dias<=gracia){
    flkPintarLicencia(info,"offline-grace");
    return info
@@ -5405,7 +5356,8 @@ async function flkValidarLicencia(){
   flkPintarLicencia(info,"offline-expired");
   return info
  }
-  flkPintarLicencia(null,"error");
+
+ flkPintarLicencia(null,"error");
  return null
 }
 
@@ -6004,13 +5956,7 @@ function flkTextoEstadoLicencia(estado){
 function flkEscAttr(v){
  return String(v??"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
-function flkToggleAyudaLicencias(){
- const caja=document.getElementById("licAyudaPanel");
- if(!caja)return;
- caja.classList.toggle("abierto");
- const boton=document.getElementById("licAyudaToggle");
- if(boton)boton.textContent=caja.classList.contains("abierto")?"▴":"▾";
-}
+
 async function cargarListaLicencias(){
  if(!flkEsPropietarioSoftware)return;
  const lista=document.getElementById("listaLicenciasRegistradas");
