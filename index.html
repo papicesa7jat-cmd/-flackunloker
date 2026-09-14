@@ -2841,9 +2841,27 @@ let flkSincronizando=false;
 
 function flkLeerArrayLocal(key){
  try{
-  const v=JSON.parse(localStorage.getItem(key)||"[]");
-  return Array.isArray(v)?v:[];
- }catch(_){return []}
+  const raw = localStorage.getItem(key);
+  if(raw === null || raw === "") return [];
+  const v = JSON.parse(raw);
+  if(!Array.isArray(v)){
+   console.error("⚠️ FLK: Datos corruptos en " + key + " (no es array). Se conserva copia.");
+   try{
+    localStorage.setItem(key + "_corrupto_" + Date.now(), raw);
+   }catch(_){}
+   return [];
+  }
+  return v;
+ }catch(e){
+  console.error("⚠️ FLK: Error parseando " + key + ":", e);
+  try{
+   const raw = localStorage.getItem(key);
+   if(raw !== null){
+    localStorage.setItem(key + "_corrupto_" + Date.now(), raw);
+   }
+  }catch(_){}
+  return [];
+ }
 }
 function flkFusionarColas(a,b){
  const mapa=new Map();
