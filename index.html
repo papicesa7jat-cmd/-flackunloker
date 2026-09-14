@@ -5362,16 +5362,28 @@ async function flkValidarLicencia(){
   }
  }
 
- const cache=flkLeerCacheLicencia();
+  const cache=flkLeerCacheLicencia();
  if(cache){
   const info=cache.info;
-  const gracia=Math.max(0,Number(info.offline_grace_days||0));
+
+  // v62.15 · Gracia offline reforzada para zonas con Internet inestable.
+  // El mínimo efectivo es 15 días aunque el servidor tenga guardado un valor menor.
+  // Esto protege al propietario y a los clientes ante caídas largas de Internet
+  // (huracanes, cortes de cable, apagones de red prolongados, etc.).
+  const GRACIA_MINIMA_OFFLINE=15;
+  const graciaServidor=Math.max(0,Number(info.offline_grace_days||0));
+  const gracia=Math.max(graciaServidor,GRACIA_MINIMA_OFFLINE);
   const dias=flkDiasDesde(cache.validated_at);
+
   flkLicenciaUltimaValidacion=cache.validated_at;
+
   if(info.valid&&String(info.license_status)==="active"&&dias<=gracia){
    flkPintarLicencia(info,"offline-grace");
    return info
   }
+  flkPintarLicencia(info,"offline-expired");
+  return info
+ }
   flkPintarLicencia(info,"offline-expired");
   return info
  }
