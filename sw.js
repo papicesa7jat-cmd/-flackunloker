@@ -1,4 +1,4 @@
-const CACHE_NAME = "flackunloker-offline-v14-audit-estabilidad-6223";
+const CACHE_NAME = "flackunloker-offline-v15-no-eval-6226";
 const PAGE_FALLBACK = "./index.html";
 
 const APP_SHELL = [
@@ -8,10 +8,12 @@ const APP_SHELL = [
 ];
 
 const EXTERNAL_SHELL = [
-  // v62.22 ESTABILIDAD: fijar la MISMA versión exacta que usa index.html
-  // (ver flk-supabase-loader-v6186-login-fix). Si se sube la versión en
-  // index.html, hay que actualizar también esta constante.
-  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"
+  // v62.26: dependencias ejecutables versionadas y precacheadas.
+  // Sustituye el antiguo patrón CDN -> localStorage -> eval().
+  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0",
+  "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js",
+  "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js",
+  "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"
 ];
 
 async function precacheLocal() {
@@ -133,43 +135,20 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // Supabase JS CDN: caché primero porque es una dependencia necesaria offline.
-  if (
-    url.hostname === "cdn.jsdelivr.net" &&
-    url.pathname.includes("@supabase/supabase-js")
-  ) {
+  // Dependencias externas versionadas: caché primero para funcionamiento offline.
+  if (EXTERNAL_SHELL.includes(url.href)) {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
       const cached = await cache.match(request);
-
       if (cached) return cached;
-
       try {
-        const response = await fetch(request, {
-          cache: "reload"
-        });
-
-        // v62.22 ESTABILIDAD: solo cachear si la respuesta fue realmente
-        // exitosa. Antes, un 404/500 transitorio de la CDN se guardaba
-        // como si fuera la librería válida y dejaba la app rota (sin
-        // Supabase) hasta que alguien borrara el caché a mano.
-        if (response && response.ok) {
-          await cache.put(request, response.clone());
-        } else if (response) {
-          console.warn("supabase-js: respuesta no-ok, no se cachea:", url.href, response.status);
-        }
-
+        const response = await fetch(request, { cache: "reload" });
+        if (response && response.ok) await cache.put(request, response.clone());
         return response;
       } catch (err) {
-        return (
-          await cache.match(
-            "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"
-          ) ||
-          Response.error()
-        );
+        return (await cache.match(url.href)) || Response.error();
       }
     })());
-
     return;
   }
 
