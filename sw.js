@@ -1,4 +1,4 @@
-const CACHE_NAME = "flackunloker-offline-v13-fix-supabase-cache-6216";
+const CACHE_NAME = "flackunloker-offline-v14-audit-estabilidad-6223";
 const PAGE_FALLBACK = "./index.html";
 
 const APP_SHELL = [
