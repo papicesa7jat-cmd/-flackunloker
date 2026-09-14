@@ -1,4 +1,4 @@
-const CACHE_NAME = "flackunloker-offline-v12-ui-6124";
+const CACHE_NAME = "flackunloker-offline-v13-fix-supabase-cache-6216";
 const PAGE_FALLBACK = "./index.html";
 
 const APP_SHELL = [
@@ -8,7 +8,10 @@ const APP_SHELL = [
 ];
 
 const EXTERNAL_SHELL = [
-  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  // v62.22 ESTABILIDAD: fijar la MISMA versión exacta que usa index.html
+  // (ver flk-supabase-loader-v6186-login-fix). Si se sube la versión en
+  // index.html, hay que actualizar también esta constante.
+  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"
 ];
 
 async function precacheLocal() {
@@ -36,13 +39,17 @@ async function precacheExternal() {
 
   for (const url of EXTERNAL_SHELL) {
     try {
+      // jsDelivr sí soporta CORS: usamos el modo normal (no "no-cors") para
+      // poder ver el status real y no cachear un 404/500 como si fuera la
+      // librería válida.
       const response = await fetch(url, {
-        mode: "no-cors",
         cache: "reload"
       });
 
-      if (response) {
+      if (response && response.ok) {
         await cache.put(url, response.clone());
+      } else if (response) {
+        console.warn("Precache externo descartado por status no-ok:", url, response.status);
       }
     } catch (err) {
       console.warn("No se pudo precachear recurso externo", url, err);
@@ -142,15 +149,21 @@ self.addEventListener("fetch", event => {
           cache: "reload"
         });
 
-        if (response) {
+        // v62.22 ESTABILIDAD: solo cachear si la respuesta fue realmente
+        // exitosa. Antes, un 404/500 transitorio de la CDN se guardaba
+        // como si fuera la librería válida y dejaba la app rota (sin
+        // Supabase) hasta que alguien borrara el caché a mano.
+        if (response && response.ok) {
           await cache.put(request, response.clone());
+        } else if (response) {
+          console.warn("supabase-js: respuesta no-ok, no se cachea:", url.href, response.status);
         }
 
         return response;
       } catch (err) {
         return (
           await cache.match(
-            "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+            "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"
           ) ||
           Response.error()
         );
