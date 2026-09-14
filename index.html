@@ -3063,7 +3063,7 @@ function flkArchivarOperacionConfirmada(op){
   a.push({...op,archived_at:new Date().toISOString()});
   if(a.length>500)a=a.slice(-500);
   flkLocalStorageSetSeguro(k,JSON.stringify(a));
- }catch(_){}
+ }catch(err){console.warn("No se pudo archivar la operación confirmada:",op?.id,err);}
 }
 
 function flkUUID(){
@@ -5207,7 +5207,7 @@ function flkGuardarCacheLicencia(info){
    validated_at:ahora
   }));
   flkLicenciaUltimaValidacion=ahora
- }catch(_){}
+ }catch(err){console.warn("No se pudo guardar el caché de licencia:",err);}
 }
 function flkLeerCacheLicencia(){
  try{
@@ -5358,14 +5358,14 @@ async function flkValidarLicencia(){
  try{
   const r=await flkSupabase.auth.getSession();
   sesionPrevia=r?.data?.session||null;
- }catch(_){}
+ }catch(err){console.warn("Validación de licencia: no se pudo leer la sesión de Supabase:",err);}
 
  let sesionLocalPrevia=null;
  try{
   sesionLocalPrevia=typeof flkSesionOfflineDisponible==="function"
    ? flkSesionOfflineDisponible()
    : null;
- }catch(_){}
+ }catch(err){console.warn("Validación de licencia: no se pudo leer la sesión local offline:",err);}
 
  const hayUsuarioIdentificado=!!(
   sesionPrevia?.user ||
@@ -10035,7 +10035,7 @@ function flkNombreCentroBackupLocal(){
 async function flkResolverCentroBackup(){
  let id=flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:flkBusinessGuardado();
  if(!id && flkNubeDisponible()){
-  try{id=await flkExigirCentroActual()}catch(_){}
+  try{id=await flkExigirCentroActual()}catch(err){console.warn("No se pudo obtener el centro actual para el backup:",err);}
  }
  if(!id)throw new Error("No se pudo identificar el centro activo.");
 
@@ -10232,7 +10232,7 @@ async function flkRestaurarJsonBat(datos,centroActivo){
  try{
   guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();
   guardarOrdenesCompra();guardarProveedores();
- }catch(_){}
+ }catch(err){console.warn("No se pudo vaciar la copia local antes de restaurar el BAT (podrían reaparecer datos viejos):",err);}
 
  // Recargar desde Supabase para reconstruir exactamente el modelo usado por web/Android.
  if(typeof cargarInventarioSupabase==="function")await cargarInventarioSupabase();
@@ -12233,7 +12233,7 @@ if(typeof abrirModoQRDesdePrincipalConCamara==="function"){
    if(typeof flkAsegurarMotoresQROffline==="function"){
     await flkAsegurarMotoresQROffline();
    }
-  }catch(_){}
+  }catch(err){console.warn("No se pudieron preparar los motores QR offline (menú principal):",err);}
   actualizarEstadoQROfflineVisual();
   return flkAbrirModoQrOfflineOriginal(modo);
  };
@@ -12247,7 +12247,7 @@ if(typeof iniciarEscanerQRCamaraTrasera==="function"){
    if(typeof flkAsegurarMotoresQROffline==="function"){
     await flkAsegurarMotoresQROffline();
    }
-  }catch(_){}
+  }catch(err){console.warn("No se pudieron preparar los motores QR offline (cámara trasera):",err);}
   actualizarEstadoQROfflineVisual();
   return flkInicioCamaraOfflineOriginal.apply(this,arguments);
  };
@@ -12328,7 +12328,7 @@ function flkDetectorAnalizar(){
   const key=localStorage.key(i), raw=localStorage.getItem(key);
   const parsed=flkDetectorParse(raw);
   keys.push({key,bytes:(raw||"").length});
-  try{flkDetectorWalk(parsed,key,hallazgos)}catch(_){}
+  try{flkDetectorWalk(parsed,key,hallazgos)}catch(err){console.warn("Detector de datos: no se pudo analizar la clave",key,err);}
   if(/producto/i.test(key)&&Array.isArray(parsed)){
    parsed.forEach(p=>{
     if(p&&typeof p==="object"&&(p.sku||p.nombre||p.name))directos.push({key,...p})
@@ -12448,7 +12448,7 @@ function flkAnalizarVentasRescate(){
   try{
    const a=JSON.parse(localStorage.getItem(k)||"[]");
    if(Array.isArray(a))a.forEach(v=>ventasTodas.push({storage_key:k,venta:v}));
-  }catch(_){}
+  }catch(err){console.warn("Ventas ilegibles en localStorage, se omiten de este reporte:",k,err);}
  });
 
  const productosMap=new Map(), detalleVentas=[];
