@@ -10811,17 +10811,73 @@ body.flk-v6125 #listaCierres .cierre-detalle strong {color:#000000 !important;}
 #ordenesRecibidas,
 #totalCompradoProveedores, #totalPagadoProveedores,
 #cuentasTotalPagado,
-#flujoEntradas, #flujoNeto,
-#finCaja, #finInventario, #finPorCobrar, #finActivos,
-#estadisticaEntradas, #estadisticaGananciaPotencial {
-  color:#111111 !important;
-}
 </style>
 
+<!--
+=====================================================================
+ MAPA DEL MÓDULO ESCÁNER QR / LECTOR FÍSICO (Entradas, Salidas, Venta,
+ Devolución) — v62.21
+
+ Esta sección se fue construyendo en capas a lo largo del tiempo, cada
+ una agregada para resolver un problema puntual sin tocar la anterior
+ (compatibilidad de navegador, evitar duplicados, integración offline).
+ Antes de modificar CUALQUIER función de esta lista, lee primero todos
+ los bloques de abajo en orden — varias funciones tienen 2 o 3 "capas"
+ apiladas (una envuelve a la anterior), y cambiar solo una capa sin
+ entender las demás puede reintroducir bugs ya resueltos (ver el bug
+ del campo Cliente congelado en Venta, causado por un doble focus()
+ entre capas distintas).
+
+ Bloques, en el orden en que aparecen en el archivo:
+
+ 1. flk-qr-safe-js
+    Implementación base: abre la cámara, define procesarCodigoQR()
+    (decide qué hacer según flkQrModo: entrada/salida/venta/devolución)
+    y el lector físico/HID (buffer de teclado + flkLectorFisicoActivo).
+
+ 2. flk-qr-principal-js
+    El botón único "📷 QR" del menú principal y su selector de 3
+    opciones (Compra/Entrada, Venta, Devolución). NO incluye "Salida"
+    como botón directo aquí.
+
+ 3. flk-qr-camara-trasera-auto
+    Selecciona automáticamente la cámara trasera del teléfono.
+
+ 4. flk-qr-operacion-primero-camara-despues
+    Ajuste de orden: evita que la cámara arranque antes de que la
+    operación (entrada/venta/etc.) esté decidida.
+
+ 5. flk-qr-compatibilidad-movil-jsqr
+    Motor de respaldo (jsQR) para navegadores sin BarcodeDetector
+    nativo (la mayoría de laptops/desktop). Envuelve detenerEscanerQR
+    UNA vez (agrega detener este motor antes de llamar al original).
+
+ 6. flk-qr-lectura-estable-confirmada
+    Agrega un paso de "confirmar antes de aplicar" a una lectura.
+    Define cancelarLecturaQRPendiente/confirmarLecturaQRPendiente
+    (versión 1 de 2).
+
+ 7. flk-qr-antiduplicado-global
+    Evita que el mismo código se registre dos veces si el lector
+    físico y la cámara están activos a la vez. Envuelve OTRA VEZ
+    cancelarLecturaQRPendiente/confirmarLecturaQRPendiente (versión 2
+    de 2, la que realmente corre) y flkProcesarCodigoQRNegocio.
+
+ 8. flk-qr-offline-integration
+    Integra el flujo con el modo sin conexión / business_id. Envuelve
+    abrirEscanerQR una vez.
+
+ Si vas a corregir un bug de escaneo: identifica primero en cuál de
+ estos 8 bloques vive el comportamiento que falla (por nombre de
+ función), y edita esa capa puntual — no reescribas la cadena
+ completa a menos que el bug abarque varias capas a la vez.
+=====================================================================
+-->
 <script id="flk-qr-safe-js">
 let flkQrStream=null,flkQrDetector=null,flkQrActivo=false,flkProductoEtiquetaActual=null;
 let flkQrModo="",flkQrVentaItems=[],flkQrUltimo="",flkQrUltimoTs=0;
 let flkLectorFisicoActivo=false,flkLectorFisicoBuffer="",flkLectorFisicoUltimoTs=0,flkLectorFisicoTimer=null;
+
 
 function flkQrEsc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 function flkQrProductoTexto(p){return "FLK|SKU|"+String(p.sku||"").trim()}
