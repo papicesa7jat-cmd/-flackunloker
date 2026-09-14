@@ -169,19 +169,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
 <!-- v62.21 SEGURIDAD: Content-Security-Policy explícita.
-     Nota: 'unsafe-eval' es necesario porque el cargador offline de
+     Nota: es necesario porque el cargador offline de
      supabase-js/qrcodejs/jsqr/html5-qrcode guarda el código de esas
      librerías en localStorage y lo ejecuta con eval() para poder
      arrancar sin Internet (ver flk-supabase-loader-v6186-login-fix y
-     flk-qr-offline-loader). Quitar 'unsafe-eval' rompería el modo
+     flk-qr-offline-loader). Quitar rompería el modo
      offline. Si en el futuro se elimina ese mecanismo (por ejemplo
      usando Cache API/Service Worker en vez de eval), se puede quitar
-     'unsafe-eval' y endurecer más esta política.
+     y endurecer más esta política.
      frame-ancestors no tiene efecto en un <meta> (el estándar lo
      ignora ahí): si el hosting lo permite, añadir también la cabecera
      HTTP "X-Frame-Options: DENY" o "Content-Security-Policy:
      frame-ancestors 'none'" en el servidor. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://eviwhrqhinhnyccizkfq.supabase.co wss://eviwhrqhinhnyccizkfq.supabase.co https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://eviwhrqhinhnyccizkfq.supabase.co wss://eviwhrqhinhnyccizkfq.supabase.co https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="flackunloker-offline-version" content="2026-09-13-v62.13-reset-centro-offline-first">
 <title>Flackunloker</title>
 <style>
@@ -936,85 +936,14 @@ button.menu-toggle{
   color:#000 !important;
 }
 </style>
-<script id="flk-supabase-loader-v6186-login-fix">
-/* v61.86 LOGIN MULTIDISPOSITIVO
-   Mantiene intacta la estructura online/offline.
-   Corrección puntual: evita que el fallback offline gane la carrera contra
-   Supabase cuando el dispositivo SÍ tiene Internet y la caché local fue limpiada.
-   v62.20 SEGURIDAD/ESTABILIDAD:
-   - Se fija una versión exacta de supabase-js (antes "@2" = "siempre la última",
-     lo que podía cambiar de un día para otro sin aviso y romper el arranque).
-   - La copia guardada en localStorage ahora se acompaña de su longitud y una
-     suma de verificación simple. Si el contenido guardado no coincide (por
-     corrupción del almacenamiento, cuota llena a la mitad de una escritura,
-     etc.), se descarta en vez de intentar ejecutar algo incompleto o dañado. */
+<script id="flk-supabase-loader-v6226-no-eval">
+/* v62.26 SEGURIDAD: Supabase se carga como script versionado.
+   El Service Worker conserva la copia para arranque offline; no se guarda
+   código ejecutable en localStorage y no se usa eval(). */
 (function(){
- var KEY="flk_lib_supabasejs_v3";
  var URL="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0";
- /* v62.21 SEGURIDAD: Subresource Integrity (SRI) para el <script> que
-    viene de jsDelivr. Se deja vacío a propósito: un hash inventado o
-    desactualizado haría que el navegador BLOQUEE el script (falla
-    silenciosa) y la app caería siempre al modo offline-stub, incluso
-    con Internet. Para activarlo, genera el hash real de esta versión
-    exacta y pégalo aquí, por ejemplo:
-      curl -s https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0 \
-        | openssl dgst -sha384 -binary | openssl base64 -A
-    y luego usa: INTEGRITY="sha384-<resultado>";
-    Recuerda repetir este paso cada vez que se suba la versión fijada. */
- var INTEGRITY="";
-
- function checksum(s){
-  // Suma de verificación simple (no criptográfica): solo detecta corrupción
-  // accidental del contenido guardado, no sustituye una firma real.
-  var h=0;
-  for(var i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;}
-  return h+":"+s.length;
- }
-
- function ejecutar(codigo){
-  try{
-   (0,eval)(String(codigo)+"\n//# sourceURL=flackunloker-offline-supabase.js");
-   return !!(window.supabase&&window.supabase.createClient);
-  }catch(e){
-   console.warn("Supabase local cache:",e);
-   return false;
-  }
- }
-
- /* Primero se conserva exactamente la estrategia offline existente:
-    si ya existe una copia local de supabase-js, se usa sin depender de Internet. */
- if(!(window.supabase&&window.supabase.createClient)){
-  try{
-   var guardado=localStorage.getItem(KEY);
-   var firma=localStorage.getItem(KEY+"_chk");
-   if(guardado && firma && checksum(guardado)===firma){
-    ejecutar(guardado);
-   }else if(guardado){
-    console.warn("Copia local de Supabase descartada: no pasó la verificación de integridad.");
-    localStorage.removeItem(KEY);
-    localStorage.removeItem(KEY+"_chk");
-   }
-  }catch(_){}
- }
-
- /* Si no hay copia local y el navegador informa conexión, la librería debe
-    terminar de cargar ANTES de que se ejecute el fallback offline que está justo
-    después de este bloque. Así PC, iPhone y otros navegadores no quedan
-    falsamente atrapados en "offline" después de limpiar caché. */
- if(!(window.supabase&&window.supabase.createClient) && navigator.onLine){
-  var atrs=INTEGRITY?' integrity="'+INTEGRITY+'" crossorigin="anonymous"':'';
-  document.write('<script src="'+URL+'"'+atrs+'><\/script>');
- }
-
- /* Después de una carga online correcta se renueva la copia local que ya usa
-    Flackunloker para poder arrancar nuevamente sin conexión. */
- window.addEventListener("load",function(){
-  if(!(window.supabase&&window.supabase.createClient) || !navigator.onLine)return;
-  fetch(URL,{cache:"no-store"})
-   .then(function(r){return r.ok?r.text():Promise.reject(new Error("HTTP "+r.status));})
-   .then(function(c){try{flkLocalStorageSetSeguro(KEY,c);flkLocalStorageSetSeguro(KEY+"_chk",checksum(c));}catch(_){} })
-   .catch(function(e){console.warn("No se pudo renovar la copia local de Supabase:",e);});
- },{once:true});
+ if(window.supabase&&window.supabase.createClient)return;
+ document.write('<script src="'+URL+'"><\/script>');
 })();
 </script>
 <script id="flk-supabase-offline-fallback-v6147">
@@ -1751,98 +1680,41 @@ textarea::placeholder{
 #flkQrLinternaBtn{border:0;border-radius:10px;padding:10px;font-weight:850;background:#f0f4f8;color:#17324a;cursor:pointer}
 </style>
 
-<script id="flk-qr-offline-loader">
+<script id="flk-qr-offline-loader-v6226-no-eval">
+/* v62.26 SEGURIDAD: motores QR por <script src>.
+   El Service Worker los cachea para uso offline. No eval/localStorage de código. */
 (function(){
- const VERSION="qr-offline-v1";
  const LIBS=[
-  {name:"qrcodejs",url:"https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js",key:"flk_lib_qrcodejs_v1",ok:()=>typeof window.QRCode==="function"},
-  {name:"jsqr",url:"https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js",key:"flk_lib_jsqr_v1",ok:()=>typeof window.jsQR==="function"},
-  {name:"html5qrcode",url:"https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js",key:"flk_lib_html5qrcode_v1",ok:()=>typeof window.Html5Qrcode==="function"}
+  {name:"qrcodejs",url:"https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js",ok:()=>typeof window.QRCode==="function"},
+  {name:"jsqr",url:"https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js",ok:()=>typeof window.jsQR==="function"},
+  {name:"html5qrcode",url:"https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js",ok:()=>typeof window.Html5Qrcode==="function"}
  ];
-
- function ejecutar(codigo,nombre){
-  if(!codigo)return false;
-  try{
-   (0,eval)(String(codigo)+"\n//# sourceURL=flackunloker-offline-"+nombre+".js");
-   return true;
-  }catch(err){
-   console.error("No se pudo ejecutar "+nombre,err);
-   return false;
-  }
- }
-
- async function cargar(lib){
-  if(lib.ok())return true;
-
-  // 1. Intentar primero la copia guardada en el teléfono/computadora.
-  try{
-   const guardada=localStorage.getItem(lib.key);
-   if(guardada && ejecutar(guardada,lib.name) && lib.ok())return true;
-  }catch(_){}
-
-  // 2. Si hay Internet, descargarla una vez y dejarla almacenada para el futuro.
-  if(navigator.onLine){
-   try{
-    // v62.25 ESTABILIDAD: timeout explícito (antes esta descarga podía
-    // quedarse colgada indefinidamente en una red lenta/portal cautivo,
-    // dejando el escáner QR "cargando" para siempre).
-    const ctrl=new AbortController();
-    const t=setTimeout(()=>ctrl.abort(),8000);
-    let r;
-    try{
-     r=await fetch(lib.url,{cache:"no-store",signal:ctrl.signal});
-    }finally{
-     clearTimeout(t);
-    }
-    if(!r.ok)throw new Error("HTTP "+r.status);
-    const codigo=await r.text();
-    try{flkLocalStorageSetSeguro(lib.key,codigo)}catch(e){
-     console.warn("No se pudo guardar "+lib.name+" en localStorage",e);
-    }
-    if(ejecutar(codigo,lib.name) && lib.ok())return true;
-   }catch(err){
-    console.warn("No se pudo preparar "+lib.name+" para uso offline",err);
+ const pendientes=new Map();
+ function cargar(lib){
+  if(lib.ok())return Promise.resolve(true);
+  if(pendientes.has(lib.name))return pendientes.get(lib.name);
+  const prom=new Promise(resolve=>{
+   const existente=document.querySelector('script[data-flk-lib="'+lib.name+'"]');
+   if(existente){
+    if(lib.ok())return resolve(true);
+    existente.addEventListener("load",()=>resolve(lib.ok()),{once:true});
+    existente.addEventListener("error",()=>resolve(false),{once:true});
+    return;
    }
-  }
-  return lib.ok();
+   const sc=document.createElement("script");
+   sc.src=lib.url; sc.async=true; sc.dataset.flkLib=lib.name;
+   sc.onload=()=>resolve(lib.ok());
+   sc.onerror=()=>{console.warn("No se pudo cargar "+lib.name);resolve(false)};
+   document.head.appendChild(sc);
+  }).finally(()=>pendientes.delete(lib.name));
+  pendientes.set(lib.name,prom);
+  return prom;
  }
-
  window.flkAsegurarMotoresQROffline=async function(){
   const resultados={};
   for(const lib of LIBS)resultados[lib.name]=await cargar(lib);
   return resultados;
  };
-
- window.flkEstadoMotoresQROffline=function(){
-  return {
-   qrcodejs:typeof window.QRCode==="function",
-   jsqr:typeof window.jsQR==="function",
-   html5qrcode:typeof window.Html5Qrcode==="function"
-  };
- };
-
- window.flkPrepararQROffline=async function(silencioso=false){
-  const estado=await window.flkAsegurarMotoresQROffline();
-  const lectura=!!(estado.jsqr||estado.html5qrcode);
-  const generacion=!!estado.qrcodejs;
-  try{
-   flkLocalStorageSetSeguro("flk_qr_offline_preparado",JSON.stringify({
-    version:VERSION,fecha:new Date().toISOString(),lectura,generacion
-   }));
-  }catch(_){}
-  if(!silencioso){
-   alert(lectura&&generacion
-    ?"✅ QR preparado para trabajar sin Internet en este dispositivo."
-    :"⚠️ No se pudieron guardar todos los motores QR. Conéctate a Internet y vuelve a preparar el modo offline.");
-  }
-  return {lectura,generacion,...estado};
- };
-
- // Al entrar online, preparar automáticamente las librerías para el próximo corte.
- if(navigator.onLine){
-  setTimeout(()=>window.flkPrepararQROffline(true),700);
- }
- window.addEventListener("online",()=>setTimeout(()=>window.flkPrepararQROffline(true),500));
 })();
 </script>
 
@@ -10560,7 +10432,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=62.23",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=62.26",{updateViaCache:"none"});
    if(flkNubeDisponible())setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
@@ -11166,18 +11038,20 @@ let flkLectorFisicoActivo=false,flkLectorFisicoBuffer="",flkLectorFisicoUltimoTs
 function flkQrEsc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 function flkQrProductoTexto(p){return "FLK|SKU|"+String(p.sku||"").trim()}
 
-function mostrarEtiquetaQRProducto(id){
+async function mostrarEtiquetaQRProducto(id){
  const p=productos.find(x=>String(x.id)===String(id));if(!p)return alert("Producto no encontrado.");
  flkProductoEtiquetaActual=p;
  const box=document.getElementById("flkEtiquetaQRVista");
- box.innerHTML='<strong style="font-size:2.4mm">FLACKUNLOKER</strong><div class="qrbox" id="flkQrEtiquetaCodigo"></div><h3>'+flkQrEsc(p.nombre)+'</h3><p>SKU: <strong>'+flkQrEsc(p.sku)+'</strong></p><p class="flk-codigo-manual">Código manual: <strong>'+flkQrEsc(p.sku)+'</strong></p>';
+ box.innerHTML='<strong style="font-size:2.4mm">FLACKUNLOKER</strong><div class="qrbox" id="flkQrEtiquetaCodigo"><div style="padding:12px;font-size:12px">Preparando QR…</div></div><h3>'+flkQrEsc(p.nombre)+'</h3><p>SKU: <strong>'+flkQrEsc(p.sku)+'</strong></p><p class="flk-codigo-manual">Código manual: <strong>'+flkQrEsc(p.sku)+'</strong></p>';
  document.getElementById("modalEtiquetaQR").classList.add("visible");
- setTimeout(function(){
-  const q=document.getElementById("flkQrEtiquetaCodigo");
-  if(typeof QRCode==="undefined"){q.innerHTML='<div style="padding:12px;font-size:12px">No se pudo cargar el generador QR.</div>';return}
-  q.innerHTML="";
-  new QRCode(q,{text:flkQrProductoTexto(p),width:150,height:150,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
- },20);
+ try{
+  if(typeof QRCode==="undefined" && typeof flkAsegurarMotoresQROffline==="function")await flkAsegurarMotoresQROffline();
+ }catch(err){console.warn("Generador QR:",err)}
+ const q=document.getElementById("flkQrEtiquetaCodigo");
+ if(!q)return;
+ if(typeof QRCode==="undefined"){q.innerHTML='<div style="padding:12px;font-size:12px">No se pudo cargar el generador QR.</div>';return}
+ q.innerHTML="";
+ new QRCode(q,{text:flkQrProductoTexto(p),width:150,height:150,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
 }
 function cerrarEtiquetaQR(){document.getElementById("modalEtiquetaQR")?.classList.remove("visible")}
 function imprimirEtiquetaQRProducto(){
@@ -11219,12 +11093,30 @@ function toggleLectorFisico(){
  if(flkLectorFisicoTimer){clearTimeout(flkLectorFisicoTimer);flkLectorFisicoTimer=null}
  actualizarEstadoLectorFisico();
 }
+let flkQrCodigoHIDPendiente="";
 function flkProcesarBufferLectorFisico(){
  const codigo=flkLectorFisicoBuffer.trim();
  flkLectorFisicoBuffer="";
  if(!codigo)return;
  const e=document.getElementById("flkLectorFisicoEstado");
  if(e)e.textContent="Código recibido: "+codigo;
+
+ const modal=document.getElementById("modalEscanerQR");
+ const modalVisible=!!(modal&&modal.classList.contains("visible"));
+
+ // Si el HENEX escanea desde cualquier pantalla de la app, primero se pide
+ // la operación. Esto evita reutilizar por accidente el modo anterior.
+ if(!modalVisible){
+  flkQrCodigoHIDPendiente=codigo;
+  try{abrirEscanerQR()}catch(_){modal?.classList.add("visible")}
+  const i=document.getElementById("flkQrCodigoManual");if(i)i.value=codigo;
+  const t=document.getElementById("flkQrModoTexto");
+  if(t)t.textContent="Código leído por HENEX · selecciona Entrada, Salida, Venta o Devolución";
+  const estado=document.getElementById("flkQrEstado");
+  if(estado)estado.textContent="Producto escaneado. Selecciona la operación que quieres realizar.";
+  return;
+ }
+
  const i=document.getElementById("flkQrCodigoManual");if(i)i.value=codigo;
  procesarCodigoQR(codigo,false);
  setTimeout(function(){
@@ -11253,13 +11145,14 @@ function flkProgramarFinLecturaHID(){
 document.addEventListener("keydown",function(ev){
  if(!flkLectorFisicoActivo)return;
  const modal=document.getElementById("modalEscanerQR");
- if(!modal||!modal.classList.contains("visible"))return;
+ const modalVisible=!!(modal&&modal.classList.contains("visible"));
 
  const target=ev.target;
- // No secuestrar escritura deliberada en formularios. El campo manual QR
- // sí puede recibir el lector porque forma parte del propio escáner.
- if(target && ["TEXTAREA","SELECT"].includes(target.tagName))return;
- if(target && target.tagName==="INPUT" && target.id!=="flkQrCodigoManual")return;
+ // No secuestrar escritura deliberada en formularios. Fuera del escáner,
+ // cualquier campo editable conserva el teclado normal. Dentro del escáner,
+ // solo el campo manual QR acepta la entrada HID.
+ if(target && (target.isContentEditable || ["TEXTAREA","SELECT"].includes(target.tagName)))return;
+ if(target && target.tagName==="INPUT" && (!modalVisible || target.id!=="flkQrCodigoManual"))return;
 
  if(ev.isComposing || ev.repeat || ev.ctrlKey || ev.altKey || ev.metaKey)return;
 
@@ -11313,6 +11206,15 @@ function seleccionarModoQR(modo){
  const vc=document.getElementById("flkQrVentaContinua");if(vc)vc.style.display=modo==="venta"?"block":"none";
  const r=document.getElementById("flkQrResultado");if(r){r.style.display="none";r.innerHTML=""}
  if(modo!=="venta"){flkQrVentaItems=[];renderVentaQR()}
+
+ // Si el código llegó primero desde el HENEX, al elegir la operación se
+ // procesa exactamente ese código sin obligar a escanear una segunda vez.
+ if(flkQrCodigoHIDPendiente){
+  const codigo=flkQrCodigoHIDPendiente;
+  flkQrCodigoHIDPendiente="";
+  const i=document.getElementById("flkQrCodigoManual");if(i)i.value=codigo;
+  setTimeout(function(){procesarCodigoQR(codigo,false)},0);
+ }
 }
 function abrirEscanerQR(){
  try{cerrarMenuPrincipal()}catch(_){}
