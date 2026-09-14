@@ -11453,45 +11453,7 @@ async function abrirQrPrincipalConCamara(){
  }
 }
 
-async function iniciarEscanerQRCamaraTrasera(){
- const estado=document.getElementById("flkQrEstado");
- if(!navigator.mediaDevices?.getUserMedia){
-  if(estado)estado.textContent="Este navegador no permite abrir la cámara.";
-  alert("La cámara no está disponible desde este navegador.");
-  return;
- }
- if(!("BarcodeDetector" in window)){
-  // Still open the rear camera even if automatic QR decode is unavailable.
-  try{
-   detenerEscanerQR(false);
-   flkQrStream=await flkAbrirCamaraTraseraPreferida();
-   const video=document.getElementById("flkQrVideo");
-   video.srcObject=flkQrStream;
-   await video.play();
-   if(estado)estado.textContent="Cámara trasera abierta. Este navegador no admite lectura QR automática; usa Código manual si fuera necesario.";
-  }catch(err){
-   console.error(err);
-   if(estado)estado.textContent="No se pudo abrir la cámara trasera.";
-   alert("No se pudo abrir la cámara trasera. Revisa el permiso de cámara del navegador.");
-  }
-  return;
- }
- try{
-  detenerEscanerQR(false);
-  flkQrDetector=new BarcodeDetector({formats:["qr_code"]});
-  flkQrStream=await flkAbrirCamaraTraseraPreferida();
-  const video=document.getElementById("flkQrVideo");
-  video.srcObject=flkQrStream;
-  await video.play();
-  flkQrActivo=true;
-  if(estado)estado.textContent="Cámara trasera activa. Apunta al código QR.";
-  flkQrLeer();
- }catch(err){
-  console.error(err);
-  if(estado)estado.textContent="No se pudo abrir la cámara trasera.";
-  alert("No se pudo abrir la cámara trasera. Revisa el permiso de cámara del navegador.");
- }
-}
+/* FLK QR: definición antigua sobrescrita eliminada; se conserva la versión activa posterior. */
 
 async function flkAbrirCamaraTraseraPreferida(){
  // First request the physical rear camera explicitly.
