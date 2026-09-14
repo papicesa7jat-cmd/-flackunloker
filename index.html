@@ -3904,8 +3904,17 @@ async function flkProcesarColaOffline(){
   }catch(err){
    const msg=String(err?.message||err);
    op.ultimo_error=msg;
-   op.estado=/inventario insuficiente|producto no encontrado|duplicate key|conflict/i.test(msg)?"conflicto":"error";
-   console.error("Operación offline",op.id,msg)
+
+   // v62.15 · Un reset que todavía espera PIN no es un error de sincronización.
+   // Se conserva pendiente y no se elimina de la cola.
+   if(err?.flkPendingReauth===true){
+    op.estado="pendiente";
+    op.ultimo_error="Pendiente de autorización con PIN.";
+    console.info("Restablecimiento pendiente de autorización",op.id);
+   }else{
+    op.estado=/inventario insuficiente|producto no encontrado|duplicate key|conflict/i.test(msg)?"conflicto":"error";
+    console.error("Operación offline",op.id,msg);
+   }
   }
   flkGuardarColaOffline(q)
  }
