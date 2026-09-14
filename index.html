@@ -12730,77 +12730,9 @@ async function abrirResetCentroAdminSoftware(businessId){
  }
 }
 
-async function cambiarPinResetCentroAdminSoftware(businessId){
- try{
-  if(!flkEsPropietarioSoftware){
-   await flkComprobarPropietarioSoftware();
-  }
+/* FLK: definición duplicada de cambiarPinResetCentroAdminSoftware eliminada; se conserva la versión activa posterior. */
 
-  const esAdminDeSuPropioCentro=rolSesion==="admin" && flkUuidValido(FLK_BUSINESS_ID) && String(businessId)===String(FLK_BUSINESS_ID);
-  if(!flkEsPropietarioSoftware && !esAdminDeSuPropioCentro)
-    return alert("Solo el propietario o el administrador de este centro pueden cambiar su PIN de restablecimiento.");
-
-  const pin=String(prompt("Nuevo PIN de restablecimiento (6 dígitos):")||"").trim();
-
-  if(!/^\d{6}$/.test(pin))
-    return alert("El PIN debe tener exactamente 6 dígitos.");
-
-  const confirmar=String(prompt("Confirmar nuevo PIN:")||"").trim();
-
-  if(pin!==confirmar)
-    return alert("Los PIN no coinciden.");
-
-  const {error}=await flkSupabase.rpc("flk_change_center_reset_pin",{
-    p_business_id:businessId,
-    p_new_pin:pin
-  });
-
-  if(error)throw error;
-
-  alert("PIN de restablecimiento actualizado correctamente.");
-
- }catch(e){
-  console.error("Cambio PIN restablecimiento:",e);
-  alert("No se pudo cambiar el PIN: "+(e?.message||e));
- }
-}
-
-async function cambiarPasswordCentroAdminSoftware(businessId){
- await flkComprobarPropietarioSoftware();
- if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
- const centro=flkAdminSoftwareCentros.find(c=>String(c.business_id)===String(businessId));
- if(!centro)return alert("Centro no encontrado.");
-
- try{
-   const {data,error}=await flkSupabase.rpc("flk_software_admin_list_users");
-   if(error)throw error;
-
-   const usuarios=(Array.isArray(data)?data:[]).filter(u=>String(u.business_id)===String(businessId));
-   if(!usuarios.length)return alert("Este centro no tiene usuarios asignados.");
-
-   const opciones=usuarios.map((u,i)=>`${i+1}. ${u.email}`).join("\n");
-   const sel=prompt("Seleccione usuario:\n\n"+opciones);
-   const indice=Number(sel)-1;
-   if(!Number.isInteger(indice)||!usuarios[indice])return;
-
-   const nueva=prompt("Nueva contraseña (mínimo 6 caracteres):");
-   if(!nueva||nueva.length<6)return alert("Contraseña inválida.");
-
-   const confirmar=prompt("Confirmar nueva contraseña:");
-   if(nueva!==confirmar)return alert("Las contraseñas no coinciden.");
-
-   const {error:err}=await flkSupabase.rpc("flk_software_admin_change_password",{
-      p_user_id:usuarios[indice].user_id,
-      p_new_password:nueva
-   });
-   if(err)throw err;
-
-   alert("Contraseña cambiada correctamente.");
- }catch(e){
-   console.error("Cambio contraseña centro:",e);
-   alert("No se pudo cambiar la contraseña: "+(e?.message||"Error desconocido"));
- }
-}
+/* FLK: definición duplicada de cambiarPasswordCentroAdminSoftware eliminada; se conserva la versión activa posterior. */
 </script>
 
 <!-- v61.71: Prestaciones integradas en resultados de Finanzas; costo externo no afecta flujo de caja -->
