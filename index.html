@@ -96,6 +96,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
+<!-- v62.21 SEGURIDAD: Content-Security-Policy explícita.
+     Nota: 'unsafe-eval' es necesario porque el cargador offline de
+     supabase-js/qrcodejs/jsqr/html5-qrcode guarda el código de esas
+     librerías en localStorage y lo ejecuta con eval() para poder
+     arrancar sin Internet (ver flk-supabase-loader-v6186-login-fix y
+     flk-qr-offline-loader). Quitar 'unsafe-eval' rompería el modo
+     offline. Si en el futuro se elimina ese mecanismo (por ejemplo
+     usando Cache API/Service Worker en vez de eval), se puede quitar
+     'unsafe-eval' y endurecer más esta política.
+     frame-ancestors no tiene efecto en un <meta> (el estándar lo
+     ignora ahí): si el hosting lo permite, añadir también la cabecera
+     HTTP "X-Frame-Options: DENY" o "Content-Security-Policy:
+     frame-ancestors 'none'" en el servidor. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://eviwhrqhinhnyccizkfq.supabase.co wss://eviwhrqhinhnyccizkfq.supabase.co https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="flackunloker-offline-version" content="2026-09-13-v62.13-reset-centro-offline-first">
 <title>Flackunloker</title>
 <style>
@@ -865,6 +879,17 @@ button.menu-toggle{
 (function(){
  var KEY="flk_lib_supabasejs_v3";
  var URL="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0";
+ /* v62.21 SEGURIDAD: Subresource Integrity (SRI) para el <script> que
+    viene de jsDelivr. Se deja vacío a propósito: un hash inventado o
+    desactualizado haría que el navegador BLOQUEE el script (falla
+    silenciosa) y la app caería siempre al modo offline-stub, incluso
+    con Internet. Para activarlo, genera el hash real de esta versión
+    exacta y pégalo aquí, por ejemplo:
+      curl -s https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0 \
+        | openssl dgst -sha384 -binary | openssl base64 -A
+    y luego usa: INTEGRITY="sha384-<resultado>";
+    Recuerda repetir este paso cada vez que se suba la versión fijada. */
+ var INTEGRITY="";
 
  function checksum(s){
   // Suma de verificación simple (no criptográfica): solo detecta corrupción
@@ -905,7 +930,8 @@ button.menu-toggle{
     después de este bloque. Así PC, iPhone y otros navegadores no quedan
     falsamente atrapados en "offline" después de limpiar caché. */
  if(!(window.supabase&&window.supabase.createClient) && navigator.onLine){
-  document.write('<script src="'+URL+'"><\/script>');
+  var atrs=INTEGRITY?' integrity="'+INTEGRITY+'" crossorigin="anonymous"':'';
+  document.write('<script src="'+URL+'"'+atrs+'><\/script>');
  }
 
  /* Después de una carga online correcta se renueva la copia local que ya usa
