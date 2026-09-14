@@ -182,7 +182,7 @@
      HTTP "X-Frame-Options: DENY" o "Content-Security-Policy:
      frame-ancestors 'none'" en el servidor. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://eviwhrqhinhnyccizkfq.supabase.co wss://eviwhrqhinhnyccizkfq.supabase.co https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
-<meta name="flackunloker-offline-version" content="2026-09-13-v62.13-reset-centro-offline-first">
+<meta name="flackunloker-offline-version" content="2026-09-14-v62.30-sync-qr-hid-init">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2995,23 +2995,32 @@ async function flkComprobarServidorEnVivo(){
 // dispara la sincronización sin bloquear la interfaz. También comprueba al
 // volver el foco a la app, útil en Electron después de una caída de red.
 let flkUltimoEstadoServidorVivo=false;
+let flkTemporizadorVigilanciaServidor=null;
+function flkProgramarVigilanciaServidor(demora=80){
+ if(flkTemporizadorVigilanciaServidor)clearTimeout(flkTemporizadorVigilanciaServidor);
+ flkTemporizadorVigilanciaServidor=setTimeout(()=>{
+  flkTemporizadorVigilanciaServidor=null;
+  if(document.visibilityState!=="hidden")flkVigilarServidorYReaccionar();
+ },Math.max(0,Number(demora)||0));
+}
 async function flkVigilarServidorYReaccionar(){
  const antes=flkServidorAlcanzableActual===true;
  const ahora=await flkComprobarServidorEnVivo();
  if(ahora && !antes && flkSesionActiva){
-  setTimeout(()=>{
-   try{ if(typeof flkSincronizarSeguro==="function")flkSincronizarSeguro(); }catch(_){}
-  },180);
+  try{
+   if(typeof flkSolicitarSincronizacion==="function")flkSolicitarSincronizacion("servidor-recuperado",180);
+   else setTimeout(()=>{if(typeof flkSincronizarSeguro==="function")flkSincronizarSeguro();},180);
+  }catch(_){}
  }
  flkUltimoEstadoServidorVivo=ahora;
  return ahora;
 }
 setInterval(()=>{
- if(document.visibilityState!=="hidden")flkVigilarServidorYReaccionar();
+ if(document.visibilityState!=="hidden")flkProgramarVigilanciaServidor(0);
 },30000);
-window.addEventListener("focus",()=>setTimeout(flkVigilarServidorYReaccionar,80));
+window.addEventListener("focus",()=>flkProgramarVigilanciaServidor(80));
 document.addEventListener("visibilitychange",()=>{
- if(!document.hidden)setTimeout(flkVigilarServidorYReaccionar,80);
+ if(!document.hidden)flkProgramarVigilanciaServidor(80);
 });
 
 function flkArchivarOperacionConfirmada(op){
@@ -3919,9 +3928,39 @@ async function flkSupabaseDisponible(timeoutMs=4500){
  }
 }
 
+let flkTemporizadorSyncSolicitada=null;
+let flkSyncSolicitadaMientrasCorre=false;
+let flkUltimaSyncIniciadaMs=0;
+
+/* v62.29 · Coordinador único de sincronización.
+   Agrupa eventos online/focus/visibility y operaciones rápidas para evitar
+   varias recuperaciones completas de Supabase casi al mismo tiempo. */
+function flkSolicitarSincronizacion(motivo="auto",demora=250){
+ if(!flkNubeDisponible())return false;
+ if(flkOrquestandoSync){
+  flkSyncSolicitadaMientrasCorre=true;
+  return true;
+ }
+ if(flkTemporizadorSyncSolicitada)clearTimeout(flkTemporizadorSyncSolicitada);
+ flkTemporizadorSyncSolicitada=setTimeout(async()=>{
+  flkTemporizadorSyncSolicitada=null;
+  const transcurrido=Date.now()-flkUltimaSyncIniciadaMs;
+  if(transcurrido<900){
+   return flkSolicitarSincronizacion(motivo,900-transcurrido);
+  }
+  try{
+   await flkSincronizarSeguro();
+  }catch(err){
+   console.warn("Sincronización solicitada ("+motivo+"):",err);
+  }
+ },Math.max(0,Number(demora)||0));
+ return true;
+}
+
 async function flkSincronizarSeguro(){
  if(flkOrquestandoSync||!flkNubeDisponible())return false;
  flkOrquestandoSync=true;
+ flkUltimaSyncIniciadaMs=Date.now();
  try{
   const disponible=await flkSupabaseDisponible();
   if(!disponible){
@@ -3969,6 +4008,10 @@ async function flkSincronizarSeguro(){
   return false;
  }finally{
   flkOrquestandoSync=false;
+  if(flkSyncSolicitadaMientrasCorre){
+   flkSyncSolicitadaMientrasCorre=false;
+   flkSolicitarSincronizacion("pendiente-durante-sync",900);
+  }
  }
 }
 
@@ -4025,7 +4068,7 @@ window.addEventListener("online",async()=>{
   if(data?.session?.user){
    flkGuardarSesionLocal(data.session);
    await cargarRolUsuario(data.session.user);
-   setTimeout(()=>flkSincronizarSeguro(),250);
+   flkSolicitarSincronizacion("online-sesion",250);
   }else{
    const cache=flkSesionLocal();
    if(cache?.user){flkPintarSesionLocal(cache.user);flkActualizarEstadoConexion();}
@@ -4252,12 +4295,11 @@ function flkPrepararOperacionLocalPrimero(formId){
 
   // Si realmente hay Internet, subir pendientes sin bloquear la interfaz.
   if(navigator.onLine && localStorage.getItem(FLK_FORCE_OFFLINE_KEY)!=="1"){
-   setTimeout(()=>{
-    try{
-     if(typeof flkSincronizarSeguro==="function")flkSincronizarSeguro();
-     else if(typeof flkProcesarColaOffline==="function")flkProcesarColaOffline();
-    }catch(err){console.warn("Sincronización diferida:",err)}
-   },0);
+   try{
+    if(typeof flkSolicitarSincronizacion==="function")flkSolicitarSincronizacion("operacion-local",120);
+    else if(typeof flkSincronizarSeguro==="function")setTimeout(()=>flkSincronizarSeguro(),120);
+    else if(typeof flkProcesarColaOffline==="function")setTimeout(()=>flkProcesarColaOffline(),120);
+   }catch(err){console.warn("Sincronización diferida:",err)}
   }
  },2250);
 
@@ -4767,7 +4809,7 @@ async function mostrarAppConSesion(session){
     console.info("Centro local cambiado:",centroAnterior,"→",FLK_BUSINESS_ID);
    }
    await flkValidarLicencia();
-   setTimeout(()=>flkSincronizarSeguro(),220);
+   flkSolicitarSincronizacion("inicio-sesion",220);
   }
  }else{
   flkSesionActiva=false;
@@ -10417,22 +10459,19 @@ window.addEventListener("load",()=>{
 window.addEventListener("online",async()=>{
  setTimeout(()=>flkValidarLicencia(),250);
  // Al regresar Internet, sincroniza la cola offline sin cerrar sesión.
- setTimeout(async()=>{
-  try{
-   if(typeof flkSincronizarSeguro==="function"){
-    await flkSincronizarSeguro();
-   }
-  }catch(e){
-   console.warn("Sincronización automática al volver Internet:",e);
-  }
- },500);
+ try{
+  if(typeof flkSolicitarSincronizacion==="function")flkSolicitarSincronizacion("online-licencia",500);
+  else if(typeof flkSincronizarSeguro==="function")setTimeout(()=>flkSincronizarSeguro(),500);
+ }catch(e){
+  console.warn("Sincronización automática al volver Internet:",e);
+ }
 });
 window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=62.26",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=62.29",{updateViaCache:"none"});
    if(flkNubeDisponible())setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
@@ -11032,7 +11071,8 @@ body.flk-v6125 #listaCierres .cierre-detalle strong {color:#000000 !important;}
 <script id="flk-qr-safe-js">
 let flkQrStream=null,flkQrDetector=null,flkQrActivo=false,flkProductoEtiquetaActual=null;
 let flkQrModo="",flkQrVentaItems=[],flkQrUltimo="",flkQrUltimoTs=0;
-let flkLectorFisicoActivo=false,flkLectorFisicoBuffer="",flkLectorFisicoUltimoTs=0,flkLectorFisicoTimer=null;
+// v62.30 · HID listo desde el arranque: no abre cámara ni solicita permisos.
+let flkLectorFisicoActivo=true,flkLectorFisicoBuffer="",flkLectorFisicoUltimoTs=0,flkLectorFisicoTimer=null;
 
 
 function flkQrEsc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
@@ -12773,8 +12813,8 @@ function pintar(){load();var h=hoy(),m=mes();set('prestIngresosHoy',money(h.ingr
 function flkMetodoPrestNube(v){return ({efectivo:'Efectivo',ath_movil:'ATH Móvil',tarjeta:'Tarjeta',transferencia:'Transferencia',otro:'Otro'})[v]||v||'Efectivo';}
 window.flkCargarPrestacionesNube=async function(){if(typeof flkNubeDisponible!=='function'||!flkNubeDisponible()||typeof flkSupabase==='undefined')return false;try{var bid=await flkExigirCentroActual();var r=await flkSupabase.from('service_provisions').select('*').eq('business_id',bid).order('service_date',{ascending:true}).order('created_at',{ascending:true});if(r.error)throw r.error;load();var q=typeof flkColaOffline==='function'?flkColaOffline():[];var ps=new Set(q.filter(function(o){return o.tipo==='service_provision_save'&&o.estado!=='sincronizado';}).map(function(o){return o.id;}));var pd=new Set(q.filter(function(o){return o.tipo==='service_provision_delete'&&o.estado!=='sincronizado'&&o.payload&&o.payload.cloud_id;}).map(function(o){return String(o.payload.cloud_id);}));var nube=(r.data||[]).filter(function(x){return !pd.has(String(x.id));}).map(function(x){return {id:String(x.id),cloud_id:String(x.id),operation_id:x.operation_id||'',descripcion:x.description||'',tipo:x.service_type||'ingreso',ingreso:Number(x.income||0),costo:Number(x.external_cost||0),metodo:flkMetodoPrestNube(x.payment_method),fecha:x.service_date,created_at:x.created_at||''};});var pendientes=prestacionesServicio.filter(function(p){return p.operation_id&&ps.has(p.operation_id);});var legacy=prestacionesServicio.filter(function(p){return !p.cloud_id&&!p.operation_id;});var m=new Map();nube.concat(pendientes).concat(legacy).forEach(function(p){m.set(String(p.cloud_id||p.operation_id||p.id),p);});prestacionesServicio=Array.from(m.values());save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();return true;}catch(e){if(typeof flkSilenciarSiEsConexion==='function'&&flkSilenciarSiEsConexion(e))return false;console.error('Prestaciones nube:',e);return false;}};
 window.flkCambiarTipoPrestacion=function(){var t=document.getElementById('prestTipo'),c=document.getElementById('prestCosto');if(!t||!c)return;c.disabled=t.value!=='ingreso_costo';if(c.disabled)c.value='0';};
-window.flkGuardarPrestacionServicio=function(){if(typeof requiereAdmin==='function'&&!requiereAdmin('Registrar prestaciones de servicio'))return;var de=document.getElementById('prestDescripcion'),ti=document.getElementById('prestTipo'),ing=document.getElementById('prestIngreso'),me=document.getElementById('prestMetodo'),co=document.getElementById('prestCosto'),fe=document.getElementById('prestFecha');var descripcion=String(de?de.value:'').trim(),tipo=ti?ti.value:'ingreso',ingreso=Number(ing?ing.value:0),metodo=me?me.value:'Efectivo',costo=tipo==='ingreso_costo'?Number(co?co.value:0):0,fecha=fe?fe.value:'';if(!descripcion)return alert('Escribe la descripción de la prestación.');if(!fecha)return alert('Selecciona la fecha.');if(ingreso<0||costo<0)return alert('Los importes no pueden ser negativos.');load();var localId=typeof flkUUID==='function'?flkUUID():'prest-'+Date.now();var op=typeof flkEncolarOperacion==='function'?flkEncolarOperacion('service_provision_save',{description:descripcion,service_type:tipo,income:ingreso,payment_method:metodo,external_cost:costo,service_date:fecha,local_id:localId}):null;prestacionesServicio.push({id:localId,operation_id:op?op.id:'',descripcion:descripcion,tipo:tipo,ingreso:ingreso,costo:costo,metodo:metodo,fecha:fecha,created_at:new Date().toISOString(),offlinePendiente:!!op});save();if(de)de.value='';if(ing)ing.value='0';if(co)co.value='0';pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()&&typeof flkSincronizarSeguro==='function')setTimeout(function(){flkSincronizarSeguro();},50);};
-window.flkEliminarPrestacionServicio=function(id){if(typeof requiereAdmin==='function'&&!requiereAdmin('Eliminar prestaciones de servicio'))return;if(!confirm('¿Eliminar esta prestación?'))return;load();var p=prestacionesServicio.find(function(x){return String(x.id)===String(id);});if(!p)return;if(typeof flkEncolarOperacion==='function')flkEncolarOperacion('service_provision_delete',{cloud_id:p.cloud_id||null,operation_id:p.operation_id||null,local_id:String(p.id)});prestacionesServicio=prestacionesServicio.filter(function(x){return String(x.id)!==String(id);});save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()&&typeof flkSincronizarSeguro==='function')setTimeout(function(){flkSincronizarSeguro();},50);};
+window.flkGuardarPrestacionServicio=function(){if(typeof requiereAdmin==='function'&&!requiereAdmin('Registrar prestaciones de servicio'))return;var de=document.getElementById('prestDescripcion'),ti=document.getElementById('prestTipo'),ing=document.getElementById('prestIngreso'),me=document.getElementById('prestMetodo'),co=document.getElementById('prestCosto'),fe=document.getElementById('prestFecha');var descripcion=String(de?de.value:'').trim(),tipo=ti?ti.value:'ingreso',ingreso=Number(ing?ing.value:0),metodo=me?me.value:'Efectivo',costo=tipo==='ingreso_costo'?Number(co?co.value:0):0,fecha=fe?fe.value:'';if(!descripcion)return alert('Escribe la descripción de la prestación.');if(!fecha)return alert('Selecciona la fecha.');if(ingreso<0||costo<0)return alert('Los importes no pueden ser negativos.');load();var localId=typeof flkUUID==='function'?flkUUID():'prest-'+Date.now();var op=typeof flkEncolarOperacion==='function'?flkEncolarOperacion('service_provision_save',{description:descripcion,service_type:tipo,income:ingreso,payment_method:metodo,external_cost:costo,service_date:fecha,local_id:localId}):null;prestacionesServicio.push({id:localId,operation_id:op?op.id:'',descripcion:descripcion,tipo:tipo,ingreso:ingreso,costo:costo,metodo:metodo,fecha:fecha,created_at:new Date().toISOString(),offlinePendiente:!!op});save();if(de)de.value='';if(ing)ing.value='0';if(co)co.value='0';pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()){if(typeof flkSolicitarSincronizacion==='function')flkSolicitarSincronizacion('prestaciones',120);else if(typeof flkSincronizarSeguro==='function')setTimeout(function(){flkSincronizarSeguro();},120);}};
+window.flkEliminarPrestacionServicio=function(id){if(typeof requiereAdmin==='function'&&!requiereAdmin('Eliminar prestaciones de servicio'))return;if(!confirm('¿Eliminar esta prestación?'))return;load();var p=prestacionesServicio.find(function(x){return String(x.id)===String(id);});if(!p)return;if(typeof flkEncolarOperacion==='function')flkEncolarOperacion('service_provision_delete',{cloud_id:p.cloud_id||null,operation_id:p.operation_id||null,local_id:String(p.id)});prestacionesServicio=prestacionesServicio.filter(function(x){return String(x.id)!==String(id);});save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()){if(typeof flkSolicitarSincronizacion==='function')flkSolicitarSincronizacion('prestaciones',120);else if(typeof flkSincronizarSeguro==='function')setTimeout(function(){flkSincronizarSeguro();},120);}};
 window.mostrarPrestacionesServicio=function(){try{flkLocalStorageSetSeguro('flackunloker_ultimo_modulo_v1','botonPrestacionesServicio');}catch(_){}if(typeof flkOcultarTodasLasVistas==='function')flkOcultarTodasLasVistas();var v=document.getElementById('vistaPrestacionesServicio');if(!v)return alert('No se pudo abrir Prestaciones de servicio.');v.style.display='block';document.querySelectorAll('.menu-cuadricula button').forEach(function(b){b.classList.remove('activo');});var btn=document.getElementById('botonPrestacionesServicio');if(btn)btn.classList.add('activo');if(typeof cerrarMenuPrincipal==='function')cerrarMenuPrincipal();var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();if(typeof flkCargarPrestacionesNube==='function')flkCargarPrestacionesNube();};
 function init(){var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
