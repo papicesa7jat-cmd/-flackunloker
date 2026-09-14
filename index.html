@@ -11205,6 +11205,7 @@ function toggleLectorFisico(){
  flkLectorFisicoActivo=!flkLectorFisicoActivo;
  flkLectorFisicoBuffer="";
  flkLectorFisicoUltimoTs=0;
+ flkLectorFisicoPrimerTs=0;
  if(flkLectorFisicoTimer){clearTimeout(flkLectorFisicoTimer);flkLectorFisicoTimer=null}
  actualizarEstadoLectorFisico();
 }
@@ -11220,37 +11221,78 @@ function flkProcesarBufferLectorFisico(){
   if(flkLectorFisicoActivo&&e)e.textContent="Listo para el siguiente escaneo…";
  },450);
 }
+// v62.24 · HENEX HC-3206R / HID ROBUSTO
+// Bluetooth/Windows puede introducir pausas breves entre caracteres.
+// Se toleran esas pausas sin cortar el QR y Enter/Tab siguen siendo
+// los terminadores preferidos enviados por el lector.
+const FLK_HID_CORTE_ENTRE_TECLAS_MS=650;
+const FLK_HID_ESPERA_FINAL_MS=230;
+const FLK_HID_MIN_CODIGO=3;
+let flkLectorFisicoPrimerTs=0;
+
+function flkProgramarFinLecturaHID(){
+ if(flkLectorFisicoTimer)clearTimeout(flkLectorFisicoTimer);
+ flkLectorFisicoTimer=setTimeout(function(){
+  flkLectorFisicoTimer=null;
+  if(flkLectorFisicoBuffer.trim().length>=FLK_HID_MIN_CODIGO){
+   flkProcesarBufferLectorFisico();
+  }
+ },FLK_HID_ESPERA_FINAL_MS);
+}
+
 document.addEventListener("keydown",function(ev){
  if(!flkLectorFisicoActivo)return;
  const modal=document.getElementById("modalEscanerQR");
  if(!modal||!modal.classList.contains("visible"))return;
+
  const target=ev.target;
+ // No secuestrar escritura deliberada en formularios. El campo manual QR
+ // sí puede recibir el lector porque forma parte del propio escáner.
  if(target && ["TEXTAREA","SELECT"].includes(target.tagName))return;
+ if(target && target.tagName==="INPUT" && target.id!=="flkQrCodigoManual")return;
+
+ if(ev.isComposing || ev.repeat || ev.ctrlKey || ev.altKey || ev.metaKey)return;
 
  const ahora=Date.now();
- if(flkLectorFisicoUltimoTs && ahora-flkLectorFisicoUltimoTs>220)flkLectorFisicoBuffer="";
- flkLectorFisicoUltimoTs=ahora;
 
- if(ev.key==="Enter"){
-  ev.preventDefault();
-  if(flkLectorFisicoTimer){clearTimeout(flkLectorFisicoTimer);flkLectorFisicoTimer=null}
-  flkProcesarBufferLectorFisico();
-  return;
+ // Si hubo una pausa realmente larga, el siguiente carácter inicia
+ // una lectura nueva. 650 ms tolera mejor Bluetooth que los 220 ms anteriores.
+ if(flkLectorFisicoUltimoTs &&
+    ahora-flkLectorFisicoUltimoTs>FLK_HID_CORTE_ENTRE_TECLAS_MS){
+  flkLectorFisicoBuffer="";
+  flkLectorFisicoPrimerTs=0;
+  if(flkLectorFisicoTimer){
+   clearTimeout(flkLectorFisicoTimer);
+   flkLectorFisicoTimer=null;
+  }
  }
- if(ev.key==="Tab"){
-  if(flkLectorFisicoBuffer){
+
+ if(ev.key==="Enter" || ev.key==="Tab"){
+  if(flkLectorFisicoBuffer.trim().length>=FLK_HID_MIN_CODIGO){
    ev.preventDefault();
+   if(flkLectorFisicoTimer){
+    clearTimeout(flkLectorFisicoTimer);
+    flkLectorFisicoTimer=null;
+   }
    flkProcesarBufferLectorFisico();
   }
+  flkLectorFisicoUltimoTs=0;
+  flkLectorFisicoPrimerTs=0;
   return;
  }
- if(ev.key.length===1 && !ev.ctrlKey && !ev.altKey && !ev.metaKey){
-  flkLectorFisicoBuffer+=ev.key;
-  if(flkLectorFisicoTimer)clearTimeout(flkLectorFisicoTimer);
-  flkLectorFisicoTimer=setTimeout(function(){
-    if(flkLectorFisicoBuffer.length>=4)flkProcesarBufferLectorFisico();
-  },90);
- }
+
+ // Ignorar teclas de control/modificadores. Solo caracteres imprimibles
+ // forman parte del código enviado por el HENEX.
+ if(ev.key.length!==1)return;
+
+ if(!flkLectorFisicoBuffer)flkLectorFisicoPrimerTs=ahora;
+ flkLectorFisicoUltimoTs=ahora;
+ flkLectorFisicoBuffer+=ev.key;
+
+ // Evita que el carácter del lector quede escrito también en el input manual.
+ if(target && target.id==="flkQrCodigoManual")ev.preventDefault();
+
+ flkProgramarFinLecturaHID();
 });
 
 function seleccionarModoQR(modo){
@@ -11265,7 +11307,7 @@ function seleccionarModoQR(modo){
 function abrirEscanerQR(){
  try{cerrarMenuPrincipal()}catch(_){}
  flkQrModo="";flkQrVentaItems=[];flkQrUltimo="";flkQrUltimoTs=0;
- flkLectorFisicoBuffer="";flkLectorFisicoUltimoTs=0;
+ flkLectorFisicoBuffer="";flkLectorFisicoUltimoTs=0;flkLectorFisicoPrimerTs=0;
  actualizarEstadoLectorFisico();
  document.querySelectorAll("#flkQrModos button").forEach(b=>b.classList.remove("activo"));
  const t=document.getElementById("flkQrModoTexto");if(t)t.textContent="Modo: selecciona una operación";
