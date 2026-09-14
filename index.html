@@ -2652,10 +2652,11 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
     <label for="licNuevoVencimiento">Vencimiento</label>
     <input id="licNuevoVencimiento" type="datetime-local">
    </div>
-   <div class="campo">
-    <label for="licNuevaGracia">Gracia offline (días)</label>
-    <input id="licNuevaGracia" type="number" min="0" max="30" value="3">
-   </div>
+   <<div class="campo">
+ <label for="licNuevaGracia">Gracia offline (días)</label>
+ <input id="licNuevaGracia" type="number" min="0" max="90" value="15">
+ <small class="ayuda-campo">Días que la instalación sigue funcionando sin Internet. Recomendado: 15–30 para zonas con conexión inestable.</small>
+</div>
    <div class="campo">
     <label for="licNuevasNotas">Notas</label>
     <input id="licNuevasNotas" type="text" maxlength="250" placeholder="Opcional">
