@@ -3050,6 +3050,10 @@ const FLK_SYNC_CONFIRMED_KEY="flackunloker_sync_confirmed_v2";
 const FLK_OFFLINE_ARCHIVE_KEY="flackunloker_offline_archive_v2";
 const FLK_DEVICE_KEY="flackunloker_device_id_v1";
 let flkSincronizando=false;
+// v62.23 ESTABILIDAD: evita que varios eventos online/focus/sync abran
+// repetidamente el mismo prompt de reautorización de reset.
+// Solo vive en memoria: nunca persiste el PIN ni el estado sensible.
+let flkResetReauthSuspendidoHasta=0;
 
 function flkLeerArrayLocal(key){
  try{
@@ -3122,7 +3126,7 @@ async function flkVigilarServidorYReaccionar(){
 }
 setInterval(()=>{
  if(document.visibilityState!=="hidden")flkVigilarServidorYReaccionar();
-},12000);
+},30000);
 window.addEventListener("focus",()=>setTimeout(flkVigilarServidorYReaccionar,80));
 document.addEventListener("visibilitychange",()=>{
  if(!document.hidden)setTimeout(flkVigilarServidorYReaccionar,80);
@@ -3766,17 +3770,28 @@ async function flkProcesarOperacionOffline(op){
   // Se solicita únicamente cuando hay conexión y el reset va a enviarse a Supabase.
   let pin="";
   if(p.requires_reauth===true){
+   // Si el usuario canceló/invalidó recientemente el PIN, otros disparadores
+   // automáticos de sincronización no vuelven a abrir el prompt durante 30 s.
+   if(Date.now()<flkResetReauthSuspendidoHasta){
+    const e=new Error("Restablecimiento pendiente: autorización aplazada.");
+    e.flkPendingReauth=true;
+    throw e;
+   }
+
    pin=String(prompt("Hay un restablecimiento pendiente de sincronizar.\n\nIntroduce el PIN de restablecimiento de 6 dígitos para autorizarlo en Supabase:")||"").trim();
    if(!pin){
+    flkResetReauthSuspendidoHasta=Date.now()+30000;
     const e=new Error("Restablecimiento pendiente: falta autorización con PIN.");
     e.flkPendingReauth=true;
     throw e;
    }
-   if(!/^\\d{6}$/.test(pin)){
+   if(!/^\d{6}$/.test(pin)){
+    flkResetReauthSuspendidoHasta=Date.now()+30000;
     const e=new Error("El PIN de restablecimiento debe tener exactamente 6 dígitos.");
     e.flkPendingReauth=true;
     throw e;
    }
+   flkResetReauthSuspendidoHasta=0;
   }else{
    // Compatibilidad temporal con operaciones antiguas que pudieran existir
    // antes de retirar el PIN de la cola.
@@ -4098,6 +4113,8 @@ async function flkProcesarColaOffline(){
    // v62.15 · Un reset que todavía espera PIN no es un error de sincronización.
    // Se conserva pendiente y no se elimina de la cola.
    if(err?.flkPendingReauth===true){
+    // No fue un intento real contra Supabase; no inflar el contador de reintentos.
+    op.intentos=Math.max(0,Number(op.intentos||1)-1);
     op.estado="pendiente";
     op.ultimo_error="Pendiente de autorización con PIN.";
     console.info("Restablecimiento pendiente de autorización",op.id);
@@ -10533,7 +10550,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.48",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=62.23",{updateViaCache:"none"});
    if(flkNubeDisponible())setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
