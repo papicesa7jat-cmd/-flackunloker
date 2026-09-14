@@ -1,9 +1,187 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+
+<script id="flk-localstorage-guard-v6216">
+/* OFFLINE-3 · Guardia síncrona de capacidad de localStorage.
+   Todas las escrituras de Flackunloker pasan por aquí antes de grabarse. */
+(function(){
+ const nativeSet=Storage.prototype.setItem;
+ const nativeRemove=Storage.prototype.removeItem;
+ let avisoMostrado=false;
+
+ function esQuotaError(err){
+  return !!err && (
+   err.name==="QuotaExceededError" ||
+   err.name==="NS_ERROR_DOM_QUOTA_REACHED" ||
+   err.code===22 || err.code===1014
+  );
+ }
+
+ window.flkUsoLocalStorageAprox=function(){
+  let chars=0;
+  try{
+   for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i)||"";
+    const v=localStorage.getItem(k)||"";
+    chars+=k.length+v.length;
+   }
+  }catch(_){}
+  return chars*2;
+ };
+
+ window.flkComprobarEspacioLocalStorage=function(clave,valor){
+  const k=String(clave);
+  const v=String(valor);
+  let anterior=null;
+  try{anterior=localStorage.getItem(k)}catch(_){anterior=null}
+
+  const charsAnteriores=(anterior===null?0:k.length+String(anterior).length);
+  const charsNuevos=k.length+v.length;
+  const crecimiento=Math.max(0,charsNuevos-charsAnteriores);
+
+  // Si no crece, la sustitución no necesita reservar espacio adicional.
+  if(crecimiento===0)return true;
+
+  const probe="__flk_storage_probe__";
+  try{
+   // Reserva temporal del crecimiento + pequeño margen para metadatos del navegador.
+   nativeSet.call(localStorage,probe,"0".repeat(crecimiento+512));
+   nativeRemove.call(localStorage,probe);
+   return true;
+  }catch(err){
+   try{nativeRemove.call(localStorage,probe)}catch(_){}
+   if(esQuotaError(err))return false;
+   throw err;
+  }
+ };
+
+ window.flkLocalStorageSetSeguro=function(clave,valor){
+  const k=String(clave);
+  const v=String(valor);
+
+  if(!window.flkComprobarEspacioLocalStorage(k,v)){
+   const err=new Error("Espacio local insuficiente. La operación NO fue guardada.");
+   err.name="FlkStorageQuotaError";
+   err.flkStorageFull=true;
+   console.error("Flackunloker localStorage:",err.message,"Clave:",k,
+     "Uso aprox.:",Math.round(window.flkUsoLocalStorageAprox()/1024),"KB");
+
+   if(!avisoMostrado){
+    avisoMostrado=true;
+    setTimeout(()=>{
+     alert("⚠️ Almacenamiento local casi lleno.\n\nFlackunloker detuvo la escritura para evitar pérdida de datos. Sincroniza las operaciones pendientes o libera espacio del navegador antes de continuar.");
+     setTimeout(()=>{avisoMostrado=false},5000);
+    },0);
+   }
+   throw err;
+  }
+
+  try{
+   nativeSet.call(localStorage,k,v);
+   return true;
+  }catch(err){
+   if(esQuotaError(err)){
+    const e=new Error("Espacio local insuficiente. La operación NO fue guardada.");
+    e.name="FlkStorageQuotaError";
+    e.flkStorageFull=true;
+    throw e;
+   }
+   throw err;
+  }
+ };
+})();
+</script>
+
+<script id="flk-error-reporter-v6221">
+/* v62.22 ESTABILIDAD: manejador global de errores.
+   Antes, un error no capturado o una promesa rechazada sin .catch()
+   simplemente desaparecían en la consola del navegador, que el dueño
+   del negocio nunca ve. Esto guarda los últimos errores en localStorage
+   (nunca datos de negocio, solo mensaje/archivo/línea/fecha) para poder
+   diagnosticar problemas reportados por usuarios reales.
+   Consulta desde la consola del navegador:
+     flkVerErroresApp()      -> muestra los últimos errores en tabla
+     flkLimpiarErroresApp()  -> borra el registro guardado */
+(function(){
+ var KEY="flackunloker_errores_app_v1";
+ var MAX=50;
+
+ function guardar(entrada){
+  try{
+   var lista=[];
+   try{
+    var raw=localStorage.getItem(KEY);
+    if(raw)lista=JSON.parse(raw)||[];
+    if(!Array.isArray(lista))lista=[];
+   }catch(_){lista=[];}
+   lista.push(entrada);
+   if(lista.length>MAX)lista=lista.slice(-MAX);
+   var guardarFn=(typeof flkLocalStorageSetSeguro==="function")?flkLocalStorageSetSeguro:function(k,v){localStorage.setItem(k,v);};
+   guardarFn(KEY,JSON.stringify(lista));
+  }catch(_){ /* si ni siquiera esto se puede guardar, no hay nada más que hacer aquí */ }
+ }
+
+ window.onerror=function(mensaje,fuente,linea,columna,error){
+  try{
+   guardar({
+    tipo:"error",
+    mensaje:String(mensaje||""),
+    fuente:String(fuente||""),
+    linea:linea||null,
+    columna:columna||null,
+    stack:error&&error.stack?String(error.stack).slice(0,2000):null,
+    fecha:new Date().toISOString(),
+    url:location.href
+   });
+  }catch(_){}
+  return false; // no suprime el log normal de la consola del navegador
+ };
+
+ window.addEventListener("unhandledrejection",function(event){
+  try{
+   var razon=event&&event.reason;
+   guardar({
+    tipo:"promesa_rechazada",
+    mensaje:String(razon&&razon.message?razon.message:razon||""),
+    stack:razon&&razon.stack?String(razon.stack).slice(0,2000):null,
+    fecha:new Date().toISOString(),
+    url:location.href
+   });
+  }catch(_){}
+ });
+
+ window.flkVerErroresApp=function(){
+  var lista=[];
+  try{lista=JSON.parse(localStorage.getItem(KEY)||"[]");}catch(_){lista=[];}
+  if(!Array.isArray(lista)||!lista.length){console.log("Flackunloker: no hay errores guardados.");return [];}
+  console.table(lista);
+  return lista;
+ };
+
+ window.flkLimpiarErroresApp=function(){
+  try{localStorage.removeItem(KEY);console.log("Flackunloker: registro de errores borrado.");}catch(_){}
+ };
+})();
+</script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a84ff">
+<!-- v62.21 SEGURIDAD: Content-Security-Policy explícita.
+     Nota: 'unsafe-eval' es necesario porque el cargador offline de
+     supabase-js/qrcodejs/jsqr/html5-qrcode guarda el código de esas
+     librerías en localStorage y lo ejecuta con eval() para poder
+     arrancar sin Internet (ver flk-supabase-loader-v6186-login-fix y
+     flk-qr-offline-loader). Quitar 'unsafe-eval' rompería el modo
+     offline. Si en el futuro se elimina ese mecanismo (por ejemplo
+     usando Cache API/Service Worker en vez de eval), se puede quitar
+     'unsafe-eval' y endurecer más esta política.
+     frame-ancestors no tiene efecto en un <meta> (el estándar lo
+     ignora ahí): si el hosting lo permite, añadir también la cabecera
+     HTTP "X-Frame-Options: DENY" o "Content-Security-Policy:
+     frame-ancestors 'none'" en el servidor. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://eviwhrqhinhnyccizkfq.supabase.co wss://eviwhrqhinhnyccizkfq.supabase.co https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="flackunloker-offline-version" content="2026-09-13-v62.13-reset-centro-offline-first">
 <title>Flackunloker</title>
 <style>
@@ -762,10 +940,36 @@ button.menu-toggle{
 /* v61.86 LOGIN MULTIDISPOSITIVO
    Mantiene intacta la estructura online/offline.
    Corrección puntual: evita que el fallback offline gane la carrera contra
-   Supabase cuando el dispositivo SÍ tiene Internet y la caché local fue limpiada. */
+   Supabase cuando el dispositivo SÍ tiene Internet y la caché local fue limpiada.
+   v62.20 SEGURIDAD/ESTABILIDAD:
+   - Se fija una versión exacta de supabase-js (antes "@2" = "siempre la última",
+     lo que podía cambiar de un día para otro sin aviso y romper el arranque).
+   - La copia guardada en localStorage ahora se acompaña de su longitud y una
+     suma de verificación simple. Si el contenido guardado no coincide (por
+     corrupción del almacenamiento, cuota llena a la mitad de una escritura,
+     etc.), se descarta en vez de intentar ejecutar algo incompleto o dañado. */
 (function(){
- var KEY="flk_lib_supabasejs_v2";
- var URL="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+ var KEY="flk_lib_supabasejs_v3";
+ var URL="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0";
+ /* v62.21 SEGURIDAD: Subresource Integrity (SRI) para el <script> que
+    viene de jsDelivr. Se deja vacío a propósito: un hash inventado o
+    desactualizado haría que el navegador BLOQUEE el script (falla
+    silenciosa) y la app caería siempre al modo offline-stub, incluso
+    con Internet. Para activarlo, genera el hash real de esta versión
+    exacta y pégalo aquí, por ejemplo:
+      curl -s https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0 \
+        | openssl dgst -sha384 -binary | openssl base64 -A
+    y luego usa: INTEGRITY="sha384-<resultado>";
+    Recuerda repetir este paso cada vez que se suba la versión fijada. */
+ var INTEGRITY="";
+
+ function checksum(s){
+  // Suma de verificación simple (no criptográfica): solo detecta corrupción
+  // accidental del contenido guardado, no sustituye una firma real.
+  var h=0;
+  for(var i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;}
+  return h+":"+s.length;
+ }
 
  function ejecutar(codigo){
   try{
@@ -782,7 +986,14 @@ button.menu-toggle{
  if(!(window.supabase&&window.supabase.createClient)){
   try{
    var guardado=localStorage.getItem(KEY);
-   if(guardado) ejecutar(guardado);
+   var firma=localStorage.getItem(KEY+"_chk");
+   if(guardado && firma && checksum(guardado)===firma){
+    ejecutar(guardado);
+   }else if(guardado){
+    console.warn("Copia local de Supabase descartada: no pasó la verificación de integridad.");
+    localStorage.removeItem(KEY);
+    localStorage.removeItem(KEY+"_chk");
+   }
   }catch(_){}
  }
 
@@ -791,7 +1002,8 @@ button.menu-toggle{
     después de este bloque. Así PC, iPhone y otros navegadores no quedan
     falsamente atrapados en "offline" después de limpiar caché. */
  if(!(window.supabase&&window.supabase.createClient) && navigator.onLine){
-  document.write('<script src="'+URL+'"><\/script>');
+  var atrs=INTEGRITY?' integrity="'+INTEGRITY+'" crossorigin="anonymous"':'';
+  document.write('<script src="'+URL+'"'+atrs+'><\/script>');
  }
 
  /* Después de una carga online correcta se renueva la copia local que ya usa
@@ -800,7 +1012,7 @@ button.menu-toggle{
   if(!(window.supabase&&window.supabase.createClient) || !navigator.onLine)return;
   fetch(URL,{cache:"no-store"})
    .then(function(r){return r.ok?r.text():Promise.reject(new Error("HTTP "+r.status));})
-   .then(function(c){try{localStorage.setItem(KEY,c);}catch(_){} })
+   .then(function(c){try{flkLocalStorageSetSeguro(KEY,c);flkLocalStorageSetSeguro(KEY+"_chk",checksum(c));}catch(_){} })
    .catch(function(e){console.warn("No se pudo renovar la copia local de Supabase:",e);});
  },{once:true});
 })();
@@ -1574,7 +1786,7 @@ textarea::placeholder{
     const r=await fetch(lib.url,{cache:"no-store"});
     if(!r.ok)throw new Error("HTTP "+r.status);
     const codigo=await r.text();
-    try{localStorage.setItem(lib.key,codigo)}catch(e){
+    try{flkLocalStorageSetSeguro(lib.key,codigo)}catch(e){
      console.warn("No se pudo guardar "+lib.name+" en localStorage",e);
     }
     if(ejecutar(codigo,lib.name) && lib.ok())return true;
@@ -1604,7 +1816,7 @@ textarea::placeholder{
   const lectura=!!(estado.jsqr||estado.html5qrcode);
   const generacion=!!estado.qrcodejs;
   try{
-   localStorage.setItem("flk_qr_offline_preparado",JSON.stringify({
+   flkLocalStorageSetSeguro("flk_qr_offline_preparado",JSON.stringify({
     version:VERSION,fecha:new Date().toISOString(),lectura,generacion
    }));
   }catch(_){}
@@ -2654,7 +2866,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
    </div>
    <div class="campo">
     <label for="licNuevaGracia">Gracia offline (días)</label>
-    <input id="licNuevaGracia" type="number" min="0" max="30" value="3">
+    <input id="licNuevaGracia" type="number" min="0" max="90" value="15">
    </div>
    <div class="campo">
     <label for="licNuevasNotas">Notas</label>
@@ -2815,10 +3027,10 @@ function flkMigrarLocalLegacyAlCentro(businessId){
   const destino=flkLocalKey(base,businessId);
   if(localStorage.getItem(destino)===null){
    const antiguo=localStorage.getItem(base);
-   if(antiguo!==null)localStorage.setItem(destino,antiguo);
+   if(antiguo!==null)flkLocalStorageSetSeguro(destino,antiguo);
   }
  }
- localStorage.setItem(marca,"1");
+ flkLocalStorageSetSeguro(marca,"1");
 }
 function flkCambiarContextoLocalCentro(businessId){
  if(!businessId)return;
@@ -2838,6 +3050,10 @@ const FLK_SYNC_CONFIRMED_KEY="flackunloker_sync_confirmed_v2";
 const FLK_OFFLINE_ARCHIVE_KEY="flackunloker_offline_archive_v2";
 const FLK_DEVICE_KEY="flackunloker_device_id_v1";
 let flkSincronizando=false;
+// v62.23 ESTABILIDAD: evita que varios eventos online/focus/sync abran
+// repetidamente el mismo prompt de reautorización de reset.
+// Solo vive en memoria: nunca persiste el PIN ni el estado sensible.
+let flkResetReauthSuspendidoHasta=0;
 
 function flkLeerArrayLocal(key){
  try{
@@ -2862,7 +3078,7 @@ function flkClaveArchivoSync(){
  return flkLocalKey(FLK_OFFLINE_ARCHIVE_KEY);
 }
 function flkMarcarConfirmacionServidor(){
- localStorage.setItem(flkClaveConfirmacionSync(),new Date().toISOString());
+ flkLocalStorageSetSeguro(flkClaveConfirmacionSync(),new Date().toISOString());
 }
 let flkServidorAlcanzableActual=false;
 let flkComprobacionServidorEnCurso=false;
@@ -2910,7 +3126,7 @@ async function flkVigilarServidorYReaccionar(){
 }
 setInterval(()=>{
  if(document.visibilityState!=="hidden")flkVigilarServidorYReaccionar();
-},12000);
+},30000);
 window.addEventListener("focus",()=>setTimeout(flkVigilarServidorYReaccionar,80));
 document.addEventListener("visibilitychange",()=>{
  if(!document.hidden)setTimeout(flkVigilarServidorYReaccionar,80);
@@ -2922,8 +3138,8 @@ function flkArchivarOperacionConfirmada(op){
   let a=flkLeerArrayLocal(k);
   a.push({...op,archived_at:new Date().toISOString()});
   if(a.length>500)a=a.slice(-500);
-  localStorage.setItem(k,JSON.stringify(a));
- }catch(_){}
+  flkLocalStorageSetSeguro(k,JSON.stringify(a));
+ }catch(err){console.warn("No se pudo archivar la operación confirmada:",op?.id,err);}
 }
 
 function flkUUID(){
@@ -2932,7 +3148,7 @@ function flkUUID(){
 }
 function flkDeviceId(){
  let id=localStorage.getItem(FLK_DEVICE_KEY);
- if(!id){id=flkUUID();localStorage.setItem(FLK_DEVICE_KEY,id)}
+ if(!id){id=flkUUID();flkLocalStorageSetSeguro(FLK_DEVICE_KEY,id)}
  return id
 }
 const FLK_OPERACIONES_LOCAL_FIRST=new Set([
@@ -2962,10 +3178,10 @@ function flkColaOffline(){
 
   const serial=JSON.stringify(q);
   if(cambio || JSON.stringify(principal)!==serial){
-   localStorage.setItem(flkLocalKey(FLK_OFFLINE_QUEUE_KEY),serial);
+   flkLocalStorageSetSeguro(flkLocalKey(FLK_OFFLINE_QUEUE_KEY),serial);
   }
   if(JSON.stringify(emergencia)!==serial){
-   localStorage.setItem(flkClaveEmergenciaCola(),serial);
+   flkLocalStorageSetSeguro(flkClaveEmergenciaCola(),serial);
   }
   return q;
  }catch(e){
@@ -2979,8 +3195,8 @@ function flkGuardarColaOffline(q){
  const principalKey=flkLocalKey(FLK_OFFLINE_QUEUE_KEY);
  const emergenciaKey=flkClaveEmergenciaCola();
 
- localStorage.setItem(principalKey,serial);
- localStorage.setItem(emergenciaKey,serial);
+ flkLocalStorageSetSeguro(principalKey,serial);
+ flkLocalStorageSetSeguro(emergenciaKey,serial);
 
  // COMPROBACIÓN OBLIGATORIA: ambas copias deben poder leerse inmediatamente.
  const principal=flkLeerArrayLocal(principalKey);
@@ -3548,11 +3764,49 @@ async function flkProcesarOperacionOffline(op){
   const p=op.payload||{};
   const bid=String(p.business_id||op.business_id||"");
   if(!bid)throw new Error("Restablecimiento sin centro.");
+
+  // v62.14 · REAUTORIZACIÓN SEGURA:
+  // El PIN nunca se guarda en la cola offline/localStorage.
+  // Se solicita únicamente cuando hay conexión y el reset va a enviarse a Supabase.
+  let pin="";
+  if(p.requires_reauth===true){
+   // Si el usuario canceló/invalidó recientemente el PIN, otros disparadores
+   // automáticos de sincronización no vuelven a abrir el prompt durante 30 s.
+   if(Date.now()<flkResetReauthSuspendidoHasta){
+    const e=new Error("Restablecimiento pendiente: autorización aplazada.");
+    e.flkPendingReauth=true;
+    throw e;
+   }
+
+   pin=String(prompt("Hay un restablecimiento pendiente de sincronizar.\n\nIntroduce el PIN de restablecimiento de 6 dígitos para autorizarlo en Supabase:")||"").trim();
+   if(!pin){
+    flkResetReauthSuspendidoHasta=Date.now()+30000;
+    const e=new Error("Restablecimiento pendiente: falta autorización con PIN.");
+    e.flkPendingReauth=true;
+    throw e;
+   }
+   if(!/^\d{6}$/.test(pin)){
+    flkResetReauthSuspendidoHasta=Date.now()+30000;
+    const e=new Error("El PIN de restablecimiento debe tener exactamente 6 dígitos.");
+    e.flkPendingReauth=true;
+    throw e;
+   }
+   flkResetReauthSuspendidoHasta=0;
+  }else{
+   // Compatibilidad temporal con operaciones antiguas que pudieran existir
+   // antes de retirar el PIN de la cola.
+   pin=String(p.pin||"").trim();
+  }
+
   const {error}=await flkSupabase.rpc("flk_full_system_reset_center",{
    p_business_id:bid,
-   p_pin:String(p.pin||""),
+   p_pin:pin,
    p_confirmation:"RESTABLECER"
   });
+
+  // Borrar la referencia en memoria inmediatamente después de usarla.
+  pin="";
+
   if(error)throw error;
   return
  }
@@ -3855,8 +4109,19 @@ async function flkProcesarColaOffline(){
   }catch(err){
    const msg=String(err?.message||err);
    op.ultimo_error=msg;
-   op.estado=/inventario insuficiente|producto no encontrado|duplicate key|conflict/i.test(msg)?"conflicto":"error";
-   console.error("Operación offline",op.id,msg)
+
+   // v62.15 · Un reset que todavía espera PIN no es un error de sincronización.
+   // Se conserva pendiente y no se elimina de la cola.
+   if(err?.flkPendingReauth===true){
+    // No fue un intento real contra Supabase; no inflar el contador de reintentos.
+    op.intentos=Math.max(0,Number(op.intentos||1)-1);
+    op.estado="pendiente";
+    op.ultimo_error="Pendiente de autorización con PIN.";
+    console.info("Restablecimiento pendiente de autorización",op.id);
+   }else{
+    op.estado=/inventario insuficiente|producto no encontrado|duplicate key|conflict/i.test(msg)?"conflicto":"error";
+    console.error("Operación offline",op.id,msg);
+   }
   }
   flkGuardarColaOffline(q)
  }
@@ -4008,7 +4273,7 @@ function mostrarMensajeAuth(texto,tipo){
  e.className="auth-msg"+(texto?" visible "+(tipo||""):"");
 }
 const FLK_LOGIN_USER_KEY="flackunloker_login_user";
-function flkRecordarUsuarioLogin(email){try{const v=String(email||"").trim();if(v)localStorage.setItem(FLK_LOGIN_USER_KEY,v)}catch(_){}}
+function flkRecordarUsuarioLogin(email){try{const v=String(email||"").trim();if(v)flkLocalStorageSetSeguro(FLK_LOGIN_USER_KEY,v)}catch(_){}}
 function flkCargarUsuarioLogin(){try{const e=document.getElementById("authEmail");if(e&&!e.value)e.value=localStorage.getItem(FLK_LOGIN_USER_KEY)||""}catch(_){}}
 function flkLimpiarPasswordLogin(){const p=document.getElementById("authPassword");const b=document.getElementById("authPasswordToggle");if(p){p.value="";p.type="password"}if(b){b.textContent="👁️";b.title="Mostrar contraseña";b.setAttribute("aria-label","Mostrar contraseña")}}
 document.addEventListener("DOMContentLoaded",()=>{flkCargarUsuarioLogin();flkLimpiarPasswordLogin()});
@@ -4152,7 +4417,7 @@ async function flkGuardarAccesoOffline(user,password){
    business_id:(typeof FLK_BUSINESS_ID!=="undefined"&&FLK_BUSINESS_ID)||localStorage.getItem("flackunloker_business_id_v1")||null,
    saved_at:new Date().toISOString()
   };
-  localStorage.setItem(FLK_OFFLINE_AUTH_KEY,JSON.stringify(actual));
+  flkLocalStorageSetSeguro(FLK_OFFLINE_AUTH_KEY,JSON.stringify(actual));
   return true;
  }catch(err){console.warn("No se pudo preparar acceso offline:",err);return false}
 }
@@ -4162,7 +4427,7 @@ function flkActualizarSnapshotOffline(){
   x.role=flkRolLocal(x.user.id)||rolSesion||x.role||"employee";
   x.business_id=(typeof FLK_BUSINESS_ID!=="undefined"&&FLK_BUSINESS_ID)||localStorage.getItem("flackunloker_business_id_v1")||x.business_id||null;
   x.saved_at=new Date().toISOString();
-  localStorage.setItem(FLK_OFFLINE_AUTH_KEY,JSON.stringify(x));
+  flkLocalStorageSetSeguro(FLK_OFFLINE_AUTH_KEY,JSON.stringify(x));
  }catch(_){ }
 }
 async function flkValidarAccesoOffline(email,password){
@@ -4173,10 +4438,10 @@ async function flkValidarAccesoOffline(email,password){
   const hash=await flkDerivarClaveOffline(password,x.salt,Number(x.iteraciones||120000));
   if(hash!==x.hash)return false;
   const snap={user:{id:x.user.id,email:x.user.email},saved_at:new Date().toISOString()};
-  localStorage.setItem(FLK_SESSION_CACHE_KEY,JSON.stringify(snap));
+  flkLocalStorageSetSeguro(FLK_SESSION_CACHE_KEY,JSON.stringify(snap));
   if(x.role)flkGuardarRolLocal(x.user.id,x.role);
-  if(x.business_id)localStorage.setItem("flackunloker_business_id_v1",x.business_id);
-  localStorage.setItem(FLK_FORCE_OFFLINE_KEY,"1");
+  if(x.business_id)flkLocalStorageSetSeguro("flackunloker_business_id_v1",x.business_id);
+  flkLocalStorageSetSeguro(FLK_FORCE_OFFLINE_KEY,"1");
   flkPintarSesionLocal(snap.user);
   flkActualizarEstadoConexion();
   return true;
@@ -4205,7 +4470,7 @@ async function flkReactivarNubeSiDisponible(){
    sesionNube=r?.data?.session||null;
   }catch(_){}
   if(!sesionNube?.user?.id){
-   localStorage.setItem(FLK_FORCE_OFFLINE_KEY,"1");
+   flkLocalStorageSetSeguro(FLK_FORCE_OFFLINE_KEY,"1");
    try{flkActualizarModoRendimiento()}catch(_){}
    try{flkActualizarEstadoConexion()}catch(_){}
    return false;
@@ -4241,7 +4506,7 @@ else flkComprobarReconexionAlArrancar();
 function flkGuardarSesionLocal(session){
  try{
   if(!session?.user)return;
-  localStorage.setItem(FLK_SESSION_CACHE_KEY,JSON.stringify({
+  flkLocalStorageSetSeguro(FLK_SESSION_CACHE_KEY,JSON.stringify({
    user:{id:session.user.id||"",email:session.user.email||""},
    saved_at:new Date().toISOString()
   }));
@@ -4269,7 +4534,7 @@ function flkSesionOfflineDisponible(){
    const user=cand?.user||obj?.user;
    if(user?.id){
     const snap={user:{id:user.id,email:user.email||""},saved_at:new Date().toISOString()};
-    try{localStorage.setItem(FLK_SESSION_CACHE_KEY,JSON.stringify(snap))}catch(_){}
+    try{flkLocalStorageSetSeguro(FLK_SESSION_CACHE_KEY,JSON.stringify(snap))}catch(_){}
     return snap;
    }
   }
@@ -4288,7 +4553,7 @@ function flkEntrarConSesionOffline(emailEsperado){
 }
 function flkGuardarRolLocal(userId,role){
  try{
-  if(userId&&role)localStorage.setItem(FLK_ROLE_CACHE_KEY,JSON.stringify({user_id:userId,role,saved_at:new Date().toISOString()}))
+  if(userId&&role)flkLocalStorageSetSeguro(FLK_ROLE_CACHE_KEY,JSON.stringify({user_id:userId,role,saved_at:new Date().toISOString()}))
  }catch(e){}
 }
 function flkRolLocal(userId){
@@ -4700,7 +4965,7 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
     const cache=flkSesionOfflineDisponible();
     if(flkEsErrorConexion(error)){
      if(cache?.user&&String(cache.user.email||"").toLowerCase()===email.toLowerCase()){
-      localStorage.setItem(FLK_FORCE_OFFLINE_KEY,"1");
+      flkLocalStorageSetSeguro(FLK_FORCE_OFFLINE_KEY,"1");
       mostrarMensajeAuth("✅ Acceso offline con la última sesión validada.","ok");
       flkPintarSesionLocal(cache.user);flkLimpiarPasswordLogin();return;
      }
@@ -4736,7 +5001,7 @@ document.getElementById("formAuth").addEventListener("submit",async e=>{
    const cache=flkSesionOfflineDisponible();
    if(flkEsErrorConexion(err)){
     if(cache?.user&&String(cache.user.email||"").toLowerCase()===email.toLowerCase()){
-     localStorage.setItem(FLK_FORCE_OFFLINE_KEY,"1");
+     flkLocalStorageSetSeguro(FLK_FORCE_OFFLINE_KEY,"1");
      mostrarMensajeAuth("✅ Acceso offline con la última sesión validada.","ok");
      flkPintarSesionLocal(cache.user);flkLimpiarPasswordLogin();return;
     }
@@ -4980,7 +5245,7 @@ async function flkActivarLicenciaCliente(){
    throw new Error(info.reason||"La licencia no es válida.");
   }
 
-  localStorage.setItem(FLK_CLIENT_LICENSE_KEY_STORAGE,clave);
+  flkLocalStorageSetSeguro(FLK_CLIENT_LICENSE_KEY_STORAGE,clave);
   FLK_LICENSE_KEY=clave;
   flkLicenciaInfo=info;
   flkGuardarCacheLicencia(info);
@@ -5006,7 +5271,7 @@ function flkObtenerDeviceId(){
    if(window.crypto&&crypto.getRandomValues)crypto.getRandomValues(a);
    id=Array.from(a,b=>b.toString(16).padStart(2,"0")).join("")+"-"+Date.now().toString(36)
   }
-  localStorage.setItem(FLK_DEVICE_ID_KEY,id);
+  flkLocalStorageSetSeguro(FLK_DEVICE_ID_KEY,id);
   return id
  }catch(err){
   console.error("Device ID:",err);
@@ -5026,12 +5291,12 @@ function flkFechaLicenciaBonita(valor){
 function flkGuardarCacheLicencia(info){
  try{
   const ahora=new Date().toISOString();
-  localStorage.setItem(FLK_LICENSE_CACHE_KEY,JSON.stringify({
+  flkLocalStorageSetSeguro(FLK_LICENSE_CACHE_KEY,JSON.stringify({
    info,
    validated_at:ahora
   }));
   flkLicenciaUltimaValidacion=ahora
- }catch(_){}
+ }catch(err){console.warn("No se pudo guardar el caché de licencia:",err);}
 }
 function flkLeerCacheLicencia(){
  try{
@@ -5182,14 +5447,14 @@ async function flkValidarLicencia(){
  try{
   const r=await flkSupabase.auth.getSession();
   sesionPrevia=r?.data?.session||null;
- }catch(_){}
+ }catch(err){console.warn("Validación de licencia: no se pudo leer la sesión de Supabase:",err);}
 
  let sesionLocalPrevia=null;
  try{
   sesionLocalPrevia=typeof flkSesionOfflineDisponible==="function"
    ? flkSesionOfflineDisponible()
    : null;
- }catch(_){}
+ }catch(err){console.warn("Validación de licencia: no se pudo leer la sesión local offline:",err);}
 
  const hayUsuarioIdentificado=!!(
   sesionPrevia?.user ||
@@ -5318,7 +5583,7 @@ async function flkValidarLicencia(){
     }
 
     FLK_LICENSE_KEY=String(centroInfo.license_key);
-    localStorage.setItem(FLK_CLIENT_LICENSE_KEY_STORAGE,FLK_LICENSE_KEY);
+    flkLocalStorageSetSeguro(FLK_CLIENT_LICENSE_KEY_STORAGE,FLK_LICENSE_KEY);
     localStorage.removeItem(FLK_LICENSE_TEST_MODE_KEY);
 
     const deviceId=flkObtenerDeviceId();
@@ -5343,10 +5608,41 @@ async function flkValidarLicencia(){
   }
  }
 
+ // OFFLINE-2 · El propietario global queda exento del vencimiento de gracia offline.
+ // La condición se basa únicamente en el estado de propietario validado y cacheado
+ // previamente para el mismo usuario de la sesión local.
+ let propietarioOffline=false;
+ try{
+  propietarioOffline=!!flkEsPropietarioSoftware ||
+   (typeof flkLeerPropietarioSoftwareCache==="function" && flkLeerPropietarioSoftwareCache()===true);
+ }catch(_){propietarioOffline=false}
+
  const cache=flkLeerCacheLicencia();
+
+ if(propietarioOffline){
+  flkEsPropietarioSoftware=true;
+  document.body.classList.add("es-propietario");
+  flkOcultarActivacionCliente();
+  flkOcultarBloqueoLicencia();
+
+  const infoOwner={
+   ...(cache?.info||{}),
+   valid:true,
+   license_status:"active",
+   customer_name:cache?.info?.customer_name||"Flackunloker - Propietario",
+   software_owner:true,
+   offline_owner_exempt:true,
+   offline_grace_days:90
+  };
+  flkLicenciaUltimaValidacion=cache?.validated_at||null;
+  flkPintarLicencia(infoOwner,"offline-owner");
+  return infoOwner;
+ }
+
  if(cache){
   const info=cache.info;
-  const gracia=Math.max(0,Number(info.offline_grace_days||0));
+  // OFFLINE-1 · 15 días es el valor de respaldo si una caché antigua no trae el campo.
+  const gracia=Math.min(90,Math.max(0,Number(info.offline_grace_days??15)));
   const dias=flkDiasDesde(cache.validated_at);
   flkLicenciaUltimaValidacion=cache.validated_at;
   if(info.valid&&String(info.license_status)==="active"&&dias<=gracia){
@@ -5433,7 +5729,7 @@ function flkGuardarPropietarioSoftwareCache(esOwner){
   const ses=flkSesionLocal();
   const uid=ses?.user?.id||null;
   if(!uid)return;
-  localStorage.setItem(FLK_OWNER_STATUS_CACHE_KEY,JSON.stringify({
+  flkLocalStorageSetSeguro(FLK_OWNER_STATUS_CACHE_KEY,JSON.stringify({
    user_id:uid,owner:!!esOwner,saved_at:new Date().toISOString()
   }));
  }catch(e){}
@@ -6250,15 +6546,15 @@ async function crearLicenciaTercero(){
  const businessId=(centroSel?.value||"").trim();
  const centroNombre=centroSel?.selectedOptions?.[0]?.textContent?.trim()||"";
  const fechaTxt=document.getElementById("licNuevoVencimiento")?.value||"";
- const gracia=Number(document.getElementById("licNuevaGracia")?.value??3);
+ const gracia=Number(document.getElementById("licNuevaGracia")?.value??15);
  const notas=(document.getElementById("licNuevasNotas")?.value||"").trim();
 
  if(!businessId)return alert("Selecciona el centro que recibirá la licencia.");
  const fecha=new Date(fechaTxt);
  if(!fechaTxt||Number.isNaN(fecha.getTime())||fecha<=new Date())
   return alert("Selecciona una fecha de vencimiento futura.");
- if(!Number.isInteger(gracia)||gracia<0||gracia>30)
-  return alert("La gracia offline debe estar entre 0 y 30 días.");
+ if(!Number.isInteger(gracia)||gracia<0||gracia>90)
+  return alert("La gracia offline debe estar entre 0 y 90 días.");
 
  if(!confirm("¿Crear una nueva licencia para "+centroNombre+"?"))return;
 
@@ -6332,7 +6628,7 @@ function flkPrepararActivacionCliente(){
  if(!flkEsPropietarioSoftware)return alert("Solo el propietario puede iniciar esta prueba.");
  if(!confirm("Esto mostrará la pantalla de activación en este navegador. Tu licencia propietaria no se elimina. ¿Continuar?"))return;
  localStorage.removeItem(FLK_CLIENT_LICENSE_KEY_STORAGE);
- localStorage.setItem(FLK_LICENSE_TEST_MODE_KEY,"1");
+ flkLocalStorageSetSeguro(FLK_LICENSE_TEST_MODE_KEY,"1");
  FLK_LICENSE_KEY=FLK_OWNER_LICENSE_KEY;
  flkMostrarActivacionCliente("Modo de prueba: introduce una licencia de tercero.");
 }
@@ -6405,7 +6701,7 @@ let gastoEditandoId=null;
 let proveedorEditandoId=null;
 let ordenEditandoId=null;
 let movimientosCajaSupabase=(()=>{try{return JSON.parse(localStorage.getItem(flkLocalKey("flackunloker_movimientos_caja"))||"[]")}catch(e){return []}})();
-function guardarMovimientosCajaLocal(){localStorage.setItem(flkLocalKey("flackunloker_movimientos_caja"),JSON.stringify(movimientosCajaSupabase||[]))}
+function guardarMovimientosCajaLocal(){flkLocalStorageSetSeguro(flkLocalKey("flackunloker_movimientos_caja"),JSON.stringify(movimientosCajaSupabase||[]))}
 
 let inventarioSupabaseListo=false;
 
@@ -6469,7 +6765,7 @@ async function flkCargarCentroActual(){
  }
 
  FLK_BUSINESS_ID=id;
- localStorage.setItem(FLK_BUSINESS_STORAGE_KEY,id);
+ flkLocalStorageSetSeguro(FLK_BUSINESS_STORAGE_KEY,id);
  flkCambiarContextoLocalCentro(id);
  return id;
 }
@@ -6701,7 +6997,7 @@ function cargarDatos(){
  nombresExistentes.forEach(nombre=>{if(!proveedores.some(pr=>String(pr.nombre||"").trim().toLowerCase()===nombre.toLowerCase()))proveedores.push({id:Date.now()+Math.floor(Math.random()*100000)+proveedores.length,nombre,contacto:"",telefono:"",email:"",direccion:"",nota:"",creado:new Date().toISOString()})});
  guardarProveedores();
 }
-function guardarDatos(){localStorage.setItem(flkLocalKey("flackunloker_productos"),JSON.stringify(productos))}
+function guardarDatos(){flkLocalStorageSetSeguro(flkLocalKey("flackunloker_productos"),JSON.stringify(productos))}
 
 function movimientoDesdeSupabase(m){
  const p=productos.find(x=>x.supabaseId===m.product_id);
@@ -6738,8 +7034,8 @@ async function cargarHistorialSupabase(){
  return true
 }
 
-function guardarHistorial(){localStorage.setItem(flkLocalKey("flackunloker_historial"),JSON.stringify(historial))}
-function guardarVentas(){localStorage.setItem(flkLocalKey("flackunloker_ventas"),JSON.stringify(ventas))}
+function guardarHistorial(){flkLocalStorageSetSeguro(flkLocalKey("flackunloker_historial"),JSON.stringify(historial))}
+function guardarVentas(){flkLocalStorageSetSeguro(flkLocalKey("flackunloker_ventas"),JSON.stringify(ventas))}
 
 function gastoDesdeSupabase(r){
  return {
@@ -6813,7 +7109,7 @@ async function cargarGastosSupabase(){
  return true
 }
 
-function guardarGastos(){localStorage.setItem(flkLocalKey("flackunloker_gastos"),JSON.stringify(gastos))}
+function guardarGastos(){flkLocalStorageSetSeguro(flkLocalKey("flackunloker_gastos"),JSON.stringify(gastos))}
 
 function cierreDesdeSupabase(c){
  return {
@@ -6859,7 +7155,7 @@ async function cargarCierresSupabase(){
  cierres=(cloud||[]).map(cierreDesdeSupabase);guardarCierres();mostrarListaCierres();return true
 }
 
-function guardarCierres(){localStorage.setItem(flkLocalKey("flackunloker_cierres"),JSON.stringify(cierres))}
+function guardarCierres(){flkLocalStorageSetSeguro(flkLocalKey("flackunloker_cierres"),JSON.stringify(cierres))}
 
 async function cargarComprasSupabase(){
  if(flkModoRecuperacionPassword)return false;
@@ -6903,8 +7199,8 @@ async function migrarComprasLocalesSupabase(){
  return cargarComprasSupabase()
 }
 
-function guardarOrdenesCompra(){localStorage.setItem(flkLocalKey("flackunloker_ordenes_compra"),JSON.stringify(ordenesCompra))}
-function guardarProveedores(){localStorage.setItem(flkLocalKey("flackunloker_proveedores"),JSON.stringify(proveedores))}
+function guardarOrdenesCompra(){flkLocalStorageSetSeguro(flkLocalKey("flackunloker_ordenes_compra"),JSON.stringify(ordenesCompra))}
+function guardarProveedores(){flkLocalStorageSetSeguro(flkLocalKey("flackunloker_proveedores"),JSON.stringify(proveedores))}
 if(flkUuidValido(FLK_BUSINESS_ID))flkMigrarLocalLegacyAlCentro(FLK_BUSINESS_ID);
 cargarDatos();
 proximoNumeroRecibo=Math.max(0,...ventas.map(v=>Number(v.numeroConsecutivo||0)))+1;
@@ -7729,9 +8025,9 @@ function flkNumeroComprobanteConsecutivo(tipo,referencia){
   if(raw[clave])return String(raw[clave]).padStart(6,"0");
   const key=FLK_COMPROBANTE_CONSECUTIVO_KEY+"_"+String(tipo||"DOC");
   const siguiente=Number(localStorage.getItem(key)||0)+1;
-  localStorage.setItem(key,String(siguiente));
+  flkLocalStorageSetSeguro(key,String(siguiente));
   raw[clave]=siguiente;
-  localStorage.setItem(mapKey,JSON.stringify(raw));
+  flkLocalStorageSetSeguro(mapKey,JSON.stringify(raw));
   return String(siguiente).padStart(6,"0");
  }catch(_){return String(Date.now()).slice(-6)}
 }
@@ -7828,7 +8124,7 @@ document.getElementById("formularioCambioPinDevolucion")?.addEventListener("subm
  if(!(await flkValidarPinDevolucionLocal(actual)))return alert("El PIN actual es incorrecto.");
  if(nuevo!==confirmar)return alert("El nuevo PIN y la confirmación no coinciden.");
  if(nuevo===actual)return alert("El nuevo PIN debe ser diferente al PIN actual.");
- localStorage.setItem(FLK_DEVOLUCION_PIN_LOCAL_KEY,await flkHashPinLocal(nuevo));
+ flkLocalStorageSetSeguro(FLK_DEVOLUCION_PIN_LOCAL_KEY,await flkHashPinLocal(nuevo));
  cerrarCambioPinDevolucion();
  alert("✅ PIN de devolución cambiado correctamente en este dispositivo.");
 });
@@ -9819,7 +10115,7 @@ function flkNombreCentroBackupLocal(){
    ""
   ).trim();
   if(nombre){
-   localStorage.setItem(FLK_BACKUP_CENTER_NAME_PREFIX+id,nombre);
+   flkLocalStorageSetSeguro(FLK_BACKUP_CENTER_NAME_PREFIX+id,nombre);
    return nombre;
   }
  }catch(_){}
@@ -9828,7 +10124,7 @@ function flkNombreCentroBackupLocal(){
 async function flkResolverCentroBackup(){
  let id=flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:flkBusinessGuardado();
  if(!id && flkNubeDisponible()){
-  try{id=await flkExigirCentroActual()}catch(_){}
+  try{id=await flkExigirCentroActual()}catch(err){console.warn("No se pudo obtener el centro actual para el backup:",err);}
  }
  if(!id)throw new Error("No se pudo identificar el centro activo.");
 
@@ -9840,7 +10136,7 @@ async function flkResolverCentroBackup(){
     const n=String(data.business_name||data.name||data.customer_name||"").trim();
     if(n){
      nombre=n;
-     localStorage.setItem(FLK_BACKUP_CENTER_NAME_PREFIX+id,nombre);
+     flkLocalStorageSetSeguro(FLK_BACKUP_CENTER_NAME_PREFIX+id,nombre);
     }
    }
   }catch(_){}
@@ -10025,7 +10321,7 @@ async function flkRestaurarJsonBat(datos,centroActivo){
  try{
   guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();
   guardarOrdenesCompra();guardarProveedores();
- }catch(_){}
+ }catch(err){console.warn("No se pudo vaciar la copia local antes de restaurar el BAT (podrían reaparecer datos viejos):",err);}
 
  // Recargar desde Supabase para reconstruir exactamente el modelo usado por web/Android.
  if(typeof cargarInventarioSupabase==="function")await cargarInventarioSupabase();
@@ -10254,7 +10550,7 @@ window.addEventListener("offline",()=>setTimeout(()=>flkValidarLicencia(),50));
 if("serviceWorker" in navigator){
  window.addEventListener("load",async()=>{
   try{
-   const reg=await navigator.serviceWorker.register("./sw.js?v=61.48",{updateViaCache:"none"});
+   const reg=await navigator.serviceWorker.register("./sw.js?v=62.23",{updateViaCache:"none"});
    if(flkNubeDisponible())setTimeout(()=>reg.update().catch(()=>{}),0);
   }catch(err){console.error("Service Worker:",err)}
  });
@@ -10290,7 +10586,7 @@ if("serviceWorker" in navigator){
   /* Guardar aquí el módulo elegido ANTES de stopImmediatePropagation.
      Este interceptor es el primero que recibe el clic del menú. */
   if(b.id && acciones[b.id]){
-   try{ localStorage.setItem("flackunloker_ultimo_modulo_v1",b.id); }catch(_){}
+   try{ flkLocalStorageSetSeguro("flackunloker_ultimo_modulo_v1",b.id); }catch(_){}
   }
 
   const onclick=String(b.getAttribute("onclick")||"");
@@ -10789,17 +11085,73 @@ body.flk-v6125 #listaCierres .cierre-detalle strong {color:#000000 !important;}
 #ordenesRecibidas,
 #totalCompradoProveedores, #totalPagadoProveedores,
 #cuentasTotalPagado,
-#flujoEntradas, #flujoNeto,
-#finCaja, #finInventario, #finPorCobrar, #finActivos,
-#estadisticaEntradas, #estadisticaGananciaPotencial {
-  color:#111111 !important;
-}
 </style>
 
+<!--
+=====================================================================
+ MAPA DEL MÓDULO ESCÁNER QR / LECTOR FÍSICO (Entradas, Salidas, Venta,
+ Devolución) — v62.21
+
+ Esta sección se fue construyendo en capas a lo largo del tiempo, cada
+ una agregada para resolver un problema puntual sin tocar la anterior
+ (compatibilidad de navegador, evitar duplicados, integración offline).
+ Antes de modificar CUALQUIER función de esta lista, lee primero todos
+ los bloques de abajo en orden — varias funciones tienen 2 o 3 "capas"
+ apiladas (una envuelve a la anterior), y cambiar solo una capa sin
+ entender las demás puede reintroducir bugs ya resueltos (ver el bug
+ del campo Cliente congelado en Venta, causado por un doble focus()
+ entre capas distintas).
+
+ Bloques, en el orden en que aparecen en el archivo:
+
+ 1. flk-qr-safe-js
+    Implementación base: abre la cámara, define procesarCodigoQR()
+    (decide qué hacer según flkQrModo: entrada/salida/venta/devolución)
+    y el lector físico/HID (buffer de teclado + flkLectorFisicoActivo).
+
+ 2. flk-qr-principal-js
+    El botón único "📷 QR" del menú principal y su selector de 3
+    opciones (Compra/Entrada, Venta, Devolución). NO incluye "Salida"
+    como botón directo aquí.
+
+ 3. flk-qr-camara-trasera-auto
+    Selecciona automáticamente la cámara trasera del teléfono.
+
+ 4. flk-qr-operacion-primero-camara-despues
+    Ajuste de orden: evita que la cámara arranque antes de que la
+    operación (entrada/venta/etc.) esté decidida.
+
+ 5. flk-qr-compatibilidad-movil-jsqr
+    Motor de respaldo (jsQR) para navegadores sin BarcodeDetector
+    nativo (la mayoría de laptops/desktop). Envuelve detenerEscanerQR
+    UNA vez (agrega detener este motor antes de llamar al original).
+
+ 6. flk-qr-lectura-estable-confirmada
+    Agrega un paso de "confirmar antes de aplicar" a una lectura.
+    Define cancelarLecturaQRPendiente/confirmarLecturaQRPendiente
+    (versión 1 de 2).
+
+ 7. flk-qr-antiduplicado-global
+    Evita que el mismo código se registre dos veces si el lector
+    físico y la cámara están activos a la vez. Envuelve OTRA VEZ
+    cancelarLecturaQRPendiente/confirmarLecturaQRPendiente (versión 2
+    de 2, la que realmente corre) y flkProcesarCodigoQRNegocio.
+
+ 8. flk-qr-offline-integration
+    Integra el flujo con el modo sin conexión / business_id. Envuelve
+    abrirEscanerQR una vez.
+
+ Si vas a corregir un bug de escaneo: identifica primero en cuál de
+ estos 8 bloques vive el comportamiento que falla (por nombre de
+ función), y edita esa capa puntual — no reescribas la cadena
+ completa a menos que el bug abarque varias capas a la vez.
+=====================================================================
+-->
 <script id="flk-qr-safe-js">
 let flkQrStream=null,flkQrDetector=null,flkQrActivo=false,flkProductoEtiquetaActual=null;
 let flkQrModo="",flkQrVentaItems=[],flkQrUltimo="",flkQrUltimoTs=0;
 let flkLectorFisicoActivo=false,flkLectorFisicoBuffer="",flkLectorFisicoUltimoTs=0,flkLectorFisicoTimer=null;
+
 
 function flkQrEsc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 function flkQrProductoTexto(p){return "FLK|SKU|"+String(p.sku||"").trim()}
@@ -10853,6 +11205,7 @@ function toggleLectorFisico(){
  flkLectorFisicoActivo=!flkLectorFisicoActivo;
  flkLectorFisicoBuffer="";
  flkLectorFisicoUltimoTs=0;
+ flkLectorFisicoPrimerTs=0;
  if(flkLectorFisicoTimer){clearTimeout(flkLectorFisicoTimer);flkLectorFisicoTimer=null}
  actualizarEstadoLectorFisico();
 }
@@ -10868,37 +11221,78 @@ function flkProcesarBufferLectorFisico(){
   if(flkLectorFisicoActivo&&e)e.textContent="Listo para el siguiente escaneo…";
  },450);
 }
+// v62.24 · HENEX HC-3206R / HID ROBUSTO
+// Bluetooth/Windows puede introducir pausas breves entre caracteres.
+// Se toleran esas pausas sin cortar el QR y Enter/Tab siguen siendo
+// los terminadores preferidos enviados por el lector.
+const FLK_HID_CORTE_ENTRE_TECLAS_MS=650;
+const FLK_HID_ESPERA_FINAL_MS=230;
+const FLK_HID_MIN_CODIGO=3;
+let flkLectorFisicoPrimerTs=0;
+
+function flkProgramarFinLecturaHID(){
+ if(flkLectorFisicoTimer)clearTimeout(flkLectorFisicoTimer);
+ flkLectorFisicoTimer=setTimeout(function(){
+  flkLectorFisicoTimer=null;
+  if(flkLectorFisicoBuffer.trim().length>=FLK_HID_MIN_CODIGO){
+   flkProcesarBufferLectorFisico();
+  }
+ },FLK_HID_ESPERA_FINAL_MS);
+}
+
 document.addEventListener("keydown",function(ev){
  if(!flkLectorFisicoActivo)return;
  const modal=document.getElementById("modalEscanerQR");
  if(!modal||!modal.classList.contains("visible"))return;
+
  const target=ev.target;
+ // No secuestrar escritura deliberada en formularios. El campo manual QR
+ // sí puede recibir el lector porque forma parte del propio escáner.
  if(target && ["TEXTAREA","SELECT"].includes(target.tagName))return;
+ if(target && target.tagName==="INPUT" && target.id!=="flkQrCodigoManual")return;
+
+ if(ev.isComposing || ev.repeat || ev.ctrlKey || ev.altKey || ev.metaKey)return;
 
  const ahora=Date.now();
- if(flkLectorFisicoUltimoTs && ahora-flkLectorFisicoUltimoTs>220)flkLectorFisicoBuffer="";
- flkLectorFisicoUltimoTs=ahora;
 
- if(ev.key==="Enter"){
-  ev.preventDefault();
-  if(flkLectorFisicoTimer){clearTimeout(flkLectorFisicoTimer);flkLectorFisicoTimer=null}
-  flkProcesarBufferLectorFisico();
-  return;
+ // Si hubo una pausa realmente larga, el siguiente carácter inicia
+ // una lectura nueva. 650 ms tolera mejor Bluetooth que los 220 ms anteriores.
+ if(flkLectorFisicoUltimoTs &&
+    ahora-flkLectorFisicoUltimoTs>FLK_HID_CORTE_ENTRE_TECLAS_MS){
+  flkLectorFisicoBuffer="";
+  flkLectorFisicoPrimerTs=0;
+  if(flkLectorFisicoTimer){
+   clearTimeout(flkLectorFisicoTimer);
+   flkLectorFisicoTimer=null;
+  }
  }
- if(ev.key==="Tab"){
-  if(flkLectorFisicoBuffer){
+
+ if(ev.key==="Enter" || ev.key==="Tab"){
+  if(flkLectorFisicoBuffer.trim().length>=FLK_HID_MIN_CODIGO){
    ev.preventDefault();
+   if(flkLectorFisicoTimer){
+    clearTimeout(flkLectorFisicoTimer);
+    flkLectorFisicoTimer=null;
+   }
    flkProcesarBufferLectorFisico();
   }
+  flkLectorFisicoUltimoTs=0;
+  flkLectorFisicoPrimerTs=0;
   return;
  }
- if(ev.key.length===1 && !ev.ctrlKey && !ev.altKey && !ev.metaKey){
-  flkLectorFisicoBuffer+=ev.key;
-  if(flkLectorFisicoTimer)clearTimeout(flkLectorFisicoTimer);
-  flkLectorFisicoTimer=setTimeout(function(){
-    if(flkLectorFisicoBuffer.length>=4)flkProcesarBufferLectorFisico();
-  },90);
- }
+
+ // Ignorar teclas de control/modificadores. Solo caracteres imprimibles
+ // forman parte del código enviado por el HENEX.
+ if(ev.key.length!==1)return;
+
+ if(!flkLectorFisicoBuffer)flkLectorFisicoPrimerTs=ahora;
+ flkLectorFisicoUltimoTs=ahora;
+ flkLectorFisicoBuffer+=ev.key;
+
+ // Evita que el carácter del lector quede escrito también en el input manual.
+ if(target && target.id==="flkQrCodigoManual")ev.preventDefault();
+
+ flkProgramarFinLecturaHID();
 });
 
 function seleccionarModoQR(modo){
@@ -10913,7 +11307,7 @@ function seleccionarModoQR(modo){
 function abrirEscanerQR(){
  try{cerrarMenuPrincipal()}catch(_){}
  flkQrModo="";flkQrVentaItems=[];flkQrUltimo="";flkQrUltimoTs=0;
- flkLectorFisicoBuffer="";flkLectorFisicoUltimoTs=0;
+ flkLectorFisicoBuffer="";flkLectorFisicoUltimoTs=0;flkLectorFisicoPrimerTs=0;
  actualizarEstadoLectorFisico();
  document.querySelectorAll("#flkQrModos button").forEach(b=>b.classList.remove("activo"));
  const t=document.getElementById("flkQrModoTexto");if(t)t.textContent="Modo: selecciona una operación";
@@ -11375,45 +11769,7 @@ async function abrirQrPrincipalConCamara(){
  }
 }
 
-async function iniciarEscanerQRCamaraTrasera(){
- const estado=document.getElementById("flkQrEstado");
- if(!navigator.mediaDevices?.getUserMedia){
-  if(estado)estado.textContent="Este navegador no permite abrir la cámara.";
-  alert("La cámara no está disponible desde este navegador.");
-  return;
- }
- if(!("BarcodeDetector" in window)){
-  // Still open the rear camera even if automatic QR decode is unavailable.
-  try{
-   detenerEscanerQR(false);
-   flkQrStream=await flkAbrirCamaraTraseraPreferida();
-   const video=document.getElementById("flkQrVideo");
-   video.srcObject=flkQrStream;
-   await video.play();
-   if(estado)estado.textContent="Cámara trasera abierta. Este navegador no admite lectura QR automática; usa Código manual si fuera necesario.";
-  }catch(err){
-   console.error(err);
-   if(estado)estado.textContent="No se pudo abrir la cámara trasera.";
-   alert("No se pudo abrir la cámara trasera. Revisa el permiso de cámara del navegador.");
-  }
-  return;
- }
- try{
-  detenerEscanerQR(false);
-  flkQrDetector=new BarcodeDetector({formats:["qr_code"]});
-  flkQrStream=await flkAbrirCamaraTraseraPreferida();
-  const video=document.getElementById("flkQrVideo");
-  video.srcObject=flkQrStream;
-  await video.play();
-  flkQrActivo=true;
-  if(estado)estado.textContent="Cámara trasera activa. Apunta al código QR.";
-  flkQrLeer();
- }catch(err){
-  console.error(err);
-  if(estado)estado.textContent="No se pudo abrir la cámara trasera.";
-  alert("No se pudo abrir la cámara trasera. Revisa el permiso de cámara del navegador.");
- }
-}
+/* FLK QR: definición antigua sobrescrita eliminada; se conserva la versión activa posterior. */
 
 async function flkAbrirCamaraTraseraPreferida(){
  // First request the physical rear camera explicitly.
@@ -12008,7 +12364,7 @@ if(typeof abrirModoQRDesdePrincipalConCamara==="function"){
    if(typeof flkAsegurarMotoresQROffline==="function"){
     await flkAsegurarMotoresQROffline();
    }
-  }catch(_){}
+  }catch(err){console.warn("No se pudieron preparar los motores QR offline (menú principal):",err);}
   actualizarEstadoQROfflineVisual();
   return flkAbrirModoQrOfflineOriginal(modo);
  };
@@ -12022,7 +12378,7 @@ if(typeof iniciarEscanerQRCamaraTrasera==="function"){
    if(typeof flkAsegurarMotoresQROffline==="function"){
     await flkAsegurarMotoresQROffline();
    }
-  }catch(_){}
+  }catch(err){console.warn("No se pudieron preparar los motores QR offline (cámara trasera):",err);}
   actualizarEstadoQROfflineVisual();
   return flkInicioCamaraOfflineOriginal.apply(this,arguments);
  };
@@ -12103,7 +12459,7 @@ function flkDetectorAnalizar(){
   const key=localStorage.key(i), raw=localStorage.getItem(key);
   const parsed=flkDetectorParse(raw);
   keys.push({key,bytes:(raw||"").length});
-  try{flkDetectorWalk(parsed,key,hallazgos)}catch(_){}
+  try{flkDetectorWalk(parsed,key,hallazgos)}catch(err){console.warn("Detector de datos: no se pudo analizar la clave",key,err);}
   if(/producto/i.test(key)&&Array.isArray(parsed)){
    parsed.forEach(p=>{
     if(p&&typeof p==="object"&&(p.sku||p.nombre||p.name))directos.push({key,...p})
@@ -12223,7 +12579,7 @@ function flkAnalizarVentasRescate(){
   try{
    const a=JSON.parse(localStorage.getItem(k)||"[]");
    if(Array.isArray(a))a.forEach(v=>ventasTodas.push({storage_key:k,venta:v}));
-  }catch(_){}
+  }catch(err){console.warn("Ventas ilegibles en localStorage, se omiten de este reporte:",k,err);}
  });
 
  const productosMap=new Map(), detalleVentas=[];
@@ -12495,7 +12851,7 @@ function fechaISO(d){return typeof flkClaveFechaContable==='function'?flkClaveFe
 function businessId(){try{if(typeof flkBusinessGuardado==='function')return String(flkBusinessGuardado()||'global');}catch(e){}try{if(typeof FLK_BUSINESS_ID!=='undefined'&&FLK_BUSINESS_ID)return String(FLK_BUSINESS_ID);}catch(e){}return 'global';}
 function key(){return 'flackunloker_prestaciones_servicio_v1::'+businessId();}
 function load(){try{var x=JSON.parse(localStorage.getItem(key())||'[]');prestacionesServicio=Array.isArray(x)?x:[];}catch(e){prestacionesServicio=[];}}
-function save(){try{localStorage.setItem(key(),JSON.stringify(prestacionesServicio));}catch(e){console.error('Prestaciones:',e);}}
+function save(){try{flkLocalStorageSetSeguro(key(),JSON.stringify(prestacionesServicio));}catch(e){console.error('Prestaciones:',e);}}
 function esc(s){if(typeof escapeHtml==='function')return escapeHtml(String(s||''));return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c];});}
 function resumen(desde,hasta){var a=prestacionesServicio.filter(function(p){var k=String(p.fecha||'');return k>=desde&&k<hasta;});var i=a.reduce(function(t,p){return t+Number(p.ingreso||0);},0),c=a.reduce(function(t,p){return t+Number(p.costo||0);},0);return {arr:a,ingresos:i,costos:c,neto:i-c};}
 function hoy(){var k=fechaISO(new Date());return resumen(k,flkSumarDiasClave(k,1));}
@@ -12507,7 +12863,7 @@ window.flkCargarPrestacionesNube=async function(){if(typeof flkNubeDisponible!==
 window.flkCambiarTipoPrestacion=function(){var t=document.getElementById('prestTipo'),c=document.getElementById('prestCosto');if(!t||!c)return;c.disabled=t.value!=='ingreso_costo';if(c.disabled)c.value='0';};
 window.flkGuardarPrestacionServicio=function(){if(typeof requiereAdmin==='function'&&!requiereAdmin('Registrar prestaciones de servicio'))return;var de=document.getElementById('prestDescripcion'),ti=document.getElementById('prestTipo'),ing=document.getElementById('prestIngreso'),me=document.getElementById('prestMetodo'),co=document.getElementById('prestCosto'),fe=document.getElementById('prestFecha');var descripcion=String(de?de.value:'').trim(),tipo=ti?ti.value:'ingreso',ingreso=Number(ing?ing.value:0),metodo=me?me.value:'Efectivo',costo=tipo==='ingreso_costo'?Number(co?co.value:0):0,fecha=fe?fe.value:'';if(!descripcion)return alert('Escribe la descripción de la prestación.');if(!fecha)return alert('Selecciona la fecha.');if(ingreso<0||costo<0)return alert('Los importes no pueden ser negativos.');load();var localId=typeof flkUUID==='function'?flkUUID():'prest-'+Date.now();var op=typeof flkEncolarOperacion==='function'?flkEncolarOperacion('service_provision_save',{description:descripcion,service_type:tipo,income:ingreso,payment_method:metodo,external_cost:costo,service_date:fecha,local_id:localId}):null;prestacionesServicio.push({id:localId,operation_id:op?op.id:'',descripcion:descripcion,tipo:tipo,ingreso:ingreso,costo:costo,metodo:metodo,fecha:fecha,created_at:new Date().toISOString(),offlinePendiente:!!op});save();if(de)de.value='';if(ing)ing.value='0';if(co)co.value='0';pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()&&typeof flkSincronizarSeguro==='function')setTimeout(function(){flkSincronizarSeguro();},50);};
 window.flkEliminarPrestacionServicio=function(id){if(typeof requiereAdmin==='function'&&!requiereAdmin('Eliminar prestaciones de servicio'))return;if(!confirm('¿Eliminar esta prestación?'))return;load();var p=prestacionesServicio.find(function(x){return String(x.id)===String(id);});if(!p)return;if(typeof flkEncolarOperacion==='function')flkEncolarOperacion('service_provision_delete',{cloud_id:p.cloud_id||null,operation_id:p.operation_id||null,local_id:String(p.id)});prestacionesServicio=prestacionesServicio.filter(function(x){return String(x.id)!==String(id);});save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()&&typeof flkSincronizarSeguro==='function')setTimeout(function(){flkSincronizarSeguro();},50);};
-window.mostrarPrestacionesServicio=function(){try{localStorage.setItem('flackunloker_ultimo_modulo_v1','botonPrestacionesServicio');}catch(_){}if(typeof flkOcultarTodasLasVistas==='function')flkOcultarTodasLasVistas();var v=document.getElementById('vistaPrestacionesServicio');if(!v)return alert('No se pudo abrir Prestaciones de servicio.');v.style.display='block';document.querySelectorAll('.menu-cuadricula button').forEach(function(b){b.classList.remove('activo');});var btn=document.getElementById('botonPrestacionesServicio');if(btn)btn.classList.add('activo');if(typeof cerrarMenuPrincipal==='function')cerrarMenuPrincipal();var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();if(typeof flkCargarPrestacionesNube==='function')flkCargarPrestacionesNube();};
+window.mostrarPrestacionesServicio=function(){try{flkLocalStorageSetSeguro('flackunloker_ultimo_modulo_v1','botonPrestacionesServicio');}catch(_){}if(typeof flkOcultarTodasLasVistas==='function')flkOcultarTodasLasVistas();var v=document.getElementById('vistaPrestacionesServicio');if(!v)return alert('No se pudo abrir Prestaciones de servicio.');v.style.display='block';document.querySelectorAll('.menu-cuadricula button').forEach(function(b){b.classList.remove('activo');});var btn=document.getElementById('botonPrestacionesServicio');if(btn)btn.classList.add('activo');if(typeof cerrarMenuPrincipal==='function')cerrarMenuPrincipal();var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();if(typeof flkCargarPrestacionesNube==='function')flkCargarPrestacionesNube();};
 function init(){var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
@@ -12531,7 +12887,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   function guardar(id){
     if(!MODULOS[id])return;
     actual=id;
-    try{localStorage.setItem(KEY,id);}catch(_){}
+    try{flkLocalStorageSetSeguro(KEY,id);}catch(_){}
   }
 
   /* La intención del usuario manda. Los clics dentro de formularios no cambian módulo. */
@@ -12652,77 +13008,9 @@ async function abrirResetCentroAdminSoftware(businessId){
  }
 }
 
-async function cambiarPinResetCentroAdminSoftware(businessId){
- try{
-  if(!flkEsPropietarioSoftware){
-   await flkComprobarPropietarioSoftware();
-  }
+/* FLK: definición duplicada de cambiarPinResetCentroAdminSoftware eliminada; se conserva la versión activa posterior. */
 
-  const esAdminDeSuPropioCentro=rolSesion==="admin" && flkUuidValido(FLK_BUSINESS_ID) && String(businessId)===String(FLK_BUSINESS_ID);
-  if(!flkEsPropietarioSoftware && !esAdminDeSuPropioCentro)
-    return alert("Solo el propietario o el administrador de este centro pueden cambiar su PIN de restablecimiento.");
-
-  const pin=String(prompt("Nuevo PIN de restablecimiento (6 dígitos):")||"").trim();
-
-  if(!/^\d{6}$/.test(pin))
-    return alert("El PIN debe tener exactamente 6 dígitos.");
-
-  const confirmar=String(prompt("Confirmar nuevo PIN:")||"").trim();
-
-  if(pin!==confirmar)
-    return alert("Los PIN no coinciden.");
-
-  const {error}=await flkSupabase.rpc("flk_change_center_reset_pin",{
-    p_business_id:businessId,
-    p_new_pin:pin
-  });
-
-  if(error)throw error;
-
-  alert("PIN de restablecimiento actualizado correctamente.");
-
- }catch(e){
-  console.error("Cambio PIN restablecimiento:",e);
-  alert("No se pudo cambiar el PIN: "+(e?.message||e));
- }
-}
-
-async function cambiarPasswordCentroAdminSoftware(businessId){
- await flkComprobarPropietarioSoftware();
- if(!flkEsPropietarioSoftware)return alert("Este panel es exclusivo del propietario de Flackunloker.");
- const centro=flkAdminSoftwareCentros.find(c=>String(c.business_id)===String(businessId));
- if(!centro)return alert("Centro no encontrado.");
-
- try{
-   const {data,error}=await flkSupabase.rpc("flk_software_admin_list_users");
-   if(error)throw error;
-
-   const usuarios=(Array.isArray(data)?data:[]).filter(u=>String(u.business_id)===String(businessId));
-   if(!usuarios.length)return alert("Este centro no tiene usuarios asignados.");
-
-   const opciones=usuarios.map((u,i)=>`${i+1}. ${u.email}`).join("\n");
-   const sel=prompt("Seleccione usuario:\n\n"+opciones);
-   const indice=Number(sel)-1;
-   if(!Number.isInteger(indice)||!usuarios[indice])return;
-
-   const nueva=prompt("Nueva contraseña (mínimo 6 caracteres):");
-   if(!nueva||nueva.length<6)return alert("Contraseña inválida.");
-
-   const confirmar=prompt("Confirmar nueva contraseña:");
-   if(nueva!==confirmar)return alert("Las contraseñas no coinciden.");
-
-   const {error:err}=await flkSupabase.rpc("flk_software_admin_change_password",{
-      p_user_id:usuarios[indice].user_id,
-      p_new_password:nueva
-   });
-   if(err)throw err;
-
-   alert("Contraseña cambiada correctamente.");
- }catch(e){
-   console.error("Cambio contraseña centro:",e);
-   alert("No se pudo cambiar la contraseña: "+(e?.message||"Error desconocido"));
- }
-}
+/* FLK: definición duplicada de cambiarPasswordCentroAdminSoftware eliminada; se conserva la versión activa posterior. */
 </script>
 
 <!-- v61.71: Prestaciones integradas en resultados de Finanzas; costo externo no afecta flujo de caja -->
@@ -13034,7 +13322,7 @@ async function flkEjecutarResetCentroElectron(){
   const op=typeof flkEncolarOperacion==="function"
    ? flkEncolarOperacion("center_reset",{
       business_id:businessIdRestablecido,
-      pin:pin,
+      requires_reauth:true,
       confirmation:"RESTABLECER",
       requested_at:new Date().toISOString()
      })
