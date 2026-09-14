@@ -1287,6 +1287,21 @@ body:not(.es-propietario) #botonLicencias{display:none!important}
  .lic-registro-grid{grid-template-columns:1fr}
  .lic-registro-acciones{grid-template-columns:1fr}
 }
+1288  .lic-registro-acciones{grid-template-columns:1fr}
+1289  }
+1290  
+1291  /* ===== v62.16 · GUÍA RÁPIDA DEL PANEL DE LICENCIAS ===== */
+1292  .lic-ayuda{
+1293    background:#fff;
+...   (bloque CSS pegado)
+1313  @media(max-width:520px){
+1314    .lic-ayuda{padding:14px}
+1315    .lic-ayuda-item p{font-size:12px}
+1316  }
+1317  </style>
+1318  
+1319  <style>
+1320  /* ===== v60 · ADMINISTRACIÓN DEL SOFTWARE ===== */      
 </style>
 
 <style>
@@ -2692,7 +2707,14 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   <div class="lic-resumen-card suspendida"><span>Suspendidas</span><strong id="licCountSuspendidas">0</strong></div>
   <div class="lic-resumen-card vencida"><span>Vencidas</span><strong id="licCountVencidas">0</strong></div>
  </div>
-
+2709   </div>
+2710   <div class="lic-ayuda" id="licAyudaPanel">
+2711    <div class="lic-ayuda-cabecera" onclick="flkToggleAyudaLicencias()">
+2712     <h3>ℹ️ Guía rápida del panel de licencias</h3>
+...
+2731   </div>
+2732   (vacía)
+2733   <div id="listaLicenciasRegistradas">
  <div id="listaLicenciasRegistradas">
   <div class="sin-productos">Pulsa Actualizar para cargar las licencias.</div>
  </div>
@@ -5982,7 +6004,13 @@ function flkTextoEstadoLicencia(estado){
 function flkEscAttr(v){
  return String(v??"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
-
+function flkToggleAyudaLicencias(){
+ const caja=document.getElementById("licAyudaPanel");
+ if(!caja)return;
+ caja.classList.toggle("abierto");
+ const boton=document.getElementById("licAyudaToggle");
+ if(boton)boton.textContent=caja.classList.contains("abierto")?"▴":"▾";
+}
 async function cargarListaLicencias(){
  if(!flkEsPropietarioSoftware)return;
  const lista=document.getElementById("listaLicenciasRegistradas");
