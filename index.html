@@ -3570,11 +3570,38 @@ async function flkProcesarOperacionOffline(op){
   const p=op.payload||{};
   const bid=String(p.business_id||op.business_id||"");
   if(!bid)throw new Error("Restablecimiento sin centro.");
+
+  // v62.14 · REAUTORIZACIÓN SEGURA:
+  // El PIN nunca se guarda en la cola offline/localStorage.
+  // Se solicita únicamente cuando hay conexión y el reset va a enviarse a Supabase.
+  let pin="";
+  if(p.requires_reauth===true){
+   pin=String(prompt("Hay un restablecimiento pendiente de sincronizar.\n\nIntroduce el PIN de restablecimiento de 6 dígitos para autorizarlo en Supabase:")||"").trim();
+   if(!pin){
+    const e=new Error("Restablecimiento pendiente: falta autorización con PIN.");
+    e.flkPendingReauth=true;
+    throw e;
+   }
+   if(!/^\\d{6}$/.test(pin)){
+    const e=new Error("El PIN de restablecimiento debe tener exactamente 6 dígitos.");
+    e.flkPendingReauth=true;
+    throw e;
+   }
+  }else{
+   // Compatibilidad temporal con operaciones antiguas que pudieran existir
+   // antes de retirar el PIN de la cola.
+   pin=String(p.pin||"").trim();
+  }
+
   const {error}=await flkSupabase.rpc("flk_full_system_reset_center",{
    p_business_id:bid,
-   p_pin:String(p.pin||""),
+   p_pin:pin,
    p_confirmation:"RESTABLECER"
   });
+
+  // Borrar la referencia en memoria inmediatamente después de usarla.
+  pin="";
+
   if(error)throw error;
   return
  }
