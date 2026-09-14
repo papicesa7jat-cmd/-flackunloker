@@ -13112,7 +13112,7 @@ async function flkEjecutarResetCentroElectron(){
   const op=typeof flkEncolarOperacion==="function"
    ? flkEncolarOperacion("center_reset",{
       business_id:businessIdRestablecido,
-      pin:pin,
+      requires_reauth:true,
       confirmation:"RESTABLECER",
       requested_at:new Date().toISOString()
      })
