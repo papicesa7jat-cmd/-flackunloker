@@ -762,10 +762,25 @@ button.menu-toggle{
 /* v61.86 LOGIN MULTIDISPOSITIVO
    Mantiene intacta la estructura online/offline.
    Corrección puntual: evita que el fallback offline gane la carrera contra
-   Supabase cuando el dispositivo SÍ tiene Internet y la caché local fue limpiada. */
+   Supabase cuando el dispositivo SÍ tiene Internet y la caché local fue limpiada.
+   v62.20 SEGURIDAD/ESTABILIDAD:
+   - Se fija una versión exacta de supabase-js (antes "@2" = "siempre la última",
+     lo que podía cambiar de un día para otro sin aviso y romper el arranque).
+   - La copia guardada en localStorage ahora se acompaña de su longitud y una
+     suma de verificación simple. Si el contenido guardado no coincide (por
+     corrupción del almacenamiento, cuota llena a la mitad de una escritura,
+     etc.), se descarta en vez de intentar ejecutar algo incompleto o dañado. */
 (function(){
- var KEY="flk_lib_supabasejs_v2";
- var URL="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+ var KEY="flk_lib_supabasejs_v3";
+ var URL="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0";
+
+ function checksum(s){
+  // Suma de verificación simple (no criptográfica): solo detecta corrupción
+  // accidental del contenido guardado, no sustituye una firma real.
+  var h=0;
+  for(var i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;}
+  return h+":"+s.length;
+ }
 
  function ejecutar(codigo){
   try{
@@ -782,7 +797,14 @@ button.menu-toggle{
  if(!(window.supabase&&window.supabase.createClient)){
   try{
    var guardado=localStorage.getItem(KEY);
-   if(guardado) ejecutar(guardado);
+   var firma=localStorage.getItem(KEY+"_chk");
+   if(guardado && firma && checksum(guardado)===firma){
+    ejecutar(guardado);
+   }else if(guardado){
+    console.warn("Copia local de Supabase descartada: no pasó la verificación de integridad.");
+    localStorage.removeItem(KEY);
+    localStorage.removeItem(KEY+"_chk");
+   }
   }catch(_){}
  }
 
@@ -800,7 +822,7 @@ button.menu-toggle{
   if(!(window.supabase&&window.supabase.createClient) || !navigator.onLine)return;
   fetch(URL,{cache:"no-store"})
    .then(function(r){return r.ok?r.text():Promise.reject(new Error("HTTP "+r.status));})
-   .then(function(c){try{localStorage.setItem(KEY,c);}catch(_){} })
+   .then(function(c){try{localStorage.setItem(KEY,c);localStorage.setItem(KEY+"_chk",checksum(c));}catch(_){} })
    .catch(function(e){console.warn("No se pudo renovar la copia local de Supabase:",e);});
  },{once:true});
 })();
