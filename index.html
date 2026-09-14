@@ -1783,7 +1783,17 @@ textarea::placeholder{
   // 2. Si hay Internet, descargarla una vez y dejarla almacenada para el futuro.
   if(navigator.onLine){
    try{
-    const r=await fetch(lib.url,{cache:"no-store"});
+    // v62.25 ESTABILIDAD: timeout explícito (antes esta descarga podía
+    // quedarse colgada indefinidamente en una red lenta/portal cautivo,
+    // dejando el escáner QR "cargando" para siempre).
+    const ctrl=new AbortController();
+    const t=setTimeout(()=>ctrl.abort(),8000);
+    let r;
+    try{
+     r=await fetch(lib.url,{cache:"no-store",signal:ctrl.signal});
+    }finally{
+     clearTimeout(t);
+    }
     if(!r.ok)throw new Error("HTTP "+r.status);
     const codigo=await r.text();
     try{flkLocalStorageSetSeguro(lib.key,codigo)}catch(e){
@@ -2972,9 +2982,9 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   <div id="bloqueConfigurarPin">
    <p style="line-height:1.55">Primero establece un PIN secreto de <strong>6 dígitos</strong>. No se guarda de forma visible.</p>
    <label>Nuevo PIN de 6 dígitos</label>
-   <input id="nuevoPinReset" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
+   <input id="nuevoPinReset" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="new-password" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
    <label>Repetir PIN</label>
-   <input id="confirmarPinReset" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
+   <input id="confirmarPinReset" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="new-password" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
    <button class="guardar" type="button" onclick="guardarPinReset()">Guardar PIN</button>
   </div>
   <div id="bloqueEjecutarReset" style="display:none">
@@ -2983,7 +2993,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
     Se borrarán inventario, ventas, recibos, devoluciones, clientes, gastos, caja, cierres, proveedores, compras, pagos, reparaciones, historial y configuraciones operativas.
    </div>
    <label>PIN de 6 dígitos</label>
-   <input id="pinEjecutarReset" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
+   <input id="pinEjecutarReset" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
    <label>Escribe RESTABLECER para confirmar</label>
    <input id="textoConfirmarReset" type="text" autocomplete="off" placeholder="RESTABLECER">
    <button type="button" onclick="ejecutarRestablecimientoTotal()" style="width:100%;min-height:58px;margin-top:20px;border:0;border-radius:14px;background:#d93025;color:white;font-size:18px;font-weight:900">🗑️ Borrar todos los datos operativos</button>
