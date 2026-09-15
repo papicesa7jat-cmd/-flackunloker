@@ -1,4 +1,4 @@
-const CACHE_NAME = "flackunloker-offline-v15-no-eval-6230";
+const CACHE_NAME = "flackunloker-offline-v15-no-eval-6239";
 const PAGE_FALLBACK = "./index.html";
 
 const APP_SHELL = [
@@ -8,7 +8,7 @@ const APP_SHELL = [
 ];
 
 const EXTERNAL_SHELL = [
-  // v62.30: dependencias ejecutables versionadas y precacheadas; caché renovada para Fase 2.
+  // v62.33: caché renovada para reconexión inmediata; dependencias ejecutables siguen precacheadas.
   // Sustituye el antiguo patrón CDN -> localStorage -> eval().
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0",
   "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js",
