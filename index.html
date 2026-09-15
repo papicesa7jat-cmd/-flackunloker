@@ -182,7 +182,7 @@
      HTTP "X-Frame-Options: DENY" o "Content-Security-Policy:
      frame-ancestors 'none'" en el servidor. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://eviwhrqhinhnyccizkfq.supabase.co wss://eviwhrqhinhnyccizkfq.supabase.co https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
-<meta name="flackunloker-offline-version" content="2026-09-15-v62.41.23-feedback-boton-reportes">
+<meta name="flackunloker-offline-version" content="2026-09-15-v62.41.24-finanzas-cxc-prestaciones-moneda">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -2272,7 +2272,8 @@ textarea::placeholder{
 <div class="finanzas-card activo"><span>🏦 Caja física</span><strong id="finCaja">$0.00</strong></div>
 <div class="finanzas-card activo"><span>🏧 Saldo Transferencia CUP</span><strong id="finTransferenciaCup">$0.00</strong></div>
 <div class="finanzas-card activo"><span>📦 Inventario a costo</span><strong id="finInventario">$0.00</strong></div>
-<div class="finanzas-card activo"><span>👥 Cuentas por cobrar</span><strong id="finPorCobrar">$0.00</strong></div>
+<div class="finanzas-card activo"><span>👥 Cuentas por cobrar · CUP</span><strong id="finPorCobrar">$0.00</strong></div>
+<div class="finanzas-card activo"><span>👥 Cuentas por cobrar · USD</span><strong id="finPorCobrarUSD">$0.00 USD</strong></div>
 <div class="finanzas-card ancha activo"><span>Activos operativos</span><strong id="finActivos">$0.00</strong></div>
 <div class="finanzas-card ancha pasivo"><span>💳 Cuentas por pagar</span><strong id="finPorPagar">$0.00</strong></div>
 <div class="finanzas-card ancha azul"><span>💼 Patrimonio operativo neto</span><strong id="finPatrimonio">$0.00</strong></div>
@@ -9610,7 +9611,22 @@ function datosFinanzas(){
   if(typeof normalizarCuentaVenta==="function")normalizarCuentaVenta(v);
   return t+(flkEsMetodoFinanzasCUP(v.metodoPago||"Efectivo CUP")?Math.max(0,Number(v.saldo||0)):0);
  },0);
- const porCobrarPrestaciones=prestacionesPeriodo.reduce((t,p)=>t+(flkEsMetodoFinanzasCUP(p.metodo||"Efectivo CUP")?Math.max(0,Number(p.saldo||0)):0),0);
+ // CxC es posición financiera ACTUAL: no debe depender del período seleccionado.
+ // CUP se consolida con mercancía; las prestaciones USD se muestran separadas y NO se suman al patrimonio CUP.
+ let prestacionesActuales=[];
+ try{
+  let bid="global";
+  if(typeof flkCentroActualId==="function")bid=String(flkCentroActualId()||"global");
+  else if(typeof flkBusinessGuardado==="function")bid=String(flkBusinessGuardado()||"global");
+  else if(typeof FLK_BUSINESS_ID!=="undefined"&&FLK_BUSINESS_ID)bid=String(FLK_BUSINESS_ID);
+  const raw=JSON.parse(localStorage.getItem("flackunloker_prestaciones_servicio_v1::"+bid)||"[]");
+  if(Array.isArray(raw))prestacionesActuales=raw;
+ }catch(_){prestacionesActuales=[];}
+ const porCobrarPrestaciones=prestacionesActuales.reduce((t,p)=>t+(flkEsMetodoFinanzasCUP(p.metodo||"Efectivo CUP")?Math.max(0,Number(p.saldo||0)):0),0);
+ const porCobrarPrestacionesUSD=prestacionesActuales.reduce((t,p)=>{
+  const m=flkNormalizarMetodoPago(p.metodo||"");
+  return t+((m==="Efectivo USD"||m==="Transferencia USD")?Math.max(0,Number(p.saldo||0)):0);
+ },0);
  const porCobrar=porCobrarVentas+porCobrarPrestaciones;
 
  const porPagar=ordenesCompra
@@ -9643,7 +9659,7 @@ function datosFinanzas(){
 
  return {
   lim,ventasTotal:ventasDevengadas,ventasCobradas:ventasTotal,costo,brutaMercancia,prestIngresos,prestCostos,prestNeto,ingresosTotales,bruta,gastosTotal,arrendamientoPeriodo,neta,
-  caja,transferenciaCup,inventario,porCobrar,porPagar,activos,patrimonio,
+  caja,transferenciaCup,inventario,porCobrar,porCobrarPrestacionesUSD,porPagar,activos,patrimonio,
   entradas,salidas,flujo:flujoOperativo,
   aportesPropietario,retirosPropietario,netoPropietario,flujoCajaTotal
  }
@@ -9680,7 +9696,7 @@ function actualizarFinanzas(){
  const d=datosFinanzas();if(!d)return;
  document.getElementById("textoPeriodoFinanzas").value=d.lim.texto;
  const money=(id,n)=>document.getElementById(id).textContent="$"+Number(n).toFixed(2);
- money("finCaja",d.caja);money("finTransferenciaCup",d.transferenciaCup);money("finInventario",d.inventario);money("finPorCobrar",d.porCobrar);money("finActivos",d.activos);money("finPorPagar",d.porPagar);money("finPatrimonio",d.patrimonio);
+ money("finCaja",d.caja);money("finTransferenciaCup",d.transferenciaCup);money("finInventario",d.inventario);money("finPorCobrar",d.porCobrar);const finPorCobrarUSD=document.getElementById("finPorCobrarUSD");if(finPorCobrarUSD)finPorCobrarUSD.textContent="$"+Number(d.porCobrarPrestacionesUSD||0).toFixed(2)+" USD";money("finActivos",d.activos);money("finPorPagar",d.porPagar);money("finPatrimonio",d.patrimonio);
  const detallePorCobrar=document.getElementById("finDetallePorCobrar");
  if(detallePorCobrar){
   const pendientes=ventas.map(v=>{if(typeof normalizarCuentaVenta==="function")normalizarCuentaVenta(v);return v}).filter(v=>Number(v.saldo||0)>0.009&&flkEsMetodoFinanzasCUP(v.metodoPago||"Efectivo CUP")).sort((a,b)=>Number(b.saldo||0)-Number(a.saldo||0));
@@ -9690,10 +9706,10 @@ function actualizarFinanzas(){
    if(typeof flkCentroActualId==="function")bid=String(flkCentroActualId()||"global");
    else if(typeof FLK_BUSINESS_ID!=="undefined"&&FLK_BUSINESS_ID)bid=String(FLK_BUSINESS_ID);
    const raw=JSON.parse(localStorage.getItem("flackunloker_prestaciones_servicio_v1::"+bid)||"[]");
-   if(Array.isArray(raw))prestacionesPendientes=raw.filter(p=>Number(p.saldo||0)>0.009&&flkEsMetodoFinanzasCUP(p.metodo||"Efectivo CUP")).sort((a,b)=>Number(b.saldo||0)-Number(a.saldo||0));
+   if(Array.isArray(raw))prestacionesPendientes=raw.filter(p=>Number(p.saldo||0)>0.009).sort((a,b)=>Number(b.saldo||0)-Number(a.saldo||0));
   }catch(_){prestacionesPendientes=[];}
   const filasVentas=pendientes.map(v=>`<div class="fila-estadistica"><span>🧾 Comprobante #${escapeHtml(String(v.numero||String(v.id).slice(-8)))} · ${escapeHtml(v.cliente||"Cliente general")}</span><strong>$${Number(v.saldo||0).toFixed(2)}</strong></div>`);
-  const filasPrestaciones=prestacionesPendientes.map(p=>`<div class="fila-estadistica"><span>🛠️ Prestación · ${escapeHtml(p.descripcion||"Servicio")} · ${escapeHtml(p.cliente||"Cliente")} ${p.vencimiento?`· Vence ${escapeHtml(String(p.vencimiento))}`:""}</span><strong>$${Number(p.saldo||0).toFixed(2)}</strong></div>`);
+  const filasPrestaciones=prestacionesPendientes.map(p=>{const m=flkNormalizarMetodoPago(p.metodo||"Efectivo CUP");const moneda=(m==="Efectivo USD"||m==="Transferencia USD")?"USD":(m==="Efectivo Euro"?"EUR":(m==="Transferencia MLC"?"MLC":"CUP"));return `<div class="fila-estadistica"><span>🛠️ Prestación · ${escapeHtml(p.descripcion||"Servicio")} · ${escapeHtml(p.cliente||"Cliente")} · ${escapeHtml(moneda)} ${p.vencimiento?`· Vence ${escapeHtml(String(p.vencimiento))}`:""}</span><strong>$${Number(p.saldo||0).toFixed(2)} ${escapeHtml(moneda)}</strong></div>`});
   const filasCobrar=filasVentas.concat(filasPrestaciones);
   detallePorCobrar.innerHTML=filasCobrar.length?filasCobrar.join(""):`<div class="fila-estadistica"><span>No hay cuentas por cobrar pendientes.</span><strong>$0.00</strong></div>`
  }
