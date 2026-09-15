@@ -182,7 +182,7 @@
      HTTP "X-Frame-Options: DENY" o "Content-Security-Policy:
      frame-ancestors 'none'" en el servidor. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://eviwhrqhinhnyccizkfq.supabase.co wss://eviwhrqhinhnyccizkfq.supabase.co https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
-<meta name="flackunloker-offline-version" content="2026-09-15-v62.41-prestaciones-credito">
+<meta name="flackunloker-offline-version" content="2026-09-15-v62.41.23-feedback-boton-reportes">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -607,6 +607,15 @@ html{scroll-behavior:auto!important}
 .menu-panel{animation:none!important}
 button,.boton-agregar,.boton-guardar,.producto,.venta-card,.cliente-card,.gasto-card,.orden-card,.proveedor-card,.cuenta-proveedor-card{transition:none!important}
 button:active{transform:none!important}
+/* v62.41.17 · Respuesta visual del botón Actualizar de Finanzas */
+#botonActualizarFinanzas.flk-boton-feedback{transition:transform .10s ease,filter .10s ease,box-shadow .10s ease!important}
+#botonActualizarFinanzas.flk-boton-feedback:active,#botonActualizarFinanzas.flk-pulsado{transform:scale(.96)!important;filter:brightness(.94)}
+#botonActualizarFinanzas.flk-confirmado{transform:scale(1.02)!important;filter:brightness(1.06)}
+#botonActualizarFinanzas:disabled{cursor:wait;opacity:.88}
+#botonActualizarReporte.flk-boton-feedback{transition:transform .10s ease,filter .10s ease,box-shadow .10s ease!important}
+#botonActualizarReporte.flk-boton-feedback:active,#botonActualizarReporte.flk-pulsado{transform:scale(.96)!important;filter:brightness(.94)}
+#botonActualizarReporte.flk-confirmado{transform:scale(1.02)!important;filter:brightness(1.06)}
+#botonActualizarReporte:disabled{cursor:wait;opacity:.88}
 
 
 /* ===== MENÚ PRINCIPAL · CENTRADO Y ORGANIZADO DEFINITIVO ===== */
@@ -1812,6 +1821,21 @@ textarea::placeholder{
   }
 }
 </style>
+
+<style id="flk-finanzas-verde-claro-v624112">
+/* v62.41.12 · SOLO VISUAL: mayor contraste de cifras positivas en Finanzas */
+#vistaFinanzas .finanzas-card.activo strong,
+#vistaFinanzas .finanzas-card.positivo strong,
+#vistaFinanzas #finCaja,
+#vistaFinanzas #finTransferenciaCup,
+#vistaFinanzas #finInventario,
+#vistaFinanzas #finPorCobrar,
+#vistaFinanzas #finActivos {
+  color:#7CFF6B !important;
+  text-shadow:0 1px 2px rgba(0,0,0,.28);
+}
+</style>
+
 </head>
 <body>
 
@@ -2023,6 +2047,7 @@ textarea::placeholder{
 <div class="lista-estadisticas"><h3>💵 Dinero realmente cobrado hoy</h3>
 <div class="fila-estadistica"><span>Total cobrado</span><strong id="cierreCobradoHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>💵 Efectivo</span><strong id="cierreEfectivoHoy">$0.00</strong></div>
+<div class="fila-estadistica"><span>🏦 Transferencia CUP</span><strong id="cierreTransferenciaCupHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>📱 ATH Móvil</span><strong id="cierreAthHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>💳 Tarjeta</span><strong id="cierreTarjetaHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>Otros métodos</span><strong id="cierreOtrosHoy">$0.00</strong></div>
@@ -2050,12 +2075,12 @@ textarea::placeholder{
 <div class="campo" style="margin:0"><label for="fechaDesdeReporte">Desde</label><input id="fechaDesdeReporte" type="date" onchange="actualizarReporte()"></div>
 <div class="campo" style="margin:0"><label for="fechaHastaReporte">Hasta</label><input id="fechaHastaReporte" type="date" onchange="actualizarReporte()"></div>
 </div>
-<div class="reporte-botones"><button class="boton-agregar" onclick="actualizarReporte()">🔄 Actualizar reporte</button><button class="boton-respaldo boton-crear-respaldo" onclick="imprimirReporte()">🧾 Ver / imprimir reporte</button></div>
+<div class="reporte-botones"><button id="botonActualizarReporte" class="boton-agregar flk-boton-feedback" onclick="sincronizarYActualizarReporte(this)">🔄 Actualizar reporte</button><button class="boton-respaldo boton-crear-respaldo" onclick="imprimirReporte()">🧾 Ver / imprimir reporte</button></div>
 </div>
 <div class="estadisticas-grid">
 <div class="estadistica-card azul"><span>Recibos</span><strong id="reporteRecibos">0</strong></div>
 <div class="estadistica-card azul"><span>Unidades vendidas</span><strong id="reporteUnidades">0</strong></div>
-<div class="estadistica-card ancha positiva"><span>Ingresos por ventas</span><strong id="reporteIngresos">$0.00</strong></div>
+<div class="estadistica-card ancha positiva"><span>Ventas netas</span><strong id="reporteIngresos">$0.00</strong></div>
 <div class="estadistica-card ancha"><span>Costo de mercancía vendida</span><strong id="reporteCosto">$0.00</strong></div>
 <div class="estadistica-card ancha positiva"><span>Ganancia bruta</span><strong id="reporteGananciaBruta">$0.00</strong></div>
 <div class="estadistica-card ancha negativa"><span>Gastos</span><strong id="reporteGastos">$0.00</strong></div>
@@ -2239,12 +2264,13 @@ textarea::placeholder{
 <div class="campo" style="margin:0"><label for="fechaDesdeFinanzas">Desde</label><input id="fechaDesdeFinanzas" type="date" onchange="actualizarFinanzas()"></div>
 <div class="campo" style="margin:0"><label for="fechaHastaFinanzas">Hasta</label><input id="fechaHastaFinanzas" type="date" onchange="actualizarFinanzas()"></div>
 </div>
-<div class="reporte-botones"><button class="boton-agregar" onclick="sincronizarYActualizarFinanzas()">🔄 Actualizar</button><button class="boton-respaldo boton-crear-respaldo" onclick="imprimirFinanzas()">🧾 Ver / imprimir</button></div>
+<div class="reporte-botones"><button id="botonActualizarFinanzas" class="boton-agregar flk-boton-feedback" onclick="sincronizarYActualizarFinanzas(this)">🔄 Actualizar</button><button class="boton-respaldo boton-crear-respaldo" onclick="imprimirFinanzas()">🧾 Ver / imprimir</button></div>
 </div>
 
 <div class="lista-estadisticas"><h3>🏦 Posición financiera actual</h3></div>
 <div class="finanzas-balance">
 <div class="finanzas-card activo"><span>🏦 Caja física</span><strong id="finCaja">$0.00</strong></div>
+<div class="finanzas-card activo"><span>🏧 Saldo Transferencia CUP</span><strong id="finTransferenciaCup">$0.00</strong></div>
 <div class="finanzas-card activo"><span>📦 Inventario a costo</span><strong id="finInventario">$0.00</strong></div>
 <div class="finanzas-card activo"><span>👥 Cuentas por cobrar</span><strong id="finPorCobrar">$0.00</strong></div>
 <div class="finanzas-card ancha activo"><span>Activos operativos</span><strong id="finActivos">$0.00</strong></div>
@@ -2252,16 +2278,16 @@ textarea::placeholder{
 <div class="finanzas-card ancha azul"><span>💼 Patrimonio operativo neto</span><strong id="finPatrimonio">$0.00</strong></div>
 </div>
 <div class="lista-estadisticas">
-<h3>👥 Comprobantes por cobrar</h3>
+<h3>👥 Cuentas por cobrar · Detalle</h3>
 <div id="finDetallePorCobrar"><div class="fila-estadistica"><span>No hay comprobantes pendientes.</span><strong>$0.00</strong></div></div>
 </div>
 <div class="lista-estadisticas">
 <h3>🧮 Cómo se calcula el patrimonio</h3>
-<div class="fila-estadistica fila-formula-patrimonio"><span>Caja + Inventario + Por cobrar − Por pagar</span><strong id="finFormulaPatrimonio">—</strong></div>
+<div class="fila-estadistica fila-formula-patrimonio"><span>Caja + Transferencia CUP + Inventario + Por cobrar − Por pagar</span><strong id="finFormulaPatrimonio">—</strong></div>
 </div>
 
 <div class="lista-estadisticas"><h3>📈 Resultados del período</h3>
-<div class="fila-estadistica"><span>📦 Ventas de mercancía cobradas</span><strong id="finVentas">$0.00</strong></div>
+<div class="fila-estadistica"><span>📦 Ventas de mercancía netas</span><strong id="finVentas">$0.00</strong></div>
 <div class="fila-estadistica"><span>📦 Costo de mercancía vendida</span><strong id="finCosto">$0.00</strong></div>
 <div class="fila-estadistica"><span>🛠️ Ingresos por prestaciones de servicio</span><strong id="finPrestacionesPeriodo">$0.00</strong></div>
 <div class="fila-estadistica"><span>🛠️ Costos externos de prestaciones</span><strong id="finPrestCostosPeriodo">$0.00</strong></div>
@@ -2346,9 +2372,9 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="prestacion-card"><span>Resultado del mes</span><strong id="prestNetoMes">$0.00</strong></div>
 </div>
 <div class="prestacion-form"><div class="prestacion-grid">
-<div class="campo"><label>Descripción de la prestación</label><input id="prestDescripcion" type="text" placeholder="Ej. Instalación / reparación / configuración"></div>
+<div class="campo"><label>Descripción de la prestación</label><input id="prestDescripcion" type="text" placeholder="Ej. Instalación / reparación / configuración" required></div>
 <div class="campo"><label>Tipo</label><select id="prestTipo" onchange="flkCambiarTipoPrestacion()"><option value="ingreso">Solo ingreso</option><option value="ingreso_costo">Ingreso + costo externo</option></select></div>
-<div class="campo"><label>Ingreso</label><input id="prestIngreso" type="number" min="0" step="0.01" value="0"></div>
+<div class="campo"><label>Ingreso</label><input id="prestIngreso" type="number" min="0" step="0.01" value="0" required></div>
 <div class="campo"><label>Condición de pago</label><select id="prestCondicion" onchange="flkCambiarCondicionPrestacion()"><option value="pagada">Pagada</option><option value="credito">A crédito</option></select></div>
 <div class="campo"><label>Método de pago</label><select id="prestMetodo"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Transferencia CUP">Transferencia CUP</option><option value="Transferencia USD">Transferencia USD</option><option value="Transferencia MLC">Transferencia MLC</option><option value="Efectivo Euro">Efectivo Euro</option><option value="Zelle">Zelle</option></select></div>
 <div class="campo"><label>Costo externo</label><input id="prestCosto" type="number" min="0" step="0.01" value="0" disabled></div>
@@ -2358,7 +2384,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="campo"><label>Pago inicial</label><input id="prestPagoInicial" type="number" min="0" step="0.01" value="0"></div>
 <div class="campo"><label>Vencimiento</label><input id="prestVencimiento" type="date"></div>
 </div><div class="prestacion-grid" style="grid-template-columns:1fr auto;margin-top:10px">
-<div class="campo"><label>Fecha</label><input id="prestFecha" type="date"></div><button class="boton-agregar" type="button" onclick="flkGuardarPrestacionServicio()">💾 Registrar prestación</button></div>
+<div class="campo"><label>Fecha</label><input id="prestFecha" type="date" required></div><button class="boton-agregar" type="button" onclick="flkGuardarPrestacionServicio()">💾 Registrar prestación</button></div>
 <p style="margin:10px 0 0;color:#667085;font-size:12px">En una prestación a crédito, el ingreso completo cuenta como ingreso operativo, pero a Caja entra solamente lo cobrado. El saldo pendiente queda en Cuentas por cobrar.</p></div>
 <div class="lista-estadisticas"><h3>📋 Prestaciones registradas</h3><div id="listaPrestacionesServicio"></div></div>
 </div>
@@ -2377,15 +2403,27 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="lista-estadisticas"><h3>🔄 Productos con más movimientos</h3><div id="rankingMovimientos"></div></div>
 <div class="lista-estadisticas"><h3>⚠️ Productos con stock bajo</h3><div id="rankingStockBajo"></div></div>
 <div class="lista-estadisticas" id="resumenPrestacionesEstadisticas"><h3>🛠️ Estadísticas de prestaciones de servicio</h3>
-<div class="fila-estadistica"><span>Prestaciones cobradas hoy</span><strong id="estadPrestHoy">$0.00</strong></div>
-<div class="fila-estadistica"><span>Prestaciones cobradas este mes</span><strong id="estadPrestMes">$0.00</strong></div>
-<div class="fila-estadistica"><span>Costos externos de prestaciones este mes</span><strong id="estadPrestCostosMes">$0.00</strong></div>
-<div class="fila-estadistica"><span>Resultado neto de prestaciones este mes</span><strong id="estadPrestNetoMes">$0.00</strong></div>
+<div class="fila-estadistica"><span>Prestaciones cobradas hoy · CUP</span><strong id="estadPrestHoy">$0.00</strong></div>
+<div class="fila-estadistica"><span>Prestaciones cobradas este mes · CUP</span><strong id="estadPrestMes">$0.00</strong></div>
+<div class="fila-estadistica"><span>Costos externos de prestaciones este mes · CUP</span><strong id="estadPrestCostosMes">$0.00</strong></div>
+<div class="fila-estadistica"><span>Resultado neto de prestaciones este mes · CUP</span><strong id="estadPrestNetoMes">$0.00</strong></div>
 <p style="margin:10px 0 0;color:#667085;font-size:12px;line-height:1.5">Estas cifras corresponden únicamente a servicios prestados y no forman parte de las estadísticas de unidades, movimientos o valor del inventario.</p>
 </div>
 </div>
 </div>
 
+
+<div class="modal" id="modalAbonoPrestacion">
+<form class="formulario" id="formAbonoPrestacion" onsubmit="event.preventDefault();flkGuardarAbonoPrestacion();">
+<h2>💵 Abonar prestación</h2>
+<div class="mensaje-movimiento" id="abonoPrestacionResumen">Saldo pendiente: $0.00</div>
+<input id="abonoPrestacionId" type="hidden">
+<div class="campo"><label>Importe del abono</label><input id="abonoPrestacionMonto" type="number" min="0.01" step="0.01" required></div>
+<div class="campo"><label>Método de pago</label><select id="abonoPrestacionMetodo"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Transferencia CUP">Transferencia CUP</option><option value="Transferencia USD">Transferencia USD</option><option value="Transferencia MLC">Transferencia MLC</option><option value="Efectivo Euro">Efectivo Euro</option><option value="Zelle">Zelle</option></select></div>
+<div class="campo"><label>Fecha</label><input id="abonoPrestacionFecha" type="date" required></div>
+<div class="campo"><label>Nota</label><input id="abonoPrestacionNota" type="text" value="Abono prestación"></div>
+<div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="flkCerrarAbonoPrestacion()">Cancelar</button><button type="submit" class="boton-guardar">Registrar abono</button></div>
+</form></div>
 
 <div class="modal" id="modalProducto">
 <form class="formulario" id="formularioProducto">
@@ -2495,7 +2533,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="seccion-titulo" style="margin:14px 0 8px"><h2 style="font-size:16px">Productos en este recibo</h2><strong id="contadorCarrito" style="color:#0a84ff">0</strong></div>
 <div id="carritoVenta" class="carrito-venta"></div>
 <div class="campo"><label for="estadoPagoVenta">Condición de pago</label><select id="estadoPagoVenta" onchange="actualizarCamposCredito()"><option value="pagado">✅ Pagado</option><option value="credito">💳 Crédito</option></select></div>
-<div class="campo"><label for="metodoPagoVenta">Método de pago / abono</label><select id="metodoPagoVenta"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Transferencia CUP">Transferencia CUP</option><option value="Transferencia USD">Transferencia USD</option><option value="Transferencia MLC">Transferencia MLC</option><option value="Efectivo Euro">Efectivo Euro</option><option value="Zelle">Zelle</option></select></div>
+<div class="campo"><label for="metodoPagoVenta">Método de pago / abono</label><select id="metodoPagoVenta"><option value="Efectivo CUP">Efectivo CUP</option><option value="Transferencia CUP">Transferencia CUP</option></select></div>
 <div class="campo campo-credito" id="campoAbonoInicial"><label for="abonoInicialVenta">Abono inicial</label><input id="abonoInicialVenta" type="number" min="0" step="0.01" value="0"><small class="ayuda-campo">Puedes dejarlo en $0.00 y registrar los abonos después desde el recibo o desde Clientes.</small></div>
 <div class="campo campo-credito" id="campoVencimientoCredito"><label for="fechaVencimientoVenta">Fecha de vencimiento</label><input id="fechaVencimientoVenta" type="date"><small class="ayuda-campo">La cuenta aparecerá como próxima a vencer durante los 7 días anteriores a esta fecha.</small></div>
 <div class="campo"><label for="notaVenta">Nota</label><input id="notaVenta" type="text" placeholder="Opcional"></div>
@@ -2527,7 +2565,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <h2>💵 Registrar abono</h2>
 <p class="mensaje-movimiento" id="textoAbono">Cuenta por cobrar</p>
 <div class="campo"><label for="cantidadAbono">Cantidad del abono</label><input id="cantidadAbono" type="number" min="0.01" step="0.01" required><small class="ayuda-campo" id="ayudaAbono"></small></div>
-<div class="campo"><label for="metodoAbono">Método de pago</label><select id="metodoAbono"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Transferencia CUP">Transferencia CUP</option><option value="Transferencia USD">Transferencia USD</option><option value="Transferencia MLC">Transferencia MLC</option><option value="Efectivo Euro">Efectivo Euro</option><option value="Zelle">Zelle</option></select></div>
+<div class="campo"><label for="metodoAbono">Método de pago</label><select id="metodoAbono"><option value="Efectivo CUP">Efectivo CUP</option><option value="Transferencia CUP">Transferencia CUP</option></select></div>
 <div class="campo"><label for="notaAbono">Nota</label><input id="notaAbono" type="text" placeholder="Opcional"></div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarAbono()">Cancelar</button><button type="submit" class="boton-guardar">Registrar abono</button></div>
 </form>
@@ -2599,13 +2637,13 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <form class="formulario" id="formularioRecepcionOrden">
 <h2>✅ Recibir orden</h2><p class="mensaje-movimiento" id="textoRecepcionOrden">Confirma la recepción y cómo se pagó la compra.</p>
 <div class="campo"><label for="condicionPagoProveedor">Condición de pago</label><select id="condicionPagoProveedor" onchange="actualizarCamposCreditoProveedor()"><option value="pagado">✅ Pagada</option><option value="credito">💳 A crédito</option></select></div>
-<div class="campo"><label for="metodoPagoProveedor">Método de pago / abono inicial</label><select id="metodoPagoProveedor"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Transferencia CUP">Transferencia CUP</option><option value="Transferencia USD">Transferencia USD</option><option value="Transferencia MLC">Transferencia MLC</option><option value="Efectivo Euro">Efectivo Euro</option><option value="Zelle">Zelle</option></select></div>
+<div class="campo"><label for="metodoPagoProveedor">Método de pago / abono inicial</label><select id="metodoPagoProveedor"><option value="Efectivo CUP">Efectivo CUP</option><option value="Transferencia CUP">Transferencia CUP</option></select></div>
 <div class="campo campo-credito" id="campoAbonoProveedor"><label for="abonoInicialProveedor">Abono inicial</label><input id="abonoInicialProveedor" type="number" min="0" step="0.01" value="0"></div>
 <div class="campo campo-credito" id="campoVencimientoProveedor"><label for="fechaVencimientoProveedor">Fecha de vencimiento</label><input id="fechaVencimientoProveedor" type="date"></div>
 <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarRecepcionOrden()">Cancelar</button><button type="submit" class="boton-guardar">Recibir mercancía</button></div>
 </form></div>
 
-<div class="modal" id="modalPagoProveedor"><form class="formulario" id="formularioPagoProveedor"><h2>💵 Registrar pago</h2><p class="mensaje-movimiento" id="textoPagoProveedor">Cuenta por pagar</p><div class="campo"><label for="cantidadPagoProveedor">Cantidad</label><input id="cantidadPagoProveedor" type="number" min="0.01" step="0.01" required><small id="ayudaPagoProveedor" class="ayuda-campo"></small></div><div class="campo"><label for="metodoPagoCuentaProveedor">Método de pago</label><select id="metodoPagoCuentaProveedor"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Transferencia CUP">Transferencia CUP</option><option value="Transferencia USD">Transferencia USD</option><option value="Transferencia MLC">Transferencia MLC</option><option value="Efectivo Euro">Efectivo Euro</option><option value="Zelle">Zelle</option></select></div><div class="campo"><label for="notaPagoProveedor">Nota</label><input id="notaPagoProveedor" type="text" placeholder="Opcional"></div><div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarPagoProveedor()">Cancelar</button><button type="submit" class="boton-guardar">Registrar pago</button></div></form></div>
+<div class="modal" id="modalPagoProveedor"><form class="formulario" id="formularioPagoProveedor"><h2>💵 Registrar pago</h2><p class="mensaje-movimiento" id="textoPagoProveedor">Cuenta por pagar</p><div class="campo"><label for="cantidadPagoProveedor">Cantidad</label><input id="cantidadPagoProveedor" type="number" min="0.01" step="0.01" required><small id="ayudaPagoProveedor" class="ayuda-campo"></small></div><div class="campo"><label for="metodoPagoCuentaProveedor">Método de pago</label><select id="metodoPagoCuentaProveedor"><option value="Efectivo CUP">Efectivo CUP</option><option value="Transferencia CUP">Transferencia CUP</option></select></div><div class="campo"><label for="notaPagoProveedor">Nota</label><input id="notaPagoProveedor" type="text" placeholder="Opcional"></div><div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarPagoProveedor()">Cancelar</button><button type="submit" class="boton-guardar">Registrar pago</button></div></form></div>
 
 <div class="modal" id="modalHistorialPagosProveedor"><div class="formulario"><h2>📋 Historial de pagos</h2><p class="mensaje-movimiento" id="textoHistorialPagosProveedor"></p><div id="listaHistorialPagosProveedor"></div><div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarHistorialPagosProveedor()">Cerrar</button></div></div></div>
 
@@ -3676,10 +3714,13 @@ async function flkProcesarOperacionOffline(op){
     throw e;
    }
 
-   pin=String(prompt("Hay un restablecimiento pendiente de sincronizar.\n\nIntroduce el PIN de restablecimiento de 6 dígitos para autorizarlo en Supabase:")||"").trim();
+   // v62.41.6 · Electron no admite prompt().
+   // El PIN se conserva solo de forma efímera en sessionStorage durante esta sesión;
+   // nunca se guarda en localStorage ni dentro de la cola offline.
+   try{pin=String(sessionStorage.getItem("flk_reset_reauth_pin::"+op.id)||"").trim();}catch(_){pin="";}
    if(!pin){
     flkResetReauthSuspendidoHasta=Date.now()+30000;
-    const e=new Error("Restablecimiento pendiente: falta autorización con PIN.");
+    const e=new Error("Restablecimiento pendiente: vuelve a autorizarlo desde Restablecimiento de fábrica.");
     e.flkPendingReauth=true;
     throw e;
    }
@@ -3702,7 +3743,8 @@ async function flkProcesarOperacionOffline(op){
    p_confirmation:"RESTABLECER"
   });
 
-  // Borrar la referencia en memoria inmediatamente después de usarla.
+  // Borrar la autorización efímera inmediatamente después de usarla.
+  try{sessionStorage.removeItem("flk_reset_reauth_pin::"+op.id);}catch(_){}
   pin="";
 
   if(error)throw error;
@@ -3855,9 +3897,11 @@ async function flkProcesarOperacionOffline(op){
  }
  if(op.tipo==="supplier_payment"){
   const p=op.payload||{};
+  const metodoProveedor=flkNormalizarMetodoPago(p.payment_method);
+  if(!flkEsMetodoMercanciaCUP(metodoProveedor))throw new Error("Pago proveedor pendiente sin método CUP válido");
   const {error}=await flkSupabase.rpc("flk_add_supplier_payment_offline",{
    p_operation_id:op.id,p_order_id:p.order_id||null,p_order_operation_id:p.order_operation_id||null,
-   p_amount:Number(p.amount||0),p_payment_method:p.payment_method||"Efectivo",p_note:p.note||null
+   p_amount:Number(p.amount||0),p_payment_method:metodoProveedor,p_note:p.note||null
   });
   if(error)throw error;return
  }
@@ -3893,7 +3937,7 @@ async function flkProcesarOperacionOffline(op){
   if(op.tipo==="service_provision_save"){
    const p=op.payload||{},bid=await flkExigirCentroActual();
    const metodo=String(p.payment_method||"Efectivo CUP").toLowerCase();
-   const metodoDb=metodo.startsWith("efectivo")?"efectivo":metodo.startsWith("transferencia")?"transferencia":metodo.includes("ath")?"ath_movil":metodo.includes("tarjeta")?"tarjeta":metodo.includes("zelle")?"zelle":"otro";
+   const metodoDb=metodo==="efectivo cup"?"efectivo":metodo==="transferencia cup"?"transferencia":metodo==="efectivo usd"?"efectivo usd":metodo==="efectivo euro"?"efectivo euro":metodo==="transferencia usd"?"transferencia usd":metodo==="transferencia mlc"?"transferencia mlc":metodo.includes("ath")?"ath_movil":metodo.includes("tarjeta")?"tarjeta":metodo.includes("zelle")?"zelle":"otro";
    const row={business_id:bid,description:String(p.description||"Prestación"),service_type:p.service_type==="ingreso_costo"?"ingreso_costo":"ingreso",income:Number(p.income||0),payment_method:metodoDb,external_cost:Number(p.external_cost||0),service_date:p.service_date||fechaLocalISO(new Date()),customer_name:p.customer_name||null,payment_condition:p.payment_condition==="credito"?"credito":"pagada",initial_payment:Number(p.initial_payment||0),due_date:p.due_date||null,operation_id:op.id};
    const {error}=await flkSupabase.from("service_provisions").upsert(row,{onConflict:"operation_id"});
    if(error)throw error;return
@@ -3902,7 +3946,7 @@ async function flkProcesarOperacionOffline(op){
    const p=op.payload||{},bid=await flkExigirCentroActual();
    if(!p.service_provision_id)throw new Error("La prestación debe sincronizarse antes de registrar abonos adicionales.");
    const metodo=String(p.payment_method||"Efectivo CUP").toLowerCase();
-   const metodoDb=metodo.startsWith("efectivo")?"efectivo":metodo.startsWith("transferencia")?"transferencia":metodo.includes("ath")?"ath_movil":metodo.includes("tarjeta")?"tarjeta":metodo.includes("zelle")?"zelle":"otro";
+   const metodoDb=metodo==="efectivo cup"?"efectivo":metodo==="transferencia cup"?"transferencia":metodo==="efectivo usd"?"efectivo usd":metodo==="efectivo euro"?"efectivo euro":metodo==="transferencia usd"?"transferencia usd":metodo==="transferencia mlc"?"transferencia mlc":metodo.includes("ath")?"ath_movil":metodo.includes("tarjeta")?"tarjeta":metodo.includes("zelle")?"zelle":"otro";
    const row={business_id:bid,service_provision_id:p.service_provision_id,amount:Number(p.amount||0),payment_method:metodoDb,payment_date:p.payment_date||fechaLocalISO(new Date()),note:p.note||null,operation_id:op.id};
    const {error}=await flkSupabase.from("service_provision_payments").upsert(row,{onConflict:"operation_id"});
    if(error)throw error;return
@@ -4280,6 +4324,18 @@ function flkNormalizarMetodoPago(metodo){
 }
 function flkEsEfectivoCUP(metodo){
  return flkNormalizarMetodoPago(metodo)==="Efectivo CUP";
+}
+// v62.41.7 · Finanzas consolida únicamente moneda CUP.
+// No se convierten ni se suman USD/MLC/EUR/Zelle/Otros como si fueran CUP.
+function flkEsMetodoFinanzasCUP(metodo){
+ const m=flkNormalizarMetodoPago(metodo);
+ return m==="Efectivo CUP"||m==="Transferencia CUP";
+}
+// v62.41.16 · Mercancía y compras/proveedores están denominados en CUP.
+// No se mezclan importes nominales USD/EUR/MLC/Zelle con CUP sin conversión real.
+function flkEsMetodoMercanciaCUP(metodo){
+ const m=flkNormalizarMetodoPago(metodo);
+ return m==="Efectivo CUP"||m==="Transferencia CUP";
 }
 
 let flkOperacionLocalInmediataHasta=0;
@@ -4742,7 +4798,7 @@ async function flkRecuperacionEmergenciaNube(){
      concepto:m.description||"Movimiento",
      metodo:normalizarMetodoFlujo(m.payment_method||"Otro"),
      fecha:m.occurred_at||m.created_at,
-     grupo:m.service_provision_id?"prestacion":
+     grupo:(m.service_provision_id||String(m.description||"").startsWith("Abono prestación ·")||String(m.description||"").includes("[PAGO:"))?"prestacion":
        String(m.description||"").startsWith("Gasto ·")?"gasto":
        String(m.description||"").startsWith("Abono ·")?"abono":
        String(m.description||"").startsWith("Venta ·")?"venta":
@@ -7807,6 +7863,7 @@ document.getElementById("formularioVenta").addEventListener("submit",async e=>{
  procesandoGuardado=true;
  try{
   const cliente=document.getElementById("clienteVenta").value.trim()||"Cliente general",telefono=document.getElementById("telefonoVenta").value.trim(),metodoPago=document.getElementById("metodoPagoVenta").value,estadoSolicitado=document.getElementById("estadoPagoVenta").value,abonoInicial=estadoSolicitado==="credito"?Number(document.getElementById("abonoInicialVenta").value||0):0,fechaVencimiento=estadoSolicitado==="credito"?document.getElementById("fechaVencimientoVenta").value:"",nota=document.getElementById("notaVenta").value.trim(),fecha=new Date().toISOString(),ventaId=Date.now()+Math.floor(Math.random()*100000);
+  if(!flkEsMetodoMercanciaCUP(metodoPago))return alert("Las ventas de mercancía están valoradas en CUP. Usa Efectivo CUP o Transferencia CUP.");
   const items=carritoVenta.map(i=>{const p=productos.find(x=>x.id===i.productoId),cantidad=Number(i.cantidad),precioUnitario=Number(i.precioUnitario),costoUnitario=Number(p.costo??0);return {productoId:p.id,nombre:p.nombre,sku:p.sku,cantidad,precioUnitario,costoUnitario,ingreso:cantidad*precioUnitario,costo:cantidad*costoUnitario,ganancia:cantidad*(precioUnitario-costoUnitario)}});
   const cantidad=items.reduce((t,i)=>t+i.cantidad,0),ingreso=items.reduce((t,i)=>t+i.ingreso,0),costoTotal=items.reduce((t,i)=>t+i.costo,0),ganancia=ingreso-costoTotal;
   if(estadoSolicitado==="credito"&&(!Number.isFinite(abonoInicial)||abonoInicial<0))return alert("Revisa el abono inicial.");
@@ -8273,6 +8330,7 @@ document.getElementById("formularioAbono").addEventListener("submit",async e=>{
  const v=ventas.find(x=>x.id===ventaAbonoId);if(!v)return cerrarAbono();
  normalizarCuentaVenta(v);
  const cantidad=Number(document.getElementById("cantidadAbono").value),metodo=document.getElementById("metodoAbono").value,nota=document.getElementById("notaAbono").value.trim();
+ if(!flkEsMetodoMercanciaCUP(metodo))return alert("Los abonos de mercancía en CUP solo admiten Efectivo CUP o Transferencia CUP.");
  if(!Number.isFinite(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
  if(cantidad>Number(v.saldo)+0.009)return alert(`El abono no puede superar el saldo de $${Number(v.saldo).toFixed(2)}.`);
 
@@ -8581,15 +8639,15 @@ function resumenCierreFecha(fechaLocal){
   .reduce((t,m)=>t+Number(m.cantidad||0),0);
  const efectivoNeto=saldoCajaFisicaActual();
  return {fechaLocal,recibos,unidades,ventasTotal,costo,gananciaBruta,gastosTotal,gananciaNeta,cobrado,
-  efectivo:cobros.efectivoCup,ath:0,tarjeta:0,
-  otros:cobros.efectivoUsd+cobros.transferenciaCup+cobros.transferenciaUsd+cobros.transferenciaMlc+cobros.efectivoEuro+cobros.zelle+cobros.otros,
+  efectivo:cobros.efectivoCup,transferenciaCup:cobros.transferenciaCup,ath:0,tarjeta:0,
+  otros:cobros.efectivoUsd+cobros.transferenciaUsd+cobros.transferenciaMlc+cobros.efectivoEuro+cobros.zelle+cobros.otros,
   metodosPago:cobros,credito,saldoCredito,gastoEfectivo,efectivoNeto}
 }
 function formatoDineroCierre(n){n=Number(n||0);return (n<0?"-$":"$")+Math.abs(n).toFixed(2)}
 function actualizarCierre(){
  const fecha=fechaLocalISO(new Date()),r=resumenCierreFecha(fecha),f=new Date(fecha+"T12:00:00");
  document.getElementById("cierreFechaHoy").textContent=f.toLocaleDateString("es-PR",{weekday:"long",day:"2-digit",month:"2-digit",year:"numeric"});
- document.getElementById("cierreRecibosUnidades").textContent=r.recibos+" / "+r.unidades;document.getElementById("cierreVentasHoy").textContent=formatoDineroCierre(r.ventasTotal);document.getElementById("cierreCostoHoy").textContent=formatoDineroCierre(r.costo);document.getElementById("cierreGananciaBrutaHoy").textContent=formatoDineroCierre(r.gananciaBruta);document.getElementById("cierreGastosHoy").textContent=formatoDineroCierre(r.gastosTotal);document.getElementById("cierreGananciaNetaHoy").textContent=formatoDineroCierre(r.gananciaNeta);document.getElementById("cierreCobradoHoy").textContent=formatoDineroCierre(r.cobrado);document.getElementById("cierreEfectivoHoy").textContent=formatoDineroCierre(r.efectivo);document.getElementById("cierreAthHoy").textContent=formatoDineroCierre(r.ath);document.getElementById("cierreTarjetaHoy").textContent=formatoDineroCierre(r.tarjeta);document.getElementById("cierreOtrosHoy").textContent=formatoDineroCierre(r.otros);document.getElementById("cierreCreditoHoy").textContent=formatoDineroCierre(r.credito);document.getElementById("cierreSaldoCreditoHoy").textContent=formatoDineroCierre(r.saldoCredito);document.getElementById("cierreGastoEfectivoHoy").textContent=formatoDineroCierre(r.gastoEfectivo);document.getElementById("cierreEfectivoNetoHoy").textContent=formatoDineroCierre(r.efectivoNeto);
+ document.getElementById("cierreRecibosUnidades").textContent=r.recibos+" / "+r.unidades;document.getElementById("cierreVentasHoy").textContent=formatoDineroCierre(r.ventasTotal);document.getElementById("cierreCostoHoy").textContent=formatoDineroCierre(r.costo);document.getElementById("cierreGananciaBrutaHoy").textContent=formatoDineroCierre(r.gananciaBruta);document.getElementById("cierreGastosHoy").textContent=formatoDineroCierre(r.gastosTotal);document.getElementById("cierreGananciaNetaHoy").textContent=formatoDineroCierre(r.gananciaNeta);document.getElementById("cierreCobradoHoy").textContent=formatoDineroCierre(r.cobrado);document.getElementById("cierreEfectivoHoy").textContent=formatoDineroCierre(r.efectivo);document.getElementById("cierreTransferenciaCupHoy").textContent=formatoDineroCierre(r.transferenciaCup);document.getElementById("cierreAthHoy").textContent=formatoDineroCierre(r.ath);document.getElementById("cierreTarjetaHoy").textContent=formatoDineroCierre(r.tarjeta);document.getElementById("cierreOtrosHoy").textContent=formatoDineroCierre(r.otros);document.getElementById("cierreCreditoHoy").textContent=formatoDineroCierre(r.credito);document.getElementById("cierreSaldoCreditoHoy").textContent=formatoDineroCierre(r.saldoCredito);document.getElementById("cierreGastoEfectivoHoy").textContent=formatoDineroCierre(r.gastoEfectivo);document.getElementById("cierreEfectivoNetoHoy").textContent=formatoDineroCierre(r.efectivoNeto);
  const existente=cierres.find(c=>c.fechaLocal===fecha),estado=document.getElementById("estadoCierreHoy"),boton=document.getElementById("botonGuardarCierre");if(existente){estado.textContent="🔒 Este día ya tiene un cierre guardado. Puedes actualizarlo si hiciste una corrección posterior.";estado.classList.add("visible");boton.textContent="🔄 Actualizar cierre de hoy"}else{estado.classList.remove("visible");boton.textContent="🔒 Guardar cierre de hoy"}mostrarListaCierres()
 }
 async function guardarCierreHoy(){
@@ -8604,7 +8662,7 @@ async function guardarCierreHoy(){
   gross_profit:Number(r.gananciaBruta||0),expenses_total:Number(r.gastosTotal||0),
   net_profit:Number(r.gananciaNeta||0),collected_total:Number(r.cobrado||0),
   cash_total:Number(r.efectivo||0),ath_total:Number(r.ath||0),
-  card_total:Number(r.tarjeta||0),other_total:Number(r.otros||0),
+  card_total:Number(r.tarjeta||0),other_total:Number(r.otros||0)+Number(r.transferenciaCup||0),
   credit_sales:Number(r.credito||0),credit_balance:Number(r.saldoCredito||0),
   cash_expenses:Number(r.gastoEfectivo||0),net_cash:Number(r.efectivoNeto||0)
  });
@@ -8649,12 +8707,33 @@ function rangoReporteActual(){
 function cambiarPeriodoReporte(){const personalizado=document.getElementById("periodoReporte").value==="personalizado",box=document.getElementById("rangoPersonalizadoReporte");box.classList.toggle("oculto",!personalizado);if(personalizado){const hoy=fechaLocalISO(new Date());if(!document.getElementById("fechaDesdeReporte").value){const d=new Date();d.setDate(d.getDate()-6);document.getElementById("fechaDesdeReporte").value=fechaLocalISO(d)}if(!document.getElementById("fechaHastaReporte").value)document.getElementById("fechaHastaReporte").value=hoy}actualizarReporte()}
 function datosReporte(){
  const r=rangoReporteActual(),enRango=f=>{const x=fechaLocalDeValor(f);return x&&x>=r.inicio&&x<=r.fin},ventasR=ventas.filter(v=>enRango(v.fecha)),gastosR=gastos.filter(g=>enRango(g.fechaLocal||g.fecha));
- const recibos=ventasR.length,unidades=ventasR.reduce((t,v)=>t+unidadesNetasVenta(v),0),ingresos=ventasR.reduce((t,v)=>t+cobradoVentaEnFechaVenta(v),0),costo=ventasR.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasR.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosR.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
+ const recibos=ventasR.length,unidades=ventasR.reduce((t,v)=>t+unidadesNetasVenta(v),0),ingresos=ventasR.reduce((t,v)=>t+itemsDeVenta(v).reduce((s,i)=>s+ingresoNetoItemVenta(i),0),0),costo=ventasR.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasR.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosR.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
  const cobros={efectivoCup:0,efectivoUsd:0,transferenciaCup:0,transferenciaUsd:0,transferenciaMlc:0,efectivoEuro:0,zelle:0,otros:0};ventas.forEach(v=>{normalizarCuentaVenta(v);const ps=pagosDeVenta(v);if(ps.length){ps.forEach(p=>{if(enRango(p.fecha))cobros[metodoCajaClave(p.metodo)]+=Number(p.cantidad||0)})}else if(enRango(v.fecha)&&Number(v.totalPagado||0)>0)cobros[metodoCajaClave(v.metodoPago)]+=Math.min(Number(v.totalPagado||0),Number(v.ingreso||0))});
  const cobrado=Object.values(cobros).reduce((a,b)=>a+b,0),saldoCredito=ventasR.reduce((t,v)=>{normalizarCuentaVenta(v);return t+Number(v.saldo||0)},0),productosR={},categorias={};
  ventasR.forEach(v=>itemsDeVenta(v).forEach(i=>{const k=String(i.productoId??i.sku??i.nombre),cant=cantidadNetaItemVenta(i),ing=cant*Number(i.precioUnitario||0);if(!productosR[k])productosR[k]={nombre:i.nombre||"Producto",unidades:0,ingresos:0};productosR[k].unidades+=cant;productosR[k].ingresos+=ing}));
  gastosR.forEach(g=>{const k=String(g.categoria||"Otro");categorias[k]=(categorias[k]||0)+Number(g.cantidad||0)});
  return {...r,recibos,unidades,ingresos,costo,gananciaBruta,gastosTotal,gananciaNeta,cobrado,...cobros,saldoCredito,productos:Object.values(productosR).sort((a,b)=>b.unidades-a.unidades||b.ingresos-a.ingresos),categorias:Object.entries(categorias).sort((a,b)=>b[1]-a[1])}
+}
+async function sincronizarYActualizarReporte(boton){
+ const btn=boton||document.getElementById("botonActualizarReporte");
+ const textoOriginal=btn?btn.textContent:"🔄 Actualizar reporte";
+ if(btn){btn.classList.add("flk-pulsado");btn.textContent="⏳ Actualizando…";btn.disabled=true}
+ try{
+  if(flkNubeDisponible()){
+   await cargarInventarioSupabase();
+   await cargarVentasSupabase();
+   await cargarGastosSupabase();
+   await cargarMovimientosCajaSupabase();
+  }
+  actualizarReporte();
+  if(btn){btn.classList.remove("flk-pulsado");btn.classList.add("flk-confirmado");btn.textContent="✓ Actualizado"}
+ }catch(err){
+  console.error("Actualización Reportes:",err);
+  actualizarReporte();
+  if(btn){btn.classList.remove("flk-pulsado");btn.classList.add("flk-error-feedback");btn.textContent="⚠ Error al actualizar"}
+ }finally{
+  if(btn)setTimeout(()=>{btn.disabled=false;btn.classList.remove("flk-confirmado","flk-error-feedback","flk-pulsado");btn.textContent=textoOriginal},900)
+ }
 }
 function actualizarReporte(){
  const d=datosReporte();document.getElementById("textoPeriodoReporte").value=d.texto;document.getElementById("reporteRecibos").textContent=d.recibos;document.getElementById("reporteUnidades").textContent=d.unidades;document.getElementById("reporteIngresos").textContent=formatoDineroCierre(d.ingresos);document.getElementById("reporteCosto").textContent=formatoDineroCierre(d.costo);document.getElementById("reporteGananciaBruta").textContent=formatoDineroCierre(d.gananciaBruta);document.getElementById("reporteGastos").textContent=formatoDineroCierre(d.gastosTotal);const neto=document.getElementById("reporteGananciaNeta");neto.textContent=formatoDineroCierre(d.gananciaNeta);neto.classList.toggle("reporte-negativo",d.gananciaNeta<0);neto.classList.toggle("reporte-positivo",d.gananciaNeta>=0);document.getElementById("reporteCobrado").textContent=formatoDineroCierre(d.cobrado);document.getElementById("reporteEfectivoCUP").textContent=formatoDineroCierre(d.efectivoCup||0);
@@ -8670,7 +8749,7 @@ function actualizarReporte(){
 }
 function imprimirReporte(){const d=datosReporte(),prod=d.productos.length?d.productos.map(x=>`<div class="fila"><span>${escapeHtml(x.nombre)} · ${x.unidades} u.</span><strong>${formatoDineroCierre(x.ingresos)}</strong></div>`).join(""):'<div class="fila"><span>Sin ventas</span><strong>—</strong></div>',cats=d.categorias.length?d.categorias.map(([n,v])=>`<div class="fila"><span>${escapeHtml(n)}</span><strong>${formatoDineroCierre(v)}</strong></div>`).join(""):'<div class="fila"><span>Sin gastos</span><strong>—</strong></div>',contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reporte Flackunloker</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#f4f7fb;color:#111;margin:0}.hoja{max-width:520px;margin:24px auto;background:#fff;padding:28px;border-radius:18px}.fila{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid #eee}.total{font-size:20px;font-weight:800}.btn{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700}@media print{body{background:#fff}.hoja{margin:0;max-width:none}.btn{display:none}}
 .cuenta-proveedor-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px;border-left:5px solid #f5a623}.cuenta-proveedor-card.vencida{border-left-color:#d93025}.cuenta-proveedor-card.pagada{border-left-color:#168044}.cuenta-proveedor-superior{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.cuenta-proveedor-superior h3{margin:0 0 5px;font-size:16px}.cuenta-proveedor-superior p{margin:0;color:#777;font-size:13px}.cuenta-proveedor-saldo{font-weight:800;color:#d93025;white-space:nowrap}.cuenta-proveedor-detalle{margin-top:12px;font-size:13px;line-height:1.75;color:#555}.acciones-cuenta-proveedor{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-cuenta-proveedor{border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.boton-pagar-proveedor{background:#e9f8ef;color:#168044}.boton-historial-proveedor{background:#eaf4ff;color:#0a84ff}.estado-cuenta{display:inline-block;margin-top:8px;padding:7px 10px;border-radius:10px;font-size:12px;font-weight:800}.estado-cuenta.pendiente{background:#fff7e8;color:#a15c00}.estado-cuenta.vencida{background:#ffecec;color:#d93025}.estado-cuenta.pagada{background:#e9f8ef;color:#168044}
-</style></head><body><div class="hoja"><h1>Flackunloker</h1><h2>Reporte · ${escapeHtml(d.texto)}</h2><div class="fila"><span>Recibos / Unidades</span><strong>${d.recibos} / ${d.unidades}</strong></div><div class="fila"><span>Ingresos por ventas</span><strong>${formatoDineroCierre(d.ingresos)}</strong></div><div class="fila"><span>Costo mercancía</span><strong>${formatoDineroCierre(d.costo)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>${formatoDineroCierre(d.gananciaBruta)}</strong></div><div class="fila"><span>Gastos</span><strong>${formatoDineroCierre(d.gastosTotal)}</strong></div><div class="fila total"><span>Ganancia neta</span><strong>${formatoDineroCierre(d.gananciaNeta)}</strong></div><div class="fila"><span>Total cobrado</span><strong>${formatoDineroCierre(d.cobrado)}</strong></div><div class="fila"><span>Efectivo / ATH</span><strong>${formatoDineroCierre(d.efectivo)} / ${formatoDineroCierre(d.ath)}</strong></div><div class="fila"><span>Tarjeta / Otros</span><strong>${formatoDineroCierre(d.tarjeta)} / ${formatoDineroCierre(d.otros)}</strong></div><div class="fila"><span>Saldo pendiente créditos</span><strong>${formatoDineroCierre(d.saldoCredito)}</strong></div><h3>Productos vendidos</h3>${prod}<h3>Gastos por categoría</h3>${cats}<button class="btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div>
+</style></head><body><div class="hoja"><h1>Flackunloker</h1><h2>Reporte · ${escapeHtml(d.texto)}</h2><div class="fila"><span>Recibos / Unidades</span><strong>${d.recibos} / ${d.unidades}</strong></div><div class="fila"><span>Ventas netas</span><strong>${formatoDineroCierre(d.ingresos)}</strong></div><div class="fila"><span>Costo mercancía</span><strong>${formatoDineroCierre(d.costo)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>${formatoDineroCierre(d.gananciaBruta)}</strong></div><div class="fila"><span>Gastos</span><strong>${formatoDineroCierre(d.gastosTotal)}</strong></div><div class="fila total"><span>Ganancia neta</span><strong>${formatoDineroCierre(d.gananciaNeta)}</strong></div><div class="fila"><span>Total cobrado</span><strong>${formatoDineroCierre(d.cobrado)}</strong></div><div class="fila"><span>Efectivo / ATH</span><strong>${formatoDineroCierre(d.efectivo)} / ${formatoDineroCierre(d.ath)}</strong></div><div class="fila"><span>Tarjeta / Otros</span><strong>${formatoDineroCierre(d.tarjeta)} / ${formatoDineroCierre(d.otros)}</strong></div><div class="fila"><span>Saldo pendiente créditos</span><strong>${formatoDineroCierre(d.saldoCredito)}</strong></div><h3>Productos vendidos</h3>${prod}<h3>Gastos por categoría</h3>${cats}<button class="btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div>
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
@@ -8863,7 +8942,7 @@ document.getElementById("filtroEstadoProveedor").addEventListener("change",mostr
 function numeroOrdenCompra(o){return "OC-"+String(o.numero||o.id).slice(-6)}
 function cargarProductosOrden(idPreferido=null){const sel=document.getElementById("productoOrden");sel.innerHTML=productos.length?productos.map(p=>`<option value="${p.id}">${escapeHtml(p.nombre)} · SKU ${escapeHtml(p.sku)} · Stock ${Number(p.cantidad)}</option>`).join(""):'<option value="">No hay productos</option>';if(idPreferido!==null&&productos.some(p=>String(p.id)===String(idPreferido)))sel.value=String(idPreferido);actualizarDatosProductoOrden()}
 function actualizarDatosProductoOrden(){const id=Number(document.getElementById("productoOrden").value),p=productos.find(x=>x.id===id);if(!p)return;document.getElementById("proveedorOrden").value=p.proveedor||document.getElementById("proveedorOrden").value||"";document.getElementById("costoUnitarioOrden").value=Number(p.costo??0).toFixed(2);const sugerida=Math.max(1,Number(p.stockMinimo??5)*2-Number(p.cantidad||0));if(!ordenEditandoId)document.getElementById("cantidadOrden").value=sugerida}
-function abrirOrdenCompra(productoId=null,proveedorPreferido=""){if(!proveedores.length){alert("Primero registra al menos un proveedor en la sección 🏢 Proveedores.");mostrarProveedores();return}ordenEditandoId=null;document.getElementById("tituloOrdenCompra").textContent="Nueva orden de compra";document.getElementById("formularioOrdenCompra").reset();document.getElementById("fechaOrden").value=fechaLocalISO(new Date());cargarProductosOrden(productoId);cargarSelectorProveedoresOrden(proveedorPreferido);document.getElementById("modalOrdenCompra").classList.add("visible")}
+function abrirOrdenCompra(productoId=null,proveedorPreferido=""){if(!proveedores.length){mostrarProveedores();setTimeout(()=>{try{abrirProveedor()}catch(err){console.error("Abrir proveedor:",err)}},0);return}ordenEditandoId=null;document.getElementById("tituloOrdenCompra").textContent="Nueva orden de compra";document.getElementById("formularioOrdenCompra").reset();document.getElementById("fechaOrden").value=fechaLocalISO(new Date());cargarProductosOrden(productoId);cargarSelectorProveedoresOrden(proveedorPreferido);document.getElementById("modalOrdenCompra").classList.add("visible")}
 function editarOrdenCompra(id){const o=ordenesCompra.find(x=>x.id===id);if(!o||o.estado==="recibida")return;ordenEditandoId=id;document.getElementById("tituloOrdenCompra").textContent="Editar orden de compra";cargarProductosOrden(o.productoId);cargarSelectorProveedoresOrden(o.proveedor||"");document.getElementById("productoOrden").value=String(o.productoId);document.getElementById("proveedorOrden").value=o.proveedor||"";document.getElementById("cantidadOrden").value=Number(o.cantidad||1);document.getElementById("costoUnitarioOrden").value=Number(o.costoUnitario||0).toFixed(2);document.getElementById("fechaOrden").value=o.fechaOrden||fechaLocalISO(new Date());document.getElementById("notaOrden").value=o.nota||"";document.getElementById("modalOrdenCompra").classList.add("visible")}
 function cerrarOrdenCompra(){document.getElementById("modalOrdenCompra").classList.remove("visible");document.getElementById("formularioOrdenCompra").reset();ordenEditandoId=null}
 document.getElementById("productoOrden").addEventListener("change",actualizarDatosProductoOrden);
@@ -8947,6 +9026,8 @@ document.getElementById("formularioRecepcionOrden").addEventListener("submit",as
        abono=condicion==="credito"?Number(document.getElementById("abonoInicialProveedor").value||0):total,
        vencimiento=condicion==="credito"?document.getElementById("fechaVencimientoProveedor").value:"";
 
+ if(!flkEsMetodoMercanciaCUP(metodo))return alert("Las compras de mercancía están valoradas en CUP. Usa Efectivo CUP o Transferencia CUP.");
+
  if(!Number.isFinite(abono)||abono<0||abono>total)return alert("Revisa el abono inicial.");
  if(condicion==="credito"&&!vencimiento)return alert("Selecciona la fecha de vencimiento.");
  if(!o.supabaseId&&!o.offlineOperationId)return alert("Esta orden no tiene una referencia segura para sincronizar.");
@@ -9010,8 +9091,10 @@ document.getElementById("formularioPagoProveedor").addEventListener("submit",asy
  const o=ordenesCompra.find(x=>x.id===ordenPagoProveedorId);if(!o)return;
  const cantidad=Number(document.getElementById("cantidadPagoProveedor").value),
        saldoAnterior=Number(o.saldoProveedor||0),
-       metodo=document.getElementById("metodoPagoCuentaProveedor").value,
+       metodo=flkNormalizarMetodoPago(document.getElementById("metodoPagoCuentaProveedor").value),
        nota=document.getElementById("notaPagoProveedor").value.trim();
+
+ if(!flkEsMetodoMercanciaCUP(metodo))return alert("Los pagos a proveedores de mercancía en CUP solo admiten Efectivo CUP o Transferencia CUP.");
 
  if(!Number.isFinite(cantidad)||cantidad<=0||cantidad>saldoAnterior+0.009){
   return alert("El pago no puede ser mayor que el saldo pendiente.");
@@ -9072,7 +9155,7 @@ async function cargarMovimientosCajaSupabase(){
   concepto:m.description||"Movimiento",
   metodo:normalizarMetodoFlujo(m.payment_method||"Otro"),
   fecha:m.occurred_at||m.created_at,
-  grupo:m.service_provision_id?"prestacion":
+  grupo:(m.service_provision_id||String(m.description||"").startsWith("Abono prestación ·")||String(m.description||"").includes("[PAGO:"))?"prestacion":
         String(m.description||"").startsWith("Gasto ·")?"gasto":
         String(m.description||"").startsWith("Abono ·")?"abono":
         String(m.description||"").startsWith("Venta ·")?"venta":
@@ -9364,6 +9447,7 @@ function ventasBrutasMesArrendamiento(mes){
  // v61.86: v.ingreso ya representa la venta NETA después de devoluciones.
  // No se vuelve a sumar el importe devuelto, porque eso revivía ventas anuladas.
  return ventas.reduce((total,v)=>{
+  if(!flkEsMetodoFinanzasCUP(v.metodoPago||"Efectivo CUP"))return total;
   const d=new Date(v.fecha);
   if(Number.isNaN(d.getTime()))return total;
   const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
@@ -9375,6 +9459,7 @@ function costoVentasMesArrendamiento(mes){
  if(!mes)return 0;
  // v61.86: v.costoTotal también es NETO después de devoluciones.
  return ventas.reduce((total,v)=>{
+  if(!flkEsMetodoFinanzasCUP(v.metodoPago||"Efectivo CUP"))return total;
   const d=new Date(v.fecha);
   if(Number.isNaN(d.getTime()))return total;
   const vm=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
@@ -9482,9 +9567,15 @@ function datosFinanzas(){
  // Resultados del período
  const vv=ventas.filter(v=>enRango(v.fecha));
  const gg=gastos.filter(g=>enRango(g.fecha||g.fechaLocal));
- const ventasTotal=vv.reduce((t,v)=>t+cobradoVentaEnFechaVenta(v),0);
- const ventasDevengadas=vv.reduce((t,v)=>t+Number(v.ingreso||0),0);
- const costo=vv.reduce((t,v)=>t+Number(v.costoTotal||0),0);
+ const cobradoCUPVenta=v=>{
+  const fechaVenta=flkClaveFechaContable(v?.fecha);
+  const pagos=pagosDeVenta(v);
+  if(pagos.length)return pagos.reduce((t,p)=>flkClaveFechaContable(p?.fecha)===fechaVenta&&flkEsMetodoFinanzasCUP(p?.metodo||v?.metodoPago)?t+Number(p?.cantidad||0):t,0);
+  return flkEsMetodoFinanzasCUP(v?.metodoPago)?Math.min(Math.max(0,Number(v?.totalPagado||0)),Math.max(0,Number(v?.ingreso||0))):0;
+ };
+ const ventasTotal=vv.reduce((t,v)=>t+cobradoCUPVenta(v),0);
+ const ventasDevengadas=vv.reduce((t,v)=>t+(flkEsMetodoFinanzasCUP(v.metodoPago)?Number(v.ingreso||0):0),0);
+ const costo=vv.reduce((t,v)=>t+(flkEsMetodoFinanzasCUP(v.metodoPago)?Number(v.costoTotal||0):0),0);
  const brutaMercancia=ventasDevengadas-costo;
 
  // Prestaciones de servicio del mismo período financiero.
@@ -9501,12 +9592,13 @@ function datosFinanzas(){
    return !Number.isNaN(d.getTime())&&d>=lim.desde&&d<lim.hasta;
   });
  }catch(_){prestacionesPeriodo=[];}
- const prestIngresos=prestacionesPeriodo.reduce((t,p)=>t+Number(p.ingreso||0),0);
- const prestCostos=prestacionesPeriodo.reduce((t,p)=>t+Number(p.costo||0),0);
+ const prestacionesCUP=prestacionesPeriodo.filter(p=>flkEsMetodoFinanzasCUP(p.metodo||"Efectivo CUP"));
+ const prestIngresos=prestacionesCUP.reduce((t,p)=>t+Number(p.ingreso||0),0);
+ const prestCostos=prestacionesCUP.reduce((t,p)=>t+Number(p.costo||0),0);
  const prestNeto=prestIngresos-prestCostos;
- const ingresosTotales=ventasTotal+prestIngresos;
+ const ingresosTotales=ventasDevengadas+prestIngresos;
  const bruta=brutaMercancia+prestNeto;
- const gastosTotal=gg.reduce((t,g)=>t+Number(g.cantidad||0),0);
+ const gastosTotal=gg.filter(g=>flkEsMetodoFinanzasCUP(g.metodo||"Efectivo CUP")).reduce((t,g)=>t+Number(g.cantidad||0),0);
  // La contribución/arrendamiento se descuenta UNA sola vez por cada mes configurado.
  const arrendamientoPeriodo=flkArrendamientoPeriodo(lim);
  const neta=bruta-gastosTotal-arrendamientoPeriodo;
@@ -9516,22 +9608,28 @@ function datosFinanzas(){
 
  const porCobrarVentas=ventas.reduce((t,v)=>{
   if(typeof normalizarCuentaVenta==="function")normalizarCuentaVenta(v);
-  return t+Math.max(0,Number(v.saldo||0));
+  return t+(flkEsMetodoFinanzasCUP(v.metodoPago||"Efectivo CUP")?Math.max(0,Number(v.saldo||0)):0);
  },0);
- const porCobrarPrestaciones=prestacionesPeriodo.reduce((t,p)=>t+Math.max(0,Number(p.saldo||0)),0);
+ const porCobrarPrestaciones=prestacionesPeriodo.reduce((t,p)=>t+(flkEsMetodoFinanzasCUP(p.metodo||"Efectivo CUP")?Math.max(0,Number(p.saldo||0)):0),0);
  const porCobrar=porCobrarVentas+porCobrarPrestaciones;
 
  const porPagar=ordenesCompra
-  .filter(o=>o.estado==="recibida")
+  .filter(o=>o.estado==="recibida"&&flkEsMetodoFinanzasCUP(o.metodoPagoProveedor||"Efectivo CUP"))
   .reduce((t,o)=>t+Math.max(0,Number(o.saldoProveedor||0)),0);
 
  const caja=typeof saldoCajaFisicaActual==="function"?saldoCajaFisicaActual():0;
- const activos=caja+inventario+porCobrar;
+ // Saldo actual recibido/pagado por Transferencia CUP. Es un activo distinto de la caja física
+ // y, como la posición financiera, NO depende del período seleccionado.
+ const movimientosActuales=typeof movimientosFlujoCaja==="function"?movimientosFlujoCaja():[];
+ const transferenciaCup=movimientosActuales
+  .filter(m=>flkNormalizarMetodoPago(m.metodo)==="Transferencia CUP")
+  .reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):m.tipo==="salida"?-Number(m.cantidad||0):0),0);
+ const activos=caja+transferenciaCup+inventario+porCobrar;
  const patrimonio=activos-porPagar;
 
  // Flujo operativo real del período. Retiros/aportes del dueño no son resultado del negocio.
  const todosMov=typeof movimientosFlujoCaja==="function"
-  ? movimientosFlujoCaja().filter(m=>enRango(m.fecha))
+  ? movimientosFlujoCaja().filter(m=>enRango(m.fecha)&&flkEsMetodoFinanzasCUP(m.metodo))
   : [];
  const mov=todosMov.filter(m=>m.grupo!=="propietario");
  const movPropietario=todosMov.filter(m=>m.grupo==="propietario");
@@ -9544,8 +9642,8 @@ function datosFinanzas(){
  const flujoCajaTotal=flujoOperativo+netoPropietario;
 
  return {
-  lim,ventasTotal,costo,brutaMercancia,prestIngresos,prestCostos,prestNeto,ingresosTotales,bruta,gastosTotal,arrendamientoPeriodo,neta,
-  caja,inventario,porCobrar,porPagar,activos,patrimonio,
+  lim,ventasTotal:ventasDevengadas,ventasCobradas:ventasTotal,costo,brutaMercancia,prestIngresos,prestCostos,prestNeto,ingresosTotales,bruta,gastosTotal,arrendamientoPeriodo,neta,
+  caja,transferenciaCup,inventario,porCobrar,porPagar,activos,patrimonio,
   entradas,salidas,flujo:flujoOperativo,
   aportesPropietario,retirosPropietario,netoPropietario,flujoCajaTotal
  }
@@ -9555,7 +9653,10 @@ function cambiarPeriodoFinanzas(){
  document.getElementById("rangoPersonalizadoFinanzas").classList.toggle("oculto",!p);actualizarFinanzas()
 }
 
-async function sincronizarYActualizarFinanzas(){
+async function sincronizarYActualizarFinanzas(boton){
+ const btn=boton||document.getElementById("botonActualizarFinanzas");
+ const textoOriginal=btn?btn.textContent:"🔄 Actualizar";
+ if(btn){btn.classList.add("flk-pulsado");btn.textContent="⏳ Actualizando…";btn.disabled=true}
  try{
   await cargarInventarioSupabase();
   await cargarHistorialSupabase();
@@ -9566,23 +9667,38 @@ async function sincronizarYActualizarFinanzas(){
   await cargarConfiguracionesArrendamiento();
   actualizarFinanzas();
   actualizarEstadoContribucionArrendamiento();
+  if(btn){btn.classList.remove("flk-pulsado");btn.classList.add("flk-confirmado");btn.textContent="✓ Actualizado"}
  }catch(err){
   console.error("Sincronización Finanzas:",err);
+  if(btn){btn.classList.remove("flk-pulsado");btn.classList.add("flk-error-feedback");btn.textContent="⚠ Error al actualizar"}
   if(flkNubeDisponible()&&flkSesionActiva)alert("No se pudieron actualizar todos los datos financieros desde Supabase.")
+ }finally{
+  if(btn)setTimeout(()=>{btn.disabled=false;btn.classList.remove("flk-confirmado","flk-error-feedback","flk-pulsado");btn.textContent=textoOriginal},900)
  }
 }
 function actualizarFinanzas(){
  const d=datosFinanzas();if(!d)return;
  document.getElementById("textoPeriodoFinanzas").value=d.lim.texto;
  const money=(id,n)=>document.getElementById(id).textContent="$"+Number(n).toFixed(2);
- money("finCaja",d.caja);money("finInventario",d.inventario);money("finPorCobrar",d.porCobrar);money("finActivos",d.activos);money("finPorPagar",d.porPagar);money("finPatrimonio",d.patrimonio);
+ money("finCaja",d.caja);money("finTransferenciaCup",d.transferenciaCup);money("finInventario",d.inventario);money("finPorCobrar",d.porCobrar);money("finActivos",d.activos);money("finPorPagar",d.porPagar);money("finPatrimonio",d.patrimonio);
  const detallePorCobrar=document.getElementById("finDetallePorCobrar");
  if(detallePorCobrar){
-  const pendientes=ventas.map(v=>{if(typeof normalizarCuentaVenta==="function")normalizarCuentaVenta(v);return v}).filter(v=>Number(v.saldo||0)>0.009).sort((a,b)=>Number(b.saldo||0)-Number(a.saldo||0));
-  detallePorCobrar.innerHTML=pendientes.length?pendientes.map(v=>`<div class="fila-estadistica"><span>Comprobante #${escapeHtml(String(v.numero||String(v.id).slice(-8)))} · ${escapeHtml(v.cliente||"Cliente general")}</span><strong>$${Number(v.saldo||0).toFixed(2)}</strong></div>`).join(""):`<div class="fila-estadistica"><span>No hay comprobantes pendientes.</span><strong>$0.00</strong></div>`
+  const pendientes=ventas.map(v=>{if(typeof normalizarCuentaVenta==="function")normalizarCuentaVenta(v);return v}).filter(v=>Number(v.saldo||0)>0.009&&flkEsMetodoFinanzasCUP(v.metodoPago||"Efectivo CUP")).sort((a,b)=>Number(b.saldo||0)-Number(a.saldo||0));
+  let prestacionesPendientes=[];
+  try{
+   let bid="global";
+   if(typeof flkCentroActualId==="function")bid=String(flkCentroActualId()||"global");
+   else if(typeof FLK_BUSINESS_ID!=="undefined"&&FLK_BUSINESS_ID)bid=String(FLK_BUSINESS_ID);
+   const raw=JSON.parse(localStorage.getItem("flackunloker_prestaciones_servicio_v1::"+bid)||"[]");
+   if(Array.isArray(raw))prestacionesPendientes=raw.filter(p=>Number(p.saldo||0)>0.009&&flkEsMetodoFinanzasCUP(p.metodo||"Efectivo CUP")).sort((a,b)=>Number(b.saldo||0)-Number(a.saldo||0));
+  }catch(_){prestacionesPendientes=[];}
+  const filasVentas=pendientes.map(v=>`<div class="fila-estadistica"><span>🧾 Comprobante #${escapeHtml(String(v.numero||String(v.id).slice(-8)))} · ${escapeHtml(v.cliente||"Cliente general")}</span><strong>$${Number(v.saldo||0).toFixed(2)}</strong></div>`);
+  const filasPrestaciones=prestacionesPendientes.map(p=>`<div class="fila-estadistica"><span>🛠️ Prestación · ${escapeHtml(p.descripcion||"Servicio")} · ${escapeHtml(p.cliente||"Cliente")} ${p.vencimiento?`· Vence ${escapeHtml(String(p.vencimiento))}`:""}</span><strong>$${Number(p.saldo||0).toFixed(2)}</strong></div>`);
+  const filasCobrar=filasVentas.concat(filasPrestaciones);
+  detallePorCobrar.innerHTML=filasCobrar.length?filasCobrar.join(""):`<div class="fila-estadistica"><span>No hay cuentas por cobrar pendientes.</span><strong>$0.00</strong></div>`
  }
  const formula=document.getElementById("finFormulaPatrimonio");
- if(formula)formula.textContent=`$${d.caja.toFixed(2)} + $${d.inventario.toFixed(2)} + $${d.porCobrar.toFixed(2)} − $${d.porPagar.toFixed(2)} = $${d.patrimonio.toFixed(2)}`;
+ if(formula)formula.textContent=`$${d.caja.toFixed(2)} + $${d.transferenciaCup.toFixed(2)} + $${d.inventario.toFixed(2)} + $${d.porCobrar.toFixed(2)} − $${d.porPagar.toFixed(2)} = $${d.patrimonio.toFixed(2)}`;
  money("finVentas",d.ventasTotal);
  money("finPrestacionesPeriodo",d.prestIngresos);
  money("finIngresosTotales",d.ingresosTotales);
@@ -12836,6 +12952,7 @@ async function flkDeepStorageCopy(){
 'use strict';
 var prestacionesServicio=[];
 function key(){var b='global';try{if(typeof flkBusinessGuardado==='function')b=flkBusinessGuardado()||'global';}catch(_){}return 'flackunloker_prestaciones_servicio_v1::'+b;}
+function fechaISO(d){return typeof flkClaveFechaContable==='function'?flkClaveFechaContable(d):(new Date(d)).toISOString().slice(0,10);}
 function load(){try{var a=JSON.parse(localStorage.getItem(key())||'[]');prestacionesServicio=Array.isArray(a)?a:[];}catch(_){prestacionesServicio=[];}}
 function save(){try{flkLocalStorageSetSeguro(key(),JSON.stringify(prestacionesServicio));}catch(e){console.error('Prestaciones:',e);}}
 function esc(s){if(typeof escapeHtml==='function')return escapeHtml(String(s||''));return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c];});}
@@ -12844,16 +12961,51 @@ function resumen(desde,hasta){var a=prestacionesServicio.filter(function(p){var 
 function hoy(){var k=fechaISO(new Date());return resumen(k,flkSumarDiasClave(k,1));}
 function mes(){var k=fechaISO(new Date()),a=flkPrimerDiaMesClave(k),b=flkPrimerDiaMesSiguienteClave(k);return resumen(a,b);}
 function set(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
-function metodoVista(v){return ({efectivo:'Efectivo CUP',ath_movil:'ATH Móvil',tarjeta:'Tarjeta',transferencia:'Transferencia',zelle:'Zelle',otro:'Otro'})[v]||v||'Efectivo CUP';}
-function pintar(){load();var h=hoy(),m=mes();set('prestIngresosHoy',money(h.ingresos));set('prestCostosHoy',money(h.costos));set('prestNetoHoy',money(h.neto));set('prestIngresosMes',money(m.ingresos));set('prestCostosMes',money(m.costos));set('prestNetoMes',money(m.neto));set('cierrePrestIngresos',money(h.ingresos));set('cierrePrestCostos',money(h.costos));set('cierrePrestNeto',money(h.neto));set('finPrestIngresos',money(m.ingresos));set('finPrestCostos',money(m.costos));set('finPrestNeto',money(m.neto));set('estadPrestHoy',money(h.ingresos));set('estadPrestMes',money(m.ingresos));set('estadPrestCostosMes',money(m.costos));set('estadPrestNetoMes',money(m.neto));var box=document.getElementById('listaPrestacionesServicio');if(!box)return;box.innerHTML=prestacionesServicio.length?prestacionesServicio.slice().sort(function(a,b){return String(b.fecha).localeCompare(String(a.fecha))||String(b.created_at||'').localeCompare(String(a.created_at||''));}).map(function(p){var cred=p.condicion==='credito',saldo=Math.max(0,Number(p.saldo||0)),cobrado=cred?Number(p.pagado||0):Number(p.ingreso||0);return '<div class="prestacion-item"><div class="prestacion-item-top"><div><h3>'+esc(p.descripcion)+'</h3><p>'+esc(p.fecha)+' · '+(p.tipo==='ingreso_costo'?'Ingreso + costo externo':'Solo ingreso')+' · '+(cred?'A crédito':'Pagada')+'</p>'+(p.cliente?'<p>Cliente: <strong>'+esc(p.cliente)+'</strong></p>':'')+(cred?'<p>Cobrado '+money(cobrado)+' · Saldo <strong>'+money(saldo)+'</strong>'+(p.vencimiento?' · Vence '+esc(p.vencimiento):'')+'</p>':'')+'</div><div class="prestacion-importes">Ingreso '+money(p.ingreso)+'<br>Costo '+money(p.costo)+'<br>Neto '+money(Number(p.ingreso)-Number(p.costo))+'</div></div><div class="acciones-prestacion">'+(cred&&saldo>0?'<button type="button" class="boton-agregar" onclick="flkAbonarPrestacion(&quot;'+esc(String(p.id))+'&quot;)">💵 Abonar</button>':'')+'<button type="button" class="boton-eliminar solo-admin" onclick="flkEliminarPrestacionServicio(&quot;'+esc(String(p.id))+'&quot;)">Eliminar</button></div></div>';}).join(''):'<div class="sin-productos">No hay prestaciones registradas.</div>';}
+function metodoVista(v){var x=String(v||'').trim().toLowerCase();return ({efectivo:'Efectivo CUP','efectivo cup':'Efectivo CUP','efectivo usd':'Efectivo USD','efectivo euro':'Efectivo Euro',ath_movil:'ATH Móvil',tarjeta:'Tarjeta',transferencia:'Transferencia CUP','transferencia cup':'Transferencia CUP','transferencia usd':'Transferencia USD','transferencia mlc':'Transferencia MLC',zelle:'Zelle',otro:'Otro'})[x]||flkNormalizarMetodoPago(v||'Efectivo CUP');}
+function pintar(){var h=hoy(),m=mes();var esCUP=function(p){var mm=String(p&&p.metodo||'').trim().toLowerCase();return mm==='efectivo'||mm==='efectivo cup'||mm==='transferencia'||mm==='transferencia cup';};var hFinArr=h.arr.filter(esCUP),hFinIngresos=hFinArr.reduce(function(t,p){return t+Number(p.ingreso||0);},0);var mFinArr=m.arr.filter(esCUP),mFinIngresos=mFinArr.reduce(function(t,p){return t+Number(p.ingreso||0);},0),mFinCostos=mFinArr.reduce(function(t,p){return t+Number(p.costo||0);},0);set('prestIngresosHoy',money(h.ingresos));set('prestCostosHoy',money(h.costos));set('prestNetoHoy',money(h.neto));set('prestIngresosMes',money(m.ingresos));set('prestCostosMes',money(m.costos));set('prestNetoMes',money(m.neto));set('cierrePrestIngresos',money(h.ingresos));set('cierrePrestCostos',money(h.costos));set('cierrePrestNeto',money(h.neto));set('finPrestIngresos',money(mFinIngresos));set('finPrestCostos',money(mFinCostos));set('finPrestNeto',money(mFinIngresos-mFinCostos));set('estadPrestHoy',money(hFinIngresos));set('estadPrestMes',money(mFinIngresos));set('estadPrestCostosMes',money(mFinCostos));set('estadPrestNetoMes',money(mFinIngresos-mFinCostos));var box=document.getElementById('listaPrestacionesServicio');if(!box)return;box.innerHTML=prestacionesServicio.length?prestacionesServicio.slice().sort(function(a,b){return String(b.fecha).localeCompare(String(a.fecha))||String(b.created_at||'').localeCompare(String(a.created_at||''));}).map(function(p){var cred=p.condicion==='credito',saldo=Math.max(0,Number(p.saldo||0)),cobrado=cred?Number(p.pagado||0):Number(p.ingreso||0);return '<div class="prestacion-item"><div class="prestacion-item-top"><div><h3>'+esc(p.descripcion)+'</h3><p>'+esc(p.fecha)+' · '+(p.tipo==='ingreso_costo'?'Ingreso + costo externo':'Solo ingreso')+' · '+(cred?'A crédito':'Pagada')+'</p>'+(p.cliente?'<p>Cliente: <strong>'+esc(p.cliente)+'</strong></p>':'')+(cred?'<p>Cobrado '+money(cobrado)+' · Saldo <strong>'+money(saldo)+'</strong>'+(p.vencimiento?' · Vence '+esc(p.vencimiento):'')+'</p>':'')+'</div><div class="prestacion-importes">Ingreso '+money(p.ingreso)+'<br>Costo '+money(p.costo)+'<br>Neto '+money(Number(p.ingreso)-Number(p.costo))+'</div></div><div class="acciones-prestacion">'+(cred&&saldo>0?'<button type="button" class="boton-agregar" onclick="flkAbonarPrestacion(&quot;'+esc(String(p.id))+'&quot;)">💵 Abonar</button>':'')+'<button type="button" class="boton-eliminar solo-admin" onclick="flkEliminarPrestacionServicio(&quot;'+esc(String(p.id))+'&quot;)">Eliminar</button></div></div>';}).join(''):'<div class="sin-productos">No hay prestaciones registradas.</div>';}
 window.flkCargarPrestacionesNube=async function(){if(typeof flkNubeDisponible!=='function'||!flkNubeDisponible()||typeof flkSupabase==='undefined')return false;try{var bid=await flkExigirCentroActual();var r=await flkSupabase.from('service_provisions').select('id,business_id,operation_id,description,service_type,income,payment_method,external_cost,service_date,customer_name,payment_condition,initial_payment,paid_amount,balance_due,due_date,created_at').eq('business_id',bid).order('service_date',{ascending:true}).order('created_at',{ascending:true});if(r.error)throw r.error;var rp=await flkSupabase.from('service_provision_payments').select('id,business_id,service_provision_id,amount,payment_method,payment_date,note,operation_id,created_at').eq('business_id',bid).order('created_at',{ascending:true});if(rp.error)throw rp.error;load();var q=typeof flkColaOffline==='function'?flkColaOffline():[];var ps=new Set(q.filter(function(o){return o.tipo==='service_provision_save'&&o.estado!=='sincronizado';}).map(function(o){return o.id;}));var pp=q.filter(function(o){return o.tipo==='service_provision_payment_save'&&o.estado!=='sincronizado';});var pd=new Set(q.filter(function(o){return o.tipo==='service_provision_delete'&&o.estado!=='sincronizado'&&o.payload&&o.payload.cloud_id;}).map(function(o){return String(o.payload.cloud_id);}));var pagosPor={};(rp.data||[]).forEach(function(a){(pagosPor[String(a.service_provision_id)]||(pagosPor[String(a.service_provision_id)]=[])).push({id:String(a.id),operation_id:a.operation_id||'',monto:Number(a.amount||0),metodo:metodoVista(a.payment_method),fecha:a.payment_date,nota:a.note||'',inicial:String(a.operation_id||'').indexOf('initial:')===0});});pp.forEach(function(o){var a=o.payload||{},sid=String(a.service_provision_id||'');if(!sid)return;var arr=pagosPor[sid]||(pagosPor[sid]=[]);if(!arr.some(function(x){return x.operation_id===o.id;}))arr.push({id:o.id,operation_id:o.id,monto:Number(a.amount||0),metodo:a.payment_method||'Efectivo CUP',fecha:a.payment_date||fechaISO(new Date()),nota:a.note||'',inicial:false,offline:true});});var nube=(r.data||[]).filter(function(x){return !pd.has(String(x.id));}).map(function(x){var pagos=pagosPor[String(x.id)]||[];var pendienteOps=new Set(pp.filter(function(o){return String((o.payload||{}).service_provision_id||'')===String(x.id);}).map(function(o){return o.id;}));var extraPendiente=pagos.filter(function(a){return !a.inicial&&pendienteOps.has(a.operation_id);}).reduce(function(t,a){return t+Number(a.monto||0);},0);var pagado=Math.min(Number(x.income||0),Number(x.paid_amount||0)+extraPendiente);return {id:String(x.id),cloud_id:String(x.id),operation_id:x.operation_id||'',descripcion:x.description||'',tipo:x.service_type||'ingreso',ingreso:Number(x.income||0),costo:Number(x.external_cost||0),metodo:metodoVista(x.payment_method),fecha:x.service_date,cliente:x.customer_name||'',condicion:x.payment_condition||'pagada',pagoInicial:Number(x.initial_payment||0),pagado:pagado,saldo:Math.max(0,Number(x.income||0)-pagado),vencimiento:x.due_date||'',pagos:pagos,created_at:x.created_at||''};});var pendientes=prestacionesServicio.filter(function(p){return p.operation_id&&ps.has(p.operation_id);});var legacy=prestacionesServicio.filter(function(p){return !p.cloud_id&&!p.operation_id;});var map=new Map();nube.concat(pendientes).concat(legacy).forEach(function(p){map.set(String(p.cloud_id||p.operation_id||p.id),p);});prestacionesServicio=Array.from(map.values());save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();return true;}catch(e){if(typeof flkSilenciarSiEsConexion==='function'&&flkSilenciarSiEsConexion(e))return false;console.error('Prestaciones nube:',e);return false;}};
 window.flkCambiarTipoPrestacion=function(){var t=document.getElementById('prestTipo'),c=document.getElementById('prestCosto');if(!t||!c)return;c.disabled=t.value!=='ingreso_costo';if(c.disabled)c.value='0';};
-window.flkCambiarCondicionPrestacion=function(){var c=document.getElementById('prestCondicion'),b=document.getElementById('prestCamposCredito');if(!c||!b)return;b.style.display=c.value==='credito'?'grid':'none';};
-window.flkGuardarPrestacionServicio=function(){if(typeof requiereAdmin==='function'&&!requiereAdmin('Registrar prestaciones de servicio'))return;var de=document.getElementById('prestDescripcion'),ti=document.getElementById('prestTipo'),ing=document.getElementById('prestIngreso'),me=document.getElementById('prestMetodo'),co=document.getElementById('prestCosto'),fe=document.getElementById('prestFecha'),cn=document.getElementById('prestCondicion'),cl=document.getElementById('prestCliente'),pi=document.getElementById('prestPagoInicial'),ve=document.getElementById('prestVencimiento');var descripcion=String(de?de.value:'').trim(),tipo=ti?ti.value:'ingreso',ingreso=Number(ing?ing.value:0),metodo=me?me.value:'Efectivo CUP',costo=tipo==='ingreso_costo'?Number(co?co.value:0):0,fecha=fe?fe.value:'',condicion=cn?cn.value:'pagada',cliente=String(cl?cl.value:'').trim(),inicial=condicion==='credito'?Number(pi?pi.value:0):ingreso,venc=condicion==='credito'?(ve?ve.value:''):'';if(!descripcion)return alert('Escribe la descripción de la prestación.');if(!fecha)return alert('Selecciona la fecha.');if(ingreso<0||costo<0||inicial<0)return alert('Los importes no pueden ser negativos.');if(condicion==='credito'&&!cliente)return alert('Escribe el cliente de la prestación a crédito.');if(condicion==='credito'&&!venc)return alert('Selecciona la fecha de vencimiento.');if(inicial>ingreso)return alert('El pago inicial no puede superar el ingreso.');load();var localId=typeof flkUUID==='function'?flkUUID():'prest-'+Date.now();var op=typeof flkEncolarOperacion==='function'?flkEncolarOperacion('service_provision_save',{description:descripcion,service_type:tipo,income:ingreso,payment_method:metodo,external_cost:costo,service_date:fecha,customer_name:cliente||null,payment_condition:condicion,initial_payment:inicial,due_date:venc||null,local_id:localId}):null;var pagos=condicion==='credito'&&inicial>0?[{id:'initial-local-'+localId,monto:inicial,metodo:metodo,fecha:fecha,nota:'Pago inicial',inicial:true}]:[];prestacionesServicio.push({id:localId,operation_id:op?op.id:'',descripcion:descripcion,tipo:tipo,ingreso:ingreso,costo:costo,metodo:metodo,fecha:fecha,cliente:cliente,condicion:condicion,pagoInicial:inicial,pagado:condicion==='credito'?inicial:ingreso,saldo:condicion==='credito'?Math.max(0,ingreso-inicial):0,vencimiento:venc,pagos:pagos,created_at:new Date().toISOString(),offlinePendiente:!!op});save();if(de)de.value='';if(ing)ing.value='0';if(co)co.value='0';if(cl)cl.value='';if(pi)pi.value='0';if(ve)ve.value='';if(cn)cn.value='pagada';flkCambiarCondicionPrestacion();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()&&typeof flkSolicitarSincronizacion==='function')flkSolicitarSincronizacion('prestaciones',120);};
-window.flkAbonarPrestacion=function(id){load();var p=prestacionesServicio.find(function(x){return String(x.id)===String(id);});if(!p)return;var saldo=Math.max(0,Number(p.saldo||0));if(!(saldo>0))return alert('Esta prestación no tiene saldo pendiente.');if(!p.cloud_id)return alert('Esta prestación todavía no se ha sincronizado con el servidor. Sincronízala primero para registrar abonos adicionales.');var txt=prompt('Saldo pendiente: '+money(saldo)+'\n\nImporte del abono:','');if(txt===null)return;var monto=Number(String(txt).replace(',','.'));if(!(monto>0))return alert('Escribe un importe válido.');if(monto>saldo)return alert('El abono no puede superar el saldo pendiente.');var metodo=prompt('Método: Efectivo CUP / Efectivo USD / Transferencia CUP / Transferencia USD / Transferencia MLC / Efectivo Euro / Zelle','Efectivo CUP');if(metodo===null)return;metodo=String(metodo).trim()||'Efectivo CUP';var fecha=fechaISO(new Date());var op=typeof flkEncolarOperacion==='function'?flkEncolarOperacion('service_provision_payment_save',{service_provision_id:p.cloud_id,amount:monto,payment_method:metodo,payment_date:fecha,note:'Abono prestación'}):null;p.pagos=Array.isArray(p.pagos)?p.pagos:[];p.pagos.push({id:op?op.id:'abono-'+Date.now(),operation_id:op?op.id:'',monto:monto,metodo:metodo,fecha:fecha,nota:'Abono prestación',inicial:false,offline:true});p.pagado=Math.min(Number(p.ingreso||0),Number(p.pagado||0)+monto);p.saldo=Math.max(0,Number(p.ingreso||0)-p.pagado);save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()&&typeof flkSolicitarSincronizacion==='function')flkSolicitarSincronizacion('abono-prestacion',0);};
+window.flkCambiarCondicionPrestacion=function(){var c=document.getElementById('prestCondicion'),b=document.getElementById('prestCamposCredito'),cl=document.getElementById('prestCliente'),ve=document.getElementById('prestVencimiento');if(!c||!b)return;var credito=c.value==='credito';b.style.display=credito?'grid':'none';if(cl)cl.required=credito;if(ve)ve.required=credito;};
+window.flkGuardarPrestacionServicio=function(){
+ if(typeof requiereAdmin==='function'&&!requiereAdmin('Registrar prestaciones de servicio'))return;
+ var de=document.getElementById('prestDescripcion'),ti=document.getElementById('prestTipo'),ing=document.getElementById('prestIngreso'),me=document.getElementById('prestMetodo'),co=document.getElementById('prestCosto'),fe=document.getElementById('prestFecha'),cn=document.getElementById('prestCondicion'),cl=document.getElementById('prestCliente'),pi=document.getElementById('prestPagoInicial'),ve=document.getElementById('prestVencimiento');
+ var condicion=cn?cn.value:'pagada';
+ function invalido(el,msg){
+  if(!el)return true;
+  try{el.setCustomValidity(msg||'Completa este campo.');el.reportValidity();el.focus();setTimeout(function(){try{el.setCustomValidity('');}catch(_){}},0);}catch(_){try{el.focus();}catch(__){}}
+  return true;
+ }
+ [de,ing,fe,cl,ve,pi,co].forEach(function(el){if(el)try{el.setCustomValidity('');}catch(_){}});
+ if(!de||!String(de.value||'').trim())return invalido(de,'Escribe la descripción de la prestación.');
+ if(!fe||!fe.value)return invalido(fe,'Selecciona la fecha.');
+ if(condicion==='credito'&&(!cl||!String(cl.value||'').trim()))return invalido(cl,'Escribe el cliente de la prestación a crédito.');
+ if(condicion==='credito'&&(!ve||!ve.value))return invalido(ve,'Selecciona la fecha de vencimiento.');
+ var descripcion=String(de.value||'').trim(),tipo=ti?ti.value:'ingreso',ingreso=Number(ing?ing.value:0),metodo=me?me.value:'Efectivo CUP',costo=tipo==='ingreso_costo'?Number(co?co.value:0):0,fecha=fe.value,cliente=String(cl?cl.value:'').trim(),inicial=condicion==='credito'?Number(pi?pi.value:0):ingreso,venc=condicion==='credito'?(ve?ve.value:''):'';
+ if(!Number.isFinite(ingreso)||ingreso<0)return invalido(ing,'Escribe un ingreso válido, igual o mayor que 0.');
+ if(!Number.isFinite(costo)||costo<0)return invalido(co,'Escribe un costo externo válido, igual o mayor que 0.');
+ if(!Number.isFinite(inicial)||inicial<0)return invalido(pi,'Escribe un pago inicial válido, igual o mayor que 0.');
+ if(inicial>ingreso)return invalido(pi,'El pago inicial no puede superar el ingreso.');
+ load();
+ var localId=typeof flkUUID==='function'?flkUUID():'prest-'+Date.now();
+ var op=typeof flkEncolarOperacion==='function'?flkEncolarOperacion('service_provision_save',{description:descripcion,service_type:tipo,income:ingreso,payment_method:metodo,external_cost:costo,service_date:fecha,customer_name:cliente||null,payment_condition:condicion,initial_payment:inicial,due_date:venc||null,local_id:localId}):null;
+ var pagos=condicion==='credito'&&inicial>0?[{id:'initial-local-'+localId,monto:inicial,metodo:metodo,fecha:fecha,nota:'Pago inicial',inicial:true}]:[];
+ prestacionesServicio.push({id:localId,operation_id:op?op.id:'',descripcion:descripcion,tipo:tipo,ingreso:ingreso,costo:costo,metodo:metodo,fecha:fecha,cliente:cliente,condicion:condicion,pagoInicial:inicial,pagado:condicion==='credito'?inicial:ingreso,saldo:condicion==='credito'?Math.max(0,ingreso-inicial):0,vencimiento:venc,pagos:pagos,created_at:new Date().toISOString(),offlinePendiente:!!op});
+ save();
+ if(de)de.value='';if(ing)ing.value='0';if(co)co.value='0';if(cl)cl.value='';if(pi)pi.value='0';if(ve)ve.value='';if(cn)cn.value='pagada';
+ flkCambiarCondicionPrestacion();pintar();
+ if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();
+ if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();
+ if(typeof actualizarFinanzas==='function')actualizarFinanzas();
+ if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();
+ if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();
+ if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()&&typeof flkSolicitarSincronizacion==='function')flkSolicitarSincronizacion('prestaciones',120);
+};
+window.flkAbonarPrestacion=function(id){load();var p=prestacionesServicio.find(function(x){return String(x.id)===String(id)||String(x.cloud_id||'')===String(id);});if(!p)return alert('No se encontró la prestación.');var saldo=Math.max(0,Number(p.saldo||0));if(!(saldo>0))return alert('Esta prestación no tiene saldo pendiente.');if(!p.cloud_id)return alert('Esta prestación todavía no se ha sincronizado con el servidor. Sincronízala primero para registrar abonos adicionales.');var m=document.getElementById('modalAbonoPrestacion');if(!m)return alert('No se pudo abrir el formulario de abono.');document.getElementById('abonoPrestacionId').value=String(p.cloud_id||p.id);document.getElementById('abonoPrestacionMonto').value='';document.getElementById('abonoPrestacionMonto').max=String(saldo);document.getElementById('abonoPrestacionMetodo').value='Efectivo CUP';document.getElementById('abonoPrestacionFecha').value=fechaISO(new Date());document.getElementById('abonoPrestacionNota').value='Abono prestación';document.getElementById('abonoPrestacionResumen').textContent='Saldo pendiente: '+money(saldo)+' · '+String(p.descripcion||'Prestación');m.classList.add('visible');setTimeout(function(){var e=document.getElementById('abonoPrestacionMonto');if(e)e.focus();},0);};
+window.flkCerrarAbonoPrestacion=function(){var m=document.getElementById('modalAbonoPrestacion');if(m)m.classList.remove('visible');};
+window.flkGuardarAbonoPrestacion=function(){load();var id=String((document.getElementById('abonoPrestacionId')||{}).value||'');var p=prestacionesServicio.find(function(x){return String(x.cloud_id||'')===id||String(x.id)===id;});if(!p)return alert('No se encontró la prestación.');var saldo=Math.max(0,Number(p.saldo||0));var monto=Number((document.getElementById('abonoPrestacionMonto')||{}).value||0);if(!(monto>0))return alert('Escribe un importe válido.');if(monto>saldo)return alert('El abono no puede superar el saldo pendiente.');if(!p.cloud_id)return alert('La prestación debe estar sincronizada antes de registrar el abono.');var metodo=String((document.getElementById('abonoPrestacionMetodo')||{}).value||'Efectivo CUP');var fecha=String((document.getElementById('abonoPrestacionFecha')||{}).value||fechaISO(new Date()));var nota=String((document.getElementById('abonoPrestacionNota')||{}).value||'Abono prestación').trim()||'Abono prestación';var op=typeof flkEncolarOperacion==='function'?flkEncolarOperacion('service_provision_payment_save',{service_provision_id:p.cloud_id,amount:monto,payment_method:metodo,payment_date:fecha,note:nota}):null;p.pagos=Array.isArray(p.pagos)?p.pagos:[];p.pagos.push({id:op?op.id:'abono-'+Date.now(),operation_id:op?op.id:'',monto:monto,metodo:metodo,fecha:fecha,nota:nota,inicial:false,offline:true});p.pagado=Math.min(Number(p.ingreso||0),Number(p.pagado||0)+monto);p.saldo=Math.max(0,Number(p.ingreso||0)-p.pagado);save();pintar();flkCerrarAbonoPrestacion();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()&&typeof flkSolicitarSincronizacion==='function')flkSolicitarSincronizacion('abono-prestacion',0);};
 window.flkEliminarPrestacionServicio=function(id){if(typeof requiereAdmin==='function'&&!requiereAdmin('Eliminar prestaciones de servicio'))return;if(!confirm('¿Eliminar esta prestación?'))return;load();var p=prestacionesServicio.find(function(x){return String(x.id)===String(id);});if(!p)return;if(typeof flkEncolarOperacion==='function')flkEncolarOperacion('service_provision_delete',{cloud_id:p.cloud_id||null,operation_id:p.operation_id||null,local_id:String(p.id)});prestacionesServicio=prestacionesServicio.filter(function(x){return String(x.id)!==String(id);});save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()&&typeof flkSolicitarSincronizacion==='function')flkSolicitarSincronizacion('prestaciones',120);};
-window.mostrarPrestacionesServicio=function(){try{flkLocalStorageSetSeguro('flackunloker_ultimo_modulo_v1','botonPrestacionesServicio');}catch(_){}if(typeof flkOcultarTodasLasVistas==='function')flkOcultarTodasLasVistas();var v=document.getElementById('vistaPrestacionesServicio');if(!v)return alert('No se pudo abrir Prestaciones de servicio.');v.style.display='block';document.querySelectorAll('.menu-cuadricula button').forEach(function(b){b.classList.remove('activo');});var btn=document.getElementById('botonPrestacionesServicio');if(btn)btn.classList.add('activo');if(typeof cerrarMenuPrincipal==='function')cerrarMenuPrincipal();var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());flkCambiarCondicionPrestacion();pintar();if(typeof flkCargarPrestacionesNube==='function')flkCargarPrestacionesNube();};
-function init(){var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());flkCambiarCondicionPrestacion();pintar();}
+window.mostrarPrestacionesServicio=function(){try{flkLocalStorageSetSeguro('flackunloker_ultimo_modulo_v1','botonPrestacionesServicio');}catch(_){}if(typeof flkOcultarTodasLasVistas==='function')flkOcultarTodasLasVistas();var v=document.getElementById('vistaPrestacionesServicio');if(!v)return alert('No se pudo abrir Prestaciones de servicio.');v.style.display='block';document.querySelectorAll('.menu-cuadricula button').forEach(function(b){b.classList.remove('activo');});var btn=document.getElementById('botonPrestacionesServicio');if(btn)btn.classList.add('activo');if(typeof cerrarMenuPrincipal==='function')cerrarMenuPrincipal();var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());flkCambiarCondicionPrestacion();load();pintar();if(typeof flkCargarPrestacionesNube==='function')flkCargarPrestacionesNube();};
+function init(){var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());flkCambiarCondicionPrestacion();load();pintar();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
@@ -13319,6 +13471,11 @@ async function flkEjecutarResetCentroElectron(){
    : null;
 
   if(!op)throw new Error("No se pudo guardar el restablecimiento en la cola offline.");
+
+  // v62.41.6 · autorización efímera para el procesador de cola.
+  // sessionStorage sobrevive al reload de esta ventana, pero no forma parte
+  // de la cola persistente ni del respaldo local.
+  try{sessionStorage.setItem("flk_reset_reauth_pin::"+op.id,pin);}catch(_){}
 
   const clavesCentro=[
    "flackunloker_productos","flackunloker_historial","flackunloker_ventas",
