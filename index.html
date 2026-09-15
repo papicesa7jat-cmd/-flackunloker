@@ -182,7 +182,7 @@
      HTTP "X-Frame-Options: DENY" o "Content-Security-Policy:
      frame-ancestors 'none'" en el servidor. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://eviwhrqhinhnyccizkfq.supabase.co wss://eviwhrqhinhnyccizkfq.supabase.co https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
-<meta name="flackunloker-offline-version" content="2026-09-14-v62.30-sync-qr-hid-init">
+<meta name="flackunloker-offline-version" content="2026-09-15-v62.41-prestaciones-credito">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1730,6 +1730,7 @@ textarea::placeholder{
 .prestacion-card,.prestacion-form,.prestacion-item{background:#fff;border:1px solid #dde8f2;border-radius:16px;padding:14px}
 .prestacion-form{margin-bottom:14px}.prestacion-grid{display:grid;grid-template-columns:2fr 1.15fr 1fr 1.15fr 1fr;gap:10px}.prestacion-grid .campo{margin:0}
 .prestacion-item{margin-bottom:10px}.prestacion-item-top{display:flex;justify-content:space-between;gap:10px}.prestacion-importes{font-weight:800;text-align:right;white-space:nowrap}
+.acciones-prestacion{display:flex;gap:8px;margin-top:12px}.acciones-prestacion button{flex:1}.prestacion-credito-campos{padding-top:4px}
 @media(max-width:700px){.prestacion-resumen,.prestacion-grid{grid-template-columns:1fr}.prestacion-item-top{flex-direction:column}.prestacion-importes{text-align:left}}
 </style>
 <style id="flk-v6168-prestaciones-solo-visual">
@@ -2348,11 +2349,17 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="campo"><label>Descripción de la prestación</label><input id="prestDescripcion" type="text" placeholder="Ej. Instalación / reparación / configuración"></div>
 <div class="campo"><label>Tipo</label><select id="prestTipo" onchange="flkCambiarTipoPrestacion()"><option value="ingreso">Solo ingreso</option><option value="ingreso_costo">Ingreso + costo externo</option></select></div>
 <div class="campo"><label>Ingreso</label><input id="prestIngreso" type="number" min="0" step="0.01" value="0"></div>
+<div class="campo"><label>Condición de pago</label><select id="prestCondicion" onchange="flkCambiarCondicionPrestacion()"><option value="pagada">Pagada</option><option value="credito">A crédito</option></select></div>
 <div class="campo"><label>Método de pago</label><select id="prestMetodo"><option value="Efectivo CUP">Efectivo CUP</option><option value="Efectivo USD">Efectivo USD</option><option value="Transferencia CUP">Transferencia CUP</option><option value="Transferencia USD">Transferencia USD</option><option value="Transferencia MLC">Transferencia MLC</option><option value="Efectivo Euro">Efectivo Euro</option><option value="Zelle">Zelle</option></select></div>
 <div class="campo"><label>Costo externo</label><input id="prestCosto" type="number" min="0" step="0.01" value="0" disabled></div>
+</div>
+<div id="prestCamposCredito" class="prestacion-grid prestacion-credito-campos" style="display:none;margin-top:10px;grid-template-columns:2fr 1fr 1fr">
+<div class="campo"><label>Cliente</label><input id="prestCliente" type="text" placeholder="Nombre del cliente"></div>
+<div class="campo"><label>Pago inicial</label><input id="prestPagoInicial" type="number" min="0" step="0.01" value="0"></div>
+<div class="campo"><label>Vencimiento</label><input id="prestVencimiento" type="date"></div>
 </div><div class="prestacion-grid" style="grid-template-columns:1fr auto;margin-top:10px">
 <div class="campo"><label>Fecha</label><input id="prestFecha" type="date"></div><button class="boton-agregar" type="button" onclick="flkGuardarPrestacionServicio()">💾 Registrar prestación</button></div>
-<p style="margin:10px 0 0;color:#667085;font-size:12px">El ingreso cobrado entra al Flujo de caja según el método de pago. El costo externo reduce la ganancia, pero no crea salida en Flujo de caja.</p></div>
+<p style="margin:10px 0 0;color:#667085;font-size:12px">En una prestación a crédito, el ingreso completo cuenta como ingreso operativo, pero a Caja entra solamente lo cobrado. El saldo pendiente queda en Cuentas por cobrar.</p></div>
 <div class="lista-estadisticas"><h3>📋 Prestaciones registradas</h3><div id="listaPrestacionesServicio"></div></div>
 </div>
 <div id="vistaEstadisticas" style="display:none">
@@ -3047,7 +3054,7 @@ const FLK_OPERACIONES_LOCAL_FIRST=new Set([
  "expense_save","expense_delete","supplier_save","purchase_order_save",
  "purchase_order_ordered","purchase_order_receive","supplier_payment",
  "owner_cash_movement","cash_closure_save","cash_closure_delete",
- "service_provision_save","service_provision_delete","center_reset"
+ "service_provision_save","service_provision_payment_save","service_provision_delete","center_reset"
 ]);
 
 function flkColaOffline(){
@@ -3883,13 +3890,23 @@ async function flkProcesarOperacionOffline(op){
   });
   if(error)throw error;return
  }
- if(op.tipo==="service_provision_save"){
-  const p=op.payload||{},bid=await flkExigirCentroActual();
-  const mm={"Efectivo":"efectivo","ATH Móvil":"ath_movil","ATH Movil":"ath_movil","Tarjeta":"tarjeta","Transferencia":"transferencia","Otro":"otro"};
-  const row={business_id:bid,description:String(p.description||"Prestación"),service_type:p.service_type==="ingreso_costo"?"ingreso_costo":"ingreso",income:Number(p.income||0),payment_method:mm[p.payment_method]||"efectivo",external_cost:Number(p.external_cost||0),service_date:p.service_date||fechaLocalISO(new Date()),operation_id:op.id};
-  const {error}=await flkSupabase.from("service_provisions").upsert(row,{onConflict:"operation_id"});
-  if(error)throw error;return
- }
+  if(op.tipo==="service_provision_save"){
+   const p=op.payload||{},bid=await flkExigirCentroActual();
+   const metodo=String(p.payment_method||"Efectivo CUP").toLowerCase();
+   const metodoDb=metodo.startsWith("efectivo")?"efectivo":metodo.startsWith("transferencia")?"transferencia":metodo.includes("ath")?"ath_movil":metodo.includes("tarjeta")?"tarjeta":metodo.includes("zelle")?"zelle":"otro";
+   const row={business_id:bid,description:String(p.description||"Prestación"),service_type:p.service_type==="ingreso_costo"?"ingreso_costo":"ingreso",income:Number(p.income||0),payment_method:metodoDb,external_cost:Number(p.external_cost||0),service_date:p.service_date||fechaLocalISO(new Date()),customer_name:p.customer_name||null,payment_condition:p.payment_condition==="credito"?"credito":"pagada",initial_payment:Number(p.initial_payment||0),due_date:p.due_date||null,operation_id:op.id};
+   const {error}=await flkSupabase.from("service_provisions").upsert(row,{onConflict:"operation_id"});
+   if(error)throw error;return
+  }
+  if(op.tipo==="service_provision_payment_save"){
+   const p=op.payload||{},bid=await flkExigirCentroActual();
+   if(!p.service_provision_id)throw new Error("La prestación debe sincronizarse antes de registrar abonos adicionales.");
+   const metodo=String(p.payment_method||"Efectivo CUP").toLowerCase();
+   const metodoDb=metodo.startsWith("efectivo")?"efectivo":metodo.startsWith("transferencia")?"transferencia":metodo.includes("ath")?"ath_movil":metodo.includes("tarjeta")?"tarjeta":metodo.includes("zelle")?"zelle":"otro";
+   const row={business_id:bid,service_provision_id:p.service_provision_id,amount:Number(p.amount||0),payment_method:metodoDb,payment_date:p.payment_date||fechaLocalISO(new Date()),note:p.note||null,operation_id:op.id};
+   const {error}=await flkSupabase.from("service_provision_payments").upsert(row,{onConflict:"operation_id"});
+   if(error)throw error;return
+  }
  if(op.tipo==="service_provision_delete"){
   const p=op.payload||{};let q=flkSupabase.from("service_provisions").delete().eq("business_id",await flkExigirCentroActual());
   if(p.cloud_id)q=q.eq("id",p.cloud_id);else if(p.operation_id)q=q.eq("operation_id",p.operation_id);else return;
@@ -3903,7 +3920,7 @@ let flkOrquestandoSync=false;
 async function flkReconciliarInventarioNube(){
  if(!flkNubeDisponible())return false;
  try{
-  const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
+  const {data,error}=await flkSupabase.from("products").select(FLK_PRODUCT_SELECT).eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
   if(error)throw error;
   productos=(data||[]).map(productoDesdeSupabase);
   guardarDatos();
@@ -4063,12 +4080,26 @@ async function flkProcesarColaOffline(){
 }
 window.addEventListener("online",async()=>{
  flkActualizarEstadoConexion();
+
+ // v62.33 · Reconexión inmediata:
+ // no esperar getSession/cargarRolUsuario para despertar la cola.
+ // El coordinador y flkSincronizarSeguro mantienen el bloqueo anti-duplicado.
+ try{
+  flkServidorAlcanzableActual=false;
+  if(typeof flkSolicitarSincronizacion==="function"){
+   flkSolicitarSincronizacion("online-inmediato",0);
+  }
+  if(typeof flkProgramarVigilanciaServidor==="function"){
+   flkProgramarVigilanciaServidor(0);
+  }
+ }catch(_){}
+
  try{
   const {data}=await flkSupabase.auth.getSession();
   if(data?.session?.user){
    flkGuardarSesionLocal(data.session);
    await cargarRolUsuario(data.session.user);
-   flkSolicitarSincronizacion("online-sesion",250);
+   flkSolicitarSincronizacion("online-sesion",0);
   }else{
    const cache=flkSesionLocal();
    if(cache?.user){flkPintarSesionLocal(cache.user);flkActualizarEstadoConexion();}
@@ -4594,7 +4625,7 @@ async function flkRecuperacionEmergenciaNube(){
 
   // INVENTARIO
   try{
-   const {data,error}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
+   const {data,error}=await flkSupabase.from("products").select(FLK_PRODUCT_SELECT).eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
    if(error)throw error;
    productos=(data||[]).map(productoDesdeSupabase);
    guardarDatos();
@@ -4602,7 +4633,7 @@ async function flkRecuperacionEmergenciaNube(){
 
   // HISTORIAL
   try{
-   const {data,error}=await flkSupabase.from("stock_movements").select("*").order("created_at",{ascending:false});
+   const {data,error}=await flkSupabase.from("stock_movements").select(FLK_STOCK_MOVEMENT_SELECT).order("created_at",{ascending:false});
    if(error)throw error;
    historial=(data||[]).map(movimientoDesdeSupabase);
    guardarHistorial();
@@ -4612,9 +4643,9 @@ async function flkRecuperacionEmergenciaNube(){
   try{
    const [rVentas,rItems,rPagos,rDevol]=await Promise.all([
     flkSupabase.from("sales").select("*").order("created_at",{ascending:false}),
-    flkSupabase.from("sale_items").select("*"),
-    flkSupabase.from("sale_payments").select("*").order("created_at",{ascending:true}),
-    flkSupabase.from("sale_returns").select("*").order("created_at",{ascending:true})
+    flkSupabase.from("sale_items").select("id,sale_id,product_id,quantity,unit_price,unit_cost"),
+    flkSupabase.from("sale_payments").select("id,sale_id,amount,payment_method,note,balance_before,balance_after,created_at").order("created_at",{ascending:true}),
+    flkSupabase.from("sale_returns").select("id,sale_id,return_number,sale_item_id,product_id,quantity,refund_amount,reason,created_at").order("created_at",{ascending:true})
    ]);
    if(rVentas.error)throw rVentas.error;
    if(rItems.error)throw rItems.error;
@@ -4642,7 +4673,7 @@ async function flkRecuperacionEmergenciaNube(){
 
   // GASTOS
   try{
-   const {data,error}=await flkSupabase.from("expenses").select("*").order("expense_date",{ascending:false});
+   const {data,error}=await flkSupabase.from("expenses").select("id,legacy_id,business_id,concept,category,amount,payment_method,expense_date,note,created_at").order("expense_date",{ascending:false});
    if(error)throw error;
    gastos=(data||[]).map(gastoDesdeSupabase);
    guardarGastos();
@@ -4652,9 +4683,9 @@ async function flkRecuperacionEmergenciaNube(){
   if(flkNubeDisponible()){
   try{
    const [rs,ro,rp]=await Promise.all([
-    flkSupabase.from("suppliers").select("*").order("name"),
-    flkSupabase.from("purchase_orders").select("*").order("created_at",{ascending:false}),
-    flkSupabase.from("supplier_payments").select("*").order("created_at",{ascending:true})
+    flkSupabase.from("suppliers").select("id,legacy_id,business_id,name,contact_name,phone,email,address,notes,created_at").order("name"),
+    flkSupabase.from("purchase_orders").select("id,legacy_id,business_id,order_number,supplier_id,product_id,quantity,unit_cost,order_date,note,status,created_at,ordered_at,received_at,total_amount,payment_condition,paid_amount,balance_due,due_date,payment_method").order("created_at",{ascending:false}),
+    flkSupabase.from("supplier_payments").select("id,business_id,purchase_order_id,amount,payment_date,payment_method,note,created_at").order("created_at",{ascending:true})
    ]);
    if(rs.error)throw rs.error;
    if(ro.error)throw ro.error;
@@ -4702,7 +4733,7 @@ async function flkRecuperacionEmergenciaNube(){
   // CAJA · v61.72: si la conexión cae durante la recuperación, conservar datos locales
   if(flkNubeDisponible()){
    try{
-    const {data,error}=await flkSupabase.from("cash_movements").select("*").order("occurred_at",{ascending:true});
+    const {data,error}=await flkSupabase.from("cash_movements").select("id,type,amount,description,payment_method,occurred_at,created_at,sale_id,service_provision_id").order("occurred_at",{ascending:true});
     if(error)throw error;
     movimientosCajaSupabase=(data||[]).map(m=>({
      id:m.id,
@@ -4734,7 +4765,7 @@ async function flkRecuperacionEmergenciaNube(){
   // CIERRES · v61.72: sin fetch cuando ya estamos offline; conservar copia local
   if(flkNubeDisponible()){
    try{
-    const {data,error}=await flkSupabase.from("cash_closures").select("*").order("close_date",{ascending:false});
+    const {data,error}=await flkSupabase.from("cash_closures").select("id,business_id,close_date,receipts_count,units_count,sales_total,cost_total,gross_profit,expenses_total,net_profit,collected_total,cash_total,ath_total,card_total,other_total,credit_sales,credit_balance,cash_expenses,net_cash,updated_at,created_at").order("close_date",{ascending:false});
     if(error)throw error;
     cierres=(data||[]).map(cierreDesdeSupabase);
     guardarCierres();
@@ -6635,6 +6666,12 @@ function idLocalDesdeLegacy(v,uuid){
  let h=0;for(const c of String(uuid||""))h=(h*31+c.charCodeAt(0))>>>0;
  return 2000000000+h;
 }
+// v62.31 · Fase 2.1: Inventario solicita únicamente las columnas que usa la app.
+// Reduce transferencia y parsing sin cambiar cálculos, stock, cola offline ni multicentro.
+const FLK_PRODUCT_SELECT="id,legacy_id,sku,name,category,supplier_name,location,warehouse,cost,price,stock,min_stock,created_at";
+// v62.32 · Fase 2.2: Historial solicita únicamente las columnas realmente utilizadas.
+const FLK_STOCK_MOVEMENT_SELECT="id,product_id,movement_type,quantity,stock_after,note,created_at";
+
 function productoDesdeSupabase(r){
  return {
   id:idLocalDesdeLegacy(r.legacy_id,r.id),
@@ -6733,7 +6770,7 @@ async function cargarInventarioSupabase(){
  if(flkNubeDisponible()&&!flkSesionActiva)return false;
  if(!flkNubeDisponible()){flkAplicarPendientesSobreDatos();mostrarProductos();actualizarEstadisticas();return true}
  const locales=Array.isArray(productos)?[...productos]:[];
- const {data:cloud,error}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
+ const {data:cloud,error}=await flkSupabase.from("products").select(FLK_PRODUCT_SELECT).eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
  if(error){
   console.error("Supabase inventario:",error);
   if(!flkSilenciarSiEsConexion(error))alert("No se pudo cargar el inventario de Supabase.");
@@ -6761,13 +6798,13 @@ async function cargarInventarioSupabase(){
    try{
     const inicial=Number(p.cantidad||0);
     const payload=productoHaciaSupabase(p,0);
-    const {data:creado,error:err}=await flkSupabase.from("products").insert(payload).select("*").single();
+    const {data:creado,error:err}=await flkSupabase.from("products").insert(payload).select("id,legacy_id,sku").single();
 
     if(err){
      // Si otro registro apareció entre la lectura y el insert, volver a buscarlo.
      if(String(err.code||"")==="23505"){
       const {data:hallado}=await flkSupabase.from("products")
-       .select("*")
+       .select("id,legacy_id,sku")
        .eq("business_id",await flkExigirCentroActual())
        .or(`legacy_id.eq.${legacy}${sku?`,sku.ilike.${sku}`:""}`)
        .limit(1)
@@ -6803,7 +6840,7 @@ async function cargarInventarioSupabase(){
   }
 
   // Volver a leer el inventario completo después de completar/reanudar migración.
-  const {data:actualizado,error:errorActualizado}=await flkSupabase.from("products").select("*").eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
+  const {data:actualizado,error:errorActualizado}=await flkSupabase.from("products").select(FLK_PRODUCT_SELECT).eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
   if(errorActualizado){
    console.error(errorActualizado);
    return false;
@@ -6827,7 +6864,7 @@ async function guardarProductoSupabase(p,esNuevo=false,stockInicial=0){
  await flkExigirCentroActual();
  if(esNuevo){
   const payload=productoHaciaSupabase(p,0);
-  const {data,error}=await flkSupabase.from("products").insert(payload).select("*").single();
+  const {data,error}=await flkSupabase.from("products").insert(payload).select("id").single();
   if(error)throw error;
   p.supabaseId=data.id;
   if(Number(stockInicial)>0){
@@ -6917,8 +6954,7 @@ function cargarDatos(){
   if(p.proveedor===undefined||p.proveedor===null)p.proveedor="";
   if(p.ubicacion===undefined||p.ubicacion===null)p.ubicacion="";
  });
- const nombresExistentes=[...productos.map(p=>String(p.proveedor||"").trim()),...ordenesCompra.map(o=>String(o.proveedor||"").trim())].filter(Boolean);
- nombresExistentes.forEach(nombre=>{if(!proveedores.some(pr=>String(pr.nombre||"").trim().toLowerCase()===nombre.toLowerCase()))proveedores.push({id:Date.now()+Math.floor(Math.random()*100000)+proveedores.length,nombre,contacto:"",telefono:"",email:"",direccion:"",nota:"",creado:new Date().toISOString()})});
+ // v62.38: un nombre histórico en producto/orden NO crea una ficha de proveedor.
  guardarProveedores();
 }
 function guardarDatos(){flkLocalStorageSetSeguro(flkLocalKey("flackunloker_productos"),JSON.stringify(productos))}
@@ -6944,7 +6980,7 @@ async function cargarHistorialSupabase(){
  if(flkModoRecuperacionPassword)return false;
  if(flkNubeDisponible()&&!flkSesionActiva)return false;
  const {data,error}=await flkSupabase.from("stock_movements")
-  .select("id,product_id,movement_type,quantity,stock_after,note,created_at")
+  .select(FLK_STOCK_MOVEMENT_SELECT)
   .order("created_at",{ascending:false});
  if(error){
   console.error("Supabase historial:",error);
@@ -6985,7 +7021,7 @@ async function cargarGastosSupabase(){
   return true
  }
  const locales=Array.isArray(gastos)?[...gastos]:[];
- let {data:cloud,error}=await flkSupabase.from("expenses").select("*").order("expense_date",{ascending:false}).order("created_at",{ascending:false});
+ let {data:cloud,error}=await flkSupabase.from("expenses").select("id,legacy_id,business_id,concept,category,amount,payment_method,expense_date,note,created_at").order("expense_date",{ascending:false}).order("created_at",{ascending:false});
  if(!flkSesionActiva)return false;
  if(error){
   console.error("Supabase gastos:",error);
@@ -7016,7 +7052,7 @@ async function cargarGastosSupabase(){
    }
    existentes.add(legacy);
   }
-  const recarga=await flkSupabase.from("expenses").select("*").order("expense_date",{ascending:false}).order("created_at",{ascending:false});
+  const recarga=await flkSupabase.from("expenses").select("id,legacy_id,business_id,concept,category,amount,payment_method,expense_date,note,created_at").order("expense_date",{ascending:false}).order("created_at",{ascending:false});
   cloud=recarga.data; error=recarga.error;
   if(error){console.error(error);return false}
  }
@@ -7053,7 +7089,7 @@ async function cargarCierresSupabase(){
  if(flkNubeDisponible()&&!flkSesionActiva)return false;
  if(!flkNubeDisponible()){flkAplicarPendientesSobreDatos();mostrarListaCierres();return true}
  const locales=Array.isArray(cierres)?[...cierres]:[];
- let {data:cloud,error}=await flkSupabase.from("cash_closures").select("*").order("close_date",{ascending:false});
+ let {data:cloud,error}=await flkSupabase.from("cash_closures").select("id,business_id,close_date,receipts_count,units_count,sales_total,cost_total,gross_profit,expenses_total,net_profit,collected_total,cash_total,ath_total,card_total,other_total,credit_sales,credit_balance,cash_expenses,net_cash,updated_at,created_at").order("close_date",{ascending:false});
  if(error){console.error("Supabase cierres:",error);return false}
 
  if(rolSesion==="admin" && locales.length){
@@ -7073,7 +7109,7 @@ async function cargarCierresSupabase(){
    if(impErr){console.error("Migración cierre:",c.fechaLocal,impErr);break}
    fechas.add(c.fechaLocal);
   }
-  const recarga=await flkSupabase.from("cash_closures").select("*").order("close_date",{ascending:false});
+  const recarga=await flkSupabase.from("cash_closures").select("id,business_id,close_date,receipts_count,units_count,sales_total,cost_total,gross_profit,expenses_total,net_profit,collected_total,cash_total,ath_total,card_total,other_total,credit_sales,credit_balance,cash_expenses,net_cash,updated_at,created_at").order("close_date",{ascending:false});
   cloud=recarga.data;error=recarga.error;if(error)return false;
  }
  cierres=(cloud||[]).map(cierreDesdeSupabase);guardarCierres();mostrarListaCierres();return true
@@ -7090,9 +7126,9 @@ async function cargarComprasSupabase(){
   return true
  }
  const [rs,ro,rp]=await Promise.all([
-  flkSupabase.from("suppliers").select("*").order("name"),
-  flkSupabase.from("purchase_orders").select("*").order("created_at",{ascending:false}),
-  flkSupabase.from("supplier_payments").select("*").order("created_at",{ascending:true})
+  flkSupabase.from("suppliers").select("id,legacy_id,business_id,name,contact_name,phone,email,address,notes,created_at").order("name"),
+  flkSupabase.from("purchase_orders").select("id,legacy_id,business_id,order_number,supplier_id,product_id,quantity,unit_cost,order_date,note,status,created_at,ordered_at,received_at,total_amount,payment_condition,paid_amount,balance_due,due_date,payment_method").order("created_at",{ascending:false}),
+  flkSupabase.from("supplier_payments").select("id,business_id,purchase_order_id,amount,payment_date,payment_method,note,created_at").order("created_at",{ascending:true})
  ]);
  if(rs.error||ro.error||rp.error){console.error(rs.error||ro.error||rp.error);return false}
  const pagos=rp.data||[];
@@ -9151,27 +9187,21 @@ function movimientosFlujoCaja(){
   }
  });
 
- // Prestaciones de servicio cobradas. Se reconstruyen desde el almacenamiento local
- // de Prestaciones. Los registros antiguos sin método se consideran Efectivo.
- try{
-  let bid="global";
-  try{if(typeof flkBusinessGuardado==="function")bid=String(flkBusinessGuardado()||"global");}
-  catch(_){try{if(typeof FLK_BUSINESS_ID!=="undefined"&&FLK_BUSINESS_ID)bid=String(FLK_BUSINESS_ID);}catch(__){}}
-  const keyPrest="flackunloker_prestaciones_servicio_v1::"+bid;
-  const arrPrest=JSON.parse(localStorage.getItem(keyPrest)||"[]");
-  (Array.isArray(arrPrest)?arrPrest:[]).forEach(p=>{
-   const ingreso=Number(p.ingreso||0);
-   if(!(ingreso>0))return;
-   mov.push({
-    id:"prestacion-"+String(p.id||p.created_at||Math.random()),
-    tipo:"entrada",cantidad:ingreso,
-    concepto:"Prestación · "+String(p.descripcion||"Servicio"),
-    metodo:normalizarMetodoFlujo(p.metodo||"Efectivo"),
-    fecha:p.created_at||((p.fecha||"")+"T12:00:00"),
-    grupo:"prestacion"
+  // Prestaciones: Caja refleja solo importes realmente cobrados.
+  try{
+   let bid="global";
+   try{if(typeof flkBusinessGuardado==="function")bid=String(flkBusinessGuardado()||"global");}
+   catch(_){try{if(typeof FLK_BUSINESS_ID!=="undefined"&&FLK_BUSINESS_ID)bid=String(FLK_BUSINESS_ID);}catch(__){}}
+   const keyPrest="flackunloker_prestaciones_servicio_v1::"+bid;
+   const arrPrest=JSON.parse(localStorage.getItem(keyPrest)||"[]");
+   (Array.isArray(arrPrest)?arrPrest:[]).forEach(p=>{
+    if(String(p.condicion||"pagada")==="credito"){
+     const pagos=Array.isArray(p.pagos)?p.pagos:[];
+     if(pagos.length){pagos.forEach((ab,idx)=>{const monto=Number(ab.monto||ab.amount||0);if(!(monto>0))return;mov.push({id:"prestacion-pago-"+String(ab.id||ab.operation_id||idx)+"-"+String(p.id),tipo:"entrada",cantidad:monto,concepto:(ab.inicial?"Prestación · Pago inicial · ":"Abono prestación · ")+String(p.descripcion||"Servicio"),metodo:normalizarMetodoFlujo(ab.metodo||ab.payment_method||p.metodo||"Efectivo"),fecha:ab.fecha||ab.payment_date||p.created_at||((p.fecha||"")+"T12:00:00"),grupo:"prestacion"});});}
+     else{const inicial=Number(p.pagoInicial||0);if(inicial>0)mov.push({id:"prestacion-inicial-"+String(p.id),tipo:"entrada",cantidad:inicial,concepto:"Prestación · Pago inicial · "+String(p.descripcion||"Servicio"),metodo:normalizarMetodoFlujo(p.metodo||"Efectivo"),fecha:p.created_at||((p.fecha||"")+"T12:00:00"),grupo:"prestacion"});}
+    }else{const ingreso=Number(p.ingreso||0);if(!(ingreso>0))return;mov.push({id:"prestacion-"+String(p.id||p.created_at||Math.random()),tipo:"entrada",cantidad:ingreso,concepto:"Prestación · "+String(p.descripcion||"Servicio"),metodo:normalizarMetodoFlujo(p.metodo||"Efectivo"),fecha:p.created_at||((p.fecha||"")+"T12:00:00"),grupo:"prestacion"});}
    });
-  });
- }catch(e){console.warn("Prestaciones en flujo:",e);}
+  }catch(e){console.warn("Prestaciones en flujo:",e);}
 
  // Conservar de cash_movements solo operaciones que no se pueden reconstruir
  // de las tablas anteriores (propietario y movimientos manuales/otros).
@@ -9484,10 +9514,12 @@ function datosFinanzas(){
  // Posición financiera actual
  const inventario=productos.reduce((t,p)=>t+Number(p.cantidad||0)*Number(p.costo||0),0);
 
- const porCobrar=ventas.reduce((t,v)=>{
+ const porCobrarVentas=ventas.reduce((t,v)=>{
   if(typeof normalizarCuentaVenta==="function")normalizarCuentaVenta(v);
   return t+Math.max(0,Number(v.saldo||0));
  },0);
+ const porCobrarPrestaciones=prestacionesPeriodo.reduce((t,p)=>t+Math.max(0,Number(p.saldo||0)),0);
+ const porCobrar=porCobrarVentas+porCobrarPrestaciones;
 
  const porPagar=ordenesCompra
   .filter(o=>o.estado==="recibida")
@@ -10347,18 +10379,7 @@ async function restaurarRespaldo(event){
     if(p.ubicacion===undefined||p.ubicacion===null)p.ubicacion="";
    });
 
-   [...productos.map(p=>String(p.proveedor||"").trim()),...ordenesCompra.map(o=>String(o.proveedor||"").trim())]
-    .filter(Boolean)
-    .forEach(nombre=>{
-     if(!proveedores.some(pr=>nombreProveedorNorm(pr.nombre)===nombreProveedorNorm(nombre))){
-      proveedores.push({
-       id:Date.now()+Math.floor(Math.random()*100000)+proveedores.length,
-       nombre,contacto:"",telefono:"",email:"",direccion:"",nota:"",
-       creado:new Date().toISOString()
-      });
-     }
-    });
-
+   // v62.38: conservar nombres históricos sin fabricar proveedores.
    recalcularSaldos();
    guardarDatos();guardarHistorial();guardarVentas();guardarGastos();guardarCierres();
    guardarOrdenesCompra();guardarProveedores();
@@ -11641,29 +11662,45 @@ function renderVentaQR(){
 }
 function continuarVentaQR(){
  if(!flkQrVentaItems.length)return alert("Escanea al menos un producto.");
- detenerEscanerQR(false);
  const copia=flkQrVentaItems.map(i=>({...i}));
- cerrarEscanerQR();
- abrirVenta();
+
+ // v62.35 · QR -> formulario inmediato:
+ // mostrar primero el formulario y liberar Cliente; la limpieza pesada
+ // del motor/cámara QR queda para después del primer repintado.
+ flkQrActivo=false;
+ document.getElementById("modalEscanerQR")?.classList.remove("visible");
+
+ carritoVenta=[];
+ document.getElementById("formularioVenta").reset();
+ document.getElementById("cantidadVenta").value="1";
+ document.getElementById("abonoInicialVenta").value="0";
+ document.getElementById("fechaVencimientoVenta").value="";
+ actualizarCamposCredito();
+
  carritoVenta=copia;
  renderCarritoVenta();
-
- // v62.03: el producto ya fue identificado y agregado por QR/HENEX.
- // No pedir volver a buscarlo/seleccionarlo/agregarlo manualmente.
  flkMostrarControlesProductoVenta(false);
  document.getElementById("textoVenta").textContent="Producto identificado y agregado por QR. Completa cliente, teléfono y forma de pago.";
 
- // v62.02: al venir del lector físico/QR, el formulario de venta podía
- // conservar la posición de scroll de una venta anterior y abrir por la mitad.
- // Forzar el inicio del formulario para que Cliente y Teléfono queden visibles.
- // v62.14: NO volver a enfocar aquí. abrirVenta() ya puso el foco en "Cliente"
- // de forma síncrona; llamar a focus() una segunda vez sobre el mismo campo
- // hacía que el teclado no respondiera (campo "congelado") en varios teléfonos.
- setTimeout(function(){
-  const modal=document.getElementById("modalVenta");
-  const form=modal?.querySelector(".formulario");
-  if(form)form.scrollTop=0;
- },80);
+ const modal=document.getElementById("modalVenta");
+ modal.classList.add("visible");
+ const form=modal.querySelector(".formulario");
+ if(form)form.scrollTop=0;
+
+ requestAnimationFrame(function(){
+  const cliente=document.getElementById("clienteVenta");
+  try{cliente?.focus({preventScroll:true})}catch(_){try{cliente?.focus()}catch(__){}}
+
+  // La cámara/motor se cierra después de que el formulario ya está utilizable.
+  setTimeout(function(){
+   try{detenerEscanerQR(false)}catch(_){}
+   try{
+    flkLectorFisicoBuffer="";
+    if(flkLectorFisicoTimer){clearTimeout(flkLectorFisicoTimer);flkLectorFisicoTimer=null}
+   }catch(_){}
+   try{if(typeof flkDetenerHtml5QR==="function")flkDetenerHtml5QR()}catch(_){}
+  },0);
+ });
 }
 window.addEventListener("pagehide",function(){detenerEscanerQR(false)});
 </script>
@@ -12794,32 +12831,33 @@ async function flkDeepStorageCopy(){
 }
 
 </script>
-\n<script id="flk-prestaciones-v6174-sync-script">
+\n<script id="flk-prestaciones-v6241-credito">
 (function(){
 'use strict';
 var prestacionesServicio=[];
-function money(n){n=Number(n||0);return (n<0?'-$':'$')+Math.abs(n).toFixed(2);}
-function fechaISO(d){return typeof flkClaveFechaContable==='function'?flkClaveFechaContable(d):(new Date(d)).toISOString().slice(0,10);}
-function businessId(){try{if(typeof flkBusinessGuardado==='function')return String(flkBusinessGuardado()||'global');}catch(e){}try{if(typeof FLK_BUSINESS_ID!=='undefined'&&FLK_BUSINESS_ID)return String(FLK_BUSINESS_ID);}catch(e){}return 'global';}
-function key(){return 'flackunloker_prestaciones_servicio_v1::'+businessId();}
-function load(){try{var x=JSON.parse(localStorage.getItem(key())||'[]');prestacionesServicio=Array.isArray(x)?x:[];}catch(e){prestacionesServicio=[];}}
+function key(){var b='global';try{if(typeof flkBusinessGuardado==='function')b=flkBusinessGuardado()||'global';}catch(_){}return 'flackunloker_prestaciones_servicio_v1::'+b;}
+function load(){try{var a=JSON.parse(localStorage.getItem(key())||'[]');prestacionesServicio=Array.isArray(a)?a:[];}catch(_){prestacionesServicio=[];}}
 function save(){try{flkLocalStorageSetSeguro(key(),JSON.stringify(prestacionesServicio));}catch(e){console.error('Prestaciones:',e);}}
 function esc(s){if(typeof escapeHtml==='function')return escapeHtml(String(s||''));return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c];});}
+function money(v){return '$'+Number(v||0).toFixed(2);}
 function resumen(desde,hasta){var a=prestacionesServicio.filter(function(p){var k=String(p.fecha||'');return k>=desde&&k<hasta;});var i=a.reduce(function(t,p){return t+Number(p.ingreso||0);},0),c=a.reduce(function(t,p){return t+Number(p.costo||0);},0);return {arr:a,ingresos:i,costos:c,neto:i-c};}
 function hoy(){var k=fechaISO(new Date());return resumen(k,flkSumarDiasClave(k,1));}
 function mes(){var k=fechaISO(new Date()),a=flkPrimerDiaMesClave(k),b=flkPrimerDiaMesSiguienteClave(k);return resumen(a,b);}
 function set(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
-function pintar(){load();var h=hoy(),m=mes();set('prestIngresosHoy',money(h.ingresos));set('prestCostosHoy',money(h.costos));set('prestNetoHoy',money(h.neto));set('prestIngresosMes',money(m.ingresos));set('prestCostosMes',money(m.costos));set('prestNetoMes',money(m.neto));set('cierrePrestIngresos',money(h.ingresos));set('cierrePrestCostos',money(h.costos));set('cierrePrestNeto',money(h.neto));set('finPrestIngresos',money(m.ingresos));set('finPrestCostos',money(m.costos));set('finPrestNeto',money(m.neto));set('estadPrestHoy',money(h.ingresos));set('estadPrestMes',money(m.ingresos));set('estadPrestCostosMes',money(m.costos));set('estadPrestNetoMes',money(m.neto));var box=document.getElementById('listaPrestacionesServicio');if(box)box.innerHTML=prestacionesServicio.length?prestacionesServicio.slice().sort(function(a,b){return String(b.fecha).localeCompare(String(a.fecha))||String(b.created_at||'').localeCompare(String(a.created_at||''));}).map(function(p){return '<div class="prestacion-item"><div class="prestacion-item-top"><div><h3>'+esc(p.descripcion)+'</h3><p>'+esc(p.fecha)+' · '+(p.tipo==='ingreso_costo'?'Ingreso + costo externo':'Solo ingreso')+' · '+esc(p.metodo||'Efectivo')+'</p></div><div class="prestacion-importes">Ingreso '+money(p.ingreso)+'<br>Costo '+money(p.costo)+'<br>Neto '+money(Number(p.ingreso)-Number(p.costo))+'</div></div><button type="button" class="boton-eliminar solo-admin" onclick="flkEliminarPrestacionServicio(&quot;'+esc(String(p.id))+'&quot;)">Eliminar</button></div>';}).join(''):'<div class="sin-productos">No hay prestaciones registradas.</div>'; }
-function flkMetodoPrestNube(v){return ({efectivo:'Efectivo',ath_movil:'ATH Móvil',tarjeta:'Tarjeta',transferencia:'Transferencia',otro:'Otro'})[v]||v||'Efectivo';}
-window.flkCargarPrestacionesNube=async function(){if(typeof flkNubeDisponible!=='function'||!flkNubeDisponible()||typeof flkSupabase==='undefined')return false;try{var bid=await flkExigirCentroActual();var r=await flkSupabase.from('service_provisions').select('*').eq('business_id',bid).order('service_date',{ascending:true}).order('created_at',{ascending:true});if(r.error)throw r.error;load();var q=typeof flkColaOffline==='function'?flkColaOffline():[];var ps=new Set(q.filter(function(o){return o.tipo==='service_provision_save'&&o.estado!=='sincronizado';}).map(function(o){return o.id;}));var pd=new Set(q.filter(function(o){return o.tipo==='service_provision_delete'&&o.estado!=='sincronizado'&&o.payload&&o.payload.cloud_id;}).map(function(o){return String(o.payload.cloud_id);}));var nube=(r.data||[]).filter(function(x){return !pd.has(String(x.id));}).map(function(x){return {id:String(x.id),cloud_id:String(x.id),operation_id:x.operation_id||'',descripcion:x.description||'',tipo:x.service_type||'ingreso',ingreso:Number(x.income||0),costo:Number(x.external_cost||0),metodo:flkMetodoPrestNube(x.payment_method),fecha:x.service_date,created_at:x.created_at||''};});var pendientes=prestacionesServicio.filter(function(p){return p.operation_id&&ps.has(p.operation_id);});var legacy=prestacionesServicio.filter(function(p){return !p.cloud_id&&!p.operation_id;});var m=new Map();nube.concat(pendientes).concat(legacy).forEach(function(p){m.set(String(p.cloud_id||p.operation_id||p.id),p);});prestacionesServicio=Array.from(m.values());save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();return true;}catch(e){if(typeof flkSilenciarSiEsConexion==='function'&&flkSilenciarSiEsConexion(e))return false;console.error('Prestaciones nube:',e);return false;}};
+function metodoVista(v){return ({efectivo:'Efectivo CUP',ath_movil:'ATH Móvil',tarjeta:'Tarjeta',transferencia:'Transferencia',zelle:'Zelle',otro:'Otro'})[v]||v||'Efectivo CUP';}
+function pintar(){load();var h=hoy(),m=mes();set('prestIngresosHoy',money(h.ingresos));set('prestCostosHoy',money(h.costos));set('prestNetoHoy',money(h.neto));set('prestIngresosMes',money(m.ingresos));set('prestCostosMes',money(m.costos));set('prestNetoMes',money(m.neto));set('cierrePrestIngresos',money(h.ingresos));set('cierrePrestCostos',money(h.costos));set('cierrePrestNeto',money(h.neto));set('finPrestIngresos',money(m.ingresos));set('finPrestCostos',money(m.costos));set('finPrestNeto',money(m.neto));set('estadPrestHoy',money(h.ingresos));set('estadPrestMes',money(m.ingresos));set('estadPrestCostosMes',money(m.costos));set('estadPrestNetoMes',money(m.neto));var box=document.getElementById('listaPrestacionesServicio');if(!box)return;box.innerHTML=prestacionesServicio.length?prestacionesServicio.slice().sort(function(a,b){return String(b.fecha).localeCompare(String(a.fecha))||String(b.created_at||'').localeCompare(String(a.created_at||''));}).map(function(p){var cred=p.condicion==='credito',saldo=Math.max(0,Number(p.saldo||0)),cobrado=cred?Number(p.pagado||0):Number(p.ingreso||0);return '<div class="prestacion-item"><div class="prestacion-item-top"><div><h3>'+esc(p.descripcion)+'</h3><p>'+esc(p.fecha)+' · '+(p.tipo==='ingreso_costo'?'Ingreso + costo externo':'Solo ingreso')+' · '+(cred?'A crédito':'Pagada')+'</p>'+(p.cliente?'<p>Cliente: <strong>'+esc(p.cliente)+'</strong></p>':'')+(cred?'<p>Cobrado '+money(cobrado)+' · Saldo <strong>'+money(saldo)+'</strong>'+(p.vencimiento?' · Vence '+esc(p.vencimiento):'')+'</p>':'')+'</div><div class="prestacion-importes">Ingreso '+money(p.ingreso)+'<br>Costo '+money(p.costo)+'<br>Neto '+money(Number(p.ingreso)-Number(p.costo))+'</div></div><div class="acciones-prestacion">'+(cred&&saldo>0?'<button type="button" class="boton-agregar" onclick="flkAbonarPrestacion(&quot;'+esc(String(p.id))+'&quot;)">💵 Abonar</button>':'')+'<button type="button" class="boton-eliminar solo-admin" onclick="flkEliminarPrestacionServicio(&quot;'+esc(String(p.id))+'&quot;)">Eliminar</button></div></div>';}).join(''):'<div class="sin-productos">No hay prestaciones registradas.</div>';}
+window.flkCargarPrestacionesNube=async function(){if(typeof flkNubeDisponible!=='function'||!flkNubeDisponible()||typeof flkSupabase==='undefined')return false;try{var bid=await flkExigirCentroActual();var r=await flkSupabase.from('service_provisions').select('id,business_id,operation_id,description,service_type,income,payment_method,external_cost,service_date,customer_name,payment_condition,initial_payment,paid_amount,balance_due,due_date,created_at').eq('business_id',bid).order('service_date',{ascending:true}).order('created_at',{ascending:true});if(r.error)throw r.error;var rp=await flkSupabase.from('service_provision_payments').select('id,business_id,service_provision_id,amount,payment_method,payment_date,note,operation_id,created_at').eq('business_id',bid).order('created_at',{ascending:true});if(rp.error)throw rp.error;load();var q=typeof flkColaOffline==='function'?flkColaOffline():[];var ps=new Set(q.filter(function(o){return o.tipo==='service_provision_save'&&o.estado!=='sincronizado';}).map(function(o){return o.id;}));var pp=q.filter(function(o){return o.tipo==='service_provision_payment_save'&&o.estado!=='sincronizado';});var pd=new Set(q.filter(function(o){return o.tipo==='service_provision_delete'&&o.estado!=='sincronizado'&&o.payload&&o.payload.cloud_id;}).map(function(o){return String(o.payload.cloud_id);}));var pagosPor={};(rp.data||[]).forEach(function(a){(pagosPor[String(a.service_provision_id)]||(pagosPor[String(a.service_provision_id)]=[])).push({id:String(a.id),operation_id:a.operation_id||'',monto:Number(a.amount||0),metodo:metodoVista(a.payment_method),fecha:a.payment_date,nota:a.note||'',inicial:String(a.operation_id||'').indexOf('initial:')===0});});pp.forEach(function(o){var a=o.payload||{},sid=String(a.service_provision_id||'');if(!sid)return;var arr=pagosPor[sid]||(pagosPor[sid]=[]);if(!arr.some(function(x){return x.operation_id===o.id;}))arr.push({id:o.id,operation_id:o.id,monto:Number(a.amount||0),metodo:a.payment_method||'Efectivo CUP',fecha:a.payment_date||fechaISO(new Date()),nota:a.note||'',inicial:false,offline:true});});var nube=(r.data||[]).filter(function(x){return !pd.has(String(x.id));}).map(function(x){var pagos=pagosPor[String(x.id)]||[];var pendienteOps=new Set(pp.filter(function(o){return String((o.payload||{}).service_provision_id||'')===String(x.id);}).map(function(o){return o.id;}));var extraPendiente=pagos.filter(function(a){return !a.inicial&&pendienteOps.has(a.operation_id);}).reduce(function(t,a){return t+Number(a.monto||0);},0);var pagado=Math.min(Number(x.income||0),Number(x.paid_amount||0)+extraPendiente);return {id:String(x.id),cloud_id:String(x.id),operation_id:x.operation_id||'',descripcion:x.description||'',tipo:x.service_type||'ingreso',ingreso:Number(x.income||0),costo:Number(x.external_cost||0),metodo:metodoVista(x.payment_method),fecha:x.service_date,cliente:x.customer_name||'',condicion:x.payment_condition||'pagada',pagoInicial:Number(x.initial_payment||0),pagado:pagado,saldo:Math.max(0,Number(x.income||0)-pagado),vencimiento:x.due_date||'',pagos:pagos,created_at:x.created_at||''};});var pendientes=prestacionesServicio.filter(function(p){return p.operation_id&&ps.has(p.operation_id);});var legacy=prestacionesServicio.filter(function(p){return !p.cloud_id&&!p.operation_id;});var map=new Map();nube.concat(pendientes).concat(legacy).forEach(function(p){map.set(String(p.cloud_id||p.operation_id||p.id),p);});prestacionesServicio=Array.from(map.values());save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();return true;}catch(e){if(typeof flkSilenciarSiEsConexion==='function'&&flkSilenciarSiEsConexion(e))return false;console.error('Prestaciones nube:',e);return false;}};
 window.flkCambiarTipoPrestacion=function(){var t=document.getElementById('prestTipo'),c=document.getElementById('prestCosto');if(!t||!c)return;c.disabled=t.value!=='ingreso_costo';if(c.disabled)c.value='0';};
-window.flkGuardarPrestacionServicio=function(){if(typeof requiereAdmin==='function'&&!requiereAdmin('Registrar prestaciones de servicio'))return;var de=document.getElementById('prestDescripcion'),ti=document.getElementById('prestTipo'),ing=document.getElementById('prestIngreso'),me=document.getElementById('prestMetodo'),co=document.getElementById('prestCosto'),fe=document.getElementById('prestFecha');var descripcion=String(de?de.value:'').trim(),tipo=ti?ti.value:'ingreso',ingreso=Number(ing?ing.value:0),metodo=me?me.value:'Efectivo',costo=tipo==='ingreso_costo'?Number(co?co.value:0):0,fecha=fe?fe.value:'';if(!descripcion)return alert('Escribe la descripción de la prestación.');if(!fecha)return alert('Selecciona la fecha.');if(ingreso<0||costo<0)return alert('Los importes no pueden ser negativos.');load();var localId=typeof flkUUID==='function'?flkUUID():'prest-'+Date.now();var op=typeof flkEncolarOperacion==='function'?flkEncolarOperacion('service_provision_save',{description:descripcion,service_type:tipo,income:ingreso,payment_method:metodo,external_cost:costo,service_date:fecha,local_id:localId}):null;prestacionesServicio.push({id:localId,operation_id:op?op.id:'',descripcion:descripcion,tipo:tipo,ingreso:ingreso,costo:costo,metodo:metodo,fecha:fecha,created_at:new Date().toISOString(),offlinePendiente:!!op});save();if(de)de.value='';if(ing)ing.value='0';if(co)co.value='0';pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()){if(typeof flkSolicitarSincronizacion==='function')flkSolicitarSincronizacion('prestaciones',120);else if(typeof flkSincronizarSeguro==='function')setTimeout(function(){flkSincronizarSeguro();},120);}};
-window.flkEliminarPrestacionServicio=function(id){if(typeof requiereAdmin==='function'&&!requiereAdmin('Eliminar prestaciones de servicio'))return;if(!confirm('¿Eliminar esta prestación?'))return;load();var p=prestacionesServicio.find(function(x){return String(x.id)===String(id);});if(!p)return;if(typeof flkEncolarOperacion==='function')flkEncolarOperacion('service_provision_delete',{cloud_id:p.cloud_id||null,operation_id:p.operation_id||null,local_id:String(p.id)});prestacionesServicio=prestacionesServicio.filter(function(x){return String(x.id)!==String(id);});save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()){if(typeof flkSolicitarSincronizacion==='function')flkSolicitarSincronizacion('prestaciones',120);else if(typeof flkSincronizarSeguro==='function')setTimeout(function(){flkSincronizarSeguro();},120);}};
-window.mostrarPrestacionesServicio=function(){try{flkLocalStorageSetSeguro('flackunloker_ultimo_modulo_v1','botonPrestacionesServicio');}catch(_){}if(typeof flkOcultarTodasLasVistas==='function')flkOcultarTodasLasVistas();var v=document.getElementById('vistaPrestacionesServicio');if(!v)return alert('No se pudo abrir Prestaciones de servicio.');v.style.display='block';document.querySelectorAll('.menu-cuadricula button').forEach(function(b){b.classList.remove('activo');});var btn=document.getElementById('botonPrestacionesServicio');if(btn)btn.classList.add('activo');if(typeof cerrarMenuPrincipal==='function')cerrarMenuPrincipal();var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();if(typeof flkCargarPrestacionesNube==='function')flkCargarPrestacionesNube();};
-function init(){var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());pintar();}
+window.flkCambiarCondicionPrestacion=function(){var c=document.getElementById('prestCondicion'),b=document.getElementById('prestCamposCredito');if(!c||!b)return;b.style.display=c.value==='credito'?'grid':'none';};
+window.flkGuardarPrestacionServicio=function(){if(typeof requiereAdmin==='function'&&!requiereAdmin('Registrar prestaciones de servicio'))return;var de=document.getElementById('prestDescripcion'),ti=document.getElementById('prestTipo'),ing=document.getElementById('prestIngreso'),me=document.getElementById('prestMetodo'),co=document.getElementById('prestCosto'),fe=document.getElementById('prestFecha'),cn=document.getElementById('prestCondicion'),cl=document.getElementById('prestCliente'),pi=document.getElementById('prestPagoInicial'),ve=document.getElementById('prestVencimiento');var descripcion=String(de?de.value:'').trim(),tipo=ti?ti.value:'ingreso',ingreso=Number(ing?ing.value:0),metodo=me?me.value:'Efectivo CUP',costo=tipo==='ingreso_costo'?Number(co?co.value:0):0,fecha=fe?fe.value:'',condicion=cn?cn.value:'pagada',cliente=String(cl?cl.value:'').trim(),inicial=condicion==='credito'?Number(pi?pi.value:0):ingreso,venc=condicion==='credito'?(ve?ve.value:''):'';if(!descripcion)return alert('Escribe la descripción de la prestación.');if(!fecha)return alert('Selecciona la fecha.');if(ingreso<0||costo<0||inicial<0)return alert('Los importes no pueden ser negativos.');if(condicion==='credito'&&!cliente)return alert('Escribe el cliente de la prestación a crédito.');if(condicion==='credito'&&!venc)return alert('Selecciona la fecha de vencimiento.');if(inicial>ingreso)return alert('El pago inicial no puede superar el ingreso.');load();var localId=typeof flkUUID==='function'?flkUUID():'prest-'+Date.now();var op=typeof flkEncolarOperacion==='function'?flkEncolarOperacion('service_provision_save',{description:descripcion,service_type:tipo,income:ingreso,payment_method:metodo,external_cost:costo,service_date:fecha,customer_name:cliente||null,payment_condition:condicion,initial_payment:inicial,due_date:venc||null,local_id:localId}):null;var pagos=condicion==='credito'&&inicial>0?[{id:'initial-local-'+localId,monto:inicial,metodo:metodo,fecha:fecha,nota:'Pago inicial',inicial:true}]:[];prestacionesServicio.push({id:localId,operation_id:op?op.id:'',descripcion:descripcion,tipo:tipo,ingreso:ingreso,costo:costo,metodo:metodo,fecha:fecha,cliente:cliente,condicion:condicion,pagoInicial:inicial,pagado:condicion==='credito'?inicial:ingreso,saldo:condicion==='credito'?Math.max(0,ingreso-inicial):0,vencimiento:venc,pagos:pagos,created_at:new Date().toISOString(),offlinePendiente:!!op});save();if(de)de.value='';if(ing)ing.value='0';if(co)co.value='0';if(cl)cl.value='';if(pi)pi.value='0';if(ve)ve.value='';if(cn)cn.value='pagada';flkCambiarCondicionPrestacion();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()&&typeof flkSolicitarSincronizacion==='function')flkSolicitarSincronizacion('prestaciones',120);};
+window.flkAbonarPrestacion=function(id){load();var p=prestacionesServicio.find(function(x){return String(x.id)===String(id);});if(!p)return;var saldo=Math.max(0,Number(p.saldo||0));if(!(saldo>0))return alert('Esta prestación no tiene saldo pendiente.');if(!p.cloud_id)return alert('Esta prestación todavía no se ha sincronizado con el servidor. Sincronízala primero para registrar abonos adicionales.');var txt=prompt('Saldo pendiente: '+money(saldo)+'\n\nImporte del abono:','');if(txt===null)return;var monto=Number(String(txt).replace(',','.'));if(!(monto>0))return alert('Escribe un importe válido.');if(monto>saldo)return alert('El abono no puede superar el saldo pendiente.');var metodo=prompt('Método: Efectivo CUP / Efectivo USD / Transferencia CUP / Transferencia USD / Transferencia MLC / Efectivo Euro / Zelle','Efectivo CUP');if(metodo===null)return;metodo=String(metodo).trim()||'Efectivo CUP';var fecha=fechaISO(new Date());var op=typeof flkEncolarOperacion==='function'?flkEncolarOperacion('service_provision_payment_save',{service_provision_id:p.cloud_id,amount:monto,payment_method:metodo,payment_date:fecha,note:'Abono prestación'}):null;p.pagos=Array.isArray(p.pagos)?p.pagos:[];p.pagos.push({id:op?op.id:'abono-'+Date.now(),operation_id:op?op.id:'',monto:monto,metodo:metodo,fecha:fecha,nota:'Abono prestación',inicial:false,offline:true});p.pagado=Math.min(Number(p.ingreso||0),Number(p.pagado||0)+monto);p.saldo=Math.max(0,Number(p.ingreso||0)-p.pagado);save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()&&typeof flkSolicitarSincronizacion==='function')flkSolicitarSincronizacion('abono-prestacion',0);};
+window.flkEliminarPrestacionServicio=function(id){if(typeof requiereAdmin==='function'&&!requiereAdmin('Eliminar prestaciones de servicio'))return;if(!confirm('¿Eliminar esta prestación?'))return;load();var p=prestacionesServicio.find(function(x){return String(x.id)===String(id);});if(!p)return;if(typeof flkEncolarOperacion==='function')flkEncolarOperacion('service_provision_delete',{cloud_id:p.cloud_id||null,operation_id:p.operation_id||null,local_id:String(p.id)});prestacionesServicio=prestacionesServicio.filter(function(x){return String(x.id)!==String(id);});save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()&&typeof flkSolicitarSincronizacion==='function')flkSolicitarSincronizacion('prestaciones',120);};
+window.mostrarPrestacionesServicio=function(){try{flkLocalStorageSetSeguro('flackunloker_ultimo_modulo_v1','botonPrestacionesServicio');}catch(_){}if(typeof flkOcultarTodasLasVistas==='function')flkOcultarTodasLasVistas();var v=document.getElementById('vistaPrestacionesServicio');if(!v)return alert('No se pudo abrir Prestaciones de servicio.');v.style.display='block';document.querySelectorAll('.menu-cuadricula button').forEach(function(b){b.classList.remove('activo');});var btn=document.getElementById('botonPrestacionesServicio');if(btn)btn.classList.add('activo');if(typeof cerrarMenuPrincipal==='function')cerrarMenuPrincipal();var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());flkCambiarCondicionPrestacion();pintar();if(typeof flkCargarPrestacionesNube==='function')flkCargarPrestacionesNube();};
+function init(){var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());flkCambiarCondicionPrestacion();pintar();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
-</script>\n
+</script>
+\n
 <script id="flk-v6159-module-stability">
 (function(){
   const KEY="flackunloker_ultimo_modulo_v1";
