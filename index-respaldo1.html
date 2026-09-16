@@ -182,7 +182,7 @@
      HTTP "X-Frame-Options: DENY" o "Content-Security-Policy:
      frame-ancestors 'none'" en el servidor. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://eviwhrqhinhnyccizkfq.supabase.co wss://eviwhrqhinhnyccizkfq.supabase.co https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
-<meta name="flackunloker-offline-version" content="2026-09-15-v62.41.23-feedback-boton-reportes">
+<meta name="flackunloker-offline-version" content="2026-09-16-v62.41.44-indexeddb-paso9-script-corregido">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -204,7 +204,7 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 .resumen-historial{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:15px}.tarjeta-historial{padding:14px 10px;text-align:center}.tarjeta-historial strong{font-size:20px}.tarjeta-historial.entradas strong{color:#168044}.tarjeta-historial.salidas strong{color:#c45b19}
 .filtros-historial{display:flex;gap:8px;margin-bottom:15px}.filtro-historial{flex:1;border:0;border-radius:12px;padding:11px 8px;background:#eee;color:#555;font-weight:600;cursor:pointer}.filtro-historial.activo{background:#0a84ff;color:#fff}.boton-borrar-historial{width:100%;border:0;background:#ffecec;color:#d93025;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:15px}
 .movimiento{padding:17px;margin-bottom:12px}.movimiento-tipo{padding:8px 11px;border-radius:10px;font-weight:700;white-space:nowrap;font-size:13px}.movimiento-tipo.entrada{background:#e9f8ef;color:#168044}.movimiento-tipo.salida{background:#fff1e8;color:#c45b19}.movimiento-detalle{margin-top:12px;color:#555;font-size:13px;line-height:1.7}.saldo-movimiento{margin-top:8px;padding-top:8px;border-top:1px solid #eee}.saldo-movimiento strong{color:#0a84ff}.acciones-movimiento{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-movimiento-editar,.boton-movimiento-eliminar{border:0;border-radius:10px;padding:9px;font-size:12px;font-weight:700;cursor:pointer}.boton-movimiento-editar{background:#eaf4ff;color:#0a84ff}.boton-movimiento-eliminar{background:#ffecec;color:#d93025}
-.estadisticas-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:15px}.estadistica-card{padding:18px}.estadistica-card strong{font-size:24px}.estadistica-card.ancha{grid-column:1/-1}.estadistica-card.azul strong{color:#0a84ff}.estadistica-card.positiva strong{color:#168044}.estadistica-card.negativa strong{color:#c45b19}.lista-estadisticas{padding:17px;margin-bottom:12px}.lista-estadisticas h3{margin:0 0 12px;font-size:16px}.fila-estadistica{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid #eee;font-size:13px}.fila-estadistica:first-child{border-top:0}.fila-estadistica span{color:#555}.fila-estadistica strong{color:#0a84ff;white-space:nowrap}
+.estadisticas-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:15px}.estadistica-card{padding:18px}.estadistica-card strong{font-size:24px}.estadistica-card.ancha{grid-column:1/-1}.estadistica-card.azul strong{color:#0a84ff}.estadistica-card.positiva strong{color:#39e75f}.estadistica-card.negativa strong{color:#c45b19}.lista-estadisticas{padding:17px;margin-bottom:12px}.lista-estadisticas h3{margin:0 0 12px;font-size:16px}.fila-estadistica{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid #eee;font-size:13px}.fila-estadistica:first-child{border-top:0}.fila-estadistica span{color:#555}.fila-estadistica strong{color:#0a84ff;white-space:nowrap}
 .venta-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px}.carrito-venta{background:#f7f9fc;border-radius:14px;padding:12px;margin:10px 0}.carrito-vacio{color:#777;font-size:13px;text-align:center;padding:10px}.item-carrito{display:grid;grid-template-columns:1fr auto;gap:10px;padding:11px 0;border-top:1px solid #e7e7e7}.item-carrito:first-child{border-top:0}.item-carrito strong{display:block;font-size:14px}.item-carrito small{display:block;color:#777;margin-top:4px}.quitar-item{border:0;background:#ffecec;color:#d93025;border-radius:9px;padding:8px 10px;font-weight:700;cursor:pointer}.total-carrito{display:flex;justify-content:space-between;align-items:center;padding:12px 0 2px;font-size:18px}.agregar-linea{display:grid;grid-template-columns:1fr 90px;gap:8px}.boton-agregar-carrito{width:100%;border:0;border-radius:12px;padding:12px;background:#e9f8ef;color:#168044;font-weight:700;cursor:pointer;margin-bottom:8px}.recibo-items{margin-top:10px;padding-top:10px;border-top:1px solid #eee}.recibo-item{display:flex;justify-content:space-between;gap:12px;padding:7px 0;font-size:13px}.venta-superior{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.venta-superior h3{margin:0 0 5px;font-size:16px}.venta-superior p{margin:0;color:#777;font-size:13px}.venta-total{font-weight:800;color:#168044;white-space:nowrap}.venta-detalle{margin-top:12px;font-size:13px;line-height:1.7;color:#555}.venta-detalle strong{color:#111}.ganancia-venta{color:#168044!important}.acciones-venta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.boton-recibo-venta,.boton-devolver-venta,.boton-abono-venta,.boton-historial-abonos,.boton-eliminar-venta{width:100%;border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.boton-recibo-venta{background:#eaf4ff;color:#0a84ff}.boton-devolver-venta{background:#fff7e8;color:#a15c00}.boton-abono-venta{background:#e9f8ef;color:#168044}.boton-historial-abonos{background:#f2edff;color:#6b47c8}.boton-eliminar-venta{background:#ffecec;color:#d93025}.estado-pago{display:inline-block;margin-top:8px;padding:7px 10px;border-radius:10px;font-size:12px;font-weight:800}.estado-pago.pagado{background:#e9f8ef;color:#168044}.estado-pago.credito{background:#fff7e8;color:#a15c00}.estado-pago.proximo{background:#fff7e8;color:#a15c00}.estado-pago.vencido{background:#ffecec;color:#d93025}.campo-credito{display:none}.campo-credito.visible{display:block}.abono-card{background:#f7f9fc;border-radius:14px;padding:14px;margin-bottom:10px}.abono-superior{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.abono-superior strong{font-size:15px}.abono-superior span{font-size:13px;color:#168044;font-weight:800}.abono-detalle{font-size:12px;line-height:1.7;color:#555;margin-top:8px}.boton-comprobante{width:100%;border:0;border-radius:10px;padding:10px;margin-top:10px;background:#eaf4ff;color:#0a84ff;font-weight:700;cursor:pointer}.respaldo-box{padding:18px;margin-bottom:15px}.respaldo-box h3{margin:0 0 8px;font-size:18px}.respaldo-box p{margin:0 0 15px;color:#777;font-size:13px;line-height:1.6}.botones-respaldo{display:grid;grid-template-columns:1fr 1fr;gap:10px}.boton-respaldo{border:0;border-radius:12px;padding:13px 10px;font-size:14px;font-weight:700;cursor:pointer}.boton-crear-respaldo{background:#eaf4ff;color:#0a84ff}.boton-restaurar-respaldo{background:#e9f8ef;color:#168044}.estado-respaldo{margin-top:12px;padding:11px;border-radius:10px;background:#f4f7fb;color:#555;font-size:12px;display:none}.estado-respaldo.visible{display:block}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;padding:20px;align-items:center;justify-content:center}.modal.visible{display:flex}.formulario{width:100%;max-width:480px;max-height:90vh;overflow-y:auto;background:#fff;border-radius:22px;padding:22px;box-shadow:0 15px 40px rgba(0,0,0,.2)}.formulario h2{margin:0 0 20px;font-size:22px}.campo{margin-bottom:15px}.campo label{display:block;font-size:13px;font-weight:600;margin-bottom:7px}.campo input,.campo select{width:100%;border:1px solid #ddd;outline:none;border-radius:12px;padding:13px;font-size:15px;background:#fff}.campo input:focus,.campo select:focus{border-color:#0a84ff}.ayuda-campo{display:block;margin-top:6px;color:#777;font-size:11px;line-height:1.5}.botones-formulario{display:flex;gap:10px;margin-top:20px}.boton-cancelar,.boton-guardar{flex:1;border:0;border-radius:12px;padding:13px;font-size:15px;font-weight:600;cursor:pointer}.boton-cancelar{background:#eee;color:#333}.boton-guardar{background:#0a84ff;color:#fff}.mensaje-movimiento{margin:0 0 18px;padding:12px;border-radius:12px;background:#eaf4ff;color:#0a84ff;font-size:14px}
 .menu{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #eee;padding:12px 8px;display:flex;justify-content:flex-start;gap:16px;z-index:500;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}.menu::-webkit-scrollbar{display:none}.menu button{border:0;background:none;font-size:12px;color:#777;cursor:pointer;padding:5px;flex:0 0 auto}.menu .activo{color:#0a84ff;font-weight:700}.cliente-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px}.cliente-superior{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.cliente-superior h3{margin:0 0 5px;font-size:16px}.cliente-superior p{margin:0;color:#777;font-size:13px}.cliente-total{font-weight:800;color:#168044;white-space:nowrap}.cliente-detalle{margin-top:12px;font-size:13px;line-height:1.7;color:#555}.acciones-cliente{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-cliente{border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer;background:#eaf4ff;color:#0a84ff}.boton-cliente-venta{background:#e9f8ef;color:#168044}.menu .activo{color:#0a84ff;font-weight:700}
@@ -616,6 +616,11 @@ button:active{transform:none!important}
 #botonActualizarReporte.flk-boton-feedback:active,#botonActualizarReporte.flk-pulsado{transform:scale(.96)!important;filter:brightness(.94)}
 #botonActualizarReporte.flk-confirmado{transform:scale(1.02)!important;filter:brightness(1.06)}
 #botonActualizarReporte:disabled{cursor:wait;opacity:.88}
+#botonActualizarFlujo.flk-boton-feedback{transition:transform .10s ease,filter .10s ease,box-shadow .10s ease!important}
+#botonActualizarFlujo.flk-boton-feedback:active,#botonActualizarFlujo.flk-pulsado{transform:scale(.96)!important;filter:brightness(.94)}
+#botonActualizarFlujo.flk-confirmado{transform:scale(1.02)!important;filter:brightness(1.06)}
+#botonActualizarFlujo:disabled{cursor:wait;opacity:.88}
+
 
 
 /* ===== MENÚ PRINCIPAL · CENTRADO Y ORGANIZADO DEFINITIVO ===== */
@@ -943,6 +948,12 @@ button.menu-toggle{
 #vistaCuentasPagar .lista-estadisticas .fila-estadistica span,
 #vistaCuentasPagar .lista-estadisticas .fila-estadistica strong{
   color:#000 !important;
+}
+
+/* v62.41.26 · Contraste visible de valores positivos en Flujo de caja */
+#flujoEntradas,
+#flujoNeto{
+  color:#5CFF85!important;
 }
 </style>
 <script id="flk-supabase-loader-v6226-no-eval">
@@ -1836,6 +1847,14 @@ textarea::placeholder{
 }
 </style>
 
+
+<style id="flk-estadisticas-contraste-final">
+/* Solo Estadísticas: mejora de contraste de los dos valores verdes. */
+#vistaEstadisticas #estadisticaEntradas,
+#vistaEstadisticas #estadisticaGananciaPotencial{
+  color:#39e75f !important;
+}
+</style>
 </head>
 <body>
 
@@ -2207,7 +2226,7 @@ textarea::placeholder{
 <div class="campo" style="margin:0"><label for="fechaDesdeFlujo">Desde</label><input id="fechaDesdeFlujo" type="date" onchange="actualizarFlujoCaja()"></div>
 <div class="campo" style="margin:0"><label for="fechaHastaFlujo">Hasta</label><input id="fechaHastaFlujo" type="date" onchange="actualizarFlujoCaja()"></div>
 </div>
-<div class="reporte-botones"><button class="boton-agregar" onclick="actualizarFlujoCaja()">🔄 Actualizar flujo</button><button class="boton-respaldo boton-crear-respaldo" onclick="imprimirFlujoCaja()">🧾 Ver / imprimir</button></div>
+<div class="reporte-botones"><button id="botonActualizarFlujo" class="boton-agregar flk-boton-feedback" onclick="sincronizarYActualizarFlujoCaja(this)">🔄 Actualizar flujo</button><button class="boton-respaldo boton-crear-respaldo" onclick="imprimirFlujoCaja()">🧾 Ver / imprimir</button></div>
 </div>
 
 <div class="lista-estadisticas"><h3>🏦 Caja física</h3><div class="fila-estadistica"><span>Saldo actual en efectivo</span><strong id="saldoCajaFisica">$0.00</strong></div><div class="acciones" style="margin-top:12px"><button class="accion entrada" type="button" onclick="abrirMovimientoPropietario('contribution')">➕ Aporte</button><button class="accion salida" type="button" onclick="abrirMovimientoPropietario('withdrawal')">🏦 Retirar efectivo</button></div></div>
@@ -2272,7 +2291,8 @@ textarea::placeholder{
 <div class="finanzas-card activo"><span>🏦 Caja física</span><strong id="finCaja">$0.00</strong></div>
 <div class="finanzas-card activo"><span>🏧 Saldo Transferencia CUP</span><strong id="finTransferenciaCup">$0.00</strong></div>
 <div class="finanzas-card activo"><span>📦 Inventario a costo</span><strong id="finInventario">$0.00</strong></div>
-<div class="finanzas-card activo"><span>👥 Cuentas por cobrar</span><strong id="finPorCobrar">$0.00</strong></div>
+<div class="finanzas-card activo"><span>👥 Cuentas por cobrar · CUP</span><strong id="finPorCobrar">$0.00</strong></div>
+<div class="finanzas-card activo"><span>👥 Cuentas por cobrar · USD</span><strong id="finPorCobrarUSD">$0.00 USD</strong></div>
 <div class="finanzas-card ancha activo"><span>Activos operativos</span><strong id="finActivos">$0.00</strong></div>
 <div class="finanzas-card ancha pasivo"><span>💳 Cuentas por pagar</span><strong id="finPorPagar">$0.00</strong></div>
 <div class="finanzas-card ancha azul"><span>💼 Patrimonio operativo neto</span><strong id="finPatrimonio">$0.00</strong></div>
@@ -2972,6 +2992,7 @@ function flkCambiarContextoLocalCentro(businessId){
 }
 
 const FLK_OFFLINE_QUEUE_KEY="flackunloker_offline_queue_v1";
+
 const FLK_OFFLINE_QUEUE_EMERGENCY_KEY="flackunloker_offline_queue_emergency_v2";
 const FLK_SYNC_CONFIRMED_KEY="flackunloker_sync_confirmed_v2";
 const FLK_OFFLINE_ARCHIVE_KEY="flackunloker_offline_archive_v2";
@@ -3167,6 +3188,29 @@ function flkEncolarOperacion(tipo,payload){
  try{flkActualizarEstadoConexion()}catch(_){}
  return op;
 }
+
+/* v62.41.39 · IndexedDB PASO 5 · espejo automático NO bloqueante.
+   La cola oficial continúa en localStorage. Si IndexedDB falla, la operación normal NO falla. */
+(function(){
+  const original=window.flkEncolarOperacion;
+  if(typeof original!=="function")return;
+  window.flkEncolarOperacion=function(){
+    const args=Array.prototype.slice.call(arguments);
+    const resultado=original.apply(this,args);
+    try{
+      const api=window.flkIndexedDBPaso1;
+      if(api&&typeof api.espejarOperaciones==="function"&&resultado&&typeof resultado==="object"){
+        /* PASO 8: espejar la operación REAL que acaba de persistir la cola oficial.
+           Así IndexedDB conserva el mismo id, business_id, tipo, payload y created_at. */
+        Promise.resolve(
+          api.espejarOperaciones([resultado],resultado.business_id||null)
+        ).catch(function(){});
+      }
+    }catch(_){}
+    return resultado;
+  };
+})();
+
 function flkPendientesOffline(){
  return flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado)).length
 }
@@ -4113,6 +4157,12 @@ async function flkProcesarColaOffline(){
  }
  q=q.filter(x=>x.estado!=="sincronizado");
  flkGuardarColaOffline(q);
+ // PASO 10: limpieza secundaria. Solo operaciones archivadas como confirmadas,
+ // ausentes de AMBAS copias de la cola oficial; un fallo no bloquea la sincronización.
+ if(huboCambios&&typeof window.flkLimpiarEspejoConfirmadoPaso10==="function"){
+  Promise.resolve().then(function(){return window.flkLimpiarEspejoConfirmadoPaso10();})
+   .catch(function(err){console.warn("IndexedDB: limpieza pendiente; cola oficial intacta.",err);});
+ }
  try{
   if(huboCambios&&typeof flkRecuperacionEmergenciaNube==="function"){
    await flkRecuperacionEmergenciaNube();
@@ -5881,15 +5931,16 @@ async function flkEnriquecerCentrosConLicencias(){
      `<div style="margin-top:3px;color:#475467">${dispositivo}</div>`+
      `<div style="margin-top:3px;color:#667085">Centro: ${flkAdminSwEsc(nombre)}</div>`+
      `<div class="adminsw-license-actions">`+
-      `<button type="button" class="adminsw-license-renew" onclick='flkRenovarLicenciaCentro(${JSON.stringify(key)},${JSON.stringify(nombre)},${JSON.stringify(lic.expires_at||"")})'>📅 Renovar</button>`+
-      `<button type="button" class="adminsw-license-status" onclick='flkCambiarEstadoLicenciaCentro(${JSON.stringify(key)},${JSON.stringify(nombre)},${JSON.stringify(suspendida?"active":"suspended")})'>${suspendida?"▶ Activar":"⏸ Suspender"}</button>`+
-      `<button type="button" class="adminsw-license-device" onclick='flkLiberarDispositivoCentro(${JSON.stringify(key)},${JSON.stringify(nombre)},${JSON.stringify(!!lic.device_id)})'>📱 Liberar</button>`+
+      `<button type="button" class="adminsw-license-renew" data-flk-admin-action="renew-license" data-license-key="${flkAdminSwEsc(key)}" data-center-name="${flkAdminSwEsc(nombre)}" data-expires-at="${flkAdminSwEsc(lic.expires_at||"")}">📅 Renovar</button>`+
+      `<button type="button" class="adminsw-license-status" data-flk-admin-action="license-status" data-license-key="${flkAdminSwEsc(key)}" data-center-name="${flkAdminSwEsc(nombre)}" data-new-status="${suspendida?"active":"suspended"}">${suspendida?"▶ Activar":"⏸ Suspender"}</button>`+
+      `<button type="button" class="adminsw-license-device" data-flk-admin-action="release-device" data-license-key="${flkAdminSwEsc(key)}" data-center-name="${flkAdminSwEsc(nombre)}" data-has-device="${lic.device_id?"1":"0"}">📱 Liberar</button>`+
      `</div>`;
    }else{
     box.innerHTML=
      `<strong>🔐 Licencia: ⚪ Sin licencia</strong>`+
      `<div style="margin-top:3px;color:#667085">Este centro todavía no tiene una licencia vinculada.</div>`;
    }
+   flkVincularAccionesAdminSoftware(box);
   });
  }catch(err){
   console.error("Licencias por centro:",err);
@@ -6004,6 +6055,34 @@ async function flkCargarUsuariosExistentesAdminSoftware(){
  }
 }
 
+function flkVincularAccionesAdminSoftware(root){
+ if(!root||root.dataset.flkAdminEventos==="1")return;
+ root.dataset.flkAdminEventos="1";
+ root.addEventListener("click",function(ev){
+  const b=ev.target.closest("[data-flk-admin-action]");
+  if(!b||!root.contains(b))return;
+  const a=b.dataset.flkAdminAction||"", bid=b.dataset.businessId||"", uid=b.dataset.userId||"", email=b.dataset.email||"", key=b.dataset.licenseKey||"";
+  if(a==="members")return cargarMiembrosCentroAdminSoftware(bid);
+  if(a==="password")return cambiarPasswordCentroAdminSoftware(bid);
+  if(a==="center-status")return cambiarEstadoCentroAdminSoftware(bid,b.dataset.newStatus||"");
+  if(a==="reset-pin")return cambiarPinResetCentroAdminSoftware(bid);
+  if(a==="reset-center")return abrirResetCentroAdminSoftware(bid);
+  if(a==="renew-license")return flkRenovarLicenciaCentro(key,b.dataset.centerName||"",b.dataset.expiresAt||"");
+  if(a==="license-status")return flkCambiarEstadoLicenciaCentro(key,b.dataset.centerName||"",b.dataset.newStatus||"");
+  if(a==="release-device")return flkLiberarDispositivoCentro(key,b.dataset.centerName||"",b.dataset.hasDevice==="1");
+  if(a==="member-status")return flkCambiarEstadoMiembro(bid,uid,email,b.dataset.currentStatus||"");
+  if(a==="member-remove")return flkQuitarMiembroCentro(bid,uid,email);
+  if(a==="list-renew")return renovarLicenciaLista(key);
+  if(a==="list-status")return cambiarEstadoLicenciaLista(key,b.dataset.newStatus||"");
+  if(a==="list-release")return liberarDispositivoLicenciaLista(key);
+ });
+ root.addEventListener("change",function(ev){
+  const s=ev.target.closest('[data-flk-admin-change="member-role"]');
+  if(!s||!root.contains(s))return;
+  flkCambiarRolMiembro(s.dataset.businessId||"",s.dataset.userId||"",s.dataset.email||"",s.value,s.dataset.currentRole||"");
+ });
+}
+
 async function cargarAdminSoftware(){
  if(!flkEsPropietarioSoftware)return;
  flkCargarUsuariosExistentesAdminSoftware();
@@ -6022,7 +6101,8 @@ async function cargarAdminSoftware(){
   const sel=document.getElementById("adminswUsuarioCentro");if(sel)sel.innerHTML=opcionesCentros;
   const selNuevo=document.getElementById("adminswNuevoCentro");if(selNuevo)selNuevo.innerHTML=opcionesCentros;
   if(!flkAdminSoftwareCentros.length){lista.innerHTML='<div class="sin-productos">No hay centros registrados.</div>';return}
-  lista.innerHTML=flkAdminSoftwareCentros.map(c=>`<div class="adminsw-centro" id="adminsw-centro-${flkEscAttr(c.business_id)}"><div class="adminsw-centro-top"><div><h3>${flkAdminSwEsc(c.name)}</h3><p>Código: ${flkAdminSwEsc(c.code||"—")}<br>ID: ${flkAdminSwEsc(c.business_id)}</p></div><span class="adminsw-badge ${String(c.status)==="active"?"active":"inactive"}">${String(c.status)==="active"?"ACTIVO":"INACTIVO"}</span></div><div class="adminsw-acciones"><button class="adminsw-btn azul" onclick="cargarMiembrosCentroAdminSoftware('${flkEscAttr(c.business_id)}')">👥 Ver usuarios</button><button class="adminsw-btn azul" onclick="cambiarPasswordCentroAdminSoftware('${flkEscAttr(c.business_id)}')">🔑 Cambiar contraseña</button><button class="adminsw-btn ${String(c.status)==="active"?"rojo":"verde"}" onclick="cambiarEstadoCentroAdminSoftware('${flkEscAttr(c.business_id)}','${String(c.status)==="active"?"inactive":"active"}')">${String(c.status)==="active"?"⛔ Desactivar":"✅ Activar"}</button><button class="adminsw-btn azul" onclick="cambiarPinResetCentroAdminSoftware('${flkEscAttr(c.business_id)}')">🔑 Cambiar PIN reset</button><button class="adminsw-btn rojo" onclick="abrirResetCentroAdminSoftware('${flkEscAttr(c.business_id)}')">⚠️ Restablecer</button></div><div class="adminsw-miembros" id="adminsw-miembros-${flkEscAttr(c.business_id)}" style="display:none"></div></div>`).join("");
+  lista.innerHTML=flkAdminSoftwareCentros.map(c=>`<div class="adminsw-centro" id="adminsw-centro-${flkEscAttr(c.business_id)}" data-business-id="${flkAdminSwEsc(c.business_id)}"><div class="adminsw-centro-top"><div><h3>${flkAdminSwEsc(c.name)}</h3><p>Código: ${flkAdminSwEsc(c.code||"—")}<br>ID: ${flkAdminSwEsc(c.business_id)}</p></div><span class="adminsw-badge ${String(c.status)==="active"?"active":"inactive"}">${String(c.status)==="active"?"ACTIVO":"INACTIVO"}</span></div><div class="adminsw-acciones"><button class="adminsw-btn azul" data-flk-admin-action="members" data-business-id="${flkAdminSwEsc(c.business_id)}">👥 Ver usuarios</button><button class="adminsw-btn azul" data-flk-admin-action="password" data-business-id="${flkAdminSwEsc(c.business_id)}">🔑 Cambiar contraseña</button><button class="adminsw-btn ${String(c.status)==="active"?"rojo":"verde"}" data-flk-admin-action="center-status" data-business-id="${flkAdminSwEsc(c.business_id)}" data-new-status="${String(c.status)==="active"?"inactive":"active"}">${String(c.status)==="active"?"⛔ Desactivar":"✅ Activar"}</button><button class="adminsw-btn azul" data-flk-admin-action="reset-pin" data-business-id="${flkAdminSwEsc(c.business_id)}">🔑 Cambiar PIN reset</button><button class="adminsw-btn rojo" data-flk-admin-action="reset-center" data-business-id="${flkAdminSwEsc(c.business_id)}">⚠️ Restablecer</button></div><div class="adminsw-miembros" id="adminsw-miembros-${flkEscAttr(c.business_id)}" style="display:none"></div></div>`).join("");
+  flkVincularAccionesAdminSoftware(lista);
   await flkEnriquecerCentrosConLicencias();
  }catch(err){console.error("Administración software:",err);lista.innerHTML='<div class="sin-productos">No se pudo cargar la administración de centros.</div>';alert("Falta instalar o actualizar las funciones de Administración del Software en Supabase.\n\nDetalle: "+(err?.message||"Error desconocido"))}
 }
@@ -6150,6 +6230,7 @@ async function flkRefrescarMiembrosCentro(businessId){
   if(error)throw error;
   const miembros=Array.isArray(data)?data:[];
   box.innerHTML=flkHtmlMiembrosCentro(businessId,miembros);
+  flkVincularAccionesAdminSoftware(box);
   const total=flkAdminSoftwareCentros.reduce((n,c)=>n+Number(c.member_count||c.members_count||0),0);
   // contador principal se actualiza completamente al recargar el panel cuando cambia membresía
  }catch(err){
@@ -6175,13 +6256,12 @@ function flkHtmlMiembrosCentro(businessId,miembros){
    <div class="adminsw-user-actions">
     ${role==="owner"
  ? '<div class="adminsw-role-owner">🔒 Propietario del software</div>'
- : `<select class="adminsw-role-select" aria-label="Rol de ${escEmail}"
-      onchange='flkCambiarRolMiembro(${JSON.stringify(String(businessId))},${JSON.stringify(uid)},${JSON.stringify(email)},this.value,${JSON.stringify(role)})'>
+ : `<select class="adminsw-role-select" aria-label="Rol de ${escEmail}" data-flk-admin-change="member-role" data-business-id="${flkAdminSwEsc(String(businessId))}" data-user-id="${flkAdminSwEsc(uid)}" data-email="${flkAdminSwEsc(email)}" data-current-role="${flkAdminSwEsc(role)}">
      <option value="admin"${selected("admin")}>Administrador</option>
      <option value="employee"${selected("employee")}>Empleado</option>
     </select>`}
-    <button type="button" class="adminsw-user-status" onclick='flkCambiarEstadoMiembro(${JSON.stringify(String(businessId))},${JSON.stringify(uid)},${JSON.stringify(email)},${JSON.stringify(status)})'>${activo?"⏸ Desactivar":"▶ Activar"}</button>
-    <button type="button" class="adminsw-user-remove" onclick='flkQuitarMiembroCentro(${JSON.stringify(String(businessId))},${JSON.stringify(uid)},${JSON.stringify(email)})'>🗑 Quitar</button>
+    <button type="button" class="adminsw-user-status" data-flk-admin-action="member-status" data-business-id="${flkAdminSwEsc(String(businessId))}" data-user-id="${flkAdminSwEsc(uid)}" data-email="${flkAdminSwEsc(email)}" data-current-status="${flkAdminSwEsc(status)}">${activo?"⏸ Desactivar":"▶ Activar"}</button>
+    <button type="button" class="adminsw-user-remove" data-flk-admin-action="member-remove" data-business-id="${flkAdminSwEsc(String(businessId))}" data-user-id="${flkAdminSwEsc(uid)}" data-email="${flkAdminSwEsc(email)}">🗑 Quitar</button>
    </div>
   </div>`;
  }).join("");
@@ -6212,6 +6292,7 @@ async function cargarMiembrosCentroAdminSoftware(businessId){
   if(error)throw error;
   const miembros=Array.isArray(data)?data:[];
   box.innerHTML=flkHtmlMiembrosCentro(businessId,miembros);
+  flkVincularAccionesAdminSoftware(box);
  }catch(err){
   console.error("Usuarios del centro:",err);
   box.innerHTML='<div class="sin-productos">No se pudieron cargar los usuarios.</div>';
@@ -6356,16 +6437,17 @@ async function cargarListaLicencias(){
      </div>
 
      <div class="lic-registro-acciones">
-      <button class="lic-btn-renovar" onclick="renovarLicenciaLista('${key}')">📅 Renovar</button>
+      <button class="lic-btn-renovar" data-flk-admin-action="list-renew" data-license-key="${key}">📅 Renovar</button>
       ${
        estado==="suspended"
-       ? `<button class="lic-btn-activar" onclick="cambiarEstadoLicenciaLista('${key}','active')">✅ Reactivar</button>`
-       : `<button class="lic-btn-suspender" onclick="cambiarEstadoLicenciaLista('${key}','suspended')">⛔ Suspender</button>`
+       ? `<button class="lic-btn-activar" data-flk-admin-action="list-status" data-license-key="${key}" data-new-status="active">✅ Reactivar</button>`
+       : `<button class="lic-btn-suspender" data-flk-admin-action="list-status" data-license-key="${key}" data-new-status="suspended">⛔ Suspender</button>`
       }
-      <button class="lic-btn-liberar" onclick="liberarDispositivoLicenciaLista('${key}')">🖥️ Liberar dispositivo</button>
+      <button class="lic-btn-liberar" data-flk-admin-action="list-release" data-license-key="${key}">🖥️ Liberar dispositivo</button>
      </div>
     </div>`;
   }).join("");
+  flkVincularAccionesAdminSoftware(lista);
 
  }catch(err){
   console.error("Lista de licencias:",err);
@@ -7998,7 +8080,7 @@ function mostrarListaVentas(){
   const f=new Date(v.fecha),el=document.createElement("div");el.className="venta-card";const numero=v.numero||String(v.id).slice(-8),items=itemsDeVenta(v);
   const cliente=escapeHtml(v.cliente||"Cliente general"),telefono=v.telefono?` · ${escapeHtml(v.telefono)}`:"",nota=v.nota?`<br>Nota: ${escapeHtml(v.nota)}`:"",devoluciones=devolucionesDeVenta(v);
   const itemsHtml=items.filter(i=>Number(i.cantidad)>0).map(i=>`<div class="recibo-item"><span>${Number(i.cantidad)} × ${escapeHtml(i.nombre)}</span><strong>$${Number(i.ingreso??(Number(i.cantidad)*Number(i.precioUnitario))).toFixed(2)}</strong></div>`).join("")||'<div class="recibo-item"><span>Todos los artículos fueron devueltos</span><strong>$0.00</strong></div>';
-  const devTxt=devoluciones.length?`<br>Devoluciones parciales: <strong>${devoluciones.length}</strong><br>${devoluciones.map(d=>`<button class="boton-recibo-venta" style="margin-top:7px" onclick="imprimirComprobanteDevolucion(${v.id},\'${d.supabaseId||d.offlineOperationId||d.id||""}\')">🖨️ Devolución ${d.numeroDevolucion?"#"+String(d.numeroDevolucion).padStart(6,"0"):""}</button>`).join(" ")}`:"";
+  const devTxt=devoluciones.length?`<br>Devoluciones parciales: <strong>${devoluciones.length}</strong><br>${devoluciones.map(d=>`<button class="boton-recibo-venta" style="margin-top:7px" data-flk-accion="comprobante-devolucion" data-venta-id="${escapeHtml(String(v.id))}" data-devolucion-id="${escapeHtml(String(d.supabaseId||d.offlineOperationId||d.id||""))}">🖨️ Devolución ${d.numeroDevolucion?"#"+String(d.numeroDevolucion).padStart(6,"0"):""}</button>`).join(" ")}`:"";
   const puedeDevolver=items.some(i=>(Number(i.cantidad||0)-Number(i.devuelto||0))>0);   normalizarCuentaVenta(v);const ev=estadoVencimientoVenta(v),estadoTxt=`<span class="estado-pago ${ev.clave}">${ev.texto}${v.saldo>0?` · Debe $${Number(v.saldo).toFixed(2)}`:""}</span>`;
    el.innerHTML=`<div class="venta-superior"><div><h3>Recibo #${escapeHtml(numero)}</h3><p>${cliente}${telefono}</p>${estadoTxt}</div><div class="venta-total">$${Number(v.ingreso??0).toFixed(2)}</div></div><div class="recibo-items">${itemsHtml}</div><div class="venta-detalle">Unidades netas: <strong>${items.reduce((t,i)=>t+Math.max(0,Number(i.cantidad||0)-Number(i.devuelto||0)),0)}</strong> · Productos netos: <strong>${items.filter(i=>cantidadNetaItemVenta(i)>0).length}</strong><br>Ganancia real: <strong class="ganancia-venta">$${Number(v.ganancia??0).toFixed(2)}</strong><br>Pagado: <strong>$${Number(v.totalPagado||0).toFixed(2)}</strong> · Saldo: <strong>$${Number(v.saldo||0).toFixed(2)}</strong>${v.saldo>0&&v.fechaVencimiento?`<br>Vencimiento: <strong>${new Date(v.fechaVencimiento+"T00:00:00").toLocaleDateString("es-PR")}</strong>`:""}${v.metodoPago?`<br>Método inicial: <strong>${escapeHtml(v.metodoPago)}</strong>`:""}${devTxt}${nota}<br>${flkFormatoFechaContable(f,{day:"2-digit",month:"2-digit",year:"numeric"})} · ${flkFormatoHoraContable(f,{hour:"2-digit",minute:"2-digit"})}</div><div class="acciones-venta"><button class="boton-recibo-venta" onclick="generarReciboVenta(${v.id})">🧾 Ver recibo</button>${v.saldo>0?`<button class="boton-abono-venta" onclick="abrirAbono(${v.id})">💵 Registrar abono</button>`:""}${pagosDeVenta(v).length?`<button class="boton-historial-abonos" onclick="verHistorialAbonos(${v.id})">📋 Historial abonos</button>`:""}${puedeDevolver?`<button class="boton-devolver-venta" onclick="abrirDevolucion(${v.id})">↩️ Devolver producto</button>`:""}<button class="boton-eliminar-venta" onclick="eliminarVenta(${v.id})">⛔ Anular recibo</button></div>`;
   lista.appendChild(el)
@@ -8053,7 +8135,7 @@ function flkAbrirDocumentoComprobante(html,mensaje="Permite ventanas emergentes 
  const w=window.open("","_blank");if(!w)return alert(mensaje);w.document.open();w.document.write(html);w.document.close()
 }
 function imprimirComprobanteDevolucion(ventaId,devolucionSupabaseId){
- const v=ventas.find(x=>x.id===ventaId);if(!v)return alert("Venta no encontrada.");
+ const v=ventas.find(x=>String(x.id)===String(ventaId));if(!v)return alert("Venta no encontrada.");
  const d=devolucionesDeVenta(v).find(x=>String(x.supabaseId||x.offlineOperationId||x.id||"")===String(devolucionSupabaseId||""));if(!d)return alert("Devolución no encontrada.");
  const item=itemsDeVenta(v).find(i=>i.productoId===d.productoId)||{};
  const numero=d.numeroDevolucion?String(d.numeroDevolucion).padStart(6,"0"):String(d.id).slice(-6);
@@ -8072,6 +8154,33 @@ body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
 </body></html>`;
  flkAbrirDocumentoComprobante(html)
 }
+
+
+/* v62.41.28 · SEGURIDAD XSS BLOQUE 2 */
+document.addEventListener("click",function(event){
+ const btn=event.target&&event.target.closest?event.target.closest("[data-flk-accion]"):null;
+ if(!btn)return;
+ const accion=btn.dataset.flkAccion||"";
+
+ if(accion==="comprobante-devolucion"){
+  imprimirComprobanteDevolucion(btn.dataset.ventaId||"",btn.dataset.devolucionId||"");
+  return;
+ }
+ if(accion==="comprobante-movimiento"){
+  imprimirComprobanteMovimiento(btn.dataset.movimientoId||"");
+  return;
+ }
+ if(accion==="orden-proveedor"){
+  abrirOrdenCompra(null,btn.dataset.proveedorNombre||"");
+  return;
+ }
+ if(accion==="deuda-proveedor"){
+  mostrarCuentasPagar();
+  const filtro=document.getElementById("filtroProveedorCuentas");
+  if(filtro)filtro.value=btn.dataset.proveedorNombre||"";
+  mostrarListaCuentasPagar();
+ }
+});
 
 function flkQrDataUrl(texto,tamano=112){
  try{
@@ -8191,12 +8300,13 @@ document.getElementById("formularioAutorizacionDevolucion").addEventListener("su
  abrirDevolucionAutorizada(id);
 });
 function abrirDevolucionAutorizada(id){
- const v=ventas.find(x=>x.id===id);if(!v)return;
+ const v=ventas.find(x=>String(x.id)===String(id));if(!v)return;
  const todos=itemsDeVenta(v);
  const disponibles=todos.map((i,indice)=>({i,indice,disponible:Number(i.cantidad||0)-Number(i.devuelto||0)})).filter(x=>x.disponible>0);
  const numero=v.numero||String(v.id).slice(-8);
  if(!disponibles.length)return alert("Este recibo ya no tiene productos disponibles para devolver.");
- ventaDevolucionId=id;
+ /* QR puede entregar el ID como texto; conservar el ID real de ventas[]. */
+ ventaDevolucionId=v.id;
  document.getElementById("textoDevolucion").textContent=`Recibo #${numero} · Selecciona el producto y la cantidad a devolver.`;
  const sel=document.getElementById("productoDevolucion");
  sel.innerHTML=disponibles.map(x=>`<option value="${x.indice}">${escapeHtml(x.i.nombre)} · ${x.disponible} disponible(s) para devolver</option>`).join("");
@@ -8222,7 +8332,7 @@ function cerrarDevolucion(){
  ventaDevolucionId=null
 }
 function actualizarAyudaDevolucion(){
- const v=ventas.find(x=>x.id===ventaDevolucionId);if(!v)return;
+ const v=ventas.find(x=>String(x.id)===String(ventaDevolucionId));if(!v)return;
  const indice=Number(document.getElementById("productoDevolucion").value),item=itemsDeVenta(v)[indice];
  const disponible=item?Number(item.cantidad||0)-Number(item.devuelto||0):0;
  document.getElementById("ayudaDevolucion").textContent=item?`Máximo: ${disponible} · Reembolso por unidad: $${Number(item.precioUnitario??0).toFixed(2)}`:"";
@@ -8402,11 +8512,22 @@ async function mostrarVentas(){flkOcultarTodasLasVistas();if(flkNubeDisponible()
 function claveCliente(v){const tel=String(v.telefono||"").trim().toLowerCase();const nom=String(v.cliente||"Cliente general").trim().toLowerCase();return tel?"tel:"+tel:"nom:"+nom}
 function obtenerClientes(){const mapa={};ventas.forEach(v=>{normalizarCuentaVenta(v);const nombre=String(v.cliente||"Cliente general").trim()||"Cliente general",telefono=String(v.telefono||"").trim(),k=claveCliente(v);if(!mapa[k])mapa[k]={clave:k,nombre,telefono,compras:0,total:0,unidades:0,saldoPendiente:0,creditosPendientes:0,saldoVencido:0,creditosVencidos:0,ultima:null,ventas:[]};const c=mapa[k];c.compras++;c.total+=Number(v.ingreso||0);c.unidades+=unidadesNetasVenta(v);c.saldoPendiente+=Number(v.saldo||0);if(Number(v.saldo||0)>0){c.creditosPendientes++;const ev=estadoVencimientoVenta(v);if(ev.clave==="vencido"){c.creditosVencidos++;c.saldoVencido+=Number(v.saldo||0)}}c.ventas.push(v);if(!c.ultima||new Date(v.fecha)>new Date(c.ultima))c.ultima=v.fecha});return Object.values(mapa).sort((a,b)=>new Date(b.ultima)-new Date(a.ultima))}
 async function mostrarClientes(){flkOcultarTodasLasVistas();if(flkNubeDisponible())setTimeout(()=>cargarVentasSupabase().catch(()=>{}),0);document.getElementById("vistaInventario").style.display="none";document.getElementById("vistaHistorial").style.display="none";document.getElementById("vistaVentas").style.display="none";document.getElementById("vistaClientes").style.display="block";document.getElementById("vistaGastos").style.display="none";document.getElementById("vistaCierre").style.display="none";document.getElementById("vistaReportes").style.display="none";document.getElementById("vistaAlertas").style.display="none";document.getElementById("vistaOrdenes").style.display="none";document.getElementById("vistaEstadisticas").style.display="none";actualizarMenu("clientes");actualizarClientes();scrollTop()}
-function actualizarClientes(){const clientes=obtenerClientes(),q=document.getElementById("busquedaClientes").value.toLowerCase().trim(),arr=clientes.filter(c=>c.nombre.toLowerCase().includes(q)||c.telefono.toLowerCase().includes(q));document.getElementById("totalClientes").textContent=clientes.length;document.getElementById("comprasClientes").textContent=clientes.reduce((t,c)=>t+c.compras,0);document.getElementById("totalCompradoClientes").textContent="$"+clientes.reduce((t,c)=>t+c.total,0).toFixed(2);document.getElementById("creditosPendientesClientes").textContent=ventas.filter(v=>{normalizarCuentaVenta(v);return v.saldo>0}).length;document.getElementById("creditosVencidosClientes").textContent=ventas.filter(v=>estadoVencimientoVenta(v).clave==="vencido").length;document.getElementById("saldoPorCobrarClientes").textContent="$"+ventas.reduce((t,v)=>{normalizarCuentaVenta(v);return t+Number(v.saldo||0)},0).toFixed(2);document.getElementById("saldoVencidoClientes").textContent="$"+ventas.reduce((t,v)=>estadoVencimientoVenta(v).clave==="vencido"?t+Number(v.saldo||0):t,0).toFixed(2);const lista=document.getElementById("listaClientes");if(!arr.length){lista.innerHTML=`<div class="sin-productos">${clientes.length?"No encontramos clientes con esa búsqueda.":"Los clientes aparecerán aquí automáticamente cuando hagas recibos de venta."}</div>`;return}lista.innerHTML=arr.map(c=>{const f=c.ultima?new Date(c.ultima):null;return `<div class="cliente-card"><div class="cliente-superior"><div><h3>${escapeHtml(c.nombre)}</h3><p>${c.telefono?escapeHtml(c.telefono):"Sin teléfono"}</p></div><div class="cliente-total">$${c.total.toFixed(2)}</div></div><div class="cliente-detalle">Compras: <strong>${c.compras}</strong> · Unidades: <strong>${c.unidades}</strong>${c.saldoPendiente>0?`<br>Por cobrar: <strong>$${c.saldoPendiente.toFixed(2)}</strong> · Créditos: <strong>${c.creditosPendientes}</strong>`:""}${c.saldoVencido>0?`<br><span style="color:#d93025">Vencido: <strong>$${c.saldoVencido.toFixed(2)}</strong> · ${c.creditosVencidos} cuenta(s)</span>`:""}<br>Última compra: <strong>${f?f.toLocaleDateString("es-PR"):"—"}</strong>${c.saldoPendiente>0?`<br>💳 Saldo pendiente: <strong style="color:#c45b19">$${c.saldoPendiente.toFixed(2)}</strong> · ${c.creditosPendientes} cuenta(s)`:"<br>✅ Sin deuda pendiente"}</div><div class="acciones-cliente"><button class="boton-cliente" onclick="verCliente('${encodeURIComponent(c.clave)}')">🧾 Ver compras</button><button class="boton-cliente boton-cliente-venta" onclick="nuevoReciboCliente('${encodeURIComponent(c.clave)}')">＋ Nuevo recibo</button></div></div>`}).join("")}
+function actualizarClientes(){const clientes=obtenerClientes(),q=document.getElementById("busquedaClientes").value.toLowerCase().trim(),arr=clientes.filter(c=>c.nombre.toLowerCase().includes(q)||c.telefono.toLowerCase().includes(q));document.getElementById("totalClientes").textContent=clientes.length;document.getElementById("comprasClientes").textContent=clientes.reduce((t,c)=>t+c.compras,0);document.getElementById("totalCompradoClientes").textContent="$"+clientes.reduce((t,c)=>t+c.total,0).toFixed(2);document.getElementById("creditosPendientesClientes").textContent=ventas.filter(v=>{normalizarCuentaVenta(v);return v.saldo>0}).length;document.getElementById("creditosVencidosClientes").textContent=ventas.filter(v=>estadoVencimientoVenta(v).clave==="vencido").length;document.getElementById("saldoPorCobrarClientes").textContent="$"+ventas.reduce((t,v)=>{normalizarCuentaVenta(v);return t+Number(v.saldo||0)},0).toFixed(2);document.getElementById("saldoVencidoClientes").textContent="$"+ventas.reduce((t,v)=>estadoVencimientoVenta(v).clave==="vencido"?t+Number(v.saldo||0):t,0).toFixed(2);const lista=document.getElementById("listaClientes");if(!arr.length){lista.innerHTML=`<div class="sin-productos">${clientes.length?"No encontramos clientes con esa búsqueda.":"Los clientes aparecerán aquí automáticamente cuando hagas recibos de venta."}</div>`;return}lista.innerHTML=arr.map(c=>{const f=c.ultima?new Date(c.ultima):null;return `<div class="cliente-card"><div class="cliente-superior"><div><h3>${escapeHtml(c.nombre)}</h3><p>${c.telefono?escapeHtml(c.telefono):"Sin teléfono"}</p></div><div class="cliente-total">$${c.total.toFixed(2)}</div></div><div class="cliente-detalle">Compras: <strong>${c.compras}</strong> · Unidades: <strong>${c.unidades}</strong>${c.saldoPendiente>0?`<br>Por cobrar: <strong>$${c.saldoPendiente.toFixed(2)}</strong> · Créditos: <strong>${c.creditosPendientes}</strong>`:""}${c.saldoVencido>0?`<br><span style="color:#d93025">Vencido: <strong>$${c.saldoVencido.toFixed(2)}</strong> · ${c.creditosVencidos} cuenta(s)</span>`:""}<br>Última compra: <strong>${f?f.toLocaleDateString("es-PR"):"—"}</strong>${c.saldoPendiente>0?`<br>💳 Saldo pendiente: <strong style="color:#c45b19">$${c.saldoPendiente.toFixed(2)}</strong> · ${c.creditosPendientes} cuenta(s)`:"<br>✅ Sin deuda pendiente"}</div><div class="acciones-cliente"><button class="boton-cliente" data-flk-cliente-action="ver-compras" data-cliente-clave="${escapeHtml(encodeURIComponent(c.clave))}">🧾 Ver compras</button><button class="boton-cliente boton-cliente-venta" data-flk-cliente-action="nuevo-recibo" data-cliente-clave="${escapeHtml(encodeURIComponent(c.clave))}">＋ Nuevo recibo</button></div></div>`}).join("")}
 function clientePorClave(enc){const k=decodeURIComponent(enc);return obtenerClientes().find(c=>c.clave===k)}
 function verCliente(enc){const c=clientePorClave(enc);if(!c)return;document.getElementById("tituloCliente").textContent=c.nombre;document.getElementById("textoCliente").textContent=(c.telefono?c.telefono+" · ":"")+c.compras+" compra(s) · Total $"+c.total.toFixed(2)+(c.saldoPendiente>0?" · Debe $"+c.saldoPendiente.toFixed(2):" · Sin deuda");document.getElementById("recibosCliente").innerHTML=c.ventas.sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).map(v=>{normalizarCuentaVenta(v);return `<div class="venta-card"><div class="venta-superior"><div><h3>Recibo #${escapeHtml(v.numero||String(v.id).slice(-8))}</h3><p>${new Date(v.fecha).toLocaleDateString("es-PR")}</p>${v.saldo>0?`<span class="estado-pago credito">💳 Debe $${Number(v.saldo).toFixed(2)}</span>`:`<span class="estado-pago pagado">✅ Pagado</span>`}</div><div class="venta-total">$${Number(v.ingreso||0).toFixed(2)}</div></div><div class="acciones-cliente"><button class="boton-recibo-venta" onclick="generarReciboVenta(${v.id})">🧾 Ver recibo</button>${v.saldo>0?`<button class="boton-abono-venta" onclick="cerrarCliente();abrirAbono(${v.id})">💵 Registrar abono</button>`:""}${pagosDeVenta(v).length?`<button class="boton-historial-abonos" onclick="cerrarCliente();verHistorialAbonos(${v.id})">📋 Historial abonos</button>`:""}</div></div>`}).join("");document.getElementById("botonNuevaVentaCliente").onclick=()=>{cerrarCliente();nuevoReciboCliente(enc)};document.getElementById("modalCliente").classList.add("visible")}
 function cerrarCliente(){document.getElementById("modalCliente").classList.remove("visible")}
 function nuevoReciboCliente(enc){const c=clientePorClave(enc);if(!c)return;abrirVenta();document.getElementById("clienteVenta").value=c.nombre==="Cliente general"?"":c.nombre;document.getElementById("telefonoVenta").value=c.telefono||""}
+document.getElementById("listaClientes").addEventListener("click",function(event){
+ const btn=event.target.closest("[data-flk-cliente-action]");
+ if(!btn)return;
+ const accion=btn.dataset.flkClienteAction||"";
+ const clave=btn.dataset.clienteClave||"";
+ if(accion==="ver-compras"){
+  verCliente(clave);
+  return;
+ }
+ if(accion==="nuevo-recibo")nuevoReciboCliente(clave);
+});
 document.getElementById("busquedaClientes").addEventListener("input",actualizarClientes);
 
 async function mostrarHistorial(){flkOcultarTodasLasVistas();
@@ -8450,7 +8571,7 @@ function mostrarListaHistorial(){
    const etiqueta=/inventario inicial/i.test(detalleTxt)?"＋ Entrada":/Venta/i.test(detalleTxt)?"💰 Venta":/Devolución/i.test(detalleTxt)?"↩️ Devolución":/Recepción de orden/i.test(detalleTxt)?"📦 Compra":entrada?"＋ Entrada":"− Salida";
   const acciones=m.supabaseId?`<div class="saldo-movimiento">🔒 Registro guardado en Supabase. Para corregir inventario, registra un nuevo movimiento de Entrada o Salida.</div>`:"";
   const idComp=String(m.id||m.supabaseId||"").replace(/'/g,"\\'");
-  el.innerHTML=`<div class="movimiento-superior"><div class="movimiento-info"><h3>${escapeHtml(m.nombre)}</h3><p>SKU: ${escapeHtml(m.sku)}</p></div><div class="movimiento-tipo ${entrada?"entrada":"salida"}">${etiqueta}</div></div><div class="movimiento-detalle">Cantidad: <strong>${Number(m.cantidad)}</strong> &nbsp;·&nbsp; ${flkFormatoFechaContable(f,{day:"2-digit",month:"2-digit",year:"numeric"})} · ${flkFormatoHoraContable(f,{hour:"2-digit",minute:"2-digit"})}${detalle}<div class="saldo-movimiento">Saldo después del movimiento: <strong>${saldo}</strong></div></div>${acciones}<button type="button" class="boton-comprobante" onclick="imprimirComprobanteMovimiento('${idComp}')">🧾 Ver comprobante</button>`;
+  el.innerHTML=`<div class="movimiento-superior"><div class="movimiento-info"><h3>${escapeHtml(m.nombre)}</h3><p>SKU: ${escapeHtml(m.sku)}</p></div><div class="movimiento-tipo ${entrada?"entrada":"salida"}">${etiqueta}</div></div><div class="movimiento-detalle">Cantidad: <strong>${Number(m.cantidad)}</strong> &nbsp;·&nbsp; ${flkFormatoFechaContable(f,{day:"2-digit",month:"2-digit",year:"numeric"})} · ${flkFormatoHoraContable(f,{hour:"2-digit",minute:"2-digit"})}${detalle}<div class="saldo-movimiento">Saldo después del movimiento: <strong>${saldo}</strong></div></div>${acciones}<button type="button" class="boton-comprobante" data-flk-accion="comprobante-movimiento" data-movimiento-id="${escapeHtml(String(m.id||m.supabaseId||""))}">🧾 Ver comprobante</button>`;
   lista.appendChild(el)
  })
 }
@@ -8925,7 +9046,7 @@ function mostrarListaProveedores(){
         saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),
         vencidas=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").length;
 
-  return `<div class="proveedor-card"><div class="proveedor-superior"><div><h3>${escapeHtml(p.nombre)}</h3><p>${p.contacto?`Contacto: ${escapeHtml(p.contacto)}`:"Proveedor registrado"}</p></div><div class="proveedor-total">$${saldo.toFixed(2)} por pagar</div></div><div class="proveedor-detalle">Productos asociados: <strong>${prods.length}</strong><br>Órdenes totales: <strong>${ords.length}</strong> · Pendientes/ordenadas: <strong>${pend}</strong><br>Compras recibidas: <strong>${rec.length}</strong> · Total: <strong>$${total.toFixed(2)}</strong><br>Pagado: <strong>$${pagado.toFixed(2)}</strong> · Saldo: <strong>$${saldo.toFixed(2)}</strong>${vencidas?`<br>🔴 Deudas vencidas: <strong>${vencidas}</strong>`:""}${p.telefono?`<br>Teléfono: <strong>${escapeHtml(p.telefono)}</strong>`:""}${p.email?`<br>Email: <strong>${escapeHtml(p.email)}</strong>`:""}${p.direccion?`<br>Dirección: ${escapeHtml(p.direccion)}`:""}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><div class="acciones-proveedor"><button class="boton-proveedor boton-proveedor-orden" onclick="abrirOrdenCompra(null,'${escapeHtml(p.nombre).replace(/'/g,"&#039;")}')">📦 Nueva orden</button>${saldo>0.009?`<button class="boton-proveedor boton-proveedor-orden" onclick="mostrarCuentasPagar();document.getElementById('filtroProveedorCuentas').value='${escapeHtml(p.nombre).replace(/'/g,"&#039;")}';mostrarListaCuentasPagar()">💳 Ver deuda</button>`:""}<button class="boton-proveedor boton-proveedor-editar" onclick="abrirProveedor(${p.id})">✏️ Editar</button><button class="boton-proveedor boton-proveedor-eliminar" onclick="eliminarProveedor(${p.id})">🗑️ Eliminar</button></div></div>`
+  return `<div class="proveedor-card"><div class="proveedor-superior"><div><h3>${escapeHtml(p.nombre)}</h3><p>${p.contacto?`Contacto: ${escapeHtml(p.contacto)}`:"Proveedor registrado"}</p></div><div class="proveedor-total">$${saldo.toFixed(2)} por pagar</div></div><div class="proveedor-detalle">Productos asociados: <strong>${prods.length}</strong><br>Órdenes totales: <strong>${ords.length}</strong> · Pendientes/ordenadas: <strong>${pend}</strong><br>Compras recibidas: <strong>${rec.length}</strong> · Total: <strong>$${total.toFixed(2)}</strong><br>Pagado: <strong>$${pagado.toFixed(2)}</strong> · Saldo: <strong>$${saldo.toFixed(2)}</strong>${vencidas?`<br>🔴 Deudas vencidas: <strong>${vencidas}</strong>`:""}${p.telefono?`<br>Teléfono: <strong>${escapeHtml(p.telefono)}</strong>`:""}${p.email?`<br>Email: <strong>${escapeHtml(p.email)}</strong>`:""}${p.direccion?`<br>Dirección: ${escapeHtml(p.direccion)}`:""}${p.nota?`<br>Nota: ${escapeHtml(p.nota)}`:""}</div><div class="acciones-proveedor"><button class="boton-proveedor boton-proveedor-orden" data-flk-proveedor-action="nueva-orden" data-proveedor-nombre="${escapeHtml(String(p.nombre||""))}">📦 Nueva orden</button>${saldo>0.009?`<button class="boton-proveedor boton-proveedor-orden" data-flk-proveedor-action="ver-deuda" data-proveedor-nombre="${escapeHtml(String(p.nombre||""))}">💳 Ver deuda</button>`:""}<button class="boton-proveedor boton-proveedor-editar" onclick="abrirProveedor(${p.id})">✏️ Editar</button><button class="boton-proveedor boton-proveedor-eliminar" onclick="eliminarProveedor(${p.id})">🗑️ Eliminar</button></div></div>`
  }).join("")
 }
 function actualizarProveedores(){const rec=ordenesCompra.filter(o=>o.estado==="recibida"),total=rec.reduce((t,o)=>t+Number(o.costoTotal||Number(o.cantidad||0)*Number(o.costoUnitario||0)),0),pagado=rec.reduce((t,o)=>t+Number(o.totalPagadoProveedor||0),0),saldo=rec.reduce((t,o)=>t+Number(o.saldoProveedor||0),0),vencido=rec.filter(o=>estadoCuentaProveedor(o).clave==="vencida").reduce((t,o)=>t+Number(o.saldoProveedor||0),0);document.getElementById("totalProveedores").textContent=proveedores.length;document.getElementById("proveedoresPendientes").textContent=proveedores.filter(p=>ordenesCompra.some(o=>nombreProveedorNorm(o.proveedor)===nombreProveedorNorm(p.nombre)&&o.estado!=="recibida")).length;document.getElementById("totalCompradoProveedores").textContent="$"+total.toFixed(2);document.getElementById("totalPagadoProveedores").textContent="$"+pagado.toFixed(2);document.getElementById("saldoPorPagarProveedores").textContent="$"+saldo.toFixed(2);document.getElementById("deudaVencidaProveedores").textContent="$"+vencido.toFixed(2);mostrarListaProveedores()}
@@ -8936,6 +9057,22 @@ function mostrarProveedores(){flkOcultarTodasLasVistas();
  requestAnimationFrame(()=>actualizarProveedores());
  if(flkNubeDisponible())setTimeout(()=>cargarComprasSupabase().then(()=>actualizarProveedores()).catch(()=>{}),0);
 }
+document.getElementById("listaProveedoresVista").addEventListener("click",function(event){
+ const btn=event.target.closest("[data-flk-proveedor-action]");
+ if(!btn)return;
+ const accion=btn.dataset.flkProveedorAction||"";
+ const nombre=btn.dataset.proveedorNombre||"";
+ if(accion==="nueva-orden"){
+  abrirOrdenCompra(null,nombre);
+  return;
+ }
+ if(accion==="ver-deuda"){
+  mostrarCuentasPagar();
+  const filtro=document.getElementById("filtroProveedorCuentas");
+  if(filtro)filtro.value=nombre;
+  mostrarListaCuentasPagar();
+ }
+});
 document.getElementById("busquedaProveedores").addEventListener("input",mostrarListaProveedores);
 document.getElementById("filtroEstadoProveedor").addEventListener("change",mostrarListaProveedores);
 
@@ -9353,6 +9490,28 @@ document.getElementById("formularioMovimientoPropietario").addEventListener("sub
  cerrarMovimientoPropietario();
  if(flkNubeDisponible())setTimeout(flkProcesarColaOffline,0);
 });
+async function sincronizarYActualizarFlujoCaja(boton){
+ const btn=boton||document.getElementById("botonActualizarFlujo");
+ const textoOriginal=btn?btn.textContent:"🔄 Actualizar flujo";
+ if(btn){btn.classList.add("flk-pulsado");btn.textContent="⏳ Actualizando…";btn.disabled=true}
+ try{
+  if(flkNubeDisponible()){
+   await cargarVentasSupabase();
+   await cargarGastosSupabase();
+   await cargarComprasSupabase();
+   await cargarMovimientosCajaSupabase();
+   if(typeof window.flkCargarPrestacionesNube==="function")await window.flkCargarPrestacionesNube();
+  }
+  actualizarFlujoCaja();
+  if(btn){btn.classList.remove("flk-pulsado");btn.classList.add("flk-confirmado");btn.textContent="✓ Actualizado"}
+ }catch(err){
+  console.error("Actualización Flujo de caja:",err);
+  actualizarFlujoCaja();
+  if(btn){btn.classList.remove("flk-pulsado");btn.classList.add("flk-error-feedback");btn.textContent="⚠ Error al actualizar"}
+ }finally{
+  if(btn)setTimeout(()=>{btn.disabled=false;btn.classList.remove("flk-confirmado","flk-error-feedback","flk-pulsado");btn.textContent=textoOriginal},900)
+ }
+}
 function actualizarFlujoCaja(){
  actualizarSaldoCajaFisica();
  const d=datosFlujoCaja();if(!d)return;
@@ -9610,7 +9769,22 @@ function datosFinanzas(){
   if(typeof normalizarCuentaVenta==="function")normalizarCuentaVenta(v);
   return t+(flkEsMetodoFinanzasCUP(v.metodoPago||"Efectivo CUP")?Math.max(0,Number(v.saldo||0)):0);
  },0);
- const porCobrarPrestaciones=prestacionesPeriodo.reduce((t,p)=>t+(flkEsMetodoFinanzasCUP(p.metodo||"Efectivo CUP")?Math.max(0,Number(p.saldo||0)):0),0);
+ // CxC es posición financiera ACTUAL: no debe depender del período seleccionado.
+ // CUP se consolida con mercancía; las prestaciones USD se muestran separadas y NO se suman al patrimonio CUP.
+ let prestacionesActuales=[];
+ try{
+  let bid="global";
+  if(typeof flkCentroActualId==="function")bid=String(flkCentroActualId()||"global");
+  else if(typeof flkBusinessGuardado==="function")bid=String(flkBusinessGuardado()||"global");
+  else if(typeof FLK_BUSINESS_ID!=="undefined"&&FLK_BUSINESS_ID)bid=String(FLK_BUSINESS_ID);
+  const raw=JSON.parse(localStorage.getItem("flackunloker_prestaciones_servicio_v1::"+bid)||"[]");
+  if(Array.isArray(raw))prestacionesActuales=raw;
+ }catch(_){prestacionesActuales=[];}
+ const porCobrarPrestaciones=prestacionesActuales.reduce((t,p)=>t+(flkEsMetodoFinanzasCUP(p.metodo||"Efectivo CUP")?Math.max(0,Number(p.saldo||0)):0),0);
+ const porCobrarPrestacionesUSD=prestacionesActuales.reduce((t,p)=>{
+  const m=flkNormalizarMetodoPago(p.metodo||"");
+  return t+((m==="Efectivo USD"||m==="Transferencia USD")?Math.max(0,Number(p.saldo||0)):0);
+ },0);
  const porCobrar=porCobrarVentas+porCobrarPrestaciones;
 
  const porPagar=ordenesCompra
@@ -9643,7 +9817,7 @@ function datosFinanzas(){
 
  return {
   lim,ventasTotal:ventasDevengadas,ventasCobradas:ventasTotal,costo,brutaMercancia,prestIngresos,prestCostos,prestNeto,ingresosTotales,bruta,gastosTotal,arrendamientoPeriodo,neta,
-  caja,transferenciaCup,inventario,porCobrar,porPagar,activos,patrimonio,
+  caja,transferenciaCup,inventario,porCobrar,porCobrarPrestacionesUSD,porPagar,activos,patrimonio,
   entradas,salidas,flujo:flujoOperativo,
   aportesPropietario,retirosPropietario,netoPropietario,flujoCajaTotal
  }
@@ -9680,7 +9854,7 @@ function actualizarFinanzas(){
  const d=datosFinanzas();if(!d)return;
  document.getElementById("textoPeriodoFinanzas").value=d.lim.texto;
  const money=(id,n)=>document.getElementById(id).textContent="$"+Number(n).toFixed(2);
- money("finCaja",d.caja);money("finTransferenciaCup",d.transferenciaCup);money("finInventario",d.inventario);money("finPorCobrar",d.porCobrar);money("finActivos",d.activos);money("finPorPagar",d.porPagar);money("finPatrimonio",d.patrimonio);
+ money("finCaja",d.caja);money("finTransferenciaCup",d.transferenciaCup);money("finInventario",d.inventario);money("finPorCobrar",d.porCobrar);const finPorCobrarUSD=document.getElementById("finPorCobrarUSD");if(finPorCobrarUSD)finPorCobrarUSD.textContent="$"+Number(d.porCobrarPrestacionesUSD||0).toFixed(2)+" USD";money("finActivos",d.activos);money("finPorPagar",d.porPagar);money("finPatrimonio",d.patrimonio);
  const detallePorCobrar=document.getElementById("finDetallePorCobrar");
  if(detallePorCobrar){
   const pendientes=ventas.map(v=>{if(typeof normalizarCuentaVenta==="function")normalizarCuentaVenta(v);return v}).filter(v=>Number(v.saldo||0)>0.009&&flkEsMetodoFinanzasCUP(v.metodoPago||"Efectivo CUP")).sort((a,b)=>Number(b.saldo||0)-Number(a.saldo||0));
@@ -9690,10 +9864,10 @@ function actualizarFinanzas(){
    if(typeof flkCentroActualId==="function")bid=String(flkCentroActualId()||"global");
    else if(typeof FLK_BUSINESS_ID!=="undefined"&&FLK_BUSINESS_ID)bid=String(FLK_BUSINESS_ID);
    const raw=JSON.parse(localStorage.getItem("flackunloker_prestaciones_servicio_v1::"+bid)||"[]");
-   if(Array.isArray(raw))prestacionesPendientes=raw.filter(p=>Number(p.saldo||0)>0.009&&flkEsMetodoFinanzasCUP(p.metodo||"Efectivo CUP")).sort((a,b)=>Number(b.saldo||0)-Number(a.saldo||0));
+   if(Array.isArray(raw))prestacionesPendientes=raw.filter(p=>Number(p.saldo||0)>0.009).sort((a,b)=>Number(b.saldo||0)-Number(a.saldo||0));
   }catch(_){prestacionesPendientes=[];}
   const filasVentas=pendientes.map(v=>`<div class="fila-estadistica"><span>🧾 Comprobante #${escapeHtml(String(v.numero||String(v.id).slice(-8)))} · ${escapeHtml(v.cliente||"Cliente general")}</span><strong>$${Number(v.saldo||0).toFixed(2)}</strong></div>`);
-  const filasPrestaciones=prestacionesPendientes.map(p=>`<div class="fila-estadistica"><span>🛠️ Prestación · ${escapeHtml(p.descripcion||"Servicio")} · ${escapeHtml(p.cliente||"Cliente")} ${p.vencimiento?`· Vence ${escapeHtml(String(p.vencimiento))}`:""}</span><strong>$${Number(p.saldo||0).toFixed(2)}</strong></div>`);
+  const filasPrestaciones=prestacionesPendientes.map(p=>{const m=flkNormalizarMetodoPago(p.metodo||"Efectivo CUP");const moneda=(m==="Efectivo USD"||m==="Transferencia USD")?"USD":(m==="Efectivo Euro"?"EUR":(m==="Transferencia MLC"?"MLC":"CUP"));return `<div class="fila-estadistica"><span>🛠️ Prestación · ${escapeHtml(p.descripcion||"Servicio")} · ${escapeHtml(p.cliente||"Cliente")} · ${escapeHtml(moneda)} ${p.vencimiento?`· Vence ${escapeHtml(String(p.vencimiento))}`:""}</span><strong>$${Number(p.saldo||0).toFixed(2)} ${escapeHtml(moneda)}</strong></div>`});
   const filasCobrar=filasVentas.concat(filasPrestaciones);
   detallePorCobrar.innerHTML=filasCobrar.length?filasCobrar.join(""):`<div class="fila-estadistica"><span>No hay cuentas por cobrar pendientes.</span><strong>$0.00</strong></div>`
  }
@@ -11485,6 +11659,9 @@ function flkQrBuscarVenta(x){
 function flkQrAviso(html){
  const box=document.getElementById("flkQrResultado");if(!box)return;
  box.style.display="block";box.innerHTML=html;
+ box.querySelectorAll('[data-flk-qr-action="return-sale"]').forEach(function(btn){
+  btn.addEventListener("click",function(){flkAbrirDevolucionDesdeProductoQR(btn.dataset.saleId||"",btn.dataset.productId||"")});
+ });
 }
 
 let flkQrProductoNoEncontradoSku="";
@@ -11579,7 +11756,7 @@ function flkMostrarRecibosParaProductoDevolucionQR(p){
    flkQrEsc(p.nombre)+' · SKU: '+flkQrEsc(p.sku)+
    '<br>Recibo #'+flkQrEsc(v.numero||v.id)+
    '<div style="margin-top:10px">'+
-    '<button type="button" onclick=\'flkAbrirDevolucionDesdeProductoQR('+JSON.stringify(v.id)+','+JSON.stringify(p.id)+')\' '+
+    '<button type="button" data-flk-qr-action="return-sale" data-sale-id="'+flkQrEsc(String(v.id))+'" data-product-id="'+flkQrEsc(String(p.id))+'" '+
     'style="width:100%;border:0;border-radius:10px;background:#a15c00;color:#fff;font-weight:900;padding:11px">'+
     '↩️ Abrir devolución de este recibo</button>'+
    '</div>'
@@ -11590,7 +11767,7 @@ function flkMostrarRecibosParaProductoDevolucionQR(p){
  const botones=candidatas.map(v=>{
   const numero=v.numero||v.id;
   const cliente=v.cliente||"Cliente general";
-  return '<button type="button" onclick=\'flkAbrirDevolucionDesdeProductoQR('+JSON.stringify(v.id)+','+JSON.stringify(p.id)+')\' '+
+  return '<button type="button" data-flk-qr-action="return-sale" data-sale-id="'+flkQrEsc(String(v.id))+'" data-product-id="'+flkQrEsc(String(p.id))+'" '+
    'style="width:100%;margin-top:7px;border:1px solid #d8e2ec;border-radius:10px;background:#fff;color:#17324a;font-weight:850;padding:10px;text-align:left">'+
    '🧾 Recibo #'+flkQrEsc(numero)+' · '+flkQrEsc(cliente)+
    '</button>';
@@ -11774,7 +11951,8 @@ function renderVentaQR(){
  const unidades=flkQrVentaItems.reduce((t,i)=>t+Number(i.cantidad),0),importe=flkQrVentaItems.reduce((t,i)=>t+Number(i.cantidad)*Number(i.precioUnitario),0);
  conteo.textContent=unidades+" unidad"+(unidades===1?"":"es");total.textContent="$"+importe.toFixed(2);
  if(!flkQrVentaItems.length){lista.innerHTML='<div style="padding:10px 0;color:#667788;font-size:12px">Escanea productos para agregarlos.</div>';return}
- lista.innerHTML=flkQrVentaItems.map(i=>'<div class="flk-qr-item"><div><strong>'+flkQrEsc(i.nombre)+'</strong><small>'+Number(i.cantidad)+' × $'+Number(i.precioUnitario).toFixed(2)+'</small></div><button type="button" onclick="quitarUnidadVentaQR('+JSON.stringify(i.productoId)+')">−1</button></div>').join("");
+ lista.innerHTML=flkQrVentaItems.map(i=>'<div class="flk-qr-item"><div><strong>'+flkQrEsc(i.nombre)+'</strong><small>'+Number(i.cantidad)+' × $'+Number(i.precioUnitario).toFixed(2)+'</small></div><button type="button" data-flk-qr-remove-id="'+flkQrEsc(String(i.productoId))+'">−1</button></div>').join("");
+ lista.querySelectorAll("[data-flk-qr-remove-id]").forEach(function(btn){btn.addEventListener("click",function(){quitarUnidadVentaQR(btn.dataset.flkQrRemoveId||"")})});
 }
 function continuarVentaQR(){
  if(!flkQrVentaItems.length)return alert("Escanea al menos un producto.");
@@ -12962,7 +13140,23 @@ function hoy(){var k=fechaISO(new Date());return resumen(k,flkSumarDiasClave(k,1
 function mes(){var k=fechaISO(new Date()),a=flkPrimerDiaMesClave(k),b=flkPrimerDiaMesSiguienteClave(k);return resumen(a,b);}
 function set(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
 function metodoVista(v){var x=String(v||'').trim().toLowerCase();return ({efectivo:'Efectivo CUP','efectivo cup':'Efectivo CUP','efectivo usd':'Efectivo USD','efectivo euro':'Efectivo Euro',ath_movil:'ATH Móvil',tarjeta:'Tarjeta',transferencia:'Transferencia CUP','transferencia cup':'Transferencia CUP','transferencia usd':'Transferencia USD','transferencia mlc':'Transferencia MLC',zelle:'Zelle',otro:'Otro'})[x]||flkNormalizarMetodoPago(v||'Efectivo CUP');}
-function pintar(){var h=hoy(),m=mes();var esCUP=function(p){var mm=String(p&&p.metodo||'').trim().toLowerCase();return mm==='efectivo'||mm==='efectivo cup'||mm==='transferencia'||mm==='transferencia cup';};var hFinArr=h.arr.filter(esCUP),hFinIngresos=hFinArr.reduce(function(t,p){return t+Number(p.ingreso||0);},0);var mFinArr=m.arr.filter(esCUP),mFinIngresos=mFinArr.reduce(function(t,p){return t+Number(p.ingreso||0);},0),mFinCostos=mFinArr.reduce(function(t,p){return t+Number(p.costo||0);},0);set('prestIngresosHoy',money(h.ingresos));set('prestCostosHoy',money(h.costos));set('prestNetoHoy',money(h.neto));set('prestIngresosMes',money(m.ingresos));set('prestCostosMes',money(m.costos));set('prestNetoMes',money(m.neto));set('cierrePrestIngresos',money(h.ingresos));set('cierrePrestCostos',money(h.costos));set('cierrePrestNeto',money(h.neto));set('finPrestIngresos',money(mFinIngresos));set('finPrestCostos',money(mFinCostos));set('finPrestNeto',money(mFinIngresos-mFinCostos));set('estadPrestHoy',money(hFinIngresos));set('estadPrestMes',money(mFinIngresos));set('estadPrestCostosMes',money(mFinCostos));set('estadPrestNetoMes',money(mFinIngresos-mFinCostos));var box=document.getElementById('listaPrestacionesServicio');if(!box)return;box.innerHTML=prestacionesServicio.length?prestacionesServicio.slice().sort(function(a,b){return String(b.fecha).localeCompare(String(a.fecha))||String(b.created_at||'').localeCompare(String(a.created_at||''));}).map(function(p){var cred=p.condicion==='credito',saldo=Math.max(0,Number(p.saldo||0)),cobrado=cred?Number(p.pagado||0):Number(p.ingreso||0);return '<div class="prestacion-item"><div class="prestacion-item-top"><div><h3>'+esc(p.descripcion)+'</h3><p>'+esc(p.fecha)+' · '+(p.tipo==='ingreso_costo'?'Ingreso + costo externo':'Solo ingreso')+' · '+(cred?'A crédito':'Pagada')+'</p>'+(p.cliente?'<p>Cliente: <strong>'+esc(p.cliente)+'</strong></p>':'')+(cred?'<p>Cobrado '+money(cobrado)+' · Saldo <strong>'+money(saldo)+'</strong>'+(p.vencimiento?' · Vence '+esc(p.vencimiento):'')+'</p>':'')+'</div><div class="prestacion-importes">Ingreso '+money(p.ingreso)+'<br>Costo '+money(p.costo)+'<br>Neto '+money(Number(p.ingreso)-Number(p.costo))+'</div></div><div class="acciones-prestacion">'+(cred&&saldo>0?'<button type="button" class="boton-agregar" onclick="flkAbonarPrestacion(&quot;'+esc(String(p.id))+'&quot;)">💵 Abonar</button>':'')+'<button type="button" class="boton-eliminar solo-admin" onclick="flkEliminarPrestacionServicio(&quot;'+esc(String(p.id))+'&quot;)">Eliminar</button></div></div>';}).join(''):'<div class="sin-productos">No hay prestaciones registradas.</div>';}
+function flkPrestIngresosPorMoneda(arr){
+ var grupos={};
+ (Array.isArray(arr)?arr:[]).forEach(function(p){
+  var metodo=metodoVista(p&&p.metodo||'Efectivo CUP');
+  var moneda='OTRO';
+  if(/CUP/i.test(metodo))moneda='CUP';
+  else if(/USD|Zelle/i.test(metodo))moneda='USD';
+  else if(/MLC/i.test(metodo))moneda='MLC';
+  else if(/Euro/i.test(metodo))moneda='EUR';
+  grupos[moneda]=(grupos[moneda]||0)+Number(p&&p.ingreso||0);
+ });
+ var orden=['CUP','USD','MLC','EUR','OTRO'];
+ var partes=orden.filter(function(k){return Math.abs(Number(grupos[k]||0))>0.000001;})
+  .map(function(k){return money(grupos[k])+' '+k;});
+ return partes.length?partes.join(' · '):money(0)+' CUP';
+}
+function pintar(){var h=hoy(),m=mes();var esCUP=function(p){var mm=String(p&&p.metodo||'').trim().toLowerCase();return mm==='efectivo'||mm==='efectivo cup'||mm==='transferencia'||mm==='transferencia cup';};var hFinArr=h.arr.filter(esCUP),hFinIngresos=hFinArr.reduce(function(t,p){return t+Number(p.ingreso||0);},0);var mFinArr=m.arr.filter(esCUP),mFinIngresos=mFinArr.reduce(function(t,p){return t+Number(p.ingreso||0);},0),mFinCostos=mFinArr.reduce(function(t,p){return t+Number(p.costo||0);},0);set('prestIngresosHoy',flkPrestIngresosPorMoneda(h.arr));set('prestCostosHoy',money(h.costos));set('prestNetoHoy',money(h.neto));set('prestIngresosMes',flkPrestIngresosPorMoneda(m.arr));set('prestCostosMes',money(m.costos));set('prestNetoMes',money(m.neto));set('cierrePrestIngresos',money(h.ingresos));set('cierrePrestCostos',money(h.costos));set('cierrePrestNeto',money(h.neto));set('finPrestIngresos',money(mFinIngresos));set('finPrestCostos',money(mFinCostos));set('finPrestNeto',money(mFinIngresos-mFinCostos));set('estadPrestHoy',money(hFinIngresos));set('estadPrestMes',money(mFinIngresos));set('estadPrestCostosMes',money(mFinCostos));set('estadPrestNetoMes',money(mFinIngresos-mFinCostos));var box=document.getElementById('listaPrestacionesServicio');if(!box)return;box.innerHTML=prestacionesServicio.length?prestacionesServicio.slice().sort(function(a,b){return String(b.fecha).localeCompare(String(a.fecha))||String(b.created_at||'').localeCompare(String(a.created_at||''));}).map(function(p){var cred=p.condicion==='credito',saldo=Math.max(0,Number(p.saldo||0)),cobrado=cred?Number(p.pagado||0):Number(p.ingreso||0);return '<div class="prestacion-item"><div class="prestacion-item-top"><div><h3>'+esc(p.descripcion)+'</h3><p>'+esc(p.fecha)+' · '+(p.tipo==='ingreso_costo'?'Ingreso + costo externo':'Solo ingreso')+' · '+(cred?'A crédito':'Pagada')+'</p>'+(p.cliente?'<p>Cliente: <strong>'+esc(p.cliente)+'</strong></p>':'')+(cred?'<p>Cobrado '+money(cobrado)+' · Saldo <strong>'+money(saldo)+'</strong>'+(p.vencimiento?' · Vence '+esc(p.vencimiento):'')+'</p>':'')+'</div><div class="prestacion-importes">Ingreso '+money(p.ingreso)+'<br>Costo '+money(p.costo)+'<br>Neto '+money(Number(p.ingreso)-Number(p.costo))+'</div></div><div class="acciones-prestacion">'+(cred&&saldo>0?'<button type="button" class="boton-agregar" onclick="flkAbonarPrestacion(&quot;'+esc(String(p.id))+'&quot;)">💵 Abonar</button>':'')+'<button type="button" class="boton-eliminar solo-admin" onclick="flkEliminarPrestacionServicio(&quot;'+esc(String(p.id))+'&quot;)">Eliminar</button></div></div>';}).join(''):'<div class="sin-productos">No hay prestaciones registradas.</div>';}
 window.flkCargarPrestacionesNube=async function(){if(typeof flkNubeDisponible!=='function'||!flkNubeDisponible()||typeof flkSupabase==='undefined')return false;try{var bid=await flkExigirCentroActual();var r=await flkSupabase.from('service_provisions').select('id,business_id,operation_id,description,service_type,income,payment_method,external_cost,service_date,customer_name,payment_condition,initial_payment,paid_amount,balance_due,due_date,created_at').eq('business_id',bid).order('service_date',{ascending:true}).order('created_at',{ascending:true});if(r.error)throw r.error;var rp=await flkSupabase.from('service_provision_payments').select('id,business_id,service_provision_id,amount,payment_method,payment_date,note,operation_id,created_at').eq('business_id',bid).order('created_at',{ascending:true});if(rp.error)throw rp.error;load();var q=typeof flkColaOffline==='function'?flkColaOffline():[];var ps=new Set(q.filter(function(o){return o.tipo==='service_provision_save'&&o.estado!=='sincronizado';}).map(function(o){return o.id;}));var pp=q.filter(function(o){return o.tipo==='service_provision_payment_save'&&o.estado!=='sincronizado';});var pd=new Set(q.filter(function(o){return o.tipo==='service_provision_delete'&&o.estado!=='sincronizado'&&o.payload&&o.payload.cloud_id;}).map(function(o){return String(o.payload.cloud_id);}));var pagosPor={};(rp.data||[]).forEach(function(a){(pagosPor[String(a.service_provision_id)]||(pagosPor[String(a.service_provision_id)]=[])).push({id:String(a.id),operation_id:a.operation_id||'',monto:Number(a.amount||0),metodo:metodoVista(a.payment_method),fecha:a.payment_date,nota:a.note||'',inicial:String(a.operation_id||'').indexOf('initial:')===0});});pp.forEach(function(o){var a=o.payload||{},sid=String(a.service_provision_id||'');if(!sid)return;var arr=pagosPor[sid]||(pagosPor[sid]=[]);if(!arr.some(function(x){return x.operation_id===o.id;}))arr.push({id:o.id,operation_id:o.id,monto:Number(a.amount||0),metodo:a.payment_method||'Efectivo CUP',fecha:a.payment_date||fechaISO(new Date()),nota:a.note||'',inicial:false,offline:true});});var nube=(r.data||[]).filter(function(x){return !pd.has(String(x.id));}).map(function(x){var pagos=pagosPor[String(x.id)]||[];var pendienteOps=new Set(pp.filter(function(o){return String((o.payload||{}).service_provision_id||'')===String(x.id);}).map(function(o){return o.id;}));var extraPendiente=pagos.filter(function(a){return !a.inicial&&pendienteOps.has(a.operation_id);}).reduce(function(t,a){return t+Number(a.monto||0);},0);var pagado=Math.min(Number(x.income||0),Number(x.paid_amount||0)+extraPendiente);return {id:String(x.id),cloud_id:String(x.id),operation_id:x.operation_id||'',descripcion:x.description||'',tipo:x.service_type||'ingreso',ingreso:Number(x.income||0),costo:Number(x.external_cost||0),metodo:metodoVista(x.payment_method),fecha:x.service_date,cliente:x.customer_name||'',condicion:x.payment_condition||'pagada',pagoInicial:Number(x.initial_payment||0),pagado:pagado,saldo:Math.max(0,Number(x.income||0)-pagado),vencimiento:x.due_date||'',pagos:pagos,created_at:x.created_at||''};});var pendientes=prestacionesServicio.filter(function(p){return p.operation_id&&ps.has(p.operation_id);});var legacy=prestacionesServicio.filter(function(p){return !p.cloud_id&&!p.operation_id;});var map=new Map();nube.concat(pendientes).concat(legacy).forEach(function(p){map.set(String(p.cloud_id||p.operation_id||p.id),p);});prestacionesServicio=Array.from(map.values());save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();return true;}catch(e){if(typeof flkSilenciarSiEsConexion==='function'&&flkSilenciarSiEsConexion(e))return false;console.error('Prestaciones nube:',e);return false;}};
 window.flkCambiarTipoPrestacion=function(){var t=document.getElementById('prestTipo'),c=document.getElementById('prestCosto');if(!t||!c)return;c.disabled=t.value!=='ingreso_costo';if(c.disabled)c.value='0';};
 window.flkCambiarCondicionPrestacion=function(){var c=document.getElementById('prestCondicion'),b=document.getElementById('prestCamposCredito'),cl=document.getElementById('prestCliente'),ve=document.getElementById('prestVencimiento');if(!c||!b)return;var credito=c.value==='credito';b.style.display=credito?'grid':'none';if(cl)cl.required=credito;if(ve)ve.required=credito;};
@@ -13379,6 +13573,12 @@ document.getElementById("flkModalRenovarLicencia")?.addEventListener("click",fun
 #flkModalResetCentro .flk-reset-aviso{margin:0 0 14px;padding:11px 12px;border-radius:11px;background:#fff4e5;color:#8a4b00;font-size:12px;font-weight:700;line-height:1.5}
 #flkModalResetCentro .flk-reset-error{display:none;margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#ffecec;color:#b42318;font-size:12px;font-weight:700}
 #flkModalResetCentro .flk-reset-error.visible{display:block}
+
+/* v62.41.32 · Solo contraste visual del resumen de Ventas */
+#vistaVentas #ingresosHoy,
+#vistaVentas #gananciaHoy{
+  color:#72f58a !important;
+}
 </style>
 
 <div class="modal" id="flkModalResetCentro">
@@ -13543,6 +13743,303 @@ document.getElementById("flkResetCentroPin")?.addEventListener("input",function(
 document.getElementById("flkModalResetCentro")?.addEventListener("click",function(e){
  if(e.target===this)flkCerrarModalResetCentro();
 });
+</script>
+
+
+<script id="flk-indexeddb-paso1-v624134">
+/* v62.41.34 · IndexedDB PASO 1 · infraestructura inerte.
+   NO abre IndexedDB automáticamente.
+   NO migra ni modifica localStorage.
+   NO sustituye la cola offline actual. */
+(function(){
+  const CFG=Object.freeze({
+    dbName:"flackunloker_offline_v1",
+    dbVersion:1,
+    storeName:"offline_sync_operations",
+    keyPath:"storage_key",
+    indexes:Object.freeze(["business_scope","operation_id","created_at"])
+  });
+
+  window.flkIndexedDBPaso1=Object.freeze({
+    config:CFG,
+    disponible:function(){
+      try{return !!window.indexedDB}catch(_){return false}
+    },
+    scope:function(businessId){
+      const id=String(businessId==null?"":businessId).trim();
+      return id||"sin-centro";
+    },
+    storageKey:function(businessId,operationId){
+      return this.scope(businessId)+"::"+String(operationId==null?"":operationId);
+    },
+    diagnostico:function(){
+      const r={
+        disponible:this.disponible(),
+        dbName:CFG.dbName,
+        dbVersion:CFG.dbVersion,
+        storeName:CFG.storeName,
+        keyPath:CFG.keyPath,
+        indexes:CFG.indexes.slice(),
+        activo:false,
+        migracion:false,
+        colaActual:"localStorage"
+      };
+      console.table([r]);
+      return r;
+    },
+    /* PASO 2: apertura MANUAL/controlada. No se ejecuta al iniciar la app,
+       no migra localStorage y no sustituye la cola offline actual. */
+    abrir:function(){
+      if(!this.disponible())return Promise.reject(new Error("IndexedDB no disponible."));
+      return new Promise(function(resolve,reject){
+        const req=indexedDB.open(CFG.dbName,CFG.dbVersion);
+        req.onupgradeneeded=function(ev){
+          const db=ev.target.result;
+          let st;
+          if(!db.objectStoreNames.contains(CFG.storeName)){
+            st=db.createObjectStore(CFG.storeName,{keyPath:CFG.keyPath});
+          }else{
+            st=ev.target.transaction.objectStore(CFG.storeName);
+          }
+          CFG.indexes.forEach(function(nombre){
+            if(!st.indexNames.contains(nombre))st.createIndex(nombre,nombre,{unique:false});
+          });
+        };
+        req.onsuccess=function(){resolve(req.result);};
+        req.onerror=function(){reject(req.error||new Error("No se pudo abrir IndexedDB."));};
+        req.onblocked=function(){reject(new Error("IndexedDB bloqueado por otra pestaña o versión."));};
+      });
+    },
+    /* PASO 3: prueba MANUAL de escritura/lectura aislada.
+       Solo actúa si se llama expresamente; no toca localStorage ni la cola real. */
+    probarEscritura:function(){
+      const self=this;
+      return self.abrir().then(function(db){
+        return new Promise(function(resolve,reject){
+          const operationId="prueba-"+Date.now();
+          const registro={
+            storage_key:self.storageKey("diagnostico",operationId),
+            business_scope:"diagnostico",
+            operation_id:operationId,
+            created_at:new Date().toISOString(),
+            tipo:"diagnostico_indexeddb",
+            payload:{paso:3}
+          };
+          const tx=db.transaction(CFG.storeName,"readwrite");
+          const st=tx.objectStore(CFG.storeName);
+          const put=st.put(registro);
+          put.onerror=function(){reject(put.error||new Error("Falló escritura de prueba."));};
+          put.onsuccess=function(){
+            const get=st.get(registro.storage_key);
+            get.onerror=function(){reject(get.error||new Error("Falló lectura de prueba."));};
+            get.onsuccess=function(){
+              const leido=get.result||null;
+              const del=st.delete(registro.storage_key);
+              del.onerror=function(){reject(del.error||new Error("Falló limpieza de prueba."));};
+              del.onsuccess=function(){resolve({ok:!!leido,registro:leido,limpiado:true});};
+            };
+          };
+          tx.oncomplete=function(){try{db.close();}catch(_){}};
+          tx.onabort=function(){try{db.close();}catch(_){}};
+        });
+      });
+    },
+    /* PASO 4: copia MANUAL de una lista de operaciones hacia IndexedDB.
+       Es solo espejo: no elimina ni modifica localStorage y no cambia la cola activa. */
+    espejarOperaciones:function(operaciones,businessId){
+      const self=this;
+      const lista=Array.isArray(operaciones)?operaciones:[];
+      if(!lista.length)return Promise.resolve({ok:true,copiadas:0});
+      return self.abrir().then(function(db){
+        return new Promise(function(resolve,reject){
+          const tx=db.transaction(CFG.storeName,"readwrite");
+          const st=tx.objectStore(CFG.storeName);
+          let copiadas=0;
+          lista.forEach(function(op,i){
+            if(!op||typeof op!=="object")return;
+            const operationId=String(op.operation_id||op.id||("manual-"+Date.now()+"-"+i));
+            const scope=self.scope(businessId||op.business_id||op.businessId);
+            st.put({
+              storage_key:self.storageKey(scope,operationId),
+              business_scope:scope,
+              operation_id:operationId,
+              created_at:String(op.created_at||new Date().toISOString()),
+              tipo:String(op.type||op.tipo||op.operation||"operacion"),
+              payload:op
+            });
+            copiadas++;
+          });
+          tx.oncomplete=function(){try{db.close();}catch(_){} resolve({ok:true,copiadas:copiadas});};
+          tx.onerror=function(){try{db.close();}catch(_){} reject(tx.error||new Error("Falló el espejo manual en IndexedDB."));};
+          tx.onabort=function(){try{db.close();}catch(_){} reject(tx.error||new Error("Se abortó el espejo manual en IndexedDB."));};
+        });
+      });
+    },
+    /* PASO 6: lectura MANUAL y de solo lectura del espejo.
+       No consume, borra, sincroniza ni modifica operaciones. */
+    leerEspejo:function(businessId){
+      const self=this;
+      const scope=businessId==null?null:self.scope(businessId);
+      return self.abrir().then(function(db){
+        return new Promise(function(resolve,reject){
+          const tx=db.transaction(CFG.storeName,"readonly");
+          const st=tx.objectStore(CFG.storeName);
+          const req=scope
+            ? st.index("business_scope").getAll(scope)
+            : st.getAll();
+          req.onsuccess=function(){
+            const filas=Array.isArray(req.result)?req.result:[];
+            resolve({
+              ok:true,
+              business_scope:scope,
+              total:filas.length,
+              operaciones:filas
+            });
+          };
+          req.onerror=function(){reject(req.error||new Error("Falló la lectura del espejo IndexedDB."));};
+          tx.oncomplete=function(){try{db.close();}catch(_){}};
+          tx.onabort=function(){try{db.close();}catch(_){}};
+        });
+      });
+    },
+    /* PASO 7: verificación MANUAL del espejo.
+       Solo comprueba estructura/duplicados; no modifica IndexedDB ni localStorage. */
+    verificarEspejo:function(businessId){
+      return this.leerEspejo(businessId).then(function(r){
+        const ops=Array.isArray(r.operaciones)?r.operaciones:[];
+        const vistos=new Set();
+        const duplicados=[];
+        const invalidas=[];
+        ops.forEach(function(op,i){
+          if(!op||typeof op!=="object"||!op.storage_key||!op.operation_id){
+            invalidas.push(i);
+            return;
+          }
+          if(vistos.has(op.storage_key))duplicados.push(op.storage_key);
+          vistos.add(op.storage_key);
+        });
+        return {
+          ok:invalidas.length===0&&duplicados.length===0,
+          business_scope:r.business_scope,
+          total:ops.length,
+          validas:ops.length-invalidas.length,
+          invalidas:invalidas,
+          duplicados:duplicados
+        };
+      });
+    }
+  });
+})();
+</script>
+
+
+<script id="flk-indexeddb-paso9-auditoria-manual">
+/* PASO 9: auditoría manual, sin cambios a la cola ni al espejo.
+   Comparar solo operaciones presentes en la cola oficial al tomar la muestra.
+   Los registros históricos extras del espejo no se consideran fallos: sincronizar
+   elimina operaciones de localStorage pero aún no limpia el espejo. */
+(function(){
+  window.flkAuditarEspejoIndexedDB=function(){
+    if(typeof flkColaOffline!=="function")return Promise.reject(new Error("Cola oficial no disponible"));
+    const api=window.flkIndexedDBPaso1;
+    if(!api||typeof api.leerEspejo!=="function")return Promise.reject(new Error("Lectura IndexedDB no disponible"));
+    const cola=flkColaOffline().map(function(op){return JSON.parse(JSON.stringify(op));});
+    return api.leerEspejo().then(function(r){
+      const mapa=new Map((r.operaciones||[]).map(function(reg){return [reg.storage_key,reg];}));
+      const faltantes=[],diferentes=[],sinIdentidad=[];
+      cola.forEach(function(op){
+        if(!op||!op.id){sinIdentidad.push("sin-id");return;}
+        const key=api.storageKey(op.business_id,op.id);
+        const reg=mapa.get(key);
+        if(!reg){faltantes.push(String(op.id));return;}
+        const espejo=reg.payload;
+        if(!espejo||espejo.id!==op.id||
+           String(espejo.business_id||"")!==String(op.business_id||"")||
+           espejo.tipo!==op.tipo||espejo.created_at!==op.created_at||
+           JSON.stringify(espejo.payload)!==JSON.stringify(op.payload)){
+          diferentes.push(String(op.id));
+        }
+      });
+      const resultado={
+        ok:faltantes.length===0&&diferentes.length===0&&sinIdentidad.length===0,
+        colaActual:cola.length,espejoTotal:r.total,
+        faltantes:faltantes,diferentes:diferentes,sinIdentidad:sinIdentidad,
+        extrasHistoricos:Math.max(0,r.total-cola.length),
+        nota:"Los extras pueden ser operaciones ya sincronizadas. Una auditoría OK no verifica escritura en tiempo real ni garantiza durabilidad futura."
+      };
+      console.table([{ok:resultado.ok,colaActual:resultado.colaActual,espejoTotal:resultado.espejoTotal,
+        faltantes:faltantes.length,diferentes:diferentes.length,sinIdentidad:sinIdentidad.length}]);
+      return resultado;
+    });
+  };
+  /* Alias compatible con el comando de auditoría comunicado al usuario. */
+  window.flkAuditarEspejoPaso9=window.flkAuditarEspejoIndexedDB;
+})();
+</script>
+
+<script id="flk-indexeddb-paso10-limpieza-confirmada">
+/* PASO 10: limpieza del espejo exclusivamente de operaciones confirmadas.
+   Solo utiliza el archivo de sincronización existente y comprueba ambas colas.
+   Nunca borra operaciones pendientes, en error o conflicto ni modifica localStorage. */
+(function(){
+  window.flkLimpiarEspejoConfirmadoPaso10=function(){
+    const api=window.flkIndexedDBPaso1;
+    if(!api||typeof api.abrir!=="function")return Promise.reject(new Error("IndexedDB no disponible"));
+    if(typeof flkClaveArchivoSync!=="function"||typeof flkLeerArrayLocal!=="function" ||
+       typeof flkLocalKey!=="function" ||typeof flkClaveEmergenciaCola!=="function"){
+      return Promise.reject(new Error("No se puede verificar la cola oficial y el archivo"));
+    }
+    // Leer directamente ambas copias: no usar flkColaOffline() porque puede escribir.
+    const principalKey=flkLocalKey(FLK_OFFLINE_QUEUE_KEY);
+    const emergenciaKey=flkClaveEmergenciaCola();
+    const archivoKey=flkClaveArchivoSync();
+    function leerSeguro(key){
+      const raw=localStorage.getItem(key);
+      if(raw===null)throw new Error("Copia oficial no disponible: "+key);
+      const arr=JSON.parse(raw);
+      if(!Array.isArray(arr))throw new Error("Copia oficial inválida: "+key);
+      return arr;
+    }
+    const principal=leerSeguro(principalKey),emergencia=leerSeguro(emergenciaKey);
+    const pendientes=new Set(principal.concat(emergencia).filter(function(op){return op&&op.id;})
+      .map(function(op){return api.storageKey(op.business_id,op.id);}));
+    const archivo=leerSeguro(archivoKey);
+    const confirmadas=new Map();
+    archivo.forEach(function(op){
+      if(op&&op.id&&op.business_id&&op.estado==="sincronizado"&&op.synced_at){
+        confirmadas.set(api.storageKey(op.business_id,op.id),op);
+      }
+    });
+    return api.abrir().then(function(db){
+      return new Promise(function(resolve,reject){
+        const tx=db.transaction(api.config.storeName,"readwrite");
+        const store=tx.objectStore(api.config.storeName);
+        let eliminadas=0,conservadas=0;
+        const req=store.openCursor();
+        req.onsuccess=function(){
+          const cursor=req.result;
+          if(!cursor)return;
+          const reg=cursor.value;
+          const op=reg&&reg.payload;
+          const key=reg&&reg.storage_key;
+          const confirmado=key&&confirmadas.get(key);
+          // Identidad exacta: no basta con que el ID aparezca en el archivo.
+          if(confirmado&&op&&op.id===confirmado.id&&
+             String(op.business_id)===String(confirmado.business_id)&&
+             op.created_at===confirmado.created_at&&!pendientes.has(key)){
+            cursor.delete();
+            eliminadas++;
+          }else{conservadas++;}
+          cursor.continue();
+        };
+        req.onerror=function(){reject(req.error||new Error("Error leyendo espejo"));};
+        tx.oncomplete=function(){try{db.close();}catch(_){} resolve({ok:true,eliminadas:eliminadas,conservadas:conservadas});};
+        tx.onerror=function(){try{db.close();}catch(_){} reject(tx.error||new Error("Error limpiando espejo"));};
+        tx.onabort=function(){try{db.close();}catch(_){} reject(tx.error||new Error("Limpieza abortada"));};
+      });
+    });
+  };
+})();
 </script>
 
 </body>
