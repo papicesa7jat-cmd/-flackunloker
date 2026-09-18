@@ -182,7 +182,7 @@
      HTTP "X-Frame-Options: DENY" o "Content-Security-Policy:
      frame-ancestors 'none'" en el servidor. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://eviwhrqhinhnyccizkfq.supabase.co wss://eviwhrqhinhnyccizkfq.supabase.co https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
-<meta name="flackunloker-offline-version" content="2026-09-16-v62.41.44-indexeddb-paso9-script-corregido">
+<meta name="flackunloker-offline-version" content="2026-09-17-v62.42.0-offline-first-auditoria">
 <title>Flackunloker</title>
 <style>
 *{box-sizing:border-box}
@@ -1773,6 +1773,48 @@ textarea::placeholder{
 #vistaPrestacionesServicio .seccion-titulo h2{font-size:20px !important;}
 #vistaPrestacionesServicio .lista-estadisticas h3{font-size:16px !important;}
 </style>
+<style id="flk-prestaciones-color-2026">
+/* v62.41.61 · Prestaciones de servicio: más color y contraste (respeta el negro forzado
+   de flk-v6168-prestaciones-solo-visual; solo se afina lo que necesita color semántico). */
+
+/* Tarjetas resumen: acento lateral + cifra coloreada por tipo */
+#vistaPrestacionesServicio .prestacion-card{position:relative;overflow:hidden;padding-left:16px}
+#vistaPrestacionesServicio .prestacion-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px}
+#vistaPrestacionesServicio .prestacion-card:nth-child(1)::before,#vistaPrestacionesServicio .prestacion-card:nth-child(4)::before{background:var(--azul,#0a84ff)}
+#vistaPrestacionesServicio .prestacion-card:nth-child(2)::before,#vistaPrestacionesServicio .prestacion-card:nth-child(5)::before{background:#c45b19}
+#vistaPrestacionesServicio .prestacion-card:nth-child(3)::before,#vistaPrestacionesServicio .prestacion-card:nth-child(6)::before{background:var(--verde,#168044)}
+#vistaPrestacionesServicio #prestIngresosHoy,#vistaPrestacionesServicio #prestIngresosMes{color:var(--azul,#0a84ff) !important}
+#vistaPrestacionesServicio #prestCostosHoy,#vistaPrestacionesServicio #prestCostosMes{color:#c45b19 !important}
+#vistaPrestacionesServicio #prestNetoHoy,#vistaPrestacionesServicio #prestNetoMes{color:var(--verde,#168044) !important}
+
+/* Formulario de registro: tarjeta propia, separada del listado */
+#vistaPrestacionesServicio .prestacion-form{border:1px solid #e6edf5;box-shadow:0 3px 12px rgba(16,24,40,.05)}
+
+/* Listado: tarjetas con acento lateral según estado (pagada / a crédito) */
+#vistaPrestacionesServicio .lista-estadisticas{background:transparent;box-shadow:none;padding:0}
+#vistaPrestacionesServicio .lista-estadisticas h3{display:flex;align-items:center;gap:8px;margin:0 0 14px;padding-bottom:10px;border-bottom:2px solid var(--borde,#e8edf5)}
+#vistaPrestacionesServicio .prestacion-item{position:relative;border:1px solid #e6edf5;border-left:5px solid #cfd8e3;border-radius:16px;padding:16px 16px 16px 18px;box-shadow:0 3px 12px rgba(16,24,40,.05);transition:box-shadow .15s ease,transform .15s ease}
+#vistaPrestacionesServicio .prestacion-item:hover{box-shadow:0 6px 18px rgba(16,24,40,.09);transform:translateY(-1px)}
+#vistaPrestacionesServicio .prestacion-item.prestacion-pagada{border-left-color:var(--verde,#168044)}
+#vistaPrestacionesServicio .prestacion-item.prestacion-credito{border-left-color:#a15c00}
+#vistaPrestacionesServicio .prestacion-item-top h3{font-size:15.5px;margin:0 0 4px}
+#vistaPrestacionesServicio .prestacion-item-top p{color:#5b6b7d !important;font-size:12.5px !important;margin:2px 0}
+#vistaPrestacionesServicio .prestacion-item-top p strong{color:#111 !important}
+
+.prestacion-badge{display:inline-block;margin:6px 0 2px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800}
+.prestacion-badge.badge-pagada{background:#e9f8ef;color:var(--verde,#168044) !important}
+.prestacion-badge.badge-credito{background:#fff7e8;color:#a15c00 !important}
+
+#vistaPrestacionesServicio .prestacion-importes{display:flex;flex-direction:column;gap:3px}
+#vistaPrestacionesServicio .prestacion-importes .pi-ingreso{color:var(--azul,#0a84ff) !important;font-size:12.5px !important;font-weight:700 !important}
+#vistaPrestacionesServicio .prestacion-importes .pi-costo{color:#c45b19 !important;font-size:12.5px !important;font-weight:700 !important}
+#vistaPrestacionesServicio .prestacion-importes .pi-neto{color:var(--verde,#168044) !important;font-size:15px !important;font-weight:900 !important;margin-top:2px}
+#vistaPrestacionesServicio .prestacion-importes .pi-neto.negativo{color:#d93025 !important}
+
+#vistaPrestacionesServicio .acciones-prestacion .boton-agregar{background:linear-gradient(135deg,#2fd480,var(--verde,#168044)) !important;box-shadow:0 6px 14px rgba(22,128,68,.26)}
+#vistaPrestacionesServicio .boton-eliminar{border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer;background:#ffecec;color:#d93025 !important}
+#vistaPrestacionesServicio .boton-eliminar:hover{background:#ffdcdc}
+</style>
 
 <style id="flk-filtro-proveedores-v6186">
 .filtros-proveedores-flk{display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:10px;margin-bottom:12px}
@@ -2058,14 +2100,18 @@ textarea::placeholder{
 <div class="fila-estadistica"><span>Fecha</span><strong id="cierreFechaHoy">—</strong></div>
 <div class="fila-estadistica"><span>Recibos / Unidades</span><strong id="cierreRecibosUnidades">0 / 0</strong></div>
 <div class="fila-estadistica"><span>Ventas netas del día</span><strong id="cierreVentasHoy">$0.00</strong></div>
+<div class="fila-estadistica"><span>Ingresos por prestaciones (CUP)</span><strong id="cierrePrestacionesHoy">$0.00</strong></div>
+<div class="fila-estadistica"><span>Costos externos de prestaciones (CUP)</span><strong id="cierreCostosPrestacionesHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>Costo de mercancía</span><strong id="cierreCostoHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>Ganancia bruta</span><strong id="cierreGananciaBrutaHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>Gastos del día</span><strong id="cierreGastosHoy">$0.00</strong></div>
-<div class="fila-estadistica"><span>Ganancia neta</span><strong id="cierreGananciaNetaHoy">$0.00</strong></div>
+<div class="fila-estadistica"><span>Ganancia neta (mercancía + prestaciones − gastos)</span><strong id="cierreGananciaNetaHoy">$0.00</strong></div>
 </div>
 <div class="lista-estadisticas"><h3>💵 Dinero realmente cobrado hoy</h3>
 <div class="fila-estadistica"><span>Total cobrado</span><strong id="cierreCobradoHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>💵 Efectivo</span><strong id="cierreEfectivoHoy">$0.00</strong></div>
+<div class="fila-estadistica"><span>De ese efectivo: prestaciones cobradas (CUP)</span><strong id="cierrePrestacionesEfectivoHoy">$0.00</strong></div>
+<div class="fila-estadistica"><span>Devoluciones entregadas en efectivo (CUP)</span><strong id="cierreDevolucionesHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>🏦 Transferencia CUP</span><strong id="cierreTransferenciaCupHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>📱 ATH Móvil</span><strong id="cierreAthHoy">$0.00</strong></div>
 <div class="fila-estadistica"><span>💳 Tarjeta</span><strong id="cierreTarjetaHoy">$0.00</strong></div>
@@ -2154,6 +2200,7 @@ textarea::placeholder{
 <div class="alerta-card critica"><span>Créditos vencidos</span><strong id="alertasVencidos">0</strong></div>
 <div class="alerta-card aviso"><span>Próximos a vencer</span><strong id="alertasProximos">0</strong></div>
 </div>
+<div id="flkArchivadosAlertaSeccion" class="lista-estadisticas" style="display:none"><h3>♻️ Productos archivados con existencias recuperadas</h3><div id="flkArchivadosAlertaLista"></div></div>
 <div class="lista-estadisticas"><h3>📦 Inventario que requiere atención</h3><div id="alertasInventarioLista"></div></div>
 <div class="lista-estadisticas"><h3>💳 Créditos que requieren atención</h3><div id="alertasCreditosLista"></div></div>
 <div id="alertasTodoBien"></div>
@@ -2467,10 +2514,10 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   <h2>📷 Escáner QR</h2>
   <p class="mensaje-movimiento">Selecciona una operación una sola vez y luego escanea. El sistema preparará el movimiento automáticamente y pedirá confirmación antes de modificar inventario o caja.</p>
   <div class="flk-qr-modos" id="flkQrModos">
-   <button type="button" data-modo="entrada" onclick="seleccionarModoQR('entrada')">📥 Entrada</button>
-   <button type="button" data-modo="salida" onclick="seleccionarModoQR('salida')">📤 Salida</button>
-   <button type="button" data-modo="venta" onclick="seleccionarModoQR('venta')">🧾 Venta</button>
-   <button type="button" data-modo="devolucion" onclick="seleccionarModoQR('devolucion')">↩️ Devolución</button>
+   <button type="button" data-modo="entrada" onclick="seleccionarModoQR('entrada')"><span class="flk-qr-modo-ico">📥</span><span class="flk-qr-modo-lbl">Entrada</span></button>
+   <button type="button" data-modo="salida" onclick="seleccionarModoQR('salida')"><span class="flk-qr-modo-ico">📤</span><span class="flk-qr-modo-lbl">Salida</span></button>
+   <button type="button" data-modo="venta" onclick="seleccionarModoQR('venta')"><span class="flk-qr-modo-ico">🧾</span><span class="flk-qr-modo-lbl">Venta</span></button>
+   <button type="button" data-modo="devolucion" onclick="seleccionarModoQR('devolucion')"><span class="flk-qr-modo-ico">↩️</span><span class="flk-qr-modo-lbl">Devolución</span></button>
   </div>
   <div id="flkQrModoTexto" class="flk-qr-modo-texto">Modo: selecciona una operación</div>
   <div class="flk-qr-video-wrap">
@@ -2516,6 +2563,84 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
   <div class="botones-formulario"><button type="button" class="boton-cancelar" onclick="cerrarEscanerQR()">Cerrar</button></div>
  </div>
 </div>
+
+<style id="flk-qr-profesional-v62-41-60">
+/* v62.41.60 · Escáner QR: vista profesional.
+   Solo estética (colores, tipografía, espaciado, tarjetas, animaciones).
+   No se toca ningún id ni atributo usado por el JS del escáner. */
+
+#modalEscanerQR .formulario.flk-qr-form{max-width:520px;padding:26px 24px 22px}
+#modalEscanerQR h2{display:flex;align-items:center;gap:10px;margin:0 0 8px;font-size:21px;letter-spacing:-.2px}
+#modalEscanerQR .mensaje-movimiento{background:linear-gradient(135deg,#eef6ff,#f5faff);border:1px solid #d7e8fb;color:#2b587f;font-size:12.5px;line-height:1.6;margin:0 0 18px;padding:13px 14px;border-radius:14px}
+
+/* Selector de operación · una tarjeta de color propio por modo, activa e inactiva */
+#modalEscanerQR .flk-qr-modos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+#modalEscanerQR .flk-qr-modos button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:76px;border:1.5px solid transparent;border-radius:16px;padding:12px 8px;cursor:pointer;transition:transform .12s ease,box-shadow .15s ease,filter .15s ease}
+#modalEscanerQR .flk-qr-modos .flk-qr-modo-ico{font-size:23px;line-height:1}
+#modalEscanerQR .flk-qr-modos .flk-qr-modo-lbl{font-size:13px;font-weight:800;letter-spacing:.2px}
+#modalEscanerQR .flk-qr-modos button:hover{transform:translateY(-2px);filter:brightness(1.05)}
+#modalEscanerQR .flk-qr-modos button:active{transform:translateY(0)}
+#modalEscanerQR .flk-qr-modos button[data-modo="entrada"]{background:#e9f8ef;color:#168044;border-color:#cdefd9}
+#modalEscanerQR .flk-qr-modos button[data-modo="salida"]{background:#fff1e8;color:#c45b19;border-color:#fbdcc6}
+#modalEscanerQR .flk-qr-modos button[data-modo="venta"]{background:#eaf4ff;color:#0a67d1;border-color:#cfe4fb}
+#modalEscanerQR .flk-qr-modos button[data-modo="devolucion"]{background:#f2edff;color:#6b47c8;border-color:#ddd0fb}
+#modalEscanerQR .flk-qr-modos button.activo{color:#fff;border-color:transparent;box-shadow:0 8px 18px rgba(16,24,40,.22)}
+#modalEscanerQR .flk-qr-modos button[data-modo="entrada"].activo{background:linear-gradient(135deg,#2fd480,#168044);box-shadow:0 8px 18px rgba(22,128,68,.32)}
+#modalEscanerQR .flk-qr-modos button[data-modo="salida"].activo{background:linear-gradient(135deg,#ff9d55,#c45b19);box-shadow:0 8px 18px rgba(196,91,25,.32)}
+#modalEscanerQR .flk-qr-modos button[data-modo="venta"].activo{background:linear-gradient(135deg,#3aa0ff,#0a67d1);box-shadow:0 8px 18px rgba(10,103,209,.32)}
+#modalEscanerQR .flk-qr-modos button[data-modo="devolucion"].activo{background:linear-gradient(135deg,#c78bff,#6b47c8);box-shadow:0 8px 18px rgba(107,71,200,.32)}
+#modalEscanerQR .flk-qr-modo-texto{display:block;margin:0 0 16px;padding:10px 13px;border-radius:12px;background:#f4f7fb;color:var(--muted,#667085);font-size:12px;font-weight:700;text-align:center}
+
+/* Visor de cámara */
+#modalEscanerQR .flk-qr-video-wrap{box-shadow:0 12px 28px rgba(15,23,42,.24);margin-bottom:14px}
+#modalEscanerQR .flk-qr-marco{border:3px solid rgba(255,255,255,.95);border-radius:20px;box-shadow:0 0 0 999px rgba(8,14,28,.42),0 0 16px rgba(10,132,255,.3);animation:flkQrPulso 2.4s ease-in-out infinite}
+@keyframes flkQrPulso{0%,100%{box-shadow:0 0 0 999px rgba(8,14,28,.42),0 0 12px rgba(10,132,255,.22)}50%{box-shadow:0 0 0 999px rgba(8,14,28,.42),0 0 24px rgba(10,132,255,.55)}}
+#modalEscanerQR .flk-qr-estado{left:12px;right:12px;bottom:12px;padding:9px 10px;background:rgba(15,23,42,.88);border-radius:12px;font-size:12px;font-weight:800;letter-spacing:.1px;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+
+/* Controles de cámara */
+#modalEscanerQR .flk-qr-controles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px}
+#modalEscanerQR .flk-qr-controles button{font-size:13.5px;padding:12px 8px}
+#modalEscanerQR #flkQrLinternaBtn{background:#fff4de;color:#a15c00;font-weight:800;border-radius:12px}
+
+/* QR sin Internet / lector físico: tarjetas de estado */
+#modalEscanerQR .flk-qr-offline-box,#modalEscanerQR .flk-lector-fisico{background:#fff;border:1px solid var(--borde,#e8edf5);border-radius:14px;box-shadow:0 3px 10px rgba(16,24,40,.05)}
+#modalEscanerQR .flk-qr-offline-box{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px;padding:12px 13px}
+#modalEscanerQR .flk-qr-offline-box strong{font-size:12.5px;color:var(--texto,#101828)}
+#modalEscanerQR .flk-qr-offline-box small{display:block;margin-top:3px;font-size:10.5px;color:var(--muted,#667085);line-height:1.35}
+#modalEscanerQR .flk-qr-offline-box button{flex:0 0 auto;border:0;border-radius:10px;padding:9px 12px;background:linear-gradient(135deg,var(--azul,#0a84ff),var(--azul-oscuro,#0055cc));color:#fff;font-weight:800;font-size:11.5px;cursor:pointer;box-shadow:0 5px 12px rgba(10,132,255,.24)}
+#modalEscanerQR .flk-lector-fisico{margin:0 0 14px;padding:12px 13px}
+#modalEscanerQR .flk-lector-fisico button{width:100%;border:0;border-radius:11px;padding:11px;background:#eef3f7;color:#23415e;font-weight:800;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
+#modalEscanerQR .flk-lector-fisico button.activo{background:linear-gradient(135deg,#2fd480,var(--verde,#168044));color:#fff;box-shadow:0 6px 14px rgba(22,128,68,.28)}
+#modalEscanerQR #flkLectorFisicoEstado{margin-top:8px;text-align:center;font-size:11.5px;color:var(--muted,#667085);font-weight:700}
+
+/* Código manual */
+#modalEscanerQR .campo label{font-size:12.5px;color:var(--muted,#667085);text-transform:uppercase;letter-spacing:.3px}
+
+/* Confirmación de lectura */
+#modalEscanerQR .flk-qr-confirmacion{margin-top:12px;padding:14px;border:1px solid #cfe3f7;border-radius:16px;background:linear-gradient(135deg,#f7fbff,#eef6ff);color:#17324a;box-shadow:0 4px 14px rgba(16,24,40,.06)}
+#modalEscanerQR .flk-qr-confirmacion strong{font-size:14.5px}
+#modalEscanerQR .flk-qr-confirmacion-botones button:first-child{background:linear-gradient(135deg,var(--azul,#0a84ff),var(--azul-oscuro,#0055cc));box-shadow:0 6px 14px rgba(10,132,255,.26)}
+
+/* Resultado */
+#modalEscanerQR .flk-qr-resultado{border-radius:16px;box-shadow:0 4px 14px rgba(16,24,40,.05)}
+
+/* Venta por escaneo (carrito continuo) */
+#modalEscanerQR .flk-qr-venta-continua{margin-top:14px;padding:14px;border-radius:16px;background:linear-gradient(135deg,#f2fbf6,#eafaf1);border:1px solid #cdeedd;box-shadow:0 4px 14px rgba(22,128,68,.06)}
+#modalEscanerQR .flk-qr-carrito-cab{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+#modalEscanerQR .flk-qr-carrito-cab strong{font-size:14px;color:var(--verde,#168044)}
+#modalEscanerQR .flk-qr-carrito-cab span{font-size:11px;font-weight:800;color:#168044;background:#dff5e8;padding:4px 9px;border-radius:999px;white-space:nowrap}
+#modalEscanerQR .flk-qr-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid #dcf0e4}
+#modalEscanerQR .flk-qr-item:first-child{border-top:0}
+#modalEscanerQR .flk-qr-item strong{display:block;font-size:13px;color:var(--texto,#101828)}
+#modalEscanerQR .flk-qr-item small{display:block;margin-top:2px;font-size:11px;color:var(--muted,#667085)}
+#modalEscanerQR .flk-qr-item button{flex:0 0 auto;border:0;border-radius:9px;padding:7px 10px;background:#ffecec;color:#d93025;font-weight:800;cursor:pointer;font-size:12px}
+#modalEscanerQR .flk-qr-carrito-total{display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px dashed #bfe4cf;font-size:14px}
+#modalEscanerQR .flk-qr-carrito-total strong{font-size:18px;color:var(--verde,#168044)}
+
+#modalEscanerQR .botones-formulario{margin-top:18px}
+
+@media(max-width:430px){#modalEscanerQR .flk-qr-controles{grid-template-columns:1fr 1fr}}
+</style>
 
 <div class="modal" id="modalEtiquetaQR">
  <div class="formulario">
@@ -2917,11 +3042,11 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
  <div class="modal-contenido" style="width:min(94vw,560px);padding:26px">
   <div class="modal-cabecera"><h3 style="font-size:24px">⚠️ Restablecimiento total</h3><button class="cerrar" type="button" onclick="cerrarRestablecimientoTotal()">×</button></div>
   <div id="bloqueConfigurarPin">
-   <p style="line-height:1.55">Primero establece un PIN secreto de <strong>6 dígitos</strong>. No se guarda de forma visible.</p>
-   <label>Nuevo PIN de 6 dígitos</label>
-   <input id="nuevoPinReset" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="new-password" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
+   <p style="line-height:1.55">Primero establece un PIN secreto de <strong>8 dígitos</strong>. No se guarda de forma visible.</p>
+   <label>Nuevo PIN de 8 dígitos</label>
+   <input id="nuevoPinReset" type="password" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" autocomplete="new-password" placeholder="••••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
    <label>Repetir PIN</label>
-   <input id="confirmarPinReset" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="new-password" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
+   <input id="confirmarPinReset" type="password" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" autocomplete="new-password" placeholder="••••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
    <button class="guardar" type="button" onclick="guardarPinReset()">Guardar PIN</button>
   </div>
   <div id="bloqueEjecutarReset" style="display:none">
@@ -2929,8 +3054,8 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
     <strong>Esta acción es irreversible.</strong><br>
     Se borrarán inventario, ventas, recibos, devoluciones, clientes, gastos, caja, cierres, proveedores, compras, pagos, reparaciones, historial y configuraciones operativas.
    </div>
-   <label>PIN de 6 dígitos</label>
-   <input id="pinEjecutarReset" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
+   <label>PIN de restablecimiento</label>
+   <input id="pinEjecutarReset" type="password" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••••••" style="font-size:24px;text-align:center;letter-spacing:8px">
    <label>Escribe RESTABLECER para confirmar</label>
    <input id="textoConfirmarReset" type="text" autocomplete="off" placeholder="RESTABLECER">
    <button type="button" onclick="ejecutarRestablecimientoTotal()" style="width:100%;min-height:58px;margin-top:20px;border:0;border-radius:14px;background:#d93025;color:white;font-size:18px;font-weight:900">🗑️ Borrar todos los datos operativos</button>
@@ -3116,36 +3241,17 @@ const FLK_OPERACIONES_LOCAL_FIRST=new Set([
  "service_provision_save","service_provision_payment_save","service_provision_delete","center_reset"
 ]);
 
+/* v62.41.57: localStorage es copia de consulta, nunca fuente de migración automática.
+   La copia de emergencia se conserva intacta para recuperación MANUAL, no se fusiona. */
 function flkColaOffline(){
  try{
-  const principal=flkLeerArrayLocal(flkLocalKey(FLK_OFFLINE_QUEUE_KEY));
-  const emergencia=flkLeerArrayLocal(flkClaveEmergenciaCola());
-  let q=flkFusionarColas(principal,emergencia);
-  let cambio=false;
-
-  q.forEach(op=>{
-   if(FLK_OPERACIONES_LOCAL_FIRST.has(op.tipo)){
-    if(!op.payload||typeof op.payload!=="object")op.payload={};
-    if(op.payload.local_applied!==true){
-     op.payload.local_applied=true;
-     cambio=true;
-    }
-   }
-  });
-
-  const serial=JSON.stringify(q);
-  if(cambio || JSON.stringify(principal)!==serial){
-   flkLocalStorageSetSeguro(flkLocalKey(FLK_OFFLINE_QUEUE_KEY),serial);
-  }
-  if(JSON.stringify(emergencia)!==serial){
-   flkLocalStorageSetSeguro(flkClaveEmergenciaCola(),serial);
-  }
-  return q;
+  return flkLeerArrayLocal(flkLocalKey(FLK_OFFLINE_QUEUE_KEY));
  }catch(e){
-  console.error("Flackunloker: no se pudo leer la cola offline persistente.",e);
-  return flkLeerArrayLocal(flkClaveEmergenciaCola());
+  console.error("No se pudo consultar la copia secundaria de la cola",e);
+  return [];
  }
 }
+
 function flkGuardarColaOffline(q){
  const copia=Array.isArray(q)?q:[];
  const serial=JSON.stringify(copia);
@@ -3189,33 +3295,163 @@ function flkEncolarOperacion(tipo,payload){
  return op;
 }
 
-/* v62.41.39 · IndexedDB PASO 5 · espejo automático NO bloqueante.
-   La cola oficial continúa en localStorage. Si IndexedDB falla, la operación normal NO falla. */
+/* v62.41.47 · IndexedDB PASO 11C: confirmación observable de escritura.
+   NO convierte IndexedDB en principal ni cambia el contrato síncrono de ventas.
+   Los errores del espejo dejan de silenciarse y pueden consultarse por ID. */
 (function(){
   const original=window.flkEncolarOperacion;
   if(typeof original!=="function")return;
+  const estados=new Map();
+  // Espera todas las escrituras iniciadas por la captura síncrona antes de sincronizar.
+  window.flkEsperarCapturasIndexedDB=function(){
+    return Promise.all([...estados.values()].filter(e=>e.estado==="escribiendo").map(e=>e.promesa));
+  };
+  window.flkEstadoPersistenciaIndexedDBPaso11C=function(id){
+    const e=estados.get(String(id));
+    return e?{id:String(id),estado:e.estado,error:e.error||null}:null;
+  };
+  window.flkConfirmarPersistenciaIndexedDBPaso11C=async function(id){
+    const e=estados.get(String(id));
+    if(!e)throw new Error("Operación no registrada por paso 11C en esta sesión: "+id);
+    await e.promesa;
+    return {ok:true,id:String(id),confirmada:true,origenActual:"localStorage",indexedDBPrincipal:false};
+  };
   window.flkEncolarOperacion=function(){
-    const args=Array.prototype.slice.call(arguments);
-    const resultado=original.apply(this,args);
-    try{
+    const op=original.apply(this,arguments);
+    if(!op||!op.id)return op;
+    const id=String(op.id);
+    const e={estado:"escribiendo",error:null,promesa:null};
+    estados.set(id,e);
+    e.promesa=(async function(){
       const api=window.flkIndexedDBPaso1;
-      if(api&&typeof api.espejarOperaciones==="function"&&resultado&&typeof resultado==="object"){
-        /* PASO 8: espejar la operación REAL que acaba de persistir la cola oficial.
-           Así IndexedDB conserva el mismo id, business_id, tipo, payload y created_at. */
-        Promise.resolve(
-          api.espejarOperaciones([resultado],resultado.business_id||null)
-        ).catch(function(){});
+      if(!api||typeof api.espejarOperaciones!=="function"||typeof api.leerEspejo!=="function"){
+        throw new Error("IndexedDB no disponible para confirmar operación");
       }
-    }catch(_){}
-    return resultado;
+      await api.espejarOperaciones([op],op.business_id||null);
+      const lectura=await api.leerEspejo(op.business_id||null);
+      const key=api.storageKey(op.business_id,op.id);
+      const registro=(lectura.operaciones||[]).find(function(r){return r.storage_key===key;});
+      if(!registro||JSON.stringify(registro.payload)!==JSON.stringify(op)){
+        throw new Error("IndexedDB no devolvió una copia idéntica de la operación "+id);
+      }
+      e.estado="confirmada";
+      return true;
+    })().catch(function(err){
+      e.estado="error";
+      e.error=String(err&&err.message||err);
+      console.error("Flackunloker: operación guardada en localStorage pero NO confirmada en IndexedDB:",id,err);
+      throw err;
+    });
+    // Evita un rechazo no gestionado cuando la interfaz antigua no espera promesas.
+    e.promesa.catch(function(){});
+    if(estados.size>500){
+      for(const [clave,valor] of estados){
+        if(clave!==id&&valor.estado!=="escribiendo"){estados.delete(clave);break;}
+      }
+    }
+    return op;
   };
 })();
 
+/* v62.41.52 · Inicio real de captura IndexedDB-first.
+   Contrato asíncrono: NO se confirma una operación hasta que la transacción
+   IndexedDB terminó y su contenido fue leído y verificado. El respaldo
+   localStorage se escribe después; no sustituye al registro primario. */
+async function flkEncolarOperacionIndexedDB(tipo,payload){
+ const api=window.flkIndexedDBPaso1;
+ if(!api||!api.disponible()||typeof api.espejarOperaciones!=="function"){
+  throw new Error("IndexedDB no disponible: operación NO registrada.");
+ }
+ const datos=(payload&&typeof payload==="object")?{...payload}:{};
+ if(FLK_OPERACIONES_LOCAL_FIRST.has(tipo))datos.local_applied=true;
+ const op={id:flkUUID(),tipo,payload:datos,device_id:flkDeviceId(),
+  business_id:(typeof flkBusinessIdLocalSeguro==="function"?flkBusinessIdLocalSeguro():null),
+  created_at:new Date().toISOString(),estado:"pendiente",intentos:0};
+ if(!op.business_id)throw new Error("Centro no identificado: operación NO registrada.");
+ await api.espejarOperaciones([op],op.business_id);
+ // v62.42.3 SEGURIDAD (corrige falso positivo de "no confirmó"): la relectura
+ // inmediata para verificar puede no coincidir por una carrera transitoria
+ // (IndexedDB recién creada en una instalación nueva, otro proceso tocando el
+ // mismo registro) sin que la escritura real haya fallado. Se reintenta solo
+ // la LECTURA unas pocas veces antes de declarar el guardado como no
+ // confirmado; nunca se repite la escritura ni se genera otro id.
+ let registro=null,errorVerificacion=null;
+ for(let intento=0;intento<4;intento++){
+  errorVerificacion=null;
+  try{
+   const lectura=await api.leerEspejo(op.business_id);
+   registro=(lectura.operaciones||[]).find(r=>r.storage_key===api.storageKey(op.business_id,op.id));
+   if(registro&&JSON.stringify(registro.payload)===JSON.stringify(op))break;
+   errorVerificacion=new Error("IndexedDB no confirmó la operación: "+op.id);
+  }catch(err){errorVerificacion=err;}
+  if(intento<3)await new Promise(r=>setTimeout(r,150*(intento+1)));
+ }
+ if(errorVerificacion)throw errorVerificacion;
+ // La operación ya está durable en IndexedDB. Una falla del respaldo no
+ // revierte la transacción principal ni provoca generar otro ID.
+ try{
+  const cola=flkColaOffline();
+  if(!cola.some(x=>x.id===op.id))cola.push(op);
+  flkGuardarColaOffline(cola);
+ }catch(err){console.warn("IndexedDB confirmó la operación; respaldo localStorage pendiente:",op.id,err);}
+ flkSnapshotColaPrincipal=null;
+ try{await flkRefrescarEstadoColaPrincipal();flkActualizarEstadoConexion()}catch(_){flkActualizarEstadoConexion("error")}
+ return op;
+}
+
+/* IndexedDB es la cola principal. El snapshot es solo para UI síncrona;
+   nunca se utiliza localStorage para decidir si se envía una operación. */
+let flkSnapshotColaPrincipal=null;
+let flkLecturaEstadoColaEnCurso=null;
+// v62.43.1 SEGURIDAD (corrige congelamiento total de la app): si IndexedDB
+// falla de forma sostenida (perfil recién creado, caché recién borrada,
+// antivirus, etc.), flkConsultarColaPrincipal rechaza siempre. Sin este
+// freno, flkPendientesOffline -> flkRefrescarEstadoColaPrincipal ->
+// (rechazo) -> flkActualizarEstadoConexion -> flkPendientesOffline... se
+// reencadenaba como microtareas sin ninguna pausa real, acaparando el hilo
+// principal para siempre: la ventana quedaba pintada pero totalmente
+// inerte (no respondía a clics ni al teclado, como "congelada"). Este
+// freno obliga a esperar entre reintentos para que el navegador pueda
+// seguir procesando clics, teclado y repintados con normalidad.
+let flkProximoReintentoColaPrincipalMs=0;
+async function flkConsultarColaPrincipal(){
+ const api=window.flkIndexedDBPaso1;
+ if(!api||!api.disponible())throw new Error("IndexedDB no disponible");
+ if(typeof window.flkEsperarCapturasIndexedDB==="function")await window.flkEsperarCapturasIndexedDB();
+ const lectura=await api.leerEspejo();
+ const mapa=new Map();
+ (lectura.operaciones||[]).forEach(r=>{
+  const op=r&&r.payload;
+  if(op&&op.id&&["pendiente","error","conflicto"].includes(op.estado))mapa.set(r.storage_key,op);
+ });
+ return [...mapa.values()].sort((a,b)=>String(a.created_at||"").localeCompare(String(b.created_at||"")));
+}
+function flkRefrescarEstadoColaPrincipal(){
+ if(flkLecturaEstadoColaEnCurso)return flkLecturaEstadoColaEnCurso;
+ flkLecturaEstadoColaEnCurso=flkConsultarColaPrincipal().then(cola=>{
+  flkSnapshotColaPrincipal=cola;
+  flkProximoReintentoColaPrincipalMs=0;
+  return cola;
+ }).catch(err=>{
+  flkSnapshotColaPrincipal=null;
+  flkProximoReintentoColaPrincipalMs=Date.now()+3000;
+  console.warn("No se pudo consultar IndexedDB; estado de cola desconocido",err);
+  throw err;
+ }).finally(()=>{flkLecturaEstadoColaEnCurso=null;});
+ return flkLecturaEstadoColaEnCurso;
+}
 function flkPendientesOffline(){
- return flkColaOffline().filter(x=>["pendiente","error","conflicto"].includes(x.estado)).length
+ if(!flkSnapshotColaPrincipal){
+  if(!flkLecturaEstadoColaEnCurso&&Date.now()>=flkProximoReintentoColaPrincipalMs){
+   flkRefrescarEstadoColaPrincipal().then(()=>flkActualizarEstadoConexion()).catch(()=>flkActualizarEstadoConexion("error"));
+  }
+  return 0;
+ }
+ return flkSnapshotColaPrincipal.filter(x=>["pendiente","error","conflicto"].includes(x.estado)).length;
 }
 function flkConflictosOffline(){
- return flkColaOffline().filter(x=>x.estado==="conflicto").length
+ if(!flkSnapshotColaPrincipal)return 0;
+ return flkSnapshotColaPrincipal.filter(x=>x.estado==="conflicto").length;
 }
 
 let flkEstadoConexionAnterior="";
@@ -3277,6 +3513,7 @@ function flkActualizarEstadoConexion(estadoEspecial){
  box.className="";
  if(estabaExpandido)box.classList.add("flk-expandido");
  const n=flkPendientesOffline(),c=flkConflictosOffline();
+ if(!flkSnapshotColaPrincipal){box.classList.add("error");txt.textContent="⚠️ Verificando cola IndexedDB";pen.textContent="Estado pendiente de comprobación";return;}
  if(cambioEstado)setTimeout(flkMostrarAvisoConexionTemporal,0);
  if(estadoEspecial==="sync"){box.classList.add("sync");txt.textContent="🔄 Sincronizando";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"";return}
  if(c){box.classList.add("error");txt.textContent="⚠️ Conflicto pendiente";pen.textContent=`${c} conflicto${c===1?"":"s"}`;return}
@@ -3625,6 +3862,8 @@ function flkCierreLocalDesdeOperacion(op){
   gananciaBruta:Number(p.gross_profit||0),
   gastosTotal:Number(p.expenses_total||0),
   gananciaNeta:Number(p.net_profit||0),
+  prestacionesIngresos:Number(p.flk_prestaciones_ingresos||0),
+  prestacionesCostos:Number(p.flk_prestaciones_costos||0),
   cobrado:Number(p.collected_total||0),
   efectivo:Number(p.cash_total||0),
   ath:Number(p.ath_total||0),
@@ -3792,6 +4031,16 @@ async function flkProcesarOperacionOffline(op){
   pin="";
 
   if(error)throw error;
+
+  // v62.42.1 SEGURIDAD: este es el único momento en que un restablecimiento
+  // puesto en cola sin conexión puede borrar datos locales — Supabase ya
+  // confirmó que el PIN era correcto. Si el PIN hubiera sido incorrecto,
+  // el `if(error)throw error;` de arriba detiene todo antes de llegar aquí
+  // y no se borra nada.
+  if(typeof flkLimpiarDatosLocalesCentro==="function"){
+   try{flkLimpiarDatosLocalesCentro(bid);}catch(err2){console.error("Limpieza local tras reset de centro:",err2);}
+  }
+  console.info("Flackunloker: restablecimiento de centro confirmado por Supabase y aplicado localmente.",bid);
   return
  }
  if(op.tipo==="product_save"){
@@ -3893,11 +4142,23 @@ async function flkProcesarOperacionOffline(op){
  }
  if(op.tipo==="sale_return"){
   const p=op.payload||{};
+  let resolvedProductId=p.product_id||null;
+  if(!resolvedProductId&&p.product_operation_id&&p.local_product_id){
+   const bid=await flkExigirCentroActual();
+   const {data:matches,error:lookupError}=await flkSupabase.from("products")
+    .select("id").eq("business_id",bid).eq("legacy_id",String(p.local_product_id)).limit(2);
+   if(lookupError)throw lookupError;
+   if(!matches||matches.length!==1){
+    const err=new Error("Dependencia pendiente: el producto creado offline todavía no tiene ID de servidor único.");
+    err.flkDependenciaPendiente=true;throw err;
+   }
+   resolvedProductId=matches[0].id;
+  }
   const {error}=await flkSupabase.rpc("flk_return_sale_item_offline",{
    p_operation_id:op.id,
    p_sale_item_id:p.sale_item_id||null,
    p_sale_operation_id:p.sale_operation_id||null,
-   p_product_id:p.product_id||null,
+   p_product_id:resolvedProductId,
    p_quantity:Number(p.quantity||0),
    p_reason:p.reason||null
   });
@@ -4036,6 +4297,34 @@ async function flkSupabaseDisponible(timeoutMs=4500){
 let flkTemporizadorSyncSolicitada=null;
 let flkSyncSolicitadaMientrasCorre=false;
 let flkUltimaSyncIniciadaMs=0;
+/* v62.41.56: diagnóstico persistente y reintento acotado; nunca crea otra operación. */
+const FLK_SYNC_ERRORES_KEY="flackunloker_errores_sync_v1";
+let flkTemporizadorReintento=null;
+function flkRegistrarErrorSync(op,err,estado){
+ try{
+  const lista=JSON.parse(localStorage.getItem(FLK_SYNC_ERRORES_KEY)||"[]");
+  const datos=Array.isArray(lista)?lista:[];
+  datos.push({fecha:new Date().toISOString(),operacion_id:String(op.id||""),tipo:String(op.tipo||op.type||"desconocido"),estado:String(estado||"error"),intentos:Number(op.intentos||0),mensaje:String(err&&err.message||err).slice(0,350)});
+  flkLocalStorageSetSeguro(FLK_SYNC_ERRORES_KEY,JSON.stringify(datos.slice(-50)));
+ }catch(e){console.warn("No se pudo conservar diagnóstico de sincronización",e)}
+}
+window.flkVerErroresSync=function(){
+ try{const datos=JSON.parse(localStorage.getItem(FLK_SYNC_ERRORES_KEY)||"[]");console.table(datos);return datos}catch(_){return []}
+};
+function flkProgramarReintentoCola(){
+ if(flkTemporizadorReintento||!flkNubeDisponible())return;
+ // Máximo tres intentos automáticos por operación; los intentos manuales siguen disponibles.
+ flkRefrescarEstadoColaPrincipal().then(cola=>{
+  const errores=cola.filter(op=>op&&(op.estado==="error"||op.estado==="pendiente"));
+  if(!errores.length||flkTemporizadorReintento)return;
+  const demora=Math.min(60000,5000*Math.pow(2,Math.min(5,Math.max(...errores.map(op=>Number(op.reintentos_auto||0))))));
+  flkTemporizadorReintento=setTimeout(()=>{
+   flkTemporizadorReintento=null;
+   if(flkNubeDisponible())flkSolicitarSincronizacion("reintento-automatico",0);
+  },demora);
+ }).catch(err=>console.error("No se pudo programar reintento: IndexedDB no disponible",err));
+}
+
 
 /* v62.29 · Coordinador único de sincronización.
    Agrupa eventos online/focus/visibility y operaciones rápidas para evitar
@@ -4077,9 +4366,7 @@ async function flkSincronizarSeguro(){
   if(!session)return false;
 
   // Si hay operaciones offline, subirlas antes de volver a leer la nube.
-  if(flkPendientesOffline()>0){
-   await flkProcesarColaOffline();
-  }
+  await flkProcesarColaOffline();
 
   // Confirmación final: reconstruir la copia local desde la nube ya actualizada.
   if(typeof flkRecuperacionEmergenciaNube==="function"){
@@ -4120,21 +4407,117 @@ async function flkSincronizarSeguro(){
  }
 }
 
+/* v62.41.51: cola IndexedDB para procesamiento; localStorage conserva la captura
+   síncrona de operaciones antiguas y actúa como respaldo de recuperación. */
+/* v62.41.57: lectura autoritativa IndexedDB, sin reimportar respaldos antiguos.
+   La recuperación legacy es exclusivamente manual y debe auditarse antes de aplicar. */
+async function flkLeerColaPrincipalIndexedDB(){
+ const api=window.flkIndexedDBPaso1;
+ if(!api||!api.disponible())throw new Error("IndexedDB no disponible: sincronización suspendida");
+ if(typeof window.flkEsperarCapturasIndexedDB==="function")await window.flkEsperarCapturasIndexedDB();
+ const lectura=await api.leerEspejo();
+ const mapa=new Map();
+ (lectura.operaciones||[]).forEach(r=>{
+  const op=r&&r.payload;
+  if(op&&op.id&&["pendiente","error","conflicto"].includes(op.estado))mapa.set(r.storage_key,op);
+ });
+ const cola=[...mapa.values()].sort((a,b)=>String(a.created_at||"").localeCompare(String(b.created_at||"")));
+ // Lectura sin efectos secundarios: nunca sobrescribir una copia de emergencia al consultar.
+ flkSnapshotColaPrincipal=cola;
+ return cola;
+}
+
+async function flkGuardarColaPrincipalIndexedDB(cola,opActual){
+ const api=window.flkIndexedDBPaso1;
+ if(!api)throw new Error("IndexedDB no disponible");
+ if(opActual){
+  await api.espejarOperaciones([opActual]);
+  const lectura=await api.leerEspejo(opActual.business_id||null);
+  const registro=(lectura.operaciones||[]).find(r=>r.storage_key===api.storageKey(opActual.business_id,opActual.id));
+  if(!registro||JSON.stringify(registro.payload)!==JSON.stringify(opActual))throw new Error("IndexedDB no confirmó estado: "+opActual.id);
+ }
+ flkSnapshotColaPrincipal=cola.filter(x=>["pendiente","error","conflicto"].includes(x.estado));
+ try{flkGuardarColaOffline(cola)}catch(err){console.warn("Estado confirmado en IndexedDB; respaldo localStorage pendiente",err)}
+}
 async function flkProcesarColaOffline(){
  if(flkSincronizando||!flkNubeDisponible()||typeof flkSupabase==="undefined")return;
  const {data:{session}}=await flkSupabase.auth.getSession();
  if(!session)return;
- let q=flkColaOffline(),pendientes=q.filter(x=>x.estado==="pendiente"||x.estado==="error");
- if(!pendientes.length){flkActualizarEstadoConexion();return}
+ let q;
+ try{q=await flkLeerColaPrincipalIndexedDB()}catch(err){console.error("Cola IndexedDB: sincronización suspendida",err);flkActualizarEstadoConexion("error");return;}
+ // Offline-first: conservar conflictos históricos para auditoría, sin alterar ni borrar su payload.
+ // Reintentos de errores temporales no tienen límite de tres; el temporizador aplica backoff.
+ let pendientes=q.filter(x=>x.estado==="pendiente"||x.estado==="error");
+ if(!pendientes.length){
+  if(flkTemporizadorReintento){clearTimeout(flkTemporizadorReintento);flkTemporizadorReintento=null;}
+  flkActualizarEstadoConexion();return;
+ }
+ // v62.41.48 · PASO 11D: barrera de persistencia antes de enviar a Supabase.
+ // Conserva localStorage como origen; si IndexedDB falla, NO se envía la cola.
+ // No borra ni modifica las copias locales ni declara IndexedDB principal.
+ //
+ // v62.42.3 SEGURIDAD (corrige efecto dominó): antes, si UNA sola operación no
+ // pasaba esta verificación (incluido un falso positivo transitorio, p.ej. una
+ // IndexedDB recién creada que aún no asienta), se cancelaba la sincronización
+ // de TODA la cola — incluidas ventas nuevas sin ninguna relación con la
+ // operación problemática. Eso encadenó errores de venta y de Supabase a
+ // partir de un solo retiro con falso positivo. Ahora solo se aparta la(s)
+ // operación(es) que no verifican; las demás siguen su curso normal, y la(s)
+ // aparcada(s) se reintenta(n) en la siguiente pasada sin bloquear nada más.
+ let operacionesVerificadas=pendientes;
+ try{
+  const api=window.flkIndexedDBPaso1;
+  if(!api||typeof api.espejarOperaciones!=="function"||typeof api.leerEspejo!=="function"){
+   throw new Error("IndexedDB no disponible para verificar operaciones pendientes");
+  }
+  await api.espejarOperaciones(pendientes);
+  const lectura=await api.leerEspejo();
+  const registros=new Map((lectura.operaciones||[]).map(r=>[r.storage_key,r]));
+  const verificadas=[],aparcadas=[];
+  for(const op of pendientes){
+   const key=api.storageKey(op.business_id,op.id);
+   const guardada=registros.get(key);
+   if(guardada&&JSON.stringify(guardada.payload)===JSON.stringify(op)){
+    verificadas.push(op);
+   }else{
+    aparcadas.push(op);
+    console.warn("Flackunloker: operación aparcada esta pasada (verificación IndexedDB no coincidió); se reintenta luego sin bloquear las demás:",op.id);
+   }
+  }
+  operacionesVerificadas=verificadas;
+  window.flkUltimaBarreraIndexedDBPaso11D={ok:aparcadas.length===0,verificadas:verificadas.length,aparcadas:aparcadas.length,fecha:new Date().toISOString()};
+  if(!verificadas.length){
+   try{flkActualizarEstadoConexion("error")}catch(_){}
+   return;
+  }
+ }catch(err){
+  window.flkUltimaBarreraIndexedDBPaso11D={ok:false,error:String(err&&err.message||err),fecha:new Date().toISOString()};
+  console.error("Flackunloker: sincronización detenida; cola local intacta porque IndexedDB no confirmó la escritura.",err);
+  try{flkActualizarEstadoConexion("error")}catch(_){}
+  return;
+ }
  flkSincronizando=true;flkActualizarEstadoConexion("sync");
  let huboCambios=false;
- for(const op of pendientes){
+ for(const op of operacionesVerificadas){
+  // Parents first: never send a child while its creation/sale is unresolved.
+  const referencias=[];
+  if(op.payload?.product_operation_id)referencias.push(op.payload.product_operation_id);
+  if(op.payload?.sale_operation_id)referencias.push(op.payload.sale_operation_id);
+  if(op.tipo==="sale"&&Array.isArray(op.payload?.items)){
+   for(const item of op.payload.items){if(item?.product_operation_id)referencias.push(item.product_operation_id);}
+  }
+  const dependencia=q.find(x=>x.id!==op.id&&referencias.includes(x.id)&&x.estado!=="sincronizado");
+  if(dependencia){
+   op.ultimo_error="Esperando sincronización de operación anterior: "+dependencia.id;
+   if(op.estado!=="conflicto")op.estado="pendiente";
+   await flkGuardarColaPrincipalIndexedDB(q,op);
+   continue;
+  }
   try{
    op.intentos=Number(op.intentos||0)+1;
    await flkProcesarOperacionOffline(op);
-   op.estado="sincronizado";op.synced_at=new Date().toISOString();op.ultimo_error="";
+   op.estado="sincronizado";op.synced_at=new Date().toISOString();op.ultimo_error="";op.reintentos_auto=0;
    flkMarcarConfirmacionServidor();
-   flkArchivarOperacionConfirmada(op);
    huboCambios=true
   }catch(err){
    const msg=String(err?.message||err);
@@ -4149,14 +4532,18 @@ async function flkProcesarColaOffline(){
     op.ultimo_error="Pendiente de autorización con PIN.";
     console.info("Restablecimiento pendiente de autorización",op.id);
    }else{
-    op.estado=/inventario insuficiente|producto no encontrado|duplicate key|conflict/i.test(msg)?"conflicto":"error";
+    op.estado=err?.flkDependenciaPendiente===true?"pendiente":(/inventario insuficiente|duplicate key|conflict/i.test(msg)?"conflicto":"error");
+    // Guardar el error antes de que una sincronización posterior limpie ultimo_error.
+    flkRegistrarErrorSync(op,err,op.estado);
+    if(op.estado==="error")op.reintentos_auto=Number(op.reintentos_auto||0)+1;
     console.error("Operación offline",op.id,msg);
    }
   }
-  flkGuardarColaOffline(q)
+  await flkGuardarColaPrincipalIndexedDB(q,op);
+  if(op.estado==="sincronizado")flkArchivarOperacionConfirmada(op);
  }
  q=q.filter(x=>x.estado!=="sincronizado");
- flkGuardarColaOffline(q);
+ await flkGuardarColaPrincipalIndexedDB(q);
  // PASO 10: limpieza secundaria. Solo operaciones archivadas como confirmadas,
  // ausentes de AMBAS copias de la cola oficial; un fallo no bloquea la sincronización.
  if(huboCambios&&typeof window.flkLimpiarEspejoConfirmadoPaso10==="function"){
@@ -4169,7 +4556,8 @@ async function flkProcesarColaOffline(){
   }
  }finally{
   flkSincronizando=false;
-  flkActualizarEstadoConexion(q.some(x=>x.estado==="error")?"error":null)
+  flkActualizarEstadoConexion(q.some(x=>x.estado==="error")?"error":null);
+  if(q.some(x=>x.estado==="error"||x.estado==="pendiente"))flkProgramarReintentoCola();
  }
 }
 window.addEventListener("online",async()=>{
@@ -4259,7 +4647,7 @@ function mostrarCambioPinReset(){
 }
 async function guardarPinReset(){
  const a=document.getElementById("nuevoPinReset").value,b=document.getElementById("confirmarPinReset").value;
- if(!/^\d{6}$/.test(a))return alert("El PIN debe tener exactamente 6 dígitos.");
+ if(!/^\d{8}$/.test(a))return alert("El PIN debe tener exactamente 8 dígitos.");
  if(a!==b)return alert("Los dos PIN no coinciden.");
  const {error}=await flkSupabase.rpc("flk_set_reset_pin",{p_pin:a});
  if(error){if(flkSilenciarSiEsConexion(error))return;return alert("Supabase rechazó el PIN: "+error.message)};
@@ -4270,7 +4658,7 @@ async function guardarPinReset(){
 async function ejecutarRestablecimientoTotal(){
  const pin=document.getElementById("pinEjecutarReset").value;
  const texto=document.getElementById("textoConfirmarReset").value.trim().toUpperCase();
- if(!/^\d{6}$/.test(pin))return alert("Introduce tu PIN de 6 dígitos.");
+ if(!/^\d{6,8}$/.test(pin))return alert("Introduce tu PIN de restablecimiento (6 a 8 dígitos).");
  if(texto!=="RESTABLECER")return alert("Para confirmar debes escribir exactamente RESTABLECER.");
  if(!confirm("ÚLTIMA CONFIRMACIÓN: se borrarán permanentemente todos los datos operativos. ¿Continuar?"))return;
  const {error}=await flkSupabase.rpc("flk_full_system_reset",{p_pin:pin,p_confirmation:"RESTABLECER"});
@@ -6989,9 +7377,8 @@ async function cargarInventarioSupabase(){
  productos=remotos.map(productoDesdeSupabase);
  guardarDatos();
 
- // ONLINE: el stock confirmado por Supabase es la fuente de verdad.
- // No reaplicar aquí movimientos offline pendientes/error/conflicto porque
- // pueden haber sido procesados ya y duplicar visualmente el inventario.
+ // No sustituir el inventario local si existen operaciones pendientes: una lectura
+ // remota no incluye necesariamente ventas/entradas recién guardadas en IndexedDB.
  // OFFLINE sigue aplicando la cola en la rama superior de esta función.
  inventarioSupabaseListo=true;
  mostrarProductos();
@@ -7021,10 +7408,10 @@ async function guardarProductoSupabase(p,esNuevo=false,stockInicial=0){
 }
 async function ajustarStockSupabase(p,delta,tipo,nota=""){
  if(!p.supabaseId&&!p.offlineCreateOperationId)throw new Error("Producto sin referencia de sincronización.");
- if(!flkNubeDisponible()||!p.supabaseId){
+ if(true){ // OFFLINE-FIRST: toda entrada/salida se confirma primero en IndexedDB.
   const nuevo=Number(p.cantidad||0)+Number(delta);
   if(nuevo<0)throw new Error("Inventario insuficiente para "+p.nombre);
-  flkEncolarOperacion("stock_adjustment",{
+  await flkEncolarOperacionIndexedDB("stock_adjustment",{
    product_id:p.supabaseId||null,
    product_operation_id:p.offlineCreateOperationId||null,
    local_product_id:p.id,
@@ -7278,25 +7665,6 @@ async function cargarComprasSupabase(){
  });
  guardarProveedores();guardarOrdenesCompra();actualizarOpcionesOrganizacion();actualizarProveedores();actualizarOrdenesCompra();actualizarCuentasPagar();return true
 }
-async function migrarComprasLocalesSupabase(){
- if(rolSesion!=="admin")return cargarComprasSupabase();
- const lp=[...proveedores],lo=[...ordenesCompra];
- for(const p of lp){
-  if(p.supabaseId)continue;
-  const {error}=await flkSupabase.from("suppliers").upsert({legacy_id:String(p.id),name:p.nombre,contact_name:p.contacto||null,phone:p.telefono||null,email:p.email||null,address:p.direccion||null,notes:p.nota||null},{onConflict:"legacy_id"});
-  if(error)throw error;
- }
- await cargarComprasSupabase();
- for(const o of lo){
-  if(o.supabaseId)continue;
-  const prov=proveedores.find(p=>nombreProveedorNorm(p.nombre)===nombreProveedorNorm(o.proveedor)),prod=productos.find(p=>p.id===o.productoId);
-  if(!prov?.supabaseId||!prod?.supabaseId)continue;
-  const {error}=await flkSupabase.from("purchase_orders").upsert({legacy_id:String(o.id),supplier_id:prov.supabaseId,product_id:prod.supabaseId,quantity:Number(o.cantidad),unit_cost:Number(o.costoUnitario),order_date:o.fechaOrden,status:o.estado==="recibida"?"received":o.estado==="ordenada"?"ordered":"pending",note:o.nota||null,ordered_at:o.fechaOrdenada||null,received_at:o.fechaRecibida||null,payment_condition:o.condicionPagoProveedor||null,payment_method:o.metodoPagoProveedor||null,due_date:o.fechaVencimientoProveedor||null,total_amount:Number(o.costoTotal||Number(o.cantidad)*Number(o.costoUnitario)),paid_amount:Number(o.totalPagadoProveedor||0),balance_due:Number(o.saldoProveedor||0)},{onConflict:"legacy_id"});
-  if(error)throw error;
- }
- return cargarComprasSupabase()
-}
-
 function guardarOrdenesCompra(){flkLocalStorageSetSeguro(flkLocalKey("flackunloker_ordenes_compra"),JSON.stringify(ordenesCompra))}
 function guardarProveedores(){flkLocalStorageSetSeguro(flkLocalKey("flackunloker_proveedores"),JSON.stringify(proveedores))}
 if(flkUuidValido(FLK_BUSINESS_ID))flkMigrarLocalLegacyAlCentro(FLK_BUSINESS_ID);
@@ -7346,7 +7714,7 @@ document.getElementById("formularioProducto").addEventListener("submit",async e=
    const p=productos.find(x=>x.id===productoEditando);if(!p)return;
    if(productos.some(x=>x.id!==productoEditando&&String(x.sku||"").trim().toLowerCase()===skuNorm))return alert("Ya existe otro producto con ese SKU.");
    const stockAnterior=Number(p.cantidad||0),createRef=p.offlineCreateOperationId||null;
-   const op=flkEncolarOperacion("product_save",{product_id:p.supabaseId||null,product_operation_id:!p.supabaseId?createRef:null,legacy_id:String(p.id),local_product_id:p.id,sku,name:nombre,category:categoria||null,cost:costo,price:precio,min_stock:stockMinimo,supplier_name:proveedor||null,location:ubicacion||null,initial_stock:0,local_stock:stockAnterior});
+   const op=await flkEncolarOperacionIndexedDB("product_save",{product_id:p.supabaseId||null,product_operation_id:!p.supabaseId?createRef:null,legacy_id:String(p.id),local_product_id:p.id,sku,name:nombre,category:categoria||null,cost:costo,price:precio,min_stock:stockMinimo,supplier_name:proveedor||null,location:ubicacion||null,initial_stock:0,local_stock:stockAnterior});
    p.nombre=nombre;p.sku=sku;p.costo=costo;p.precio=precio;p.categoria=categoria;p.proveedor=proveedor;p.ubicacion=ubicacion;p.stockMinimo=stockMinimo;p.offlineOperationId=op.id;p.offlinePendiente=true;
    if(createRef)p.offlineCreateOperationId=createRef;
    if(cantidad!==stockAnterior){
@@ -7357,7 +7725,7 @@ document.getElementById("formularioProducto").addEventListener("submit",async e=
   }else{
    if(productos.some(x=>String(x.sku||"").trim().toLowerCase()===skuNorm))return alert("Ya existe un producto con ese SKU.");
    const id=Date.now()+Math.floor(Math.random()*100000);
-   const op=flkEncolarOperacion("product_save",{product_id:null,product_operation_id:null,legacy_id:String(id),local_product_id:id,sku,name:nombre,category:categoria||null,cost:costo,price:precio,min_stock:stockMinimo,supplier_name:proveedor||null,location:ubicacion||null,initial_stock:cantidad,local_stock:cantidad});
+   const op=await flkEncolarOperacionIndexedDB("product_save",{product_id:null,product_operation_id:null,legacy_id:String(id),local_product_id:id,sku,name:nombre,category:categoria||null,cost:costo,price:precio,min_stock:stockMinimo,supplier_name:proveedor||null,location:ubicacion||null,initial_stock:cantidad,local_stock:cantidad});
    productos.push({id,nombre,sku,cantidad,costo,precio,categoria,proveedor,ubicacion,stockMinimo,supabaseId:null,offlineCreateOperationId:op.id,offlineOperationId:op.id,offlinePendiente:true});
    if(cantidad>0)historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:id,nombre,sku,tipo:"entrada",cantidad,saldo:cantidad,fecha:new Date().toISOString(),detalle:"🟠 Inventario inicial pendiente de sincronización"});
   }
@@ -7466,7 +7834,7 @@ async function eliminarProducto(id){
 
  if(!confirm("¿Retirar este producto del inventario activo?\n\nLas ventas, movimientos y cálculos históricos se conservarán."))return;
 
- flkEncolarOperacion("product_delete",{
+ await flkEncolarOperacionIndexedDB("product_delete",{
   product_id:p.supabaseId||null,
   product_operation_id:p.offlineCreateOperationId||null,
   local_product_id:p.id
@@ -7777,6 +8145,7 @@ function flkAplicarDevolucionesSupabaseAVenta(local, retornos, ventaNube){
 }
 
 async function cargarVentasSupabase(){
+ if(Date.now()<flkLecturasSinPermisoHasta.ventas)return false;
  if(flkModoRecuperacionPassword)return false;
  if(flkNubeDisponible()&&!flkSesionActiva)return false;
  if(!flkNubeDisponible()){
@@ -7792,7 +8161,7 @@ async function cargarVentasSupabase(){
 
  let {data:cloud,error}=await consulta();
  if(!flkSesionActiva)return false;
- if(error){console.error("Supabase ventas:",error);if(flkDebeMostrarErrorNube(error))alert("No se pudieron cargar las ventas de Supabase.");return false}
+ if(error){console.error("Supabase ventas:",error);if(!flkPausarLecturaSinPermiso("ventas",error)&&flkDebeMostrarErrorNube(error))alert("No se pudieron cargar las ventas de Supabase.");return false}
 
  if(rolSesion==="admin" && locales.length){
   const existentesLegacy=new Set((cloud||[]).map(v=>String(v.legacy_id||"")).filter(Boolean));
@@ -7906,37 +8275,25 @@ async function cargarVentasSupabase(){
 }
 
 async function registrarVentaSupabase(datos){
+ // Offline-first: la venta se confirma en IndexedDB antes de tocar la nube.
+ // Incluso conectado, nunca usar una ruta RPC directa que pueda fallar antes
+ // de registrar el recibo local y descontar el inventario.
  const items=datos.items.map(i=>{
   const p=productos.find(x=>x.id===i.productoId);
   if(!p||(!p.supabaseId&&!p.offlineCreateOperationId))throw new Error("El producto "+i.nombre+" no tiene referencia de sincronización.");
   return {product_id:p.supabaseId||null,product_operation_id:p.offlineCreateOperationId||null,quantity:Number(i.cantidad),unit_price:Number(i.precioUnitario)};
  });
- if(!flkNubeDisponible()||items.some(i=>!i.product_id&&i.product_operation_id)){
-  const op=flkEncolarOperacion("sale",{
-   customer_name:datos.cliente||"Cliente general",
-   customer_phone:datos.telefono||null,
-   payment_method:datos.metodoPago||"Efectivo",
-   paid_amount:Number(datos.totalPagado||0),
-   due_date:datos.fechaVencimiento||null,
-   note:datos.nota||null,
-   items,
-   local_sale:{...datos}
-  });
-  return "offline:"+op.id
- }
- const {data,error}=await flkSupabase.rpc("flk_record_sale",{
-  p_legacy_id:String(datos.ventaId),
-  p_receipt_number:String(datos.numero),
-  p_customer_name:datos.cliente||"Cliente general",
-  p_customer_phone:datos.telefono||null,
-  p_payment_method:datos.metodoPago||"cash",
-  p_paid_amount:Number(datos.totalPagado||0),
-  p_due_date:datos.fechaVencimiento||null,
-  p_note:datos.nota||null,
-  p_items:items
+ const op=await flkEncolarOperacionIndexedDB("sale",{
+  customer_name:datos.cliente||"Cliente general",
+  customer_phone:datos.telefono||null,
+  payment_method:datos.metodoPago||"Efectivo",
+  paid_amount:Number(datos.totalPagado||0),
+  due_date:datos.fechaVencimiento||null,
+  note:datos.nota||null,
+  items,
+  local_sale:{...datos}
  });
- if(error)throw error;
- return data;
+ return "offline:"+op.id;
 }
 document.getElementById("formularioVenta").addEventListener("submit",async e=>{
  e.preventDefault();e.stopPropagation();if(procesandoGuardado)return;
@@ -8366,14 +8723,15 @@ document.getElementById("formularioDevolucion").addEventListener("submit",async 
 
  if(!flkNubeDisponible()){
   if(!item.supabaseSaleItemId && !saleOperationId)return alert("Este recibo no tiene una referencia segura para sincronizar la devolución.");
-  if(!productId)return alert("Este producto todavía no está vinculado con Supabase.");
+  if(!productId&&!prod?.offlineCreateOperationId)return alert("Este producto no tiene referencia de creación local ni de Supabase.");
 
   procesandoGuardado=true;
   try{
-   const op=flkEncolarOperacion("sale_return",{
+   const op=await flkEncolarOperacionIndexedDB("sale_return",{
     sale_item_id:item.supabaseSaleItemId||null,
     sale_operation_id:saleOperationId,
     product_id:productId,
+    product_operation_id:prod?.offlineCreateOperationId||null,
     local_sale_id:v.id,
     local_product_id:item.productoId,
     local_return_id:Date.now()+Math.floor(Math.random()*100000),
@@ -8393,11 +8751,11 @@ document.getElementById("formularioDevolucion").addEventListener("submit",async 
  }
 
  if(!item.supabaseSaleItemId && !saleOperationId)return alert("Este artículo del recibo todavía no tiene una referencia segura para sincronizar la devolución.");
- if(!productId)return alert("Este producto todavía no está vinculado con Supabase.");
+ if(!productId&&!prod?.offlineCreateOperationId)return alert("Este producto no tiene referencia de creación local ni de Supabase.");
 
  procesandoGuardado=true;
  try{
-  const op=flkEncolarOperacion("sale_return",{
+  const op=await flkEncolarOperacionIndexedDB("sale_return",{
    sale_item_id:item.supabaseSaleItemId||null,
    sale_operation_id:saleOperationId,
    product_id:productId,
@@ -8448,7 +8806,7 @@ document.getElementById("formularioAbono").addEventListener("submit",async e=>{
   if(!v.supabaseId&&!v.offlineOperationId)return alert("Este recibo no tiene una referencia segura para sincronizar el abono.");
   procesandoGuardado=true;
   try{
-   const op=flkEncolarOperacion("sale_payment",{
+   const op=await flkEncolarOperacionIndexedDB("sale_payment",{
     sale_id:v.supabaseId||null,
     sale_operation_id:v.offlineOperationId||null,
     local_sale_id:v.id,
@@ -8656,7 +9014,7 @@ document.getElementById("formularioGasto").addEventListener("submit",async e=>{
     expense_date:fechaLocal,
     note:nota||null
    };
-   const op=flkEncolarOperacion("expense_save",payload);
+   const op=await flkEncolarOperacionIndexedDB("expense_save",payload);
    const local=flkGastoLocalDesdeOperacion(op);
    const idx=gastos.findIndex(x=>x.id===local.id || (supabaseId&&x.supabaseId===supabaseId));
    if(idx>=0)gastos[idx]={...gastos[idx],...local};
@@ -8691,11 +9049,10 @@ async function eliminarGasto(id){
 
  if(!flkNubeDisponible()){
   if(!g.supabaseId){
-   let q=flkColaOffline();
-   q=q.filter(op=>!(op.tipo==="expense_save" && String(op.payload?.legacy_id||"")===String(g.id)));
-   flkGuardarColaOffline(q);
+   alert("Este gasto sigue pendiente de sincronización. Sincronízalo antes de eliminarlo para no dejar la operación original en IndexedDB.");
+   return;
   }else{
-   flkEncolarOperacion("expense_delete",{expense_id:g.supabaseId});
+   await flkEncolarOperacionIndexedDB("expense_delete",{expense_id:g.supabaseId});
   }
   gastos=gastos.filter(x=>x.id!==id);
   guardarGastos();actualizarGastos();actualizarResumen();actualizarFlujoCaja();actualizarFinanzas();
@@ -8741,14 +9098,31 @@ function metodoCajaClave(metodo){
  };
  return mapa[m]||"otros"
 }
+/* Desglose informativo: no altera saldos ni registros de cierre. */
+function flkDetallePrestacionesCierre(fechaLocal){
+ let ingresos=0,costos=0;
+ try{
+  const bid=typeof flkBusinessGuardado==="function"?String(flkBusinessGuardado()||"global"):"global";
+  const registros=JSON.parse(localStorage.getItem("flackunloker_prestaciones_servicio_v1::"+bid)||"[]");
+  if(Array.isArray(registros))registros.forEach(p=>{
+   if(String(p.fecha||"")!==fechaLocal)return;
+   if(typeof flkEsMetodoFinanzasCUP==="function"&&!flkEsMetodoFinanzasCUP(p.metodo||"Efectivo CUP"))return;
+   ingresos+=Number(p.ingreso||0);costos+=Number(p.costo||0);
+  });
+ }catch(e){console.warn("Desglose de prestaciones del cierre:",e);}
+ const movimientos=movimientosFlujoCaja().filter(m=>fechaLocalDeValor(m.fecha)===fechaLocal);
+ const cobrado=movimientos.filter(m=>m.tipo==="entrada"&&m.grupo==="prestacion"&&metodoCajaClave(m.metodo)==="efectivoCup").reduce((t,m)=>t+Number(m.cantidad||0),0);
+ const devoluciones=movimientos.filter(m=>m.tipo==="salida"&&m.grupo==="reembolso"&&metodoCajaClave(m.metodo)==="efectivoCup").reduce((t,m)=>t+Number(m.cantidad||0),0);
+ return {ingresos,costos,cobrado,devoluciones};
+}
 function resumenCierreFecha(fechaLocal){
  const ventasDia=ventas.filter(v=>fechaLocalDeValor(v.fecha)===fechaLocal);
  const gastosDia=gastos.filter(g=>(g.fechaLocal||String(g.fecha||"").slice(0,10))===fechaLocal);
- const recibos=ventasDia.length,unidades=ventasDia.reduce((t,v)=>t+unidadesNetasVenta(v),0),ventasTotal=ventasDia.reduce((t,v)=>t+Number(v.ingreso||0),0),costo=ventasDia.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasDia.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosDia.reduce((t,g)=>t+Number(g.cantidad||0),0),gananciaNeta=gananciaBruta-gastosTotal;
+ const recibos=ventasDia.length,unidades=ventasDia.reduce((t,v)=>t+unidadesNetasVenta(v),0),ventasTotal=ventasDia.reduce((t,v)=>t+Number(v.ingreso||0),0),costo=ventasDia.reduce((t,v)=>t+Number(v.costoTotal||0),0),gananciaBruta=ventasDia.reduce((t,v)=>t+Number(v.ganancia||0),0),gastosTotal=gastosDia.reduce((t,g)=>t+Number(g.cantidad||0),0),detallePrest=flkDetallePrestacionesCierre(fechaLocal),gananciaNeta=gananciaBruta-gastosTotal+detallePrest.ingresos-detallePrest.costos;
  const cobros={efectivoCup:0,efectivoUsd:0,transferenciaCup:0,transferenciaUsd:0,transferenciaMlc:0,efectivoEuro:0,zelle:0,otros:0};
  const movimientosDia=movimientosFlujoCaja().filter(m=>fechaLocalDeValor(m.fecha)===fechaLocal);
  movimientosDia.forEach(m=>{
-  if(m.tipo!=="entrada"||!["venta","abono"].includes(m.grupo))return;
+  if(m.tipo!=="entrada"||!["venta","abono","prestacion"].includes(m.grupo))return;
   cobros[metodoCajaClave(m.metodo)]+=Number(m.cantidad||0);
  });
  const cobrado=Object.values(cobros).reduce((a,b)=>a+b,0);
@@ -8759,7 +9133,7 @@ function resumenCierreFecha(fechaLocal){
   .filter(m=>m.tipo==="salida"&&m.grupo==="gasto"&&flkEsEfectivoCUP(m.metodo))
   .reduce((t,m)=>t+Number(m.cantidad||0),0);
  const efectivoNeto=saldoCajaFisicaActual();
- return {fechaLocal,recibos,unidades,ventasTotal,costo,gananciaBruta,gastosTotal,gananciaNeta,cobrado,
+ return {fechaLocal,recibos,unidades,ventasTotal,costo,gananciaBruta,gastosTotal,gananciaNeta,prestacionesIngresos:detallePrest.ingresos,prestacionesCostos:detallePrest.costos,cobrado,
   efectivo:cobros.efectivoCup,transferenciaCup:cobros.transferenciaCup,ath:0,tarjeta:0,
   otros:cobros.efectivoUsd+cobros.transferenciaUsd+cobros.transferenciaMlc+cobros.efectivoEuro+cobros.zelle+cobros.otros,
   metodosPago:cobros,credito,saldoCredito,gastoEfectivo,efectivoNeto}
@@ -8768,6 +9142,11 @@ function formatoDineroCierre(n){n=Number(n||0);return (n<0?"-$":"$")+Math.abs(n)
 function actualizarCierre(){
  const fecha=fechaLocalISO(new Date()),r=resumenCierreFecha(fecha),f=new Date(fecha+"T12:00:00");
  document.getElementById("cierreFechaHoy").textContent=f.toLocaleDateString("es-PR",{weekday:"long",day:"2-digit",month:"2-digit",year:"numeric"});
+ const detallePrest=flkDetallePrestacionesCierre(fecha);
+ document.getElementById("cierrePrestacionesHoy").textContent=formatoDineroCierre(detallePrest.ingresos);
+ document.getElementById("cierreCostosPrestacionesHoy").textContent=formatoDineroCierre(detallePrest.costos);
+ document.getElementById("cierrePrestacionesEfectivoHoy").textContent=formatoDineroCierre(detallePrest.cobrado);
+ document.getElementById("cierreDevolucionesHoy").textContent=formatoDineroCierre(detallePrest.devoluciones);
  document.getElementById("cierreRecibosUnidades").textContent=r.recibos+" / "+r.unidades;document.getElementById("cierreVentasHoy").textContent=formatoDineroCierre(r.ventasTotal);document.getElementById("cierreCostoHoy").textContent=formatoDineroCierre(r.costo);document.getElementById("cierreGananciaBrutaHoy").textContent=formatoDineroCierre(r.gananciaBruta);document.getElementById("cierreGastosHoy").textContent=formatoDineroCierre(r.gastosTotal);document.getElementById("cierreGananciaNetaHoy").textContent=formatoDineroCierre(r.gananciaNeta);document.getElementById("cierreCobradoHoy").textContent=formatoDineroCierre(r.cobrado);document.getElementById("cierreEfectivoHoy").textContent=formatoDineroCierre(r.efectivo);document.getElementById("cierreTransferenciaCupHoy").textContent=formatoDineroCierre(r.transferenciaCup);document.getElementById("cierreAthHoy").textContent=formatoDineroCierre(r.ath);document.getElementById("cierreTarjetaHoy").textContent=formatoDineroCierre(r.tarjeta);document.getElementById("cierreOtrosHoy").textContent=formatoDineroCierre(r.otros);document.getElementById("cierreCreditoHoy").textContent=formatoDineroCierre(r.credito);document.getElementById("cierreSaldoCreditoHoy").textContent=formatoDineroCierre(r.saldoCredito);document.getElementById("cierreGastoEfectivoHoy").textContent=formatoDineroCierre(r.gastoEfectivo);document.getElementById("cierreEfectivoNetoHoy").textContent=formatoDineroCierre(r.efectivoNeto);
  const existente=cierres.find(c=>c.fechaLocal===fecha),estado=document.getElementById("estadoCierreHoy"),boton=document.getElementById("botonGuardarCierre");if(existente){estado.textContent="🔒 Este día ya tiene un cierre guardado. Puedes actualizarlo si hiciste una corrección posterior.";estado.classList.add("visible");boton.textContent="🔄 Actualizar cierre de hoy"}else{estado.classList.remove("visible");boton.textContent="🔒 Guardar cierre de hoy"}mostrarListaCierres()
 }
@@ -8775,13 +9154,15 @@ async function guardarCierreHoy(){
  const fecha=fechaLocalISO(new Date()),r=resumenCierreFecha(fecha),existente=cierres.find(c=>c.fechaLocal===fecha);
  if(existente&&!confirm("Ya existe un cierre para hoy. ¿Quieres reemplazarlo con los valores actuales?"))return;
 
- const op=flkEncolarOperacion("cash_closure_save",{
+ const op=await flkEncolarOperacionIndexedDB("cash_closure_save",{
   closure_id:existente?.supabaseId||null,
   local_closure_id:existente?.id||Date.now()+Math.floor(Math.random()*100000),
   close_date:fecha,receipts_count:Number(r.recibos||0),units_count:Number(r.unidades||0),
   sales_total:Number(r.ventasTotal||0),cost_total:Number(r.costo||0),
   gross_profit:Number(r.gananciaBruta||0),expenses_total:Number(r.gastosTotal||0),
-  net_profit:Number(r.gananciaNeta||0),collected_total:Number(r.cobrado||0),
+  net_profit:Number(r.gananciaNeta||0),
+  flk_prestaciones_ingresos:Number(r.prestacionesIngresos||0),
+  flk_prestaciones_costos:Number(r.prestacionesCostos||0),collected_total:Number(r.cobrado||0),
   cash_total:Number(r.efectivo||0),ath_total:Number(r.ath||0),
   card_total:Number(r.tarjeta||0),other_total:Number(r.otros||0)+Number(r.transferenciaCup||0),
   credit_sales:Number(r.credito||0),credit_balance:Number(r.saldoCredito||0),
@@ -8791,10 +9172,10 @@ async function guardarCierreHoy(){
  guardarCierres();actualizarCierre();
  if(flkNubeDisponible())setTimeout(flkProcesarColaOffline,0);
 }
-function mostrarListaCierres(){const lista=document.getElementById("listaCierres"),arr=[...cierres].sort((a,b)=>String(b.fechaLocal).localeCompare(String(a.fechaLocal)));if(!arr.length){lista.innerHTML='<div class="sin-productos">Todavía no hay cierres guardados.</div>';return}lista.innerHTML=arr.map(c=>{const f=new Date(c.fechaLocal+"T12:00:00");return `<div class="cierre-card"><div class="venta-superior"><div><h3>Cierre · ${f.toLocaleDateString("es-PR")}</h3><p>Guardado ${new Date(c.guardado||Date.now()).toLocaleString("es-PR")}</p></div><div class="cierre-total">${formatoDineroCierre(c.gananciaNeta)}</div></div><div class="cierre-detalle">Ventas: <strong>${formatoDineroCierre(c.ventasTotal)}</strong> · Gastos: <strong>${formatoDineroCierre(c.gastosTotal)}</strong><br>Ganancia bruta: <strong>${formatoDineroCierre(c.gananciaBruta)}</strong> · Ganancia neta: <strong>${formatoDineroCierre(c.gananciaNeta)}</strong><br>Cobrado: <strong>${formatoDineroCierre(c.cobrado)}</strong> · Saldo final caja: <strong>${formatoDineroCierre(c.efectivoNeto)}</strong><br>Efectivo: ${formatoDineroCierre(c.efectivo)} · ATH: ${formatoDineroCierre(c.ath)} · Tarjeta: ${formatoDineroCierre(c.tarjeta)} · Otros: ${formatoDineroCierre(c.otros)}<br>Crédito: ${formatoDineroCierre(c.credito)} · Saldo pendiente: ${formatoDineroCierre(c.saldoCredito)}</div><div class="cierre-acciones"><button class="boton-cierre" onclick="imprimirCierre(${c.id})">🧾 Ver / imprimir</button><button class="boton-cierre boton-cierre-peligro" onclick="eliminarCierre(${c.id})">🗑️ Eliminar</button></div></div>`}).join("")}
-function imprimirCierre(id){const c=cierres.find(x=>x.id===id);if(!c)return;const f=new Date(c.fechaLocal+"T12:00:00"),contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cierre ${c.fechaLocal}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#f4f7fb;color:#111;margin:0}.hoja{max-width:460px;margin:24px auto;background:#fff;padding:28px;border-radius:18px}.fila{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid #eee}.total{font-size:20px;font-weight:800}.btn{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700}@media print{body{background:#fff}.hoja{margin:0;max-width:none}.btn{display:none}}
+function mostrarListaCierres(){const lista=document.getElementById("listaCierres"),arr=[...cierres].sort((a,b)=>String(b.fechaLocal).localeCompare(String(a.fechaLocal)));const desgloseFecha=c=>c.prestacionesIngresos!==undefined?{ingresos:c.prestacionesIngresos,costos:c.prestacionesCostos}:flkDetallePrestacionesCierre(c.fechaLocal);if(!arr.length){lista.innerHTML='<div class="sin-productos">Todavía no hay cierres guardados.</div>';return}lista.innerHTML=arr.map(c=>{const f=new Date(c.fechaLocal+"T12:00:00");return `<div class="cierre-card"><div class="venta-superior"><div><h3>Cierre · ${f.toLocaleDateString("es-PR")}</h3><p>Guardado ${new Date(c.guardado||Date.now()).toLocaleString("es-PR")}</p></div><div class="cierre-total">${formatoDineroCierre(c.gananciaNeta)}</div></div><div class="cierre-detalle">Ventas: <strong>${formatoDineroCierre(c.ventasTotal)}</strong> · Prestaciones CUP (desglose actual): <strong>${formatoDineroCierre(desgloseFecha(c).ingresos)}</strong> · Gastos: <strong>${formatoDineroCierre(c.gastosTotal)}</strong><br>Ganancia bruta: <strong>${formatoDineroCierre(c.gananciaBruta)}</strong> · ${c.prestacionesIngresos!==undefined?"Ganancia neta conjunta":"Ganancia neta guardada (histórica)"}: <strong>${formatoDineroCierre(c.gananciaNeta)}</strong><br>Cobrado: <strong>${formatoDineroCierre(c.cobrado)}</strong> · Saldo final caja: <strong>${formatoDineroCierre(c.efectivoNeto)}</strong><br>Efectivo: ${formatoDineroCierre(c.efectivo)} · ATH: ${formatoDineroCierre(c.ath)} · Tarjeta: ${formatoDineroCierre(c.tarjeta)} · Otros: ${formatoDineroCierre(c.otros)}<br>Crédito: ${formatoDineroCierre(c.credito)} · Saldo pendiente: ${formatoDineroCierre(c.saldoCredito)}</div><div class="cierre-acciones"><button class="boton-cierre" onclick="imprimirCierre(${c.id})">🧾 Ver / imprimir</button><button class="boton-cierre boton-cierre-peligro" onclick="eliminarCierre(${c.id})">🗑️ Eliminar</button></div></div>`}).join("")}
+function imprimirCierre(id){const c=cierres.find(x=>x.id===id);if(!c)return;const detallePrest=flkDetallePrestacionesCierre(c.fechaLocal);if(c.prestacionesIngresos!==undefined){detallePrest.ingresos=c.prestacionesIngresos;detallePrest.costos=c.prestacionesCostos;}const f=new Date(c.fechaLocal+"T12:00:00"),contenido=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cierre ${c.fechaLocal}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#f4f7fb;color:#111;margin:0}.hoja{max-width:460px;margin:24px auto;background:#fff;padding:28px;border-radius:18px}.fila{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid #eee}.total{font-size:20px;font-weight:800}.btn{width:100%;border:0;border-radius:12px;padding:13px;margin-top:20px;background:#0a84ff;color:#fff;font-weight:700}@media print{body{background:#fff}.hoja{margin:0;max-width:none}.btn{display:none}}
 .cuenta-proveedor-card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06);padding:17px;margin-bottom:12px;border-left:5px solid #f5a623}.cuenta-proveedor-card.vencida{border-left-color:#d93025}.cuenta-proveedor-card.pagada{border-left-color:#168044}.cuenta-proveedor-superior{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.cuenta-proveedor-superior h3{margin:0 0 5px;font-size:16px}.cuenta-proveedor-superior p{margin:0;color:#777;font-size:13px}.cuenta-proveedor-saldo{font-weight:800;color:#d93025;white-space:nowrap}.cuenta-proveedor-detalle{margin-top:12px;font-size:13px;line-height:1.75;color:#555}.acciones-cuenta-proveedor{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.boton-cuenta-proveedor{border:0;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.boton-pagar-proveedor{background:#e9f8ef;color:#168044}.boton-historial-proveedor{background:#eaf4ff;color:#0a84ff}.estado-cuenta{display:inline-block;margin-top:8px;padding:7px 10px;border-radius:10px;font-size:12px;font-weight:800}.estado-cuenta.pendiente{background:#fff7e8;color:#a15c00}.estado-cuenta.vencida{background:#ffecec;color:#d93025}.estado-cuenta.pagada{background:#e9f8ef;color:#168044}
-</style></head><body><div class="hoja"><h1>Flackunloker</h1><h2>Cierre de caja · ${f.toLocaleDateString("es-PR")}</h2><div class="fila"><span>Recibos / Unidades</span><strong>${c.recibos} / ${c.unidades}</strong></div><div class="fila"><span>Ventas</span><strong>${formatoDineroCierre(c.ventasTotal)}</strong></div><div class="fila"><span>Costo mercancía</span><strong>${formatoDineroCierre(c.costo)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>${formatoDineroCierre(c.gananciaBruta)}</strong></div><div class="fila"><span>Gastos</span><strong>${formatoDineroCierre(c.gastosTotal)}</strong></div><div class="fila total"><span>Ganancia neta</span><strong>${formatoDineroCierre(c.gananciaNeta)}</strong></div><div class="fila"><span>Total cobrado</span><strong>${formatoDineroCierre(c.cobrado)}</strong></div><div class="fila"><span>Efectivo</span><strong>${formatoDineroCierre(c.efectivo)}</strong></div><div class="fila"><span>ATH Móvil</span><strong>${formatoDineroCierre(c.ath)}</strong></div><div class="fila"><span>Tarjeta</span><strong>${formatoDineroCierre(c.tarjeta)}</strong></div><div class="fila"><span>Otros</span><strong>${formatoDineroCierre(c.otros)}</strong></div><div class="fila"><span>Ventas a crédito</span><strong>${formatoDineroCierre(c.credito)}</strong></div><div class="fila"><span>Saldo pendiente</span><strong>${formatoDineroCierre(c.saldoCredito)}</strong></div><div class="fila total"><span>Saldo final de caja</span><strong>${formatoDineroCierre(c.efectivoNeto)}</strong></div><button class="btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div>
+</style></head><body><div class="hoja"><h1>Flackunloker</h1><h2>Cierre de caja · ${f.toLocaleDateString("es-PR")}</h2><div class="fila"><span>Recibos / Unidades</span><strong>${c.recibos} / ${c.unidades}</strong></div><div class="fila"><span>Ventas</span><strong>${formatoDineroCierre(c.ventasTotal)}</strong></div><div class="fila"><span>Ingresos por prestaciones (CUP) · desglose actual</span><strong>${formatoDineroCierre(detallePrest.ingresos)}</strong></div><div class="fila"><span>Costos externos de prestaciones (CUP)</span><strong>${formatoDineroCierre(detallePrest.costos)}</strong></div><div class="fila"><span>Costo mercancía</span><strong>${formatoDineroCierre(c.costo)}</strong></div><div class="fila"><span>Ganancia bruta</span><strong>${formatoDineroCierre(c.gananciaBruta)}</strong></div><div class="fila"><span>Gastos</span><strong>${formatoDineroCierre(c.gastosTotal)}</strong></div><div class="fila total"><span>${c.prestacionesIngresos!==undefined?"Ganancia neta conjunta":"Ganancia neta guardada (histórica)"}</span><strong>${formatoDineroCierre(c.gananciaNeta)}</strong></div><div class="fila"><span>Total cobrado</span><strong>${formatoDineroCierre(c.cobrado)}</strong></div><div class="fila"><span>Efectivo</span><strong>${formatoDineroCierre(c.efectivo)}</strong></div><div class="fila"><span>De ese efectivo: prestaciones cobradas (CUP)</span><strong>${formatoDineroCierre(detallePrest.cobrado)}</strong></div><div class="fila"><span>Devoluciones entregadas en efectivo (CUP)</span><strong>${formatoDineroCierre(detallePrest.devoluciones)}</strong></div><div class="fila"><span>ATH Móvil</span><strong>${formatoDineroCierre(c.ath)}</strong></div><div class="fila"><span>Tarjeta</span><strong>${formatoDineroCierre(c.tarjeta)}</strong></div><div class="fila"><span>Otros</span><strong>${formatoDineroCierre(c.otros)}</strong></div><div class="fila"><span>Ventas a crédito</span><strong>${formatoDineroCierre(c.credito)}</strong></div><div class="fila"><span>Saldo pendiente</span><strong>${formatoDineroCierre(c.saldoCredito)}</strong></div><div class="fila total"><span>Saldo final de caja</span><strong>${formatoDineroCierre(c.efectivoNeto)}</strong></div><button class="btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button></div>
 <!-- PATCH: Software limitado para administradores de centro -->
 <style id="flk-software-admin-centro">
 /* Administrador de centro puede ver Software, pero no Licencias */
@@ -8809,7 +9190,7 @@ body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
 async function eliminarCierre(id){
  const c=cierres.find(x=>x.id===id);if(!c)return;
  if(!confirm("¿Eliminar este cierre guardado? Las ventas y gastos originales no se eliminarán."))return;
- const op=flkEncolarOperacion("cash_closure_delete",{closure_id:c.supabaseId||null,close_date:c.fechaLocal});
+ const op=await flkEncolarOperacionIndexedDB("cash_closure_delete",{closure_id:c.supabaseId||null,close_date:c.fechaLocal});
  flkAplicarEliminarCierreLocal(op);
  guardarCierres();actualizarCierre();
  if(flkNubeDisponible())setTimeout(flkProcesarColaOffline,0);
@@ -8988,7 +9369,7 @@ document.getElementById("formularioProveedor").addEventListener("submit",async e
   if(repetido)return alert("Ese proveedor ya existe: "+repetido.nombre);
  }
 
- const op=flkEncolarOperacion("supplier_save",{
+ const op=await flkEncolarOperacionIndexedDB("supplier_save",{
   supplier_id:actual?.supabaseId||null,
   legacy_id:legacy,
   local_supplier_id:Number(legacy),
@@ -9109,7 +9490,7 @@ document.getElementById("formularioOrdenCompra").addEventListener("submit",async
   return alert("Guarda primero el proveedor para crear una referencia local segura.");
  }
 
- const op=flkEncolarOperacion("purchase_order_save",{
+ const op=await flkEncolarOperacionIndexedDB("purchase_order_save",{
   order_id:actual?.supabaseId||null,
   order_operation_id:actual?.offlineOperationId||null,
   legacy_id:legacy,
@@ -9138,7 +9519,7 @@ async function marcarOrdenada(id){
  if(!o||o.estado==="recibida")return;
  if(!o.supabaseId&&!o.offlineOperationId)return alert("Esta orden todavía no tiene una referencia segura.");
 
- const op=flkEncolarOperacion("purchase_order_ordered",{
+ const op=await flkEncolarOperacionIndexedDB("purchase_order_ordered",{
   order_id:o.supabaseId||null,
   order_operation_id:o.offlineOperationId||null,
   local_order_id:o.id
@@ -9170,7 +9551,7 @@ document.getElementById("formularioRecepcionOrden").addEventListener("submit",as
  if(!o.supabaseId&&!o.offlineOperationId)return alert("Esta orden no tiene una referencia segura para sincronizar.");
 
  const prod=productos.find(x=>x.id===o.productoId);
- const op=flkEncolarOperacion("purchase_order_receive",{
+ const op=await flkEncolarOperacionIndexedDB("purchase_order_receive",{
   order_id:o.supabaseId||null,
   order_operation_id:o.offlineOperationId||null,
   local_order_id:o.id,
@@ -9238,7 +9619,7 @@ document.getElementById("formularioPagoProveedor").addEventListener("submit",asy
  }
  if(!o.supabaseId&&!o.offlineOperationId)return alert("Esta cuenta no tiene una referencia segura para sincronizar.");
 
- const op=flkEncolarOperacion("supplier_payment",{
+ const op=await flkEncolarOperacionIndexedDB("supplier_payment",{
   order_id:o.supabaseId||null,
   order_operation_id:o.offlineOperationId||null,
   local_order_id:o.id,
@@ -9273,7 +9654,20 @@ document.getElementById("busquedaCuentasPagar").addEventListener("input",mostrar
 
 
 
+/* v62.43 · Errores de rol anon / permiso: enfriar lecturas, sin tocar cola offline. */
+const flkLecturasSinPermisoHasta={caja:0,ventas:0};
+function flkErrorPermisoLectura(err){
+ const code=String(err?.code||""),msg=String(err?.message||"").toLowerCase();
+ return code==="42501"||code==="PGRST301"||msg.includes("permission denied")||msg.includes("jwt expired")||msg.includes("invalid jwt");
+}
+function flkPausarLecturaSinPermiso(modulo,err){
+ if(!flkErrorPermisoLectura(err))return false;
+ flkLecturasSinPermisoHasta[modulo]=Date.now()+60000;
+ console.warn("Flackunloker: lectura "+modulo+" pausada 60 s por permisos/sesión. Datos locales conservados.",err?.code,err?.message);
+ return true;
+}
 async function cargarMovimientosCajaSupabase(){
+ if(Date.now()<flkLecturasSinPermisoHasta.caja)return false;
  if(flkModoRecuperacionPassword)return false;
  if(flkNubeDisponible()&&!flkSesionActiva)return false;
  if(!flkNubeDisponible()){flkAplicarPendientesSobreDatos();if(typeof actualizarSaldoCajaFisica==="function")actualizarSaldoCajaFisica();return true}
@@ -9282,11 +9676,12 @@ async function cargarMovimientosCajaSupabase(){
   .order("occurred_at",{ascending:true});
  if(error){
   console.error("Supabase flujo caja:",error);
-  if(!flkSilenciarSiEsConexion(error))alert("No se pudo cargar el flujo de caja desde Supabase.");
+  if(!flkPausarLecturaSinPermiso("caja",error)&&!flkSilenciarSiEsConexion(error))alert("No se pudo cargar el flujo de caja desde Supabase.");
   return false;
  }
  movimientosCajaSupabase=(data||[]).map(m=>({
   id:m.id,
+  service_provision_id:m.service_provision_id||null,
   tipo:m.type==="income"?"entrada":"salida",
   cantidad:Number(m.amount||0),
   concepto:m.description||"Movimiento",
@@ -9407,26 +9802,60 @@ function movimientosFlujoCaja(){
   }
  });
 
-  // Prestaciones: Caja refleja solo importes realmente cobrados.
+  // Prestaciones: un cobro confirmado en cash_movements prevalece sobre
+  // su representación local. Conservar cobros offline aún no confirmados.
   try{
    let bid="global";
    try{if(typeof flkBusinessGuardado==="function")bid=String(flkBusinessGuardado()||"global");}
    catch(_){try{if(typeof FLK_BUSINESS_ID!=="undefined"&&FLK_BUSINESS_ID)bid=String(FLK_BUSINESS_ID);}catch(__){}}
-   const keyPrest="flackunloker_prestaciones_servicio_v1::"+bid;
-   const arrPrest=JSON.parse(localStorage.getItem(keyPrest)||"[]");
+   const arrPrest=JSON.parse(localStorage.getItem("flackunloker_prestaciones_servicio_v1::"+bid)||"[]");
+   const confirmadas=(Array.isArray(movimientosCajaSupabase)?movimientosCajaSupabase:[])
+     .filter(m=>m.grupo==="prestacion"&&m.tipo==="entrada");
+   const usadas=new Set();
+   const texto=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
+   const nombre=m=>texto(String(m.concepto||"").replace(/^(prestaci[oó]n(?: de servicio)?|abono prestaci[oó]n)\s*[·:]\s*/i,"")
+     .replace(/^pago inicial\s*[·:]\s*/i,""));
+   const fechaDia=v=>{try{return String(v||"").slice(0,10);}catch(_){return "";}};
+   function confirmado(p,monto,metodo,fecha,esAbono){
+    const pid=String(p.cloud_id||"");
+    const candidatos=confirmadas.filter((m,i)=>{
+     if(usadas.has(i)||Math.abs(Number(m.cantidad||0)-monto)>0.009)return false;
+     if(normalizarMetodoFlujo(m.metodo)!==normalizarMetodoFlujo(metodo))return false;
+     if(pid&&m.service_provision_id&&String(m.service_provision_id)===pid)return true;
+     // Registros históricos sin cloud_id: coincidencia conservadora por
+     // nombre, importe, método y día; consumir cada coincidencia solo una vez.
+     if(pid||m.service_provision_id&&p.operation_id)return false;
+     return nombre(m)===texto(p.descripcion)&&fechaDia(m.fecha)===fechaDia(fecha);
+    });
+    if(!candidatos.length)return false;
+    const i=confirmadas.indexOf(candidatos[0]);usadas.add(i);return true;
+   }
    (Array.isArray(arrPrest)?arrPrest:[]).forEach(p=>{
     if(String(p.condicion||"pagada")==="credito"){
      const pagos=Array.isArray(p.pagos)?p.pagos:[];
-     if(pagos.length){pagos.forEach((ab,idx)=>{const monto=Number(ab.monto||ab.amount||0);if(!(monto>0))return;mov.push({id:"prestacion-pago-"+String(ab.id||ab.operation_id||idx)+"-"+String(p.id),tipo:"entrada",cantidad:monto,concepto:(ab.inicial?"Prestación · Pago inicial · ":"Abono prestación · ")+String(p.descripcion||"Servicio"),metodo:normalizarMetodoFlujo(ab.metodo||ab.payment_method||p.metodo||"Efectivo"),fecha:ab.fecha||ab.payment_date||p.created_at||((p.fecha||"")+"T12:00:00"),grupo:"prestacion"});});}
-     else{const inicial=Number(p.pagoInicial||0);if(inicial>0)mov.push({id:"prestacion-inicial-"+String(p.id),tipo:"entrada",cantidad:inicial,concepto:"Prestación · Pago inicial · "+String(p.descripcion||"Servicio"),metodo:normalizarMetodoFlujo(p.metodo||"Efectivo"),fecha:p.created_at||((p.fecha||"")+"T12:00:00"),grupo:"prestacion"});}
-    }else{const ingreso=Number(p.ingreso||0);if(!(ingreso>0))return;mov.push({id:"prestacion-"+String(p.id||p.created_at||Math.random()),tipo:"entrada",cantidad:ingreso,concepto:"Prestación · "+String(p.descripcion||"Servicio"),metodo:normalizarMetodoFlujo(p.metodo||"Efectivo"),fecha:p.created_at||((p.fecha||"")+"T12:00:00"),grupo:"prestacion"});}
+     if(pagos.length){pagos.forEach((ab,idx)=>{
+      const monto=Number(ab.monto||ab.amount||0);if(!(monto>0))return;
+      const metodo=ab.metodo||ab.payment_method||p.metodo||"Efectivo";
+      const fecha=ab.fecha||ab.payment_date||p.created_at||((p.fecha||"")+"T12:00:00");
+      if(confirmado(p,monto,metodo,fecha,!ab.inicial))return;
+      mov.push({id:"prestacion-pago-"+String(ab.id||ab.operation_id||idx)+"-"+String(p.id),tipo:"entrada",cantidad:monto,concepto:(ab.inicial?"Prestación · Pago inicial · ":"Abono prestación · ")+String(p.descripcion||"Servicio"),metodo:normalizarMetodoFlujo(metodo),fecha,grupo:"prestacion"});
+     });}
+     else{const inicial=Number(p.pagoInicial||0);if(inicial>0){
+      const fecha=p.created_at||((p.fecha||"")+"T12:00:00");
+      if(!confirmado(p,inicial,p.metodo||"Efectivo",fecha,false))mov.push({id:"prestacion-inicial-"+String(p.id),tipo:"entrada",cantidad:inicial,concepto:"Prestación · Pago inicial · "+String(p.descripcion||"Servicio"),metodo:normalizarMetodoFlujo(p.metodo||"Efectivo"),fecha,grupo:"prestacion"});
+     }}
+    }else{const ingreso=Number(p.ingreso||0);if(!(ingreso>0))return;
+     const fecha=p.created_at||((p.fecha||"")+"T12:00:00");
+     if(confirmado(p,ingreso,p.metodo||"Efectivo",fecha,false))return;
+     mov.push({id:"prestacion-"+String(p.id||p.created_at||Math.random()),tipo:"entrada",cantidad:ingreso,concepto:"Prestación · "+String(p.descripcion||"Servicio"),metodo:normalizarMetodoFlujo(p.metodo||"Efectivo"),fecha,grupo:"prestacion"});
+    }
    });
   }catch(e){console.warn("Prestaciones en flujo:",e);}
 
  // Conservar de cash_movements solo operaciones que no se pueden reconstruir
  // de las tablas anteriores (propietario y movimientos manuales/otros).
  (Array.isArray(movimientosCajaSupabase)?movimientosCajaSupabase:[]).forEach(m=>{
-  if(["venta","abono","gasto","proveedor","reembolso","prestacion"].includes(m.grupo))return;
+  if(["venta","abono","gasto","proveedor","reembolso"].includes(m.grupo))return;
   mov.push({...m,metodo:normalizarMetodoFlujo(m.metodo)})
  });
 
@@ -9475,21 +9904,48 @@ function abrirMovimientoPropietario(tipo){
  setTimeout(()=>document.getElementById("cantidadMovimientoPropietario").focus(),120)
 }
 function cerrarMovimientoPropietario(){document.getElementById("modalMovimientoPropietario").classList.remove("visible");document.getElementById("formularioMovimientoPropietario").reset()}
+/* Bloqueo síncrono: un mismo formulario no puede generar dos IDs mientras se guarda. */
+let flkMovimientoPropietarioGuardando=false;
 document.getElementById("formularioMovimientoPropietario").addEventListener("submit",async e=>{
  e.preventDefault();
+ if(flkMovimientoPropietarioGuardando)return;
  const tipo=document.getElementById("tipoMovimientoPropietario").value,
        cantidad=Number(document.getElementById("cantidadMovimientoPropietario").value),
        nota=document.getElementById("notaMovimientoPropietario").value.trim();
  if(!Number.isFinite(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
  if(tipo==="withdrawal"&&cantidad>saldoCajaFisicaActual()+0.009)return alert("El retiro supera el efectivo disponible en caja.");
-
- const op=flkEncolarOperacion("owner_cash_movement",{type:tipo,amount:cantidad,note:nota||null});
- flkAplicarMovimientoPropietarioLocal(op);
- guardarMovimientosCajaLocal();
- actualizarFlujoCaja();actualizarCierre();actualizarSaldoCajaFisica();
- cerrarMovimientoPropietario();
- if(flkNubeDisponible())setTimeout(flkProcesarColaOffline,0);
+ // v62.42.3 SEGURIDAD: si ya hay un retiro/aporte del propietario del mismo tipo
+ // y monto esperando sincronizarse (todavía no confirmado), se avisa antes de
+ // crear otro — esto es justo lo que causó un retiro duplicado real: un aviso
+ // de "no se pudo confirmar" que en realidad sí se había guardado, seguido de
+ // un reintento manual horas más tarde por la misma cantidad.
+ const colaPropietarioActual=flkColaOffline();
+ const posibleDuplicado=colaPropietarioActual.some(op=>op&&op.tipo==="owner_cash_movement"&&op.estado!=="sincronizado"
+  &&String(op.payload?.type||"")===tipo&&Math.abs(Number(op.payload?.amount||0)-cantidad)<0.005);
+ if(posibleDuplicado&&!confirm("Ya hay un "+(tipo==="withdrawal"?"retiro":"aporte")+" del propietario por el mismo monto ($"+cantidad.toFixed(2)+") esperando sincronizarse con Supabase.\n\nSi el anterior en realidad sí se guardó bien, registrar otro ahora lo duplicaría.\n\n¿Seguro que quieres registrar otro de todas formas?")){
+  return;
+ }
+ flkMovimientoPropietarioGuardando=true;
+ const boton=document.getElementById("botonGuardarMovimientoPropietario");
+ boton.disabled=true;
+ boton.textContent="⏳ Guardando movimiento…";
+ try{
+  const op=await flkEncolarOperacionIndexedDB("owner_cash_movement",{type:tipo,amount:cantidad,note:nota||null});
+  flkAplicarMovimientoPropietarioLocal(op);
+  guardarMovimientosCajaLocal();
+  actualizarFlujoCaja();actualizarCierre();actualizarSaldoCajaFisica();
+  cerrarMovimientoPropietario();
+  if(flkNubeDisponible())setTimeout(flkProcesarColaOffline,0);
+  flkMovimientoPropietarioGuardando=false;
+  boton.disabled=false;
+ }catch(err){
+  console.error("Movimiento propietario: resultado de guardado incierto; no repetir sin revisar la cola",err);
+  boton.textContent="⚠️ Revisar operación pendiente";
+  alert("No se pudo completar la confirmación del movimiento. Puede haberse guardado en IndexedDB. No repitas el retiro ni cierres esta ventana: revisa las operaciones pendientes antes de volver a intentarlo. Detalle: "+String(err&&err.message||err));
+  /* Mantener bloqueado: un error posterior a IndexedDB no debe generar otro ID. */
+ }
 });
+
 async function sincronizarYActualizarFlujoCaja(boton){
  const btn=boton||document.getElementById("botonActualizarFlujo");
  const textoOriginal=btn?btn.textContent:"🔄 Actualizar flujo";
@@ -10231,6 +10687,66 @@ body:not(.es-propietario):not(.rol-empleado) #botonLicencias{
  const w=window.open("","_blank");if(!w)return alert("Permite ventanas emergentes para ver el estado financiero.");w.document.write(html);w.document.close()
 }
 
+// Auditoría de archivados: consulta separada; nunca se mezclan con el inventario activo.
+let flkArchivadosConStock=[];
+let flkArchivadosConsultaOk=false;
+let flkArchivadosConsultaCentro=null;
+async function flkCargarArchivadosConStock(){
+ if(rolSesion!=="admin"||!flkNubeDisponible()||typeof flkSupabase==="undefined"){
+  flkArchivadosConsultaOk=false;flkArchivadosConStock=[];flkActualizarAlertasArchivados();return;
+ }
+ try{
+  const centro=await flkExigirCentroActual();
+  const {data,error}=await flkSupabase.from("products")
+   .select("id,name,sku,stock,business_id").eq("business_id",centro)
+   .eq("active",false).gt("stock",0).order("name");
+  if(error)throw error;
+  // Si se cambió de centro mientras se consultaba, no mostrar resultados de otro centro.
+  if(String(centro)!==String(await flkExigirCentroActual()))return;
+  flkArchivadosConsultaCentro=centro;flkArchivadosConStock=data||[];flkArchivadosConsultaOk=true;
+ }catch(err){
+  flkArchivadosConsultaOk=false;flkArchivadosConStock=[];
+  console.warn("Consulta de productos archivados:",err);
+ }
+ flkActualizarAlertasArchivados();
+}
+function flkActualizarAlertasArchivados(){
+ const seccion=document.getElementById("flkArchivadosAlertaSeccion"),lista=document.getElementById("flkArchivadosAlertaLista");
+ if(!seccion||!lista)return;
+ const admin=rolSesion==="admin";
+ seccion.style.display=admin?"":"none";
+ if(!admin)return;
+ if(!flkArchivadosConsultaOk){lista.innerHTML='<div class="fila-estadistica">No se pudieron verificar los productos archivados. Conéctate y actualiza las alertas.</div>';return;}
+ lista.innerHTML=flkArchivadosConStock.length?flkArchivadosConStock.map(p=>{
+  const id=String(p.id||"");
+  if(!/^[0-9a-f-]{36}$/i.test(id))return "";
+  return `<div class="centro-alerta aviso"><div class="centro-alerta-info"><h3>♻️ ${escapeHtml(p.name||"Producto")} · Archivado</h3><p>SKU: ${escapeHtml(p.sku||"—")} · Existencia recuperada: <strong>${Number(p.stock)}</strong></p></div><div class="centro-alerta-acciones"><button class="alerta-accion-principal" onclick="flkReactivarProductoArchivado('${id}')">♻️ Reactivar producto</button></div></div>`;
+ }).join(""):'<div class="fila-estadistica"><span>No hay productos archivados con existencias.</span><strong>✓ OK</strong></div>';
+}
+async function flkReactivarProductoArchivado(id){
+ if(!requiereAdmin("Reactivar productos"))return;
+ if(!flkNubeDisponible()){alert("La reactivación requiere conexión. No se ha cambiado el producto.");return;}
+ const p=flkArchivadosConStock.find(x=>x.id===id);
+ if(!p||!flkArchivadosConsultaOk){alert("Actualiza las alertas antes de reactivar.");return;}
+ const centro=await flkExigirCentroActual();
+ if(String(p.business_id)!==String(centro)||String(flkArchivadosConsultaCentro)!==String(centro)){
+  alert("El centro cambió. Actualiza las alertas.");return;
+ }
+ if(!confirm(`¿Reactivar ${p.name||"este producto"} (SKU ${p.sku||"—"})? Se conservarán su identificador, stock e historial.`))return;
+ try{
+  // La política UPDATE de Supabase exige admin y pertenencia al centro.
+  // Condiciones evitan reactivar un producto cambiado o sin stock desde la consulta.
+  const {data,error}=await flkSupabase.from("products").update({active:true})
+   .eq("id",id).eq("business_id",centro).eq("active",false).gt("stock",0)
+   .select("id");
+  if(error)throw error;
+  if(!data||data.length!==1){alert("No se reactivó: el producto cambió o no tienes autorización. Actualiza las alertas.");await flkCargarArchivadosConStock();return;}
+  await cargarInventarioSupabase();
+  await flkCargarArchivadosConStock();
+  actualizarCentroAlertas();
+  alert("Producto reactivado. Se conservaron el stock y el historial.");
+ }catch(err){console.error("Reactivación:",err);alert("No se pudo confirmar la reactivación: "+String(err.message||err)+". Consulta el estado antes de reintentar.");}
+}
 function datosCentroAlertas(){
  const sinStock=productos.filter(p=>Number(p.cantidad)<=0);
  const stockBajo=productos.filter(p=>Number(p.cantidad)>0&&Number(p.cantidad)<=Number(p.stockMinimo??5));
@@ -10242,6 +10758,7 @@ function datosCentroAlertas(){
 }
 function actualizarIndicadorAlertas(){
  const d=datosCentroAlertas(),badge=document.getElementById("badgeAlertas"),btn=document.getElementById("botonAlertas");if(!badge||!btn)return;
+ if(rolSesion==="admin"&&flkArchivadosConsultaOk)d.total+=flkArchivadosConStock.length;
  badge.innerHTML=d.total?`<span class="boton-alertas-badge">${d.total>99?"99+":d.total}</span>`:"";
  btn.title=d.total?`${d.total} alerta(s) pendiente(s)`:"Sin alertas pendientes"
 }
@@ -10254,6 +10771,7 @@ async function sincronizarYActualizarAlertas(){
   await cargarGastosSupabase();
   await cargarComprasSupabase();
   await cargarMovimientosCajaSupabase();
+  await flkCargarArchivadosConStock();
   actualizarCentroAlertas();
  }catch(err){
   console.error("Sincronización Alertas:",err);
@@ -10262,6 +10780,8 @@ async function sincronizarYActualizarAlertas(){
 }
 function actualizarCentroAlertas(){
  const d=datosCentroAlertas();
+ flkActualizarAlertasArchivados();
+ if(rolSesion==="admin"&&flkArchivadosConsultaOk)d.total+=flkArchivadosConStock.length;
  document.getElementById("alertasTotal").textContent=d.total;document.getElementById("alertasSinStock").textContent=d.sinStock.length;document.getElementById("alertasStockBajo").textContent=d.stockBajo.length;document.getElementById("alertasVencidos").textContent=d.vencidos.length;document.getElementById("alertasProximos").textContent=d.proximos.length;
  const inv=document.getElementById("alertasInventarioLista"),cred=document.getElementById("alertasCreditosLista"),ok=document.getElementById("alertasTodoBien");
  const filasInv=[...d.sinStock.map(p=>`<div class="centro-alerta critica"><div class="centro-alerta-info"><h3>🔴 ${escapeHtml(p.nombre)} · Sin stock</h3><p>SKU: ${escapeHtml(p.sku)} · Existencia: ${Number(p.cantidad)} · Mínimo: ${Number(p.stockMinimo??5)}${p.ubicacion?`<br>Ubicación: ${escapeHtml(p.ubicacion)}`:""}</p></div><div class="centro-alerta-acciones"><button class="alerta-accion-principal" onclick="mostrarInventario()">📦 Ver inventario</button><button class="alerta-accion-secundaria" onclick="abrirOrdenCompra(${p.id})">📦 Crear orden</button></div></div>`),...d.stockBajo.map(p=>`<div class="centro-alerta aviso"><div class="centro-alerta-info"><h3>🟠 ${escapeHtml(p.nombre)} · Stock bajo</h3><p>SKU: ${escapeHtml(p.sku)} · Existencia: ${Number(p.cantidad)} · Mínimo: ${Number(p.stockMinimo??5)}${p.ubicacion?`<br>Ubicación: ${escapeHtml(p.ubicacion)}`:""}</p></div><div class="centro-alerta-acciones"><button class="alerta-accion-principal" onclick="mostrarInventario()">📦 Ver inventario</button><button class="alerta-accion-secundaria" onclick="abrirOrdenCompra(${p.id})">📦 Crear orden</button></div></div>`)] ;
@@ -10276,7 +10796,7 @@ function mostrarAlertas(){flkOcultarTodasLasVistas();
  document.getElementById("vistaAlertas").style.display="block";actualizarMenu("alertas");scrollTop();
  requestAnimationFrame(()=>actualizarCentroAlertas());
  if(flkNubeDisponible())setTimeout(async()=>{
-  await Promise.allSettled([cargarInventarioSupabase(),cargarVentasSupabase(),cargarGastosSupabase(),cargarComprasSupabase(),cargarMovimientosCajaSupabase()]);
+  await Promise.allSettled([cargarInventarioSupabase(),cargarVentasSupabase(),cargarGastosSupabase(),cargarComprasSupabase(),cargarMovimientosCajaSupabase(),flkCargarArchivadosConStock()]);
   actualizarCentroAlertas();
  },0);
 }
@@ -10524,6 +11044,7 @@ async function flkRestaurarJsonBat(datos,centroActivo){
  );
  if(!ok)return {cancelado:true};
 
+ await flkVerificarColasAntesRestaurar(centroActivo.id);
  mostrarEstadoRespaldo("⏳ Restaurando JSON del BAT en "+nombre+"...");
 
  // Padres primero. Los enlaces circulares caja/gastos se completan en una segunda pasada.
@@ -10585,6 +11106,50 @@ async function flkRestaurarJsonBat(datos,centroActivo){
  return {ok:true,nombre};
 }
 
+/* AUDITORÍA RESTAURACIÓN: barrera de solo lectura; ante duda, bloquear. */
+async function flkVerificarColasAntesRestaurar(centroId){
+ const id=String(centroId||'').trim();
+ if(!flkUuidValido(id))throw new Error('No se identificó el centro para comprobar las operaciones offline.');
+ if(flkSincronizando)throw new Error('Hay una sincronización en curso. Espera a que termine antes de restaurar.');
+ const claves=[flkLocalKey(FLK_OFFLINE_QUEUE_KEY,id),flkLocalKey(FLK_OFFLINE_QUEUE_EMERGENCY_KEY,id)];
+ for(const clave of claves){
+  let raw;
+  try{raw=localStorage.getItem(clave);}catch(e){throw new Error('No se pudo leer la cola offline local. Restauración bloqueada.');}
+  if(raw!==null){
+   let cola;
+   try{cola=JSON.parse(raw);}catch(e){throw new Error('La cola offline local está dañada. Restauración bloqueada.');}
+   if(!Array.isArray(cola))throw new Error('Formato de cola offline no válido. Restauración bloqueada.');
+   if(cola.length)throw new Error('Existen '+cola.length+' operaciones en una cola offline local o de emergencia. Sincronízalas o audítalas antes de restaurar.');
+  }
+ }
+ if(!window.indexedDB)throw new Error('IndexedDB no está disponible; no se puede verificar la cola oficial.');
+ const api=window.flkIndexedDBPaso1;
+ if(!api||typeof api.abrir!=='function')throw new Error('No está disponible el lector de la cola oficial IndexedDB.');
+ let db;
+ try{
+  db=await api.abrir();
+  const registros=await new Promise((resolve,reject)=>{
+   if(!db.objectStoreNames.contains('offline_sync_operations'))return reject(new Error('Falta el almacén de operaciones offline.'));
+   const tx=db.transaction('offline_sync_operations','readonly');
+   const req=tx.objectStore('offline_sync_operations').getAll();
+   req.onsuccess=()=>resolve(req.result);
+   req.onerror=()=>reject(req.error||new Error('Error al leer operaciones offline.'));
+   tx.onabort=()=>reject(tx.error||new Error('Lectura IndexedDB abortada.'));
+  });
+  const propias=registros.filter(op=>String(op?.business_scope||op?.business_id||'')===id||String(op?.storage_key||'').startsWith(id+'::'));
+  if(propias.length)throw new Error('IndexedDB conserva '+propias.length+' operaciones de este centro. Restauración bloqueada hasta resolverlas.');
+ }catch(err){throw new Error('No se pudo autorizar la restauración: '+String(err?.message||err));}
+ finally{if(db)try{db.close();}catch(_){}}
+ // Releer las copias tras IndexedDB para detectar cambios durante la comprobación.
+ for(const clave of claves){
+  let raw;
+  try{raw=localStorage.getItem(clave);}catch(_){throw new Error('No se pudo repetir la lectura de la cola offline.');}
+  if(raw!==null){let q;try{q=JSON.parse(raw);}catch(_){throw new Error('Cola offline dañada durante la comprobación.');}
+   if(!Array.isArray(q)||q.length)throw new Error('La cola offline cambió durante la comprobación. Restauración bloqueada.');}
+ }
+ return true;
+}
+
 async function restaurarRespaldo(event){
  const archivo=event.target.files[0];
  if(!archivo)return;
@@ -10599,6 +11164,7 @@ async function restaurarRespaldo(event){
    // JSON nuevo creado por el BAT de la laptop.
    if(flkEsRespaldoBat(datos)){
     const centroActivo=await flkResolverCentroBackup();
+    await flkVerificarColasAntesRestaurar(centroActivo.id);
     const r=await flkRestaurarJsonBat(datos,centroActivo);
     if(r?.cancelado){
      mostrarEstadoRespaldo("❌ Restauración cancelada. No se modificó ningún dato.");
@@ -10641,6 +11207,8 @@ async function restaurarRespaldo(event){
 
    const centroActual={id:backupCentroId,nombre:backupCentroNombre||centroActivo.nombre};
 
+   await flkVerificarColasAntesRestaurar(centroActivo.id);
+
    const ok=confirm(
     "✅ Centro verificado\n\n"+
     "Respaldo: "+(backupCentroNombre||centroActual.nombre)+"\n"+
@@ -10652,6 +11220,8 @@ async function restaurarRespaldo(event){
     mostrarEstadoRespaldo("❌ Restauración cancelada. No se modificó ningún dato.");
     return;
    }
+
+   await flkVerificarColasAntesRestaurar(centroActivo.id);
 
    productos=datos.productos;
    historial=datos.historial;
@@ -11385,6 +11955,51 @@ let flkQrModo="",flkQrVentaItems=[],flkQrUltimo="",flkQrUltimoTs=0;
 // v62.30 · HID listo desde el arranque: no abre cámara ni solicita permisos.
 let flkLectorFisicoActivo=true,flkLectorFisicoBuffer="",flkLectorFisicoUltimoTs=0,flkLectorFisicoTimer=null;
 
+/* v62.41.58 · Reparación "campo congelado" tras escanear.
+   Al cerrar el escáner (cámara o lector físico) y abrir el formulario de
+   Venta o de Producto, el foco se asigna con requestAnimationFrame/setTimeout
+   mientras el cierre de la cámara (async: instancia.stop()/clear()) sigue en
+   curso en segundo plano. Si ese cierre asíncrono tarda más que el focus()
+   inicial, el foco termina revertido a <body> y el lector físico (que sigue
+   activo) se "come" cada tecla como si fuera un código de barras -> el campo
+   se ve como si estuviera deshabilitado, sin ningún error visible, hasta que
+   se cambia de módulo y se vuelve (lo cual reconstruye el formulario).
+   flkAsegurarFocoCampo reintenta el foco varias veces sin robárselo nunca a
+   un campo que el usuario ya haya elegido a propósito. */
+function flkAsegurarFocoCampo(id,intentosMs){
+ (intentosMs||[0,60,150,300,600]).forEach(function(ms){
+  setTimeout(function(){
+   const el=document.getElementById(id);
+   if(!el)return;
+   const activo=document.activeElement;
+   if(activo===el)return; // ya enfocado: no interrumpir
+   // Solo reenfocar si el foco realmente se perdió (quedó en <body>/nada).
+   // Nunca robar el foco a otro campo que el usuario ya haya elegido.
+   if(!activo||activo===document.body||activo===document.documentElement){
+    try{el.focus({preventScroll:true})}catch(_){try{el.focus()}catch(__){}}
+   }
+  },ms);
+ });
+}
+/* Red de seguridad adicional: si a pesar de lo anterior el foco llegó a
+   perderse mientras el lector físico sigue activo, la primera tecla que
+   llegue a <body> repara el foco en vez de quedar atrapada en el buffer
+   del lector como si fuera parte de un código de barras. */
+function flkRecuperarFocoSiSePerdio(){
+ const activo=document.activeElement;
+ if(activo && activo!==document.body && activo!==document.documentElement)return false;
+ const venta=document.getElementById("modalVenta");
+ if(venta && venta.classList.contains("visible")){
+  const c=document.getElementById("clienteVenta");
+  if(c){try{c.focus({preventScroll:true})}catch(_){try{c.focus()}catch(__){}}return true;}
+ }
+ const producto=document.getElementById("modalProducto");
+ if(producto && producto.classList.contains("visible")){
+  const n=document.getElementById("nombre");
+  if(n){try{n.focus({preventScroll:true})}catch(_){try{n.focus()}catch(__){}}return true;}
+ }
+ return false;
+}
 
 function flkQrEsc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 function flkQrProductoTexto(p){return "FLK|SKU|"+String(p.sku||"").trim()}
@@ -11495,6 +12110,11 @@ function flkProgramarFinLecturaHID(){
 
 document.addEventListener("keydown",function(ev){
  if(!flkLectorFisicoActivo)return;
+ // v62.41.58 · Si el foco se perdió hacia <body> (ver flkRecuperarFocoSiSePerdio),
+ // esta tecla se usa para reparar el foco en vez de sumarse al buffer del
+ // lector como si fuera parte de un código de barras. La siguiente tecla ya
+ // llegará al campo correcto con normalidad.
+ if(flkRecuperarFocoSiSePerdio())return;
  const modal=document.getElementById("modalEscanerQR");
  const modalVisible=!!(modal&&modal.classList.contains("visible"));
 
@@ -11701,18 +12321,18 @@ function flkDarEntradaProductoEscaneado(){
  setTimeout(function(){
   const skuInput=document.getElementById("sku");
   const cantInput=document.getElementById("cantidadProducto");
-  const nombreInput=document.getElementById("nombre");
 
   if(skuInput)skuInput.value=sku;
   if(cantInput && !cantInput.value)cantInput.value="1";
 
   const titulo=document.getElementById("tituloFormulario");
   if(titulo)titulo.textContent="Dar entrada a producto nuevo";
-
-  if(nombreInput){
-   try{nombreInput.focus({preventScroll:true})}catch(_){nombreInput.focus()}
-  }
  },60);
+ // v62.41.58: reintenta el foco varias veces por si el cierre asíncrono de
+ // la cámara (detenerEscanerQR/cerrarEscanerQR, arriba) termina después del
+ // primer intento y lo revierte a <body> — eso es lo que dejaba Nombre,
+ // Categoría, Costo y Precio sin responder al escribir.
+ if(typeof flkAsegurarFocoCampo==="function")flkAsegurarFocoCampo("nombre");
 }
 
 
@@ -11995,6 +12615,13 @@ function continuarVentaQR(){
    try{if(typeof flkDetenerHtml5QR==="function")flkDetenerHtml5QR()}catch(_){}
   },0);
  });
+ // v62.41.58: detenerEscanerQR/flkDetenerHtml5QR (arriba) paran la cámara de
+ // forma asíncrona (instancia.stop()/clear()) y a veces terminan DESPUÉS de
+ // este focus(), revirtiéndolo a <body>. Con el lector físico siempre activo,
+ // eso hacía que Cliente (y el resto del formulario) dejara de responder al
+ // escribir hasta cambiar de módulo. Se reintenta el foco unas veces más,
+ // sin robárselo si el usuario ya hizo clic en otro campo.
+ if(typeof flkAsegurarFocoCampo==="function")flkAsegurarFocoCampo("clienteVenta");
 }
 window.addEventListener("pagehide",function(){detenerEscanerQR(false)});
 </script>
@@ -13156,11 +13783,11 @@ function flkPrestIngresosPorMoneda(arr){
   .map(function(k){return money(grupos[k])+' '+k;});
  return partes.length?partes.join(' · '):money(0)+' CUP';
 }
-function pintar(){var h=hoy(),m=mes();var esCUP=function(p){var mm=String(p&&p.metodo||'').trim().toLowerCase();return mm==='efectivo'||mm==='efectivo cup'||mm==='transferencia'||mm==='transferencia cup';};var hFinArr=h.arr.filter(esCUP),hFinIngresos=hFinArr.reduce(function(t,p){return t+Number(p.ingreso||0);},0);var mFinArr=m.arr.filter(esCUP),mFinIngresos=mFinArr.reduce(function(t,p){return t+Number(p.ingreso||0);},0),mFinCostos=mFinArr.reduce(function(t,p){return t+Number(p.costo||0);},0);set('prestIngresosHoy',flkPrestIngresosPorMoneda(h.arr));set('prestCostosHoy',money(h.costos));set('prestNetoHoy',money(h.neto));set('prestIngresosMes',flkPrestIngresosPorMoneda(m.arr));set('prestCostosMes',money(m.costos));set('prestNetoMes',money(m.neto));set('cierrePrestIngresos',money(h.ingresos));set('cierrePrestCostos',money(h.costos));set('cierrePrestNeto',money(h.neto));set('finPrestIngresos',money(mFinIngresos));set('finPrestCostos',money(mFinCostos));set('finPrestNeto',money(mFinIngresos-mFinCostos));set('estadPrestHoy',money(hFinIngresos));set('estadPrestMes',money(mFinIngresos));set('estadPrestCostosMes',money(mFinCostos));set('estadPrestNetoMes',money(mFinIngresos-mFinCostos));var box=document.getElementById('listaPrestacionesServicio');if(!box)return;box.innerHTML=prestacionesServicio.length?prestacionesServicio.slice().sort(function(a,b){return String(b.fecha).localeCompare(String(a.fecha))||String(b.created_at||'').localeCompare(String(a.created_at||''));}).map(function(p){var cred=p.condicion==='credito',saldo=Math.max(0,Number(p.saldo||0)),cobrado=cred?Number(p.pagado||0):Number(p.ingreso||0);return '<div class="prestacion-item"><div class="prestacion-item-top"><div><h3>'+esc(p.descripcion)+'</h3><p>'+esc(p.fecha)+' · '+(p.tipo==='ingreso_costo'?'Ingreso + costo externo':'Solo ingreso')+' · '+(cred?'A crédito':'Pagada')+'</p>'+(p.cliente?'<p>Cliente: <strong>'+esc(p.cliente)+'</strong></p>':'')+(cred?'<p>Cobrado '+money(cobrado)+' · Saldo <strong>'+money(saldo)+'</strong>'+(p.vencimiento?' · Vence '+esc(p.vencimiento):'')+'</p>':'')+'</div><div class="prestacion-importes">Ingreso '+money(p.ingreso)+'<br>Costo '+money(p.costo)+'<br>Neto '+money(Number(p.ingreso)-Number(p.costo))+'</div></div><div class="acciones-prestacion">'+(cred&&saldo>0?'<button type="button" class="boton-agregar" onclick="flkAbonarPrestacion(&quot;'+esc(String(p.id))+'&quot;)">💵 Abonar</button>':'')+'<button type="button" class="boton-eliminar solo-admin" onclick="flkEliminarPrestacionServicio(&quot;'+esc(String(p.id))+'&quot;)">Eliminar</button></div></div>';}).join(''):'<div class="sin-productos">No hay prestaciones registradas.</div>';}
-window.flkCargarPrestacionesNube=async function(){if(typeof flkNubeDisponible!=='function'||!flkNubeDisponible()||typeof flkSupabase==='undefined')return false;try{var bid=await flkExigirCentroActual();var r=await flkSupabase.from('service_provisions').select('id,business_id,operation_id,description,service_type,income,payment_method,external_cost,service_date,customer_name,payment_condition,initial_payment,paid_amount,balance_due,due_date,created_at').eq('business_id',bid).order('service_date',{ascending:true}).order('created_at',{ascending:true});if(r.error)throw r.error;var rp=await flkSupabase.from('service_provision_payments').select('id,business_id,service_provision_id,amount,payment_method,payment_date,note,operation_id,created_at').eq('business_id',bid).order('created_at',{ascending:true});if(rp.error)throw rp.error;load();var q=typeof flkColaOffline==='function'?flkColaOffline():[];var ps=new Set(q.filter(function(o){return o.tipo==='service_provision_save'&&o.estado!=='sincronizado';}).map(function(o){return o.id;}));var pp=q.filter(function(o){return o.tipo==='service_provision_payment_save'&&o.estado!=='sincronizado';});var pd=new Set(q.filter(function(o){return o.tipo==='service_provision_delete'&&o.estado!=='sincronizado'&&o.payload&&o.payload.cloud_id;}).map(function(o){return String(o.payload.cloud_id);}));var pagosPor={};(rp.data||[]).forEach(function(a){(pagosPor[String(a.service_provision_id)]||(pagosPor[String(a.service_provision_id)]=[])).push({id:String(a.id),operation_id:a.operation_id||'',monto:Number(a.amount||0),metodo:metodoVista(a.payment_method),fecha:a.payment_date,nota:a.note||'',inicial:String(a.operation_id||'').indexOf('initial:')===0});});pp.forEach(function(o){var a=o.payload||{},sid=String(a.service_provision_id||'');if(!sid)return;var arr=pagosPor[sid]||(pagosPor[sid]=[]);if(!arr.some(function(x){return x.operation_id===o.id;}))arr.push({id:o.id,operation_id:o.id,monto:Number(a.amount||0),metodo:a.payment_method||'Efectivo CUP',fecha:a.payment_date||fechaISO(new Date()),nota:a.note||'',inicial:false,offline:true});});var nube=(r.data||[]).filter(function(x){return !pd.has(String(x.id));}).map(function(x){var pagos=pagosPor[String(x.id)]||[];var pendienteOps=new Set(pp.filter(function(o){return String((o.payload||{}).service_provision_id||'')===String(x.id);}).map(function(o){return o.id;}));var extraPendiente=pagos.filter(function(a){return !a.inicial&&pendienteOps.has(a.operation_id);}).reduce(function(t,a){return t+Number(a.monto||0);},0);var pagado=Math.min(Number(x.income||0),Number(x.paid_amount||0)+extraPendiente);return {id:String(x.id),cloud_id:String(x.id),operation_id:x.operation_id||'',descripcion:x.description||'',tipo:x.service_type||'ingreso',ingreso:Number(x.income||0),costo:Number(x.external_cost||0),metodo:metodoVista(x.payment_method),fecha:x.service_date,cliente:x.customer_name||'',condicion:x.payment_condition||'pagada',pagoInicial:Number(x.initial_payment||0),pagado:pagado,saldo:Math.max(0,Number(x.income||0)-pagado),vencimiento:x.due_date||'',pagos:pagos,created_at:x.created_at||''};});var pendientes=prestacionesServicio.filter(function(p){return p.operation_id&&ps.has(p.operation_id);});var legacy=prestacionesServicio.filter(function(p){return !p.cloud_id&&!p.operation_id;});var map=new Map();nube.concat(pendientes).concat(legacy).forEach(function(p){map.set(String(p.cloud_id||p.operation_id||p.id),p);});prestacionesServicio=Array.from(map.values());save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();return true;}catch(e){if(typeof flkSilenciarSiEsConexion==='function'&&flkSilenciarSiEsConexion(e))return false;console.error('Prestaciones nube:',e);return false;}};
+function pintar(){var h=hoy(),m=mes();var esCUP=function(p){var mm=String(p&&p.metodo||'').trim().toLowerCase();return mm==='efectivo'||mm==='efectivo cup'||mm==='transferencia'||mm==='transferencia cup';};var hFinArr=h.arr.filter(esCUP),hFinIngresos=hFinArr.reduce(function(t,p){return t+Number(p.ingreso||0);},0);var mFinArr=m.arr.filter(esCUP),mFinIngresos=mFinArr.reduce(function(t,p){return t+Number(p.ingreso||0);},0),mFinCostos=mFinArr.reduce(function(t,p){return t+Number(p.costo||0);},0);set('prestIngresosHoy',flkPrestIngresosPorMoneda(h.arr));set('prestCostosHoy',money(h.costos));set('prestNetoHoy',money(h.neto));set('prestIngresosMes',flkPrestIngresosPorMoneda(m.arr));set('prestCostosMes',money(m.costos));set('prestNetoMes',money(m.neto));set('cierrePrestIngresos',money(h.ingresos));set('cierrePrestCostos',money(h.costos));set('cierrePrestNeto',money(h.neto));set('finPrestIngresos',money(mFinIngresos));set('finPrestCostos',money(mFinCostos));set('finPrestNeto',money(mFinIngresos-mFinCostos));set('estadPrestHoy',money(hFinIngresos));set('estadPrestMes',money(mFinIngresos));set('estadPrestCostosMes',money(mFinCostos));set('estadPrestNetoMes',money(mFinIngresos-mFinCostos));var box=document.getElementById('listaPrestacionesServicio');if(!box)return;box.innerHTML=prestacionesServicio.length?prestacionesServicio.slice().sort(function(a,b){return String(b.fecha).localeCompare(String(a.fecha))||String(b.created_at||'').localeCompare(String(a.created_at||''));}).map(function(p){var cred=p.condicion==='credito',saldo=Math.max(0,Number(p.saldo||0)),cobrado=cred?Number(p.pagado||0):Number(p.ingreso||0);return '<div class="prestacion-item '+((!cred||saldo<=0.009)?'prestacion-pagada':'prestacion-credito')+'"><div class="prestacion-item-top"><div><h3>'+esc(p.descripcion)+'</h3><p>'+esc(p.fecha)+' · '+(p.tipo==='ingreso_costo'?'Ingreso + costo externo':'Solo ingreso')+'</p><span class="prestacion-badge '+((!cred||saldo<=0.009)?'badge-pagada':'badge-credito')+'">'+((!cred||saldo<=0.009)?(cred?'✅ Pagada (saldada)':'✅ Pagada'):'⏳ A crédito')+'</span>'+(p.cliente?'<p>Cliente: <strong>'+esc(p.cliente)+'</strong></p>':'')+(cred?'<p>Cobrado '+money(cobrado)+' · Saldo <strong>'+money(saldo)+'</strong>'+(p.vencimiento?' · Vence '+esc(p.vencimiento):'')+'</p>':'')+'</div><div class="prestacion-importes"><span class="pi-ingreso">Ingreso '+money(p.ingreso)+'</span><span class="pi-costo">Costo '+money(p.costo)+'</span><span class="pi-neto'+(Number(p.ingreso)-Number(p.costo)<0?' negativo':'')+'">Neto '+money(Number(p.ingreso)-Number(p.costo))+'</span></div></div><div class="acciones-prestacion">'+(cred&&saldo>0?'<button type="button" class="boton-agregar" onclick="flkAbonarPrestacion(&quot;'+esc(String(p.id))+'&quot;)">💵 Abonar</button>':'')+'<button type="button" class="boton-eliminar solo-admin" onclick="flkEliminarPrestacionServicio(&quot;'+esc(String(p.id))+'&quot;)">Eliminar</button></div></div>';}).join(''):'<div class="sin-productos">No hay prestaciones registradas.</div>';}
+window.flkCargarPrestacionesNube=async function(){if(typeof flkNubeDisponible!=='function'||!flkNubeDisponible()||typeof flkSupabase==='undefined')return false;try{var bid=await flkExigirCentroActual();var r=await flkSupabase.from('service_provisions').select('id,business_id,operation_id,description,service_type,income,payment_method,external_cost,service_date,customer_name,payment_condition,initial_payment,paid_amount,balance_due,due_date,created_at').eq('business_id',bid).order('service_date',{ascending:true}).order('created_at',{ascending:true});if(r.error)throw r.error;var rp=await flkSupabase.from('service_provision_payments').select('id,business_id,service_provision_id,amount,payment_method,payment_date,note,operation_id,created_at').eq('business_id',bid).order('created_at',{ascending:true});if(rp.error)throw rp.error;load();var q=await flkConsultarColaPrincipal();var ps=new Set(q.filter(function(o){return o.tipo==='service_provision_save'&&o.estado!=='sincronizado';}).map(function(o){return o.id;}));var pp=q.filter(function(o){return o.tipo==='service_provision_payment_save'&&o.estado!=='sincronizado';});var pd=new Set(q.filter(function(o){return o.tipo==='service_provision_delete'&&o.estado!=='sincronizado'&&o.payload&&o.payload.cloud_id;}).map(function(o){return String(o.payload.cloud_id);}));var pagosPor={};(rp.data||[]).forEach(function(a){(pagosPor[String(a.service_provision_id)]||(pagosPor[String(a.service_provision_id)]=[])).push({id:String(a.id),operation_id:a.operation_id||'',monto:Number(a.amount||0),metodo:metodoVista(a.payment_method),fecha:a.payment_date,nota:a.note||'',inicial:String(a.operation_id||'').indexOf('initial:')===0});});pp.forEach(function(o){var a=o.payload||{},sid=String(a.service_provision_id||'');if(!sid)return;var arr=pagosPor[sid]||(pagosPor[sid]=[]);if(!arr.some(function(x){return x.operation_id===o.id;}))arr.push({id:o.id,operation_id:o.id,monto:Number(a.amount||0),metodo:a.payment_method||'Efectivo CUP',fecha:a.payment_date||fechaISO(new Date()),nota:a.note||'',inicial:false,offline:true});});var nube=(r.data||[]).filter(function(x){return !pd.has(String(x.id));}).map(function(x){var pagos=pagosPor[String(x.id)]||[];var pendienteOps=new Set(pp.filter(function(o){return String((o.payload||{}).service_provision_id||'')===String(x.id);}).map(function(o){return o.id;}));var extraPendiente=pagos.filter(function(a){return !a.inicial&&pendienteOps.has(a.operation_id);}).reduce(function(t,a){return t+Number(a.monto||0);},0);var pagado=Math.min(Number(x.income||0),Number(x.paid_amount||0)+extraPendiente);return {id:String(x.id),cloud_id:String(x.id),operation_id:x.operation_id||'',descripcion:x.description||'',tipo:x.service_type||'ingreso',ingreso:Number(x.income||0),costo:Number(x.external_cost||0),metodo:metodoVista(x.payment_method),fecha:x.service_date,cliente:x.customer_name||'',condicion:x.payment_condition||'pagada',pagoInicial:Number(x.initial_payment||0),pagado:pagado,saldo:Math.max(0,Number(x.income||0)-pagado),vencimiento:x.due_date||'',pagos:pagos,created_at:x.created_at||''};});var pendientes=prestacionesServicio.filter(function(p){return p.operation_id&&ps.has(p.operation_id);});var legacy=prestacionesServicio.filter(function(p){return !p.cloud_id&&!p.operation_id;});var map=new Map();nube.concat(pendientes).concat(legacy).forEach(function(p){map.set(String(p.cloud_id||p.operation_id||p.id),p);});prestacionesServicio=Array.from(map.values());save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();return true;}catch(e){if(typeof flkSilenciarSiEsConexion==='function'&&flkSilenciarSiEsConexion(e))return false;console.error('Prestaciones nube:',e);return false;}};
 window.flkCambiarTipoPrestacion=function(){var t=document.getElementById('prestTipo'),c=document.getElementById('prestCosto');if(!t||!c)return;c.disabled=t.value!=='ingreso_costo';if(c.disabled)c.value='0';};
 window.flkCambiarCondicionPrestacion=function(){var c=document.getElementById('prestCondicion'),b=document.getElementById('prestCamposCredito'),cl=document.getElementById('prestCliente'),ve=document.getElementById('prestVencimiento');if(!c||!b)return;var credito=c.value==='credito';b.style.display=credito?'grid':'none';if(cl)cl.required=credito;if(ve)ve.required=credito;};
-window.flkGuardarPrestacionServicio=function(){
+window.flkGuardarPrestacionServicio=async function(){
  if(typeof requiereAdmin==='function'&&!requiereAdmin('Registrar prestaciones de servicio'))return;
  var de=document.getElementById('prestDescripcion'),ti=document.getElementById('prestTipo'),ing=document.getElementById('prestIngreso'),me=document.getElementById('prestMetodo'),co=document.getElementById('prestCosto'),fe=document.getElementById('prestFecha'),cn=document.getElementById('prestCondicion'),cl=document.getElementById('prestCliente'),pi=document.getElementById('prestPagoInicial'),ve=document.getElementById('prestVencimiento');
  var condicion=cn?cn.value:'pagada';
@@ -13181,7 +13808,7 @@ window.flkGuardarPrestacionServicio=function(){
  if(inicial>ingreso)return invalido(pi,'El pago inicial no puede superar el ingreso.');
  load();
  var localId=typeof flkUUID==='function'?flkUUID():'prest-'+Date.now();
- var op=typeof flkEncolarOperacion==='function'?flkEncolarOperacion('service_provision_save',{description:descripcion,service_type:tipo,income:ingreso,payment_method:metodo,external_cost:costo,service_date:fecha,customer_name:cliente||null,payment_condition:condicion,initial_payment:inicial,due_date:venc||null,local_id:localId}):null;
+ var op;try{op=await flkEncolarOperacionIndexedDB('service_provision_save',{description:descripcion,service_type:tipo,income:ingreso,payment_method:metodo,external_cost:costo,service_date:fecha,customer_name:cliente||null,payment_condition:condicion,initial_payment:inicial,due_date:venc||null,local_id:localId});}catch(e){console.error('IndexedDB prestación:',e);alert('No se pudo confirmar el guardado en IndexedDB. Operación no aplicada. '+String(e.message||e));return;}
  var pagos=condicion==='credito'&&inicial>0?[{id:'initial-local-'+localId,monto:inicial,metodo:metodo,fecha:fecha,nota:'Pago inicial',inicial:true}]:[];
  prestacionesServicio.push({id:localId,operation_id:op?op.id:'',descripcion:descripcion,tipo:tipo,ingreso:ingreso,costo:costo,metodo:metodo,fecha:fecha,cliente:cliente,condicion:condicion,pagoInicial:inicial,pagado:condicion==='credito'?inicial:ingreso,saldo:condicion==='credito'?Math.max(0,ingreso-inicial):0,vencimiento:venc,pagos:pagos,created_at:new Date().toISOString(),offlinePendiente:!!op});
  save();
@@ -13196,8 +13823,8 @@ window.flkGuardarPrestacionServicio=function(){
 };
 window.flkAbonarPrestacion=function(id){load();var p=prestacionesServicio.find(function(x){return String(x.id)===String(id)||String(x.cloud_id||'')===String(id);});if(!p)return alert('No se encontró la prestación.');var saldo=Math.max(0,Number(p.saldo||0));if(!(saldo>0))return alert('Esta prestación no tiene saldo pendiente.');if(!p.cloud_id)return alert('Esta prestación todavía no se ha sincronizado con el servidor. Sincronízala primero para registrar abonos adicionales.');var m=document.getElementById('modalAbonoPrestacion');if(!m)return alert('No se pudo abrir el formulario de abono.');document.getElementById('abonoPrestacionId').value=String(p.cloud_id||p.id);document.getElementById('abonoPrestacionMonto').value='';document.getElementById('abonoPrestacionMonto').max=String(saldo);document.getElementById('abonoPrestacionMetodo').value='Efectivo CUP';document.getElementById('abonoPrestacionFecha').value=fechaISO(new Date());document.getElementById('abonoPrestacionNota').value='Abono prestación';document.getElementById('abonoPrestacionResumen').textContent='Saldo pendiente: '+money(saldo)+' · '+String(p.descripcion||'Prestación');m.classList.add('visible');setTimeout(function(){var e=document.getElementById('abonoPrestacionMonto');if(e)e.focus();},0);};
 window.flkCerrarAbonoPrestacion=function(){var m=document.getElementById('modalAbonoPrestacion');if(m)m.classList.remove('visible');};
-window.flkGuardarAbonoPrestacion=function(){load();var id=String((document.getElementById('abonoPrestacionId')||{}).value||'');var p=prestacionesServicio.find(function(x){return String(x.cloud_id||'')===id||String(x.id)===id;});if(!p)return alert('No se encontró la prestación.');var saldo=Math.max(0,Number(p.saldo||0));var monto=Number((document.getElementById('abonoPrestacionMonto')||{}).value||0);if(!(monto>0))return alert('Escribe un importe válido.');if(monto>saldo)return alert('El abono no puede superar el saldo pendiente.');if(!p.cloud_id)return alert('La prestación debe estar sincronizada antes de registrar el abono.');var metodo=String((document.getElementById('abonoPrestacionMetodo')||{}).value||'Efectivo CUP');var fecha=String((document.getElementById('abonoPrestacionFecha')||{}).value||fechaISO(new Date()));var nota=String((document.getElementById('abonoPrestacionNota')||{}).value||'Abono prestación').trim()||'Abono prestación';var op=typeof flkEncolarOperacion==='function'?flkEncolarOperacion('service_provision_payment_save',{service_provision_id:p.cloud_id,amount:monto,payment_method:metodo,payment_date:fecha,note:nota}):null;p.pagos=Array.isArray(p.pagos)?p.pagos:[];p.pagos.push({id:op?op.id:'abono-'+Date.now(),operation_id:op?op.id:'',monto:monto,metodo:metodo,fecha:fecha,nota:nota,inicial:false,offline:true});p.pagado=Math.min(Number(p.ingreso||0),Number(p.pagado||0)+monto);p.saldo=Math.max(0,Number(p.ingreso||0)-p.pagado);save();pintar();flkCerrarAbonoPrestacion();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()&&typeof flkSolicitarSincronizacion==='function')flkSolicitarSincronizacion('abono-prestacion',0);};
-window.flkEliminarPrestacionServicio=function(id){if(typeof requiereAdmin==='function'&&!requiereAdmin('Eliminar prestaciones de servicio'))return;if(!confirm('¿Eliminar esta prestación?'))return;load();var p=prestacionesServicio.find(function(x){return String(x.id)===String(id);});if(!p)return;if(typeof flkEncolarOperacion==='function')flkEncolarOperacion('service_provision_delete',{cloud_id:p.cloud_id||null,operation_id:p.operation_id||null,local_id:String(p.id)});prestacionesServicio=prestacionesServicio.filter(function(x){return String(x.id)!==String(id);});save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()&&typeof flkSolicitarSincronizacion==='function')flkSolicitarSincronizacion('prestaciones',120);};
+window.flkGuardarAbonoPrestacion=async function(){load();var id=String((document.getElementById('abonoPrestacionId')||{}).value||'');var p=prestacionesServicio.find(function(x){return String(x.cloud_id||'')===id||String(x.id)===id;});if(!p)return alert('No se encontró la prestación.');var saldo=Math.max(0,Number(p.saldo||0));var monto=Number((document.getElementById('abonoPrestacionMonto')||{}).value||0);if(!(monto>0))return alert('Escribe un importe válido.');if(monto>saldo)return alert('El abono no puede superar el saldo pendiente.');if(!p.cloud_id)return alert('La prestación debe estar sincronizada antes de registrar el abono.');var metodo=String((document.getElementById('abonoPrestacionMetodo')||{}).value||'Efectivo CUP');var fecha=String((document.getElementById('abonoPrestacionFecha')||{}).value||fechaISO(new Date()));var nota=String((document.getElementById('abonoPrestacionNota')||{}).value||'Abono prestación').trim()||'Abono prestación';var op;try{op=await flkEncolarOperacionIndexedDB('service_provision_payment_save',{service_provision_id:p.cloud_id,amount:monto,payment_method:metodo,payment_date:fecha,note:nota});}catch(e){console.error('IndexedDB prestación:',e);alert('No se pudo confirmar el guardado en IndexedDB. Operación no aplicada. '+String(e.message||e));return;}p.pagos=Array.isArray(p.pagos)?p.pagos:[];p.pagos.push({id:op?op.id:'abono-'+Date.now(),operation_id:op?op.id:'',monto:monto,metodo:metodo,fecha:fecha,nota:nota,inicial:false,offline:true});p.pagado=Math.min(Number(p.ingreso||0),Number(p.pagado||0)+monto);p.saldo=Math.max(0,Number(p.ingreso||0)-p.pagado);save();pintar();flkCerrarAbonoPrestacion();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()&&typeof flkSolicitarSincronizacion==='function')flkSolicitarSincronizacion('abono-prestacion',0);};
+window.flkEliminarPrestacionServicio=async function(id){if(typeof requiereAdmin==='function'&&!requiereAdmin('Eliminar prestaciones de servicio'))return;if(!confirm('¿Eliminar esta prestación?'))return;load();var p=prestacionesServicio.find(function(x){return String(x.id)===String(id);});if(!p)return;try{await flkEncolarOperacionIndexedDB('service_provision_delete',{cloud_id:p.cloud_id||null,operation_id:p.operation_id||null,local_id:String(p.id)});}catch(e){console.error('IndexedDB prestación:',e);alert('No se pudo confirmar el guardado en IndexedDB. Operación no aplicada. '+String(e.message||e));return;}prestacionesServicio=prestacionesServicio.filter(function(x){return String(x.id)!==String(id);});save();pintar();if(typeof actualizarFlujoCaja==='function')actualizarFlujoCaja();if(typeof actualizarSaldoCajaFisica==='function')actualizarSaldoCajaFisica();if(typeof actualizarFinanzas==='function')actualizarFinanzas();if(typeof actualizarEstadisticas==='function')actualizarEstadisticas();if(typeof flkActualizarEstadoConexion==='function')flkActualizarEstadoConexion();if(typeof flkNubeDisponible==='function'&&flkNubeDisponible()&&typeof flkSolicitarSincronizacion==='function')flkSolicitarSincronizacion('prestaciones',120);};
 window.mostrarPrestacionesServicio=function(){try{flkLocalStorageSetSeguro('flackunloker_ultimo_modulo_v1','botonPrestacionesServicio');}catch(_){}if(typeof flkOcultarTodasLasVistas==='function')flkOcultarTodasLasVistas();var v=document.getElementById('vistaPrestacionesServicio');if(!v)return alert('No se pudo abrir Prestaciones de servicio.');v.style.display='block';document.querySelectorAll('.menu-cuadricula button').forEach(function(b){b.classList.remove('activo');});var btn=document.getElementById('botonPrestacionesServicio');if(btn)btn.classList.add('activo');if(typeof cerrarMenuPrincipal==='function')cerrarMenuPrincipal();var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());flkCambiarCondicionPrestacion();load();pintar();if(typeof flkCargarPrestacionesNube==='function')flkCargarPrestacionesNube();};
 function init(){var f=document.getElementById('prestFecha');if(f&&!f.value)f.value=fechaISO(new Date());flkCambiarCondicionPrestacion();load();pintar();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
@@ -13499,8 +14126,9 @@ async function flkGuardarPinResetCentroElectron(){
  const btn=document.getElementById("flkPinResetGuardar");if(btn){btn.disabled=true;btn.textContent="Guardando…"}
  flkPinResetMensaje("");
  try{
-  const {error}=await flkSupabase.rpc("flk_change_center_reset_pin",{p_business_id:flkPinResetBusinessId,p_new_pin:pin});
+  const {data,error}=await flkSupabase.rpc("flk_change_center_reset_pin",{p_business_id:flkPinResetBusinessId,p_new_pin:pin});
   if(error)throw error;
+  if(!data?.success)return flkPinResetMensaje(data?.message||"No se pudo cambiar el PIN.");
   flkCerrarModalPinResetCentro();
   alert("PIN de restablecimiento actualizado correctamente.");
  }catch(e){
@@ -13590,7 +14218,7 @@ document.getElementById("flkModalRenovarLicencia")?.addEventListener("click",fun
 
   <div class="campo">
    <label for="flkResetCentroPin">PIN de restablecimiento</label>
-   <input id="flkResetCentroPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="6 dígitos">
+   <input id="flkResetCentroPin" type="password" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="6-8 dígitos">
   </div>
 
   <div class="campo">
@@ -13627,12 +14255,54 @@ function flkCerrarModalResetCentro(){
  flkResetCentroMensaje("");
 }
 
+// v62.42.1 SEGURIDAD: limpia los datos operativos locales de UN centro.
+// Se usa SOLO después de que el PIN de restablecimiento ya fue validado
+// (por Supabase, en línea o por la cola diferida) — nunca antes.
+// Si el centro que se limpia no es el que está activo ahora mismo en esta
+// ventana, solo se borran sus claves de localStorage con sufijo de centro;
+// no se tocan las colecciones en memoria ni la clave "actual" sin sufijo,
+// para no arrastrar datos de otro centro que el usuario pueda estar viendo.
+function flkLimpiarDatosLocalesCentro(businessIdRestablecido){
+ const clavesCentro=[
+  "flackunloker_productos","flackunloker_historial","flackunloker_ventas",
+  "flackunloker_clientes","flackunloker_gastos","flackunloker_cierres",
+  "flackunloker_proveedores","flackunloker_ordenes_compra",
+  "flackunloker_compras","flackunloker_pagos_proveedor",
+  "flackunloker_movimientos_caja","flackunloker_owner_cash_movements"
+ ];
+ const esCentroActual=String(FLK_BUSINESS_ID||"")===String(businessIdRestablecido);
+
+ for(const clave of clavesCentro){
+  try{localStorage.removeItem(flkLocalKey(clave,businessIdRestablecido));}catch(_){}
+  if(esCentroActual){try{localStorage.removeItem(flkLocalKey(clave));}catch(_){}}
+ }
+
+ if(!esCentroActual)return;
+
+ try{productos=[];}catch(_){}
+ try{historial=[];}catch(_){}
+ try{ventas=[];}catch(_){}
+ try{clientes=[];}catch(_){}
+ try{gastos=[];}catch(_){}
+ try{cierres=[];}catch(_){}
+ try{proveedores=[];}catch(_){}
+ try{ordenesCompra=[];}catch(_){}
+
+ try{guardarDatos();}catch(_){}
+ try{guardarHistorial();}catch(_){}
+ try{guardarVentas();}catch(_){}
+ try{guardarGastos();}catch(_){}
+ try{guardarCierres();}catch(_){}
+ try{guardarProveedores();}catch(_){}
+ try{guardarOrdenesCompra();}catch(_){}
+}
+
 async function flkEjecutarResetCentroElectron(){
  const pin=String(document.getElementById("flkResetCentroPin")?.value||"").trim();
  const texto=String(document.getElementById("flkResetCentroConfirmacion")?.value||"").trim().toUpperCase();
 
- if(!/^\d{6}$/.test(pin))
-  return flkResetCentroMensaje("El PIN debe tener exactamente 6 dígitos.");
+ if(!/^\d{6,8}$/.test(pin))
+  return flkResetCentroMensaje("El PIN debe tener entre 6 y 8 dígitos.");
 
  if(texto!=="RESTABLECER")
   return flkResetCentroMensaje("Escribe exactamente RESTABLECER para confirmar.");
@@ -13648,21 +14318,69 @@ async function flkEjecutarResetCentroElectron(){
  flkResetCentroMensaje("");
 
  try{
-  // v62.13 · OFFLINE FIRST:
-  // 1) cortar las operaciones antiguas pendientes del centro;
-  // 2) guardar el reset como nueva frontera de sincronización;
-  // 3) limpiar inmediatamente la copia local;
-  // 4) dejar que Supabase reciba el reset en segundo plano.
+  // v62.42.1 SEGURIDAD (corrige bypass de PIN de reset):
+  // antes, se borraba la copia local de inmediato con solo comprobar que el
+  // PIN tuviera 6 dígitos, y la validación real contra Supabase llegaba
+  // DESPUÉS, ya sincronizada la cola — es decir, cualquier PIN de 6 dígitos
+  // destruía los datos locales antes de que nadie comprobara si era correcto.
+  // Ahora el borrado local SOLO ocurre después de que el PIN se valide:
+  //  - Con conexión: se valida y ejecuta en Supabase aquí mismo, en línea,
+  //    ANTES de tocar cualquier dato local. Si el PIN es incorrecto, no se
+  //    borra nada, ni local ni en la nube.
+  //  - Sin conexión: no hay forma segura de comprobar el PIN todavía, así
+  //    que no se borra nada de inmediato. El restablecimiento se pone en
+  //    cola y los datos locales se limpian recién cuando, ya con Internet,
+  //    Supabase confirme que el PIN era correcto (ver flkProcesarOperacionOffline).
+  const colaPrincipal=await flkConsultarColaPrincipal();
   let cola=typeof flkColaOffline==="function"?flkColaOffline():[];
+  if(colaPrincipal.some(op=>String(op?.business_id||"")===businessIdRestablecido)){
+   throw new Error("Hay operaciones pendientes en IndexedDB. Sincronízalas antes de restablecer.");
+  }
 
-  // Un reset invalida cualquier operación anterior todavía no sincronizada
-  // de este mismo centro: no deben reaparecer datos viejos después del borrado.
+  // No borrar operaciones solo en localStorage: IndexedDB es origen de sincronización.
+  // Bloqueo conservador hasta implementar reset transaccional de ambas bases.
+  if(cola.some(op=>String(op?.business_id||"")===businessIdRestablecido && op.estado!=="sincronizado")){
+   throw new Error("Hay operaciones pendientes en este centro. Sincronízalas antes de restablecer para evitar que reaparezcan desde IndexedDB.");
+  }
+
+  const hayNube=typeof flkNubeDisponible==="function" && flkNubeDisponible() && typeof flkSupabase!=="undefined";
+
+  if(hayNube){
+   const {error}=await flkSupabase.rpc("flk_full_system_reset_center",{
+    p_business_id:businessIdRestablecido,
+    p_pin:pin,
+    p_confirmation:"RESTABLECER"
+   });
+
+   if(error){
+    if(typeof flkSilenciarSiEsConexion==="function" && flkSilenciarSiEsConexion(error)){
+     throw new Error("Se perdió la conexión mientras se validaba el PIN. No se borró nada. Vuelve a intentarlo cuando tengas Internet.");
+    }
+    throw new Error(error.message||"Supabase rechazó el PIN de restablecimiento. No se borró ningún dato.");
+   }
+
+   // Supabase ya confirmó el PIN y ejecutó el borrado en la nube: recién
+   // ahora es seguro limpiar la copia local.
+   cola=cola.filter(op=>String(op?.business_id||"")!==businessIdRestablecido);
+   if(typeof flkGuardarColaOffline==="function")flkGuardarColaOffline(cola);
+
+   flkLimpiarDatosLocalesCentro(businessIdRestablecido);
+   flkCerrarModalResetCentro();
+
+   alert("✅ Centro restablecido: "+nombre+
+         "\n\nSe verificó el PIN y se borraron los datos operativos en Supabase y en este dispositivo.");
+
+   location.reload();
+   return;
+  }
+
+  // Sin conexión: no se puede confirmar el PIN todavía. Se pone en cola,
+  // pero los datos locales NO se tocan hasta que se valide de verdad.
   cola=cola.filter(op=>String(op?.business_id||"")!==businessIdRestablecido);
-
   if(typeof flkGuardarColaOffline==="function")flkGuardarColaOffline(cola);
 
-  const op=typeof flkEncolarOperacion==="function"
-   ? flkEncolarOperacion("center_reset",{
+  const op=typeof flkEncolarOperacionIndexedDB==="function"
+   ? await flkEncolarOperacionIndexedDB("center_reset",{
       business_id:businessIdRestablecido,
       requires_reauth:true,
       confirmation:"RESTABLECER",
@@ -13677,67 +14395,24 @@ async function flkEjecutarResetCentroElectron(){
   // de la cola persistente ni del respaldo local.
   try{sessionStorage.setItem("flk_reset_reauth_pin::"+op.id,pin);}catch(_){}
 
-  const clavesCentro=[
-   "flackunloker_productos","flackunloker_historial","flackunloker_ventas",
-   "flackunloker_clientes","flackunloker_gastos","flackunloker_cierres",
-   "flackunloker_proveedores","flackunloker_ordenes_compra",
-   "flackunloker_compras","flackunloker_pagos_proveedor",
-   "flackunloker_movimientos_caja","flackunloker_owner_cash_movements"
-  ];
-
-  for(const clave of clavesCentro){
-   try{localStorage.removeItem(flkLocalKey(clave,businessIdRestablecido));}catch(_){}
-   try{localStorage.removeItem(flkLocalKey(clave));}catch(_){}
-  }
-
-  // Vaciar también las colecciones vivas para que la interfaz quede en cero
-  // sin esperar respuesta de red.
-  try{productos=[];}catch(_){}
-  try{historial=[];}catch(_){}
-  try{ventas=[];}catch(_){}
-  try{clientes=[];}catch(_){}
-  try{gastos=[];}catch(_){}
-  try{cierres=[];}catch(_){}
-  try{proveedores=[];}catch(_){}
-  try{ordenesCompra=[];}catch(_){}
-
-  try{guardarDatos();}catch(_){}
-  try{guardarHistorial();}catch(_){}
-  try{guardarVentas();}catch(_){}
-  try{guardarGastos();}catch(_){}
-  try{guardarCierres();}catch(_){}
-  try{guardarProveedores();}catch(_){}
-  try{guardarOrdenesCompra();}catch(_){}
-
   flkCerrarModalResetCentro();
-
-  // La app queda limpia YA. La nube se sincroniza aparte.
   try{flkActualizarEstadoConexion();}catch(_){}
-  alert("✅ Centro restablecido localmente: "+nombre+
-        "\n\nFlackunloker quedó en cero de inmediato. El restablecimiento de Supabase quedó pendiente de sincronización.");
 
-  // Si hay nube, intentar sincronizar sin bloquear la interfaz ni el mensaje.
-  if(typeof flkNubeDisponible==="function" && flkNubeDisponible()){
-   setTimeout(()=>{
-    try{
-     if(typeof flkSincronizarSeguro==="function")flkSincronizarSeguro();
-     else if(typeof flkProcesarColaOffline==="function")flkProcesarColaOffline();
-    }catch(_){}
-   },50);
-  }
-
-  location.reload();
+  alert("⏳ Restablecimiento pendiente: "+nombre+
+        "\n\nComo no hay conexión ahora mismo, el PIN no se puede validar todavía. "+
+        "Los datos de este centro se borrarán automáticamente en cuanto vuelva Internet y el PIN sea correcto. "+
+        "Si el PIN resulta incorrecto, no se borrará nada.");
 
  }catch(err){
-  console.error("Reset centro offline-first:",err);
-  flkResetCentroMensaje("No se pudo preparar el restablecimiento local: "+(err?.message||err));
+  console.error("Reset centro:",err);
+  flkResetCentroMensaje(err?.message||String(err));
  }finally{
   if(btn){btn.disabled=false;btn.textContent="Restablecer centro";}
  }
 }
 
 document.getElementById("flkResetCentroPin")?.addEventListener("input",function(){
- this.value=this.value.replace(/\D/g,"").slice(0,6);
+ this.value=this.value.replace(/\D/g,"").slice(0,8);
 });
 
 document.getElementById("flkModalResetCentro")?.addEventListener("click",function(e){
@@ -14042,5 +14717,117 @@ document.getElementById("flkModalResetCentro")?.addEventListener("click",functio
 })();
 </script>
 
+<script id="flk-indexeddb-paso11-persistencia-verificada">
+/* PASO 11A: migración manual y verificada de la cola actual.
+   NO cambia el origen oficial ni intercepta ventas: las llamadas existentes
+   a flkEncolarOperacion son síncronas y requieren una migración posterior. */
+(function(){
+  window.flkPrepararColaIndexedDBPaso11=async function(){
+    const api=window.flkIndexedDBPaso1;
+    if(!api||typeof api.abrir!=="function")throw new Error("IndexedDB no disponible");
+    if(typeof flkColaOffline!=="function")throw new Error("Cola offline no disponible");
+    // Captura la cola oficial y comprueba identidad antes de tocar el espejo.
+    const cola=flkColaOffline().map(function(op){return JSON.parse(JSON.stringify(op));});
+    const claves=new Set();
+    cola.forEach(function(op){
+      if(!op||!op.id||!op.business_id||!op.created_at)throw new Error("Operación sin identidad completa: migración detenida");
+      const k=api.storageKey(op.business_id,op.id);
+      if(claves.has(k))throw new Error("ID duplicado en cola: "+k);
+      claves.add(k);
+    });
+    // La función existente espera el cierre de la transacción (oncomplete).
+    await api.espejarOperaciones(cola);
+    const lectura=await api.leerEspejo();
+    const porClave=new Map(lectura.operaciones.map(function(r){return [r.storage_key,r];}));
+    const faltantes=[],diferentes=[];
+    cola.forEach(function(op){
+      const k=api.storageKey(op.business_id,op.id),registro=porClave.get(k);
+      if(!registro){faltantes.push(k);return;}
+      if(JSON.stringify(registro.payload)!==JSON.stringify(op))diferentes.push(k);
+    });
+    if(faltantes.length||diferentes.length)throw new Error("Verificación IndexedDB fallida: "+faltantes.length+" faltantes, "+diferentes.length+" diferentes");
+    return {ok:true,verificadas:cola.length,origenActual:"localStorage",indexedDBPrincipal:false,
+      nota:"Copia verificada. No se ha activado el cambio de origen ni borrado datos."};
+  };
+})();
+</script>
+
+
+<script id="flk-indexeddb-paso11b-recuperacion-verificada">
+/* v62.41.46 · IndexedDB PASO 11B · recuperación MANUAL y segura.
+   Objetivo: demostrar que el espejo puede reconstruir las dos copias actuales
+   de localStorage antes de convertir IndexedDB en origen principal.
+   NO se ejecuta automáticamente, NO borra IndexedDB y NO cambia el origen oficial. */
+(function(){
+  function clonar(v){return JSON.parse(JSON.stringify(v));}
+  function firma(ops){
+    return (Array.isArray(ops)?ops:[]).map(function(op){
+      return String(op&&op.business_id||"")+"::"+String(op&&op.id||"")+"::"+
+        String(op&&op.tipo||"")+"::"+String(op&&op.created_at||"")+"::"+
+        JSON.stringify(op&&op.payload||{});
+    }).sort();
+  }
+  function iguales(a,b){return JSON.stringify(firma(a))===JSON.stringify(firma(b));}
+
+  window.flkRecuperarColaDesdeIndexedDBPaso11B=async function(opciones){
+    opciones=opciones||{};
+    const api=window.flkIndexedDBPaso1;
+    if(!api||typeof api.leerEspejo!=="function")throw new Error("IndexedDB no disponible");
+    if(typeof flkLocalKey!=="function"||typeof flkClaveEmergenciaCola!=="function"||
+       typeof flkLeerArrayLocal!=="function"||typeof flkLocalStorageSetSeguro!=="function"){
+      throw new Error("Infraestructura de cola local no disponible");
+    }
+    const lectura=await api.leerEspejo();
+    const registros=Array.isArray(lectura.operaciones)?lectura.operaciones:[];
+    const operaciones=[];
+    const vistos=new Set();
+    registros.forEach(function(reg){
+      const op=reg&&reg.payload;
+      if(!op||!op.id||!op.business_id||!op.created_at)return;
+      const key=api.storageKey(op.business_id,op.id);
+      if(vistos.has(key))throw new Error("Operación duplicada en IndexedDB: "+key);
+      vistos.add(key);
+      if(["pendiente","error","conflicto"].includes(op.estado))operaciones.push(clonar(op));
+    });
+    operaciones.sort(function(a,b){return String(a.created_at).localeCompare(String(b.created_at));});
+
+    const principalKey=flkLocalKey(FLK_OFFLINE_QUEUE_KEY);
+    const emergenciaKey=flkClaveEmergenciaCola();
+    const principal=flkLeerArrayLocal(principalKey);
+    const emergencia=flkLeerArrayLocal(emergenciaKey);
+    const diagnostico={
+      ok:true,indexedDBPendientes:operaciones.length,
+      localPrincipal:principal.length,localEmergencia:emergencia.length,
+      coincidePrincipal:iguales(operaciones,principal),
+      coincideEmergencia:iguales(operaciones,emergencia),
+      aplicado:false,origenActual:"localStorage",indexedDBPrincipal:false
+    };
+
+    if(opciones.aplicar!==true)return diagnostico;
+    if(opciones.confirmacion!=="RECUPERAR")throw new Error("Recuperación no autorizada: usa confirmacion:'RECUPERAR'");
+
+    const serial=JSON.stringify(operaciones);
+    flkLocalStorageSetSeguro(principalKey,serial);
+    flkLocalStorageSetSeguro(emergenciaKey,serial);
+    const vp=flkLeerArrayLocal(principalKey),ve=flkLeerArrayLocal(emergenciaKey);
+    if(!iguales(operaciones,vp)||!iguales(operaciones,ve)){
+      throw new Error("FALLO CRÍTICO: la cola reconstruida no quedó verificada en ambas copias locales");
+    }
+    diagnostico.aplicado=true;
+    diagnostico.coincidePrincipal=true;
+    diagnostico.coincideEmergencia=true;
+    try{if(typeof flkActualizarEstadoConexion==="function")flkActualizarEstadoConexion();}catch(_){}
+    return diagnostico;
+  };
+})();
+</script>
+
+<script id="flk-indexeddb-status-bootstrap-v3">
+window.addEventListener("load",function(){
+ if(typeof flkRefrescarEstadoColaPrincipal==="function"){
+  flkRefrescarEstadoColaPrincipal().then(()=>flkActualizarEstadoConexion()).catch(()=>flkActualizarEstadoConexion("error"));
+ }
+});
+</script>
 </body>
 </html>
