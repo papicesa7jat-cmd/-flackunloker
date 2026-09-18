@@ -93,6 +93,18 @@ self.addEventListener("fetch", event => {
 
   const url = new URL(request.url);
 
+  // v62.41.59 · En el escritorio (Electron), index.html se carga con
+  // ventana.loadFile(), es decir por file://. fetch() sobre file:// no es
+  // confiable en Chromium (suele rechazar la promesa) y esta franja de
+  // "red primero, caché de respaldo si no hay internet" se diseñó para una
+  // PWA servida por https, no para un archivo local. Al interceptar la
+  // navegación sobre file://, ese fetch() fallaba, la caché de respaldo
+  // solía estar vacía por el mismo motivo, y el resultado era
+  // Response.error() -> pantalla en blanco al recargar (por ejemplo, justo
+  // después de cerrar sesión). No existe un "sin internet" para un archivo
+  // local: se deja pasar sin intervenir.
+  if (url.protocol === "file:") return;
+
   // Supabase API/Auth/REST/RPC: jamás cachear datos de negocio ni autenticación.
   if (
     url.hostname.includes("supabase.co") ||
