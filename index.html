@@ -3473,6 +3473,7 @@ function flkEstadoConexionClave(estadoEspecial){
  if(!navigator.onLine || flkServidorAlcanzableActual!==true)return "offline";
  const c=flkConflictosOffline();
  if(c)return "conflicto";
+ if(flkSesionSoloCache)return "sesion-local";
  const n=flkPendientesOffline();
  return n?"online-pendiente":"sincronizado";
 }
@@ -3520,6 +3521,7 @@ function flkActualizarEstadoConexion(estadoEspecial){
  if(estadoEspecial==="error"){box.classList.add("error");txt.textContent="⚠️ Error de sincronización";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"";return}
  if(!navigator.onLine || flkServidorAlcanzableActual!==true){box.classList.add("offline");txt.textContent="🟠 Sin conexión al servidor";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"Sin cambios pendientes";return}
  if(!flkNubeDisponible()){box.classList.add("offline");txt.textContent="🟠 Internet · sesión local";pen.textContent=n?`${n} pendiente${n===1?"":"s"}`:"Inicia sesión online para sincronizar";return}
+ if(flkSesionSoloCache){box.classList.add("offline");txt.textContent="⚠️ Sesión no confirmada";pen.textContent=(n?`${n} pendiente${n===1?"":"s"} · `:"")+"vuelve a iniciar sesión";return}
  if(n){
   txt.textContent="🟢 En línea";
   pen.textContent=`${n} pendiente${n===1?"":"s"}`;
@@ -4680,6 +4682,14 @@ const flkSupabase=window.supabase.createClient(FLK_SUPABASE_URL,FLK_SUPABASE_KEY
 let modoAuth="login";
 let rolSesion="employee";
 let flkSesionActiva=false;
+// v62.43.2 SEGURIDAD (evita confundir "licencia activa"/caché local con sesión
+// real): true cuando la interfaz se pinta desde la sesión guardada en este
+// dispositivo porque Supabase no entregó una sesión real (revocada, expirada
+// o red intermitente durante el refresh). En ese estado los datos mostrados
+// pueden estar desactualizados y cualquier lectura a Supabase fallará con
+// 401/permission denied hasta volver a iniciar sesión. No se fuerza cierre
+// de sesión ni se toca la cola offline: solo se avisa con honestidad.
+let flkSesionSoloCache=false;
 const FLK_OWNER_LICENSE_KEY="228b72e9-88dd-4c6b-91a1-4a98ff488d0c";
 const FLK_CLIENT_LICENSE_KEY_STORAGE="flackunloker_client_license_key_v1";
 const FLK_LICENSE_TEST_MODE_KEY="flackunloker_license_test_mode_v1";
@@ -5113,11 +5123,24 @@ async function flkRecuperacionEmergenciaNube(){
  flkModoRecuperacionNube=true;
  const fallos=[];
  try{
-  const {data:ses,error:sesErr}=await flkSupabase.auth.getSession();
-  if(sesErr)throw sesErr;
-  if(!ses?.session?.user)throw new Error("Sesión no disponible.");
+  // No confundir conectividad/licencia con autenticación. Sin sesión, no tocar copias locales.
+  const flkSesionRecuperacionVigente=async()=>{
+   try{
+    const {data,error}=await flkSupabase.auth.getSession();
+    if(error||!data?.session?.user){
+     console.warn("Recuperación pausada: sesión Supabase no confirmada; datos y cola offline intactos.");
+     return false;
+    }
+    return true;
+   }catch(e){
+    console.warn("Recuperación pausada: no se pudo confirmar la sesión; datos y cola offline intactos.");
+    return false;
+   }
+  };
+  if(!(await flkSesionRecuperacionVigente()))return false;
 
-  // INVENTARIO
+     if(!(await flkSesionRecuperacionVigente()))return false;
+// INVENTARIO
   try{
    const {data,error}=await flkSupabase.from("products").select(FLK_PRODUCT_SELECT).eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
    if(error)throw error;
@@ -5125,7 +5148,8 @@ async function flkRecuperacionEmergenciaNube(){
    guardarDatos();
   }catch(e){console.error("Inventario",e);fallos.push("Inventario: "+(e.message||e))}
 
-  // HISTORIAL
+     if(!(await flkSesionRecuperacionVigente()))return false;
+// HISTORIAL
   try{
    const {data,error}=await flkSupabase.from("stock_movements").select(FLK_STOCK_MOVEMENT_SELECT).order("created_at",{ascending:false});
    if(error)throw error;
@@ -5133,7 +5157,8 @@ async function flkRecuperacionEmergenciaNube(){
    guardarHistorial();
   }catch(e){console.error("Historial",e);fallos.push("Historial: "+(e.message||e))}
 
-  // VENTAS: tablas planas, sin relaciones embebidas.
+     if(!(await flkSesionRecuperacionVigente()))return false;
+// VENTAS: tablas planas, sin relaciones embebidas.
   try{
    const [rVentas,rItems,rPagos,rDevol]=await Promise.all([
     flkSupabase.from("sales").select("*").order("created_at",{ascending:false}),
@@ -5165,7 +5190,8 @@ async function flkRecuperacionEmergenciaNube(){
    guardarVentas();
   }catch(e){console.error("Ventas",e);fallos.push("Ventas: "+(e.message||e))}
 
-  // GASTOS
+     if(!(await flkSesionRecuperacionVigente()))return false;
+// GASTOS
   try{
    const {data,error}=await flkSupabase.from("expenses").select("id,legacy_id,business_id,concept,category,amount,payment_method,expense_date,note,created_at").order("expense_date",{ascending:false});
    if(error)throw error;
@@ -5173,7 +5199,8 @@ async function flkRecuperacionEmergenciaNube(){
    guardarGastos();
   }catch(e){console.error("Gastos",e);fallos.push("Gastos: "+(e.message||e))}
 
-  // COMPRAS Y PROVEEDORES · v61.73: offline conserva compras/proveedores locales y no consulta Supabase
+     if(!(await flkSesionRecuperacionVigente()))return false;
+// COMPRAS Y PROVEEDORES · v61.73: offline conserva compras/proveedores locales y no consulta Supabase
   if(flkNubeDisponible()){
   try{
    const [rs,ro,rp]=await Promise.all([
@@ -5224,13 +5251,15 @@ async function flkRecuperacionEmergenciaNube(){
    if(typeof actualizarCuentasPagar==="function")actualizarCuentasPagar();
   }
 
-  // CAJA · v61.72: si la conexión cae durante la recuperación, conservar datos locales
+     if(!(await flkSesionRecuperacionVigente()))return false;
+// CAJA · v61.72: si la conexión cae durante la recuperación, conservar datos locales
   if(flkNubeDisponible()){
    try{
     const {data,error}=await flkSupabase.from("cash_movements").select("id,type,amount,description,payment_method,occurred_at,created_at,sale_id,service_provision_id").order("occurred_at",{ascending:true});
     if(error)throw error;
     movimientosCajaSupabase=(data||[]).map(m=>({
      id:m.id,
+     service_provision_id:m.service_provision_id||null,
      tipo:m.type==="income"?"entrada":"salida",
      cantidad:Number(m.amount||0),
      concepto:m.description||"Movimiento",
@@ -5256,7 +5285,8 @@ async function flkRecuperacionEmergenciaNube(){
    }
   }
 
-  // CIERRES · v61.72: sin fetch cuando ya estamos offline; conservar copia local
+     if(!(await flkSesionRecuperacionVigente()))return false;
+// CIERRES · v61.72: sin fetch cuando ya estamos offline; conservar copia local
   if(flkNubeDisponible()){
    try{
     const {data,error}=await flkSupabase.from("cash_closures").select("id,business_id,close_date,receipts_count,units_count,sales_total,cost_total,gross_profit,expenses_total,net_profit,collected_total,cash_total,ath_total,card_total,other_total,credit_sales,credit_balance,cash_expenses,net_cash,updated_at,created_at").order("close_date",{ascending:false});
@@ -5281,6 +5311,7 @@ async function flkRecuperacionEmergenciaNube(){
   actualizarOpcionesOrganizacion();actualizarProveedores();actualizarOrdenesCompra();
   actualizarCuentasPagar();actualizarFlujoCaja();actualizarFinanzas();actualizarEstadisticas();
 
+  if(!(await flkSesionRecuperacionVigente()))return false;
   if(fallos.length){
    // v61.89: una caída de Internet durante la recuperación no es un error
    // funcional. Se conserva la copia local y no se interrumpe al usuario
@@ -5317,6 +5348,7 @@ async function mostrarAppConSesion(session){
  }
  if(session&&session.user){
   flkSesionActiva=true;
+  flkSesionSoloCache=false;
   flkGuardarSesionLocal(session);
   document.getElementById("authOverlay").classList.add("oculto");
   flkPintarSesionLocal(session.user);
@@ -5342,6 +5374,10 @@ async function mostrarAppConSesion(session){
   // v61.44: conservar la última sesión local válida cuando Supabase no entrega sesión
   // durante un refresh/corte. El cierre manual sí borra esta caché.
   if(cache?.user){
+   // v62.43.2: sesión de VISUALIZACIÓN, no una sesión de Supabase real.
+   // flkSesionActiva ya quedó en false (correcto). flkSesionSoloCache avisa
+   // en la interfaz para que no se confunda con "todo sincronizado".
+   flkSesionSoloCache=flkNubeDisponible();
    flkPintarSesionLocal(cache.user);
    flkActualizarEstadoConexion();
    return
@@ -5360,8 +5396,14 @@ function cerrarSesionFlackunloker(){
  }catch(_){}
 
  // La salida remota se intenta en segundo plano. Una red lenta o caída no bloquea el botón.
+ // v62.43.2 SEGURIDAD (corrige pérdida de sesión en la otra laptop): signOut()
+ // sin argumentos usa scope "global" por defecto en supabase-js, que revoca
+ // el refresh token en TODOS los dispositivos con la misma cuenta. Como el
+ // propietario usa la misma cuenta en dos laptops, cerrar sesión en una
+ // invalidaba silenciosamente la sesión de la otra. scope:"local" cierra
+ // sesión solo en este dispositivo.
  try{
-  const salida=flkSupabase?.auth?.signOut?.();
+  const salida=flkSupabase?.auth?.signOut?.({scope:"local"});
   if(salida&&typeof salida.catch==="function")salida.catch(err=>console.warn("Cierre remoto pendiente/no disponible:",err));
  }catch(err){console.warn("Cierre remoto no disponible:",err)}
 
@@ -5600,7 +5642,7 @@ document.getElementById("formularioNuevaPassword")?.addEventListener("submit",as
     flkEstadoRecuperacion("estadoNuevaPassword","Contraseña actualizada correctamente. Ya puedes iniciar sesión con la nueva contraseña.","ok");
     setTimeout(async()=>{
       flkModoRecuperacionPassword=false;
-      try{await flkSupabase.auth.signOut()}catch(_){}
+      try{await flkSupabase.auth.signOut({scope:"local"})}catch(_){} // v62.43.2: no cerrar sesión en la otra laptop.
       flkSesionActiva=false;
       flkLimpiarSesionLocal();
       cerrarNuevaPassword();
@@ -5824,7 +5866,7 @@ async function flkReintentarLicencia(){
  }
 }
 async function flkCerrarSesionDesdeLicencia(){
- try{await flkSupabase.auth.signOut()}catch(_){}
+ try{await flkSupabase.auth.signOut({scope:"local"})}catch(_){} // v62.43.2: no cerrar sesión en la otra laptop.
  location.reload()
 }
 
@@ -6129,7 +6171,10 @@ flkSupabase.auth.onAuthStateChange((event,session)=>{
 });
 (()=>{
  const cache=flkSesionOfflineDisponible();
- const pintarCache=()=>{if(cache?.user)flkPintarSesionLocal(cache.user);};
+ // v62.43.2: pintado optimista desde caché en el arranque. Si getSession()
+ // más abajo confirma una sesión real, mostrarAppConSesion() apaga esta marca;
+ // si no, queda encendida para avisar con honestidad en el indicador de conexión.
+ const pintarCache=()=>{if(cache?.user){flkSesionSoloCache=flkNubeDisponible();flkPintarSesionLocal(cache.user);}};
  if(cache?.user){
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",pintarCache,{once:true});
   else setTimeout(pintarCache,0);
