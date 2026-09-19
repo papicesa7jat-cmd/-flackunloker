@@ -5124,6 +5124,14 @@ async function flkRecuperacionEmergenciaNube(){
  const fallos=[];
  try{
   // No confundir conectividad/licencia con autenticación. Sin sesión, no tocar copias locales.
+  // v62.43.4: getSession() puede disparar un refresh de red si el cliente cree que el
+  // token está por vencer. Antes esta comprobación se repetía 9 veces por cada intento
+  // de recuperación (una por sección), lo que en los logs reales de Supabase se veía
+  // como ráfagas de 9-38 llamadas a /token en pocos segundos, varias veces por minuto,
+  // hasta chocar con el límite de tasa de Supabase (429 over_request_rate_limit) y dejar
+  // la sesión inservible. Ahora se comprueba UNA sola vez al iniciar la recuperación;
+  // si la sesión muere a medio camino, cada consulta individual ya maneja su propio
+  // error más abajo sin necesitar otra llamada a getSession().
   const flkSesionRecuperacionVigente=async()=>{
    try{
     const {data,error}=await flkSupabase.auth.getSession();
@@ -5139,7 +5147,6 @@ async function flkRecuperacionEmergenciaNube(){
   };
   if(!(await flkSesionRecuperacionVigente()))return false;
 
-     if(!(await flkSesionRecuperacionVigente()))return false;
 // INVENTARIO
   try{
    const {data,error}=await flkSupabase.from("products").select(FLK_PRODUCT_SELECT).eq("active",true).eq("business_id",await flkExigirCentroActual()).order("created_at",{ascending:true});
@@ -5148,7 +5155,6 @@ async function flkRecuperacionEmergenciaNube(){
    guardarDatos();
   }catch(e){console.error("Inventario",e);fallos.push("Inventario: "+(e.message||e))}
 
-     if(!(await flkSesionRecuperacionVigente()))return false;
 // HISTORIAL
   try{
    const {data,error}=await flkSupabase.from("stock_movements").select(FLK_STOCK_MOVEMENT_SELECT).order("created_at",{ascending:false});
@@ -5157,7 +5163,6 @@ async function flkRecuperacionEmergenciaNube(){
    guardarHistorial();
   }catch(e){console.error("Historial",e);fallos.push("Historial: "+(e.message||e))}
 
-     if(!(await flkSesionRecuperacionVigente()))return false;
 // VENTAS: tablas planas, sin relaciones embebidas.
   try{
    const [rVentas,rItems,rPagos,rDevol]=await Promise.all([
@@ -5190,7 +5195,6 @@ async function flkRecuperacionEmergenciaNube(){
    guardarVentas();
   }catch(e){console.error("Ventas",e);fallos.push("Ventas: "+(e.message||e))}
 
-     if(!(await flkSesionRecuperacionVigente()))return false;
 // GASTOS
   try{
    const {data,error}=await flkSupabase.from("expenses").select("id,legacy_id,business_id,concept,category,amount,payment_method,expense_date,note,created_at").order("expense_date",{ascending:false});
@@ -5199,7 +5203,6 @@ async function flkRecuperacionEmergenciaNube(){
    guardarGastos();
   }catch(e){console.error("Gastos",e);fallos.push("Gastos: "+(e.message||e))}
 
-     if(!(await flkSesionRecuperacionVigente()))return false;
 // COMPRAS Y PROVEEDORES · v61.73: offline conserva compras/proveedores locales y no consulta Supabase
   if(flkNubeDisponible()){
   try{
@@ -5251,7 +5254,6 @@ async function flkRecuperacionEmergenciaNube(){
    if(typeof actualizarCuentasPagar==="function")actualizarCuentasPagar();
   }
 
-     if(!(await flkSesionRecuperacionVigente()))return false;
 // CAJA · v61.72: si la conexión cae durante la recuperación, conservar datos locales
   if(flkNubeDisponible()){
    try{
@@ -5285,7 +5287,6 @@ async function flkRecuperacionEmergenciaNube(){
    }
   }
 
-     if(!(await flkSesionRecuperacionVigente()))return false;
 // CIERRES · v61.72: sin fetch cuando ya estamos offline; conservar copia local
   if(flkNubeDisponible()){
    try{
