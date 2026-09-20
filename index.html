@@ -2358,8 +2358,10 @@ textarea::placeholder{
 <div class="fila-estadistica"><span>📦 Costo de mercancía vendida</span><strong id="finCosto">$0.00</strong></div>
 <div class="fila-estadistica"><span>🛠️ Ingresos por prestaciones de servicio</span><strong id="finPrestacionesPeriodo">$0.00</strong></div>
 <div class="fila-estadistica"><span>🛠️ Costos externos de prestaciones</span><strong id="finPrestCostosPeriodo">$0.00</strong></div>
+<div class="fila-estadistica"><span>💰 Ganancia neta de prestaciones (antes de gastos generales)</span><strong id="finPrestGananciaNeta">$0.00</strong></div>
+<div class="fila-estadistica"><span>📦 Ganancia bruta de mercancía</span><strong id="finGananciaMercancia">$0.00</strong></div>
 <div class="fila-estadistica"><span>💵 Ingresos operativos totales (mercancía + prestaciones)</span><strong id="finIngresosTotales">$0.00</strong></div>
-<div class="fila-estadistica"><span>📈 Ganancia bruta total</span><strong id="finBruta">$0.00</strong></div>
+<div class="fila-estadistica"><span>📈 Resultado operativo antes de gastos generales</span><strong id="finBruta">$0.00</strong></div>
 <div class="fila-estadistica"><span>💸 Gastos generales</span><strong id="finGastos">$0.00</strong></div>
 <div class="fila-estadistica"><span>💰 Ganancia neta total</span><strong id="finNeta">$0.00</strong></div>
 <p style="margin:10px 0 0;color:#667085;font-size:12px;line-height:1.5">Las prestaciones se muestran separadas de la venta de mercancía. Sus costos externos no se mezclan con el costo de mercancía vendida.</p>
@@ -2408,6 +2410,11 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="fila-estadistica"><span>Entradas operativas</span><strong id="finEntradas">$0.00</strong></div>
 <div class="fila-estadistica"><span>Salidas operativas</span><strong id="finSalidas">$0.00</strong></div>
 <div class="fila-estadistica"><span>💰 Flujo operativo neto</span><strong id="finFlujoNeto">$0.00</strong></div>
+<details style="margin-top:12px;border-top:1px solid #d9eafa;padding-top:12px">
+<summary style="cursor:pointer;color:#0a84ff;font-weight:750;font-size:14px">📋 Ver de dónde salen las entradas y salidas (CUP)</summary>
+<p style="font-size:12px;line-height:1.55;color:#667085;margin:10px 0">Cobros y pagos registrados durante el período. No es la ganancia ni el saldo de caja física. Excluye USD y movimientos del propietario; el costo contable de mercancía no es necesariamente un pago de este período.</p>
+<div id="finDesgloseOperativo" aria-live="polite"><div class="fila-estadistica"><span>Actualiza Finanzas para ver el desglose.</span></div></div>
+</details>
 </div>
 
 <div class="lista-estadisticas">
@@ -10316,11 +10323,19 @@ function datosFinanzas(){
  const netoPropietario=aportesPropietario-retirosPropietario;
  const flujoOperativo=entradas-salidas;
  const flujoCajaTotal=flujoOperativo+netoPropietario;
+ // Desglose exclusivamente visual, sobre los mismos movimientos CUP y el mismo período.
+ const desgloseOperativo={entrada:{},salida:{}};
+ mov.forEach(m=>{
+  const tipo=m.tipo;
+  if(tipo!=="entrada"&&tipo!=="salida")return;
+  const grupo=String(m.grupo||"otros");
+  desgloseOperativo[tipo][grupo]=(desgloseOperativo[tipo][grupo]||0)+Number(m.cantidad||0);
+ });
 
  return {
   lim,ventasTotal:ventasDevengadas,ventasCobradas:ventasTotal,costo,brutaMercancia,prestIngresos,prestCostos,prestNeto,ingresosTotales,bruta,gastosTotal,arrendamientoPeriodo,neta,
   caja,transferenciaCup,inventario,porCobrar,porCobrarPrestacionesUSD,porPagar,activos,patrimonio,
-  entradas,salidas,flujo:flujoOperativo,
+  entradas,salidas,flujo:flujoOperativo,desgloseOperativo,
   aportesPropietario,retirosPropietario,netoPropietario,flujoCajaTotal
  }
 }
@@ -10380,10 +10395,34 @@ function actualizarFinanzas(){
  money("finIngresosTotales",d.ingresosTotales);
  money("finCosto",d.costo);
  money("finPrestCostosPeriodo",d.prestCostos);
+ money("finPrestGananciaNeta",d.prestIngresos-d.prestCostos);
+ money("finGananciaMercancia",d.ventasTotal-d.costo);
+ const finPrestGananciaEl=document.getElementById("finPrestGananciaNeta");
+ if(finPrestGananciaEl)finPrestGananciaEl.style.color=(d.prestIngresos-d.prestCostos)<0?"#d93025":"#168044";
  money("finBruta",d.bruta);money("finGastos",d.gastosTotal);money("finNeta",d.neta);
  const finNetaEl=document.getElementById("finNeta");
  if(finNetaEl)finNetaEl.title=`Incluye contribución/arrendamiento mensual: $${Number(d.arrendamientoPeriodo||0).toFixed(2)}`;
  money("finEntradas",d.entradas);money("finSalidas",d.salidas);money("finFlujoNeto",d.flujo);
+ const desgloseEl=document.getElementById("finDesgloseOperativo");
+ if(desgloseEl){
+  const nombres={venta:"Ventas cobradas",abono:"Abonos de ventas",prestacion:"Prestaciones cobradas",reembolso:"Reembolsos por devoluciones",gasto:"Gastos pagados",proveedor:"Pagos a proveedores",otros:"Otros movimientos operativos"};
+  const etiquetas={entrada:"Entradas",salida:"Salidas"};
+  const formatear=n=>"$"+Number(n).toFixed(2)+" CUP";
+  const html=[];
+  for(const tipo of ["entrada","salida"]){
+   const grupos=d.desgloseOperativo?.[tipo]||{};
+   html.push('<div style="margin-top:12px;font-size:13px;font-weight:800;color:#344054">'+etiquetas[tipo]+'</div>');
+   for(const [grupo,importe] of Object.entries(grupos)){
+    if(!importe)continue;
+    const nombre=nombres[grupo]||("Otros · "+String(grupo).replace(/[^a-zA-Z0-9 áéíóúñ_-]/g,""));
+    html.push('<div class="fila-estadistica"><span>'+nombre+'</span><strong>'+formatear(importe)+'</strong></div>');
+   }
+   const total=tipo==="entrada"?d.entradas:d.salidas;
+   html.push('<div class="fila-estadistica"><span><b>Total '+etiquetas[tipo].toLowerCase()+'</b></span><strong>'+formatear(total)+'</strong></div>');
+  }
+  html.push('<div class="fila-estadistica"><span><b>Entradas − salidas = flujo neto</b></span><strong>'+formatear(d.flujo)+'</strong></div>');
+  desgloseEl.innerHTML=html.join("");
+ }
  money("finAportesPropietario",d.aportesPropietario);
  money("finRetirosPropietario",d.retirosPropietario);
  money("finNetoPropietario",d.netoPropietario);
