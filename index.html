@@ -181,7 +181,7 @@
      ignora ahí): si el hosting lo permite, añadir también la cabecera
      HTTP "X-Frame-Options: DENY" o "Content-Security-Policy:
      frame-ancestors 'none'" en el servidor. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://eviwhrqhinhnyccizkfq.supabase.co wss://eviwhrqhinhnyccizkfq.supabase.co https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://eviwhrqhinhnyccizkfq.supabase.co wss://eviwhrqhinhnyccizkfq.supabase.co https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="flackunloker-offline-version" content="2026-09-17-v62.42.0-offline-first-auditoria">
 <title>Flackunloker</title>
 <style>
@@ -1897,6 +1897,9 @@ textarea::placeholder{
   color:#39e75f !important;
 }
 </style>
+<link rel="stylesheet" href="fotos-producto.css">
+<script src="recorte-web.js"></script>
+<script src="fotos-producto.js"></script>
 </head>
 <body>
 
@@ -2502,6 +2505,15 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
 <div class="modal" id="modalProducto">
 <form class="formulario" id="formularioProducto">
 <h2 id="tituloFormulario">Agregar producto</h2>
+<div class="flk-foto-campo">
+ <label for="fotoProducto">Foto del producto · opcional</label>
+ <input id="fotoProducto" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="fotoProductoEstado">
+ <small id="fotoProductoEstado" role="status" aria-live="polite">JPG, PNG o WebP · hasta 12 MB. El fondo se quita automáticamente en este equipo.</small>
+ <div id="fotoProductoVista"></div>
+ <button id="recortarFotoProducto" class="flk-foto-quitar" type="button" disabled>Quitar fondo de esta foto</button>
+ <button id="quitarFotoProducto" class="flk-foto-quitar" type="button" disabled>Quitar foto</button>
+ <small>El producto se recorta y se coloca sobre un fondo que contrasta con sus colores. Revisa el resultado antes de guardar.</small>
+</div>
 <div class="campo"><label for="nombre">Nombre del producto</label><input id="nombre" type="text" placeholder="Ej. Camisa azul" required></div>
 <div class="campo"><label for="sku">SKU</label><input id="sku" type="text" placeholder="Ej. FLK-001" required></div>
 <div class="campo"><label for="cantidadProducto">Cantidad</label><input id="cantidadProducto" type="number" min="0" step="1" required></div>
@@ -3917,7 +3929,8 @@ function flkProductoLocalDesdeOperacion(op){
   cantidad:Number(p.local_stock??p.initial_stock??0),
   costo:Number(p.cost||0),precio:Number(p.price||0),
   categoria:p.category||"",proveedor:p.supplier_name||"",ubicacion:p.location||"",
-  stockMinimo:Number(p.min_stock||0)
+  stockMinimo:Number(p.min_stock||0),
+  ...(Object.prototype.hasOwnProperty.call(p,"photo_data")?{fotoProducto:flkFotoValida(p.photo_data)?p.photo_data:null}:{})
  }
 }
 function flkAplicarProductoLocal(op){
@@ -4054,13 +4067,23 @@ async function flkProcesarOperacionOffline(op){
  }
  if(op.tipo==="product_save"){
   const p=op.payload||{};
-  const {error}=await flkSupabase.rpc("flk_save_product_offline",{
+  const {data:productoIdGuardado,error}=await flkSupabase.rpc("flk_save_product_offline",{
    p_operation_id:op.id,p_product_id:p.product_id||null,p_product_operation_id:p.product_operation_id||null,
    p_legacy_id:p.legacy_id||null,p_sku:p.sku||"",p_name:p.name||"Producto",p_category:p.category||null,
    p_cost:Number(p.cost||0),p_price:Number(p.price||0),p_min_stock:Number(p.min_stock||0),
    p_supplier_name:p.supplier_name||null,p_location:p.location||null,p_initial_stock:Number(p.initial_stock||0)
   });
-  if(error)throw error;return
+  if(error)throw error;
+  // La RPC conserva su firma y su control de duplicados. La foto usa las
+  // mismas políticas de administrador/centro y se reintenta con la operación.
+  if(Object.prototype.hasOwnProperty.call(p,"photo_data")){
+   if(p.photo_data!==null&&!flkFotoValida(p.photo_data))throw new Error("Foto de producto inválida en la cola.");
+   const {error:fotoError}=await flkSupabase.from("products")
+    .update({photo_data:p.photo_data}).eq("id",productoIdGuardado)
+    .eq("business_id",await flkExigirCentroActual()).select("id").single();
+   if(fotoError)throw fotoError;
+  }
+  return
  }
  if(op.tipo==="product_delete"){
   const p=op.payload||{};
@@ -7247,7 +7270,7 @@ function idLocalDesdeLegacy(v,uuid){
 }
 // v62.31 · Fase 2.1: Inventario solicita únicamente las columnas que usa la app.
 // Reduce transferencia y parsing sin cambiar cálculos, stock, cola offline ni multicentro.
-const FLK_PRODUCT_SELECT="id,legacy_id,sku,name,category,supplier_name,location,warehouse,cost,price,stock,min_stock,created_at";
+const FLK_PRODUCT_SELECT="id,legacy_id,sku,name,category,supplier_name,location,warehouse,cost,price,stock,min_stock,created_at,photo_data";
 // v62.32 · Fase 2.2: Historial solicita únicamente las columnas realmente utilizadas.
 const FLK_STOCK_MOVEMENT_SELECT="id,product_id,movement_type,quantity,stock_after,note,created_at";
 
@@ -7263,7 +7286,8 @@ function productoDesdeSupabase(r){
   categoria:r.category||"",
   proveedor:r.supplier_name||"",
   ubicacion:r.location||r.warehouse||"",
-  stockMinimo:Number(r.min_stock||0)
+  stockMinimo:Number(r.min_stock||0),
+  fotoProducto:flkFotoValida(r.photo_data)?r.photo_data:null
  }
 }
 
@@ -7340,6 +7364,7 @@ function productoHaciaSupabase(p,stock=0){
   stock:Number(stock||0),
   min_stock:Number(p.stockMinimo||0),
   active:true,
+  ...(Object.prototype.hasOwnProperty.call(p,"fotoProducto")?{photo_data:flkFotoValida(p.fotoProducto)?p.fotoProducto:null}:{}),
   business_id:flkUuidValido(FLK_BUSINESS_ID)?FLK_BUSINESS_ID:null
  }
 }
@@ -7742,21 +7767,23 @@ function cambiarFiltrosInventario(){filtroCategoriaActual=document.getElementByI
 
 function abrirFormulario(){
  if(!requiereAdmin())return;
- productoEditando=null;document.getElementById("tituloFormulario").textContent="Agregar producto";document.getElementById("formularioProducto").reset();document.getElementById("stockMinimo").value=5;document.getElementById("modalProducto").classList.add("visible");requestAnimationFrame(()=>document.getElementById("nombre").focus())
+ flkFotoPreparar();productoEditando=null;document.getElementById("tituloFormulario").textContent="Agregar producto";document.getElementById("formularioProducto").reset();document.getElementById("stockMinimo").value=5;flkFotoActualizarVista();document.getElementById("modalProducto").classList.add("visible");requestAnimationFrame(()=>document.getElementById("nombre").focus())
 }
 function editarProducto(id){
  if(!requiereAdmin())return;
  const p=productos.find(x=>x.id===id);if(!p)return;
  productoEditando=id;document.getElementById("tituloFormulario").textContent="Editar producto";
- document.getElementById("nombre").value=p.nombre;document.getElementById("sku").value=p.sku;document.getElementById("cantidadProducto").value=p.cantidad;document.getElementById("costo").value=Number(p.costo??0);document.getElementById("precio").value=p.precio;document.getElementById("categoria").value=p.categoria||"";document.getElementById("proveedor").value=p.proveedor||"";document.getElementById("ubicacion").value=p.ubicacion||"";document.getElementById("stockMinimo").value=Number(p.stockMinimo??5);document.getElementById("modalProducto").classList.add("visible")
+ document.getElementById("nombre").value=p.nombre;document.getElementById("sku").value=p.sku;document.getElementById("cantidadProducto").value=p.cantidad;document.getElementById("costo").value=Number(p.costo??0);document.getElementById("precio").value=p.precio;document.getElementById("categoria").value=p.categoria||"";document.getElementById("proveedor").value=p.proveedor||"";document.getElementById("ubicacion").value=p.ubicacion||"";document.getElementById("stockMinimo").value=Number(p.stockMinimo??5);flkFotoPreparar(p);document.getElementById("modalProducto").classList.add("visible")
 }
-function cerrarFormulario(){document.getElementById("modalProducto").classList.remove("visible");document.getElementById("formularioProducto").reset();productoEditando=null}
+function cerrarFormulario(){flkFotoPreparar();document.getElementById("modalProducto").classList.remove("visible");document.getElementById("formularioProducto").reset();productoEditando=null}
 
 document.getElementById("formularioProducto").addEventListener("submit",async e=>{
  e.preventDefault();e.stopPropagation();
+ if(flkFotoProcesando)return alert("Espera a que termine de prepararse la foto.");
  if(!requiereAdmin())return;
  if(procesandoGuardado)return;procesandoGuardado=true;
  try{
+  const fotoProductoActual=flkFotoBorrador,fotoCambiadaActual=flkFotoCambiada;
   const nombre=document.getElementById("nombre").value.trim(),sku=document.getElementById("sku").value.trim();
   const cantidad=Number(document.getElementById("cantidadProducto").value),costo=Number(document.getElementById("costo").value),precio=Number(document.getElementById("precio").value);
   const categoria=document.getElementById("categoria").value.trim(),proveedor=document.getElementById("proveedor").value.trim(),ubicacion=document.getElementById("ubicacion").value.trim(),stockMinimo=Number(document.getElementById("stockMinimo").value);
@@ -7767,7 +7794,8 @@ document.getElementById("formularioProducto").addEventListener("submit",async e=
    const p=productos.find(x=>x.id===productoEditando);if(!p)return;
    if(productos.some(x=>x.id!==productoEditando&&String(x.sku||"").trim().toLowerCase()===skuNorm))return alert("Ya existe otro producto con ese SKU.");
    const stockAnterior=Number(p.cantidad||0),createRef=p.offlineCreateOperationId||null;
-   const op=await flkEncolarOperacionIndexedDB("product_save",{product_id:p.supabaseId||null,product_operation_id:!p.supabaseId?createRef:null,legacy_id:String(p.id),local_product_id:p.id,sku,name:nombre,category:categoria||null,cost:costo,price:precio,min_stock:stockMinimo,supplier_name:proveedor||null,location:ubicacion||null,initial_stock:0,local_stock:stockAnterior});
+   const op=await flkEncolarOperacionIndexedDB("product_save",{product_id:p.supabaseId||null,product_operation_id:!p.supabaseId?createRef:null,legacy_id:String(p.id),local_product_id:p.id,sku,name:nombre,category:categoria||null,cost:costo,price:precio,min_stock:stockMinimo,supplier_name:proveedor||null,location:ubicacion||null,initial_stock:0,local_stock:stockAnterior,...(fotoCambiadaActual?{photo_data:fotoProductoActual}:{})});
+   if(fotoCambiadaActual)p.fotoProducto=fotoProductoActual;
    p.nombre=nombre;p.sku=sku;p.costo=costo;p.precio=precio;p.categoria=categoria;p.proveedor=proveedor;p.ubicacion=ubicacion;p.stockMinimo=stockMinimo;p.offlineOperationId=op.id;p.offlinePendiente=true;
    if(createRef)p.offlineCreateOperationId=createRef;
    if(cantidad!==stockAnterior){
@@ -7778,8 +7806,8 @@ document.getElementById("formularioProducto").addEventListener("submit",async e=
   }else{
    if(productos.some(x=>String(x.sku||"").trim().toLowerCase()===skuNorm))return alert("Ya existe un producto con ese SKU.");
    const id=Date.now()+Math.floor(Math.random()*100000);
-   const op=await flkEncolarOperacionIndexedDB("product_save",{product_id:null,product_operation_id:null,legacy_id:String(id),local_product_id:id,sku,name:nombre,category:categoria||null,cost:costo,price:precio,min_stock:stockMinimo,supplier_name:proveedor||null,location:ubicacion||null,initial_stock:cantidad,local_stock:cantidad});
-   productos.push({id,nombre,sku,cantidad,costo,precio,categoria,proveedor,ubicacion,stockMinimo,supabaseId:null,offlineCreateOperationId:op.id,offlineOperationId:op.id,offlinePendiente:true});
+   const op=await flkEncolarOperacionIndexedDB("product_save",{product_id:null,product_operation_id:null,legacy_id:String(id),local_product_id:id,sku,name:nombre,category:categoria||null,cost:costo,price:precio,min_stock:stockMinimo,supplier_name:proveedor||null,location:ubicacion||null,initial_stock:cantidad,local_stock:cantidad,photo_data:fotoProductoActual});
+   productos.push({id,nombre,sku,cantidad,costo,precio,categoria,proveedor,ubicacion,stockMinimo,fotoProducto:fotoProductoActual,supabaseId:null,offlineCreateOperationId:op.id,offlineOperationId:op.id,offlinePendiente:true});
    if(cantidad>0)historial.unshift({id:Date.now()+Math.floor(Math.random()*100000),productoId:id,nombre,sku,tipo:"entrada",cantidad,saldo:cantidad,fecha:new Date().toISOString(),detalle:"🟠 Inventario inicial pendiente de sincronización"});
   }
   guardarDatos();guardarHistorial();mostrarProductos();actualizarResumenHistorial();mostrarListaHistorial();actualizarEstadisticas();cerrarFormulario();
@@ -7913,6 +7941,7 @@ function mostrarProductos(){
   const aviso=c===0?'<div class="aviso-producto sin-stock">🔴 Sin stock</div>':c<=min?`<div class="aviso-producto">⚠️ Inventario bajo · Mínimo: ${min}</div>`:"";
   const detalles=[p.categoria?`Categoría: ${escapeHtml(p.categoria)}`:"",p.proveedor?`Proveedor: ${escapeHtml(p.proveedor)}`:"",p.ubicacion?`Ubicación: ${escapeHtml(p.ubicacion)}`:""].filter(Boolean).map(x=>`<p>${x}</p>`).join("");
   el.innerHTML=`<div class="producto-superior"><div class="producto-info"><h3>${escapeHtml(p.nombre)}</h3><p>SKU: ${escapeHtml(p.sku)}</p>${detalles}</div><div class="${clase}">${c}</div></div><div class="producto-precio">Costo: <strong>$${Number(p.costo??0).toFixed(2)}</strong> &nbsp;·&nbsp; Venta: <strong>$${Number(p.precio).toFixed(2)}</strong><br>Ganancia/u.: <strong>$${(Number(p.precio)-Number(p.costo??0)).toFixed(2)}</strong> &nbsp;·&nbsp; Margen: <strong>${Number(p.precio)>0?(((Number(p.precio)-Number(p.costo??0))/Number(p.precio))*100).toFixed(1):"0.0"}%</strong><br>Valor a costo: <strong>$${(c*Number(p.costo??0)).toFixed(2)}</strong> &nbsp;·&nbsp; Venta potencial: <strong>$${(c*Number(p.precio)).toFixed(2)}</strong></div>${aviso}<div class="acciones"><button class="accion entrada" onclick="abrirMovimiento(${p.id},'entrada')">+ Entrada</button><button class="accion salida" onclick="abrirMovimiento(${p.id},'salida')">− Salida</button><button class="accion vender" onclick="abrirVenta(${p.id})">🧾 Recibo</button><button class="accion qr-producto" onclick="mostrarEtiquetaQRProducto(${p.id})">🏷️ QR</button><button class="accion editar" onclick="editarProducto(${p.id})">✏️ Editar</button><button class="accion eliminar" onclick="eliminarProducto(${p.id})">🗑️ Eliminar</button></div>`;
+  flkFotoMontarTarjeta(el,p);
   lista.appendChild(el)
  });
  actualizarResumen();actualizarAlertasInventario()

@@ -1,10 +1,18 @@
-const CACHE_NAME = "flackunloker-offline-v15-no-eval-6239";
+const CACHE_NAME = "flackunloker-offline-v16-fotos-134";
 const PAGE_FALLBACK = "./index.html";
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./manifest.webmanifest"
+  "./manifest.webmanifest",
+  "./fotos-producto.js",
+  "./fotos-producto.css",
+  "./recorte-web.js",
+  "./recorte-web/worker.js",
+  "./recorte-web/assets/ort.wasm.min.js",
+  "./recorte-web/assets/ort-wasm-simd-threaded.mjs",
+  "./recorte-web/assets/ort-wasm-simd-threaded.wasm",
+  "./recorte-web/assets/u2netp.onnx"
 ];
 
 const EXTERNAL_SHELL = [

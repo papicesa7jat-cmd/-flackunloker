@@ -1,0 +1,18 @@
+.flk-foto-campo{border:1px solid #c5ddec;border-radius:16px;padding:14px;background:#f1f7fc;margin-bottom:18px}
+.flk-foto-campo>label{font-weight:700;display:block;margin-bottom:9px;color:#17324a}
+.flk-foto-campo input[type=file]{width:100%;font-size:13px;padding:8px;border-radius:9px}
+.flk-foto-campo small{display:block;line-height:1.5;margin-top:8px;color:#49647b}
+.flk-foto-marketing{display:flex;gap:20px;align-items:center;position:relative;overflow:hidden;padding:22px;background:radial-gradient(circle at 100% 0,rgba(95,196,247,.25),transparent 65%),linear-gradient(135deg,#102c44,#1e527a);border:1px solid #4689ad;border-radius:16px;color:white;margin-bottom:10px;isolation:isolate}
+.flk-foto-visual{display:flex;align-items:center;justify-content:center;width:44%;flex-shrink:0;aspect-ratio:1;border-radius:14px;background:#eaf4fc;overflow:hidden;padding:10px}
+.flk-foto-visual img{display:block;width:100%;height:100%;object-fit:contain}
+.flk-foto-copy{min-width:0;display:flex;align-items:flex-start;flex-direction:column;gap:8px}
+.flk-foto-copy .flk-foto-logo{width:64px;height:42px;object-fit:contain;background:#eaf4fc;border-radius:8px;padding:3px}
+.flk-foto-marca{font-size:10px;letter-spacing:2px;color:#adddfa!important;font-weight:800}
+.flk-foto-nombre{font-size:20px;line-height:1.2;color:#fff!important;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.flk-foto-categoria{font-size:12px;color:#c6e1f2!important;overflow-wrap:anywhere}
+.flk-foto-precio{font-size:24px;font-weight:800;color:#aee3ff!important;overflow-wrap:anywhere}
+.flk-foto-descargar,.flk-foto-quitar{border:1px solid #b8d4e7;border-radius:9px;padding:9px 12px;background:#edf6fc;color:#173e5b;cursor:pointer;font-size:12px;font-weight:600;margin-bottom:14px}
+.flk-foto-quitar{margin:8px 0 0}.flk-foto-descargar:disabled,.flk-foto-quitar:disabled{opacity:.5;cursor:default}
+.flk-foto-vacia{text-align:center;padding:18px 10px;border:1px dashed #aac9df;border-radius:12px;color:#49647b;font-size:13px;line-height:1.5}
+#fotoProductoVista{margin-top:12px}#fotoProductoVista .flk-foto-marketing{padding:14px;gap:12px}#fotoProductoVista .flk-foto-nombre{font-size:17px}#fotoProductoVista .flk-foto-logo{display:none}
+@media(max-width:430px){.flk-foto-marketing{padding:14px;gap:12px}.flk-foto-nombre{font-size:17px}.flk-foto-precio{font-size:21px}.flk-foto-marca{font-size:9px;letter-spacing:1px}.flk-foto-copy .flk-foto-logo{display:none}}
