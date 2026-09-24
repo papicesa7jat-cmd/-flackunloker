@@ -536,6 +536,7 @@ body.rol-empleado .acciones-movimiento{display:none!important}
   margin:18px 0 9px;
 }
 #modalMovimientoPropietario input,
+#modalMovimientoPropietario select,
 #modalMovimientoPropietario textarea{
   width:100%;
   min-height:58px;
@@ -2279,7 +2280,7 @@ textarea::placeholder{
 <div class="reporte-botones"><button id="botonActualizarFlujo" class="boton-agregar flk-boton-feedback" onclick="sincronizarYActualizarFlujoCaja(this)">🔄 Actualizar flujo</button><button class="boton-respaldo boton-crear-respaldo" onclick="imprimirFlujoCaja()">🧾 Ver / imprimir</button></div>
 </div>
 
-<div class="lista-estadisticas"><h3>🏦 Caja física</h3><div class="fila-estadistica"><span>Saldo actual en efectivo</span><strong id="saldoCajaFisica">$0.00</strong></div><div class="acciones" style="margin-top:12px"><button class="accion entrada" type="button" onclick="abrirMovimientoPropietario('contribution')">➕ Aporte</button><button class="accion salida" type="button" onclick="abrirMovimientoPropietario('withdrawal')">🏦 Retirar efectivo</button></div></div>
+<div class="lista-estadisticas"><h3>🏦 Caja y saldos por moneda</h3><div id="saldosCajaPorMetodo"><div class="fila-estadistica"><span>💵 Efectivo CUP</span><strong id="saldoCajaFisica">0.00 CUP</strong></div></div><div class="acciones" style="margin-top:12px"><button class="accion entrada" type="button" onclick="abrirMovimientoPropietario('contribution')">➕ Aporte</button><button class="accion salida" type="button" onclick="abrirMovimientoPropietario('withdrawal')">🏦 Retirar efectivo</button></div></div>
 
 <div class="estadisticas-grid">
 <div class="estadistica-card ancha positiva"><span>⬇️ Entradas de dinero</span><strong id="flujoEntradas">$0.00</strong></div>
@@ -3055,7 +3056,7 @@ Configura el arrendamiento del local por mes. Puedes calcularlo como porcentaje 
  </div>
 </div>
 
-<div class="modal" id="modalMovimientoPropietario"><div class="modal-contenido"><div class="modal-cabecera"><h3 id="tituloMovimientoPropietario">🏦 Movimiento de caja</h3><button class="cerrar" type="button" onclick="cerrarMovimientoPropietario()">×</button></div><div id="saldoDisponibleMovimiento">Efectivo disponible en caja<strong id="saldoDisponibleMovimientoValor">$0.00</strong></div><form id="formularioMovimientoPropietario"><label for="cantidadMovimientoPropietario">Cantidad</label><input id="cantidadMovimientoPropietario" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required><label for="notaMovimientoPropietario">Motivo / nota</label><textarea id="notaMovimientoPropietario" placeholder="Ejemplo: Retiro del dueño al finalizar el día"></textarea><input id="tipoMovimientoPropietario" type="hidden"><button class="guardar" id="botonGuardarMovimientoPropietario" type="submit">Guardar movimiento</button></form></div></div>
+<div class="modal" id="modalMovimientoPropietario"><div class="modal-contenido"><div class="modal-cabecera"><h3 id="tituloMovimientoPropietario">🏦 Movimiento de caja</h3><button class="cerrar" type="button" onclick="cerrarMovimientoPropietario()">×</button></div><div id="saldoDisponibleMovimiento"><span id="saldoDisponibleMovimientoEtiqueta">Efectivo disponible en caja</span><strong id="saldoDisponibleMovimientoValor">$0.00</strong></div><form id="formularioMovimientoPropietario"><label for="cantidadMovimientoPropietario">Cantidad</label><input id="cantidadMovimientoPropietario" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required><div id="campoMetodoMovimientoPropietario"><label for="metodoMovimientoPropietario">Moneda / método de pago</label><select id="metodoMovimientoPropietario" onchange="actualizarSaldoMovimientoPropietario()"></select></div><label for="notaMovimientoPropietario">Motivo / nota</label><textarea id="notaMovimientoPropietario" placeholder="Ejemplo: Retiro del dueño al finalizar el día"></textarea><input id="tipoMovimientoPropietario" type="hidden"><button class="guardar" id="botonGuardarMovimientoPropietario" type="submit">Guardar movimiento</button></form></div></div>
 
 <div class="modal" id="modalRestablecimientoTotal">
  <div class="modal-contenido" style="width:min(94vw,560px);padding:26px">
@@ -3859,7 +3860,7 @@ function flkAplicarMovimientoPropietarioLocal(op){
   tipo:esAporte?"entrada":"salida",
   cantidad:Number(p.amount||0),
   concepto:esAporte?"Aporte del propietario":"Retiro del propietario",
-  metodo:"Efectivo",
+  metodo:flkNormalizarMetodoPago(p.payment_method||"Efectivo CUP"),
   fecha:op.created_at||new Date().toISOString(),
   grupo:"propietario",
   nota:p.note||""
@@ -4245,7 +4246,8 @@ async function flkProcesarOperacionOffline(op){
  if(op.tipo==="owner_cash_movement"){
   const p=op.payload||{};
   const {error}=await flkSupabase.rpc("flk_owner_cash_movement_offline",{
-   p_operation_id:op.id,p_type:p.type,p_amount:Number(p.amount||0),p_note:p.note||null
+   p_operation_id:op.id,p_type:p.type,p_amount:Number(p.amount||0),p_note:p.note||null,
+   ...(p.payment_method?{p_payment_method:flkNormalizarMetodoPago(p.payment_method)}:{})
   });
   if(error)throw error;return
  }
@@ -9969,16 +9971,39 @@ function saldoCajaFisicaActual(){
  return movimientosFlujoCaja().filter(m=>flkEsEfectivoCUP(m.metodo)).reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0)
 }
 function actualizarSaldoCajaFisica(){
- const el=document.getElementById("saldoCajaFisica");if(!el)return;
- const saldo=saldoCajaFisicaActual();
- el.textContent="$"+(Math.abs(saldo)<0.005?0:saldo).toFixed(2)
+ const contenedor=document.getElementById("saldosCajaPorMetodo");if(!contenedor)return;
+ const saldos=new Map(FLK_METODOS_PAGO.map(m=>[m,0]));
+ movimientosFlujoCaja().forEach(m=>{
+  const metodo=flkNormalizarMetodoPago(m.metodo),cantidad=Number(m.cantidad||0);
+  if(!Number.isFinite(cantidad)||!["entrada","salida"].includes(m.tipo))return;
+  saldos.set(metodo,(saldos.get(metodo)||0)+(m.tipo==="entrada"?cantidad:-cantidad));
+ });
+ contenedor.innerHTML=[...saldos].map(([metodo,saldo])=>{
+  const moneda=metodo==="Efectivo Euro"?"EUR":metodo.includes("MLC")?"MLC":metodo.includes("USD")||metodo==="Zelle"?"USD":metodo.includes("CUP")?"CUP":"";
+  const icono=metodo==="Efectivo Euro"?"💶":metodo.startsWith("Efectivo")?"💵":metodo==="Zelle"?"📲":"🏦";
+  const id=metodo==="Efectivo CUP"?' id="saldoCajaFisica"':"";
+  return '<div class="fila-estadistica"><span>'+icono+' '+escapeHtml(metodo)+'</span><strong'+id+'>'+(Math.abs(saldo)<0.005?0:saldo).toFixed(2)+(moneda?' '+moneda:'')+'</strong></div>';
+ }).join("");
+}
+function actualizarSaldoMovimientoPropietario(){
+ const retiro=document.getElementById("tipoMovimientoPropietario").value==="withdrawal";
+ const metodo=retiro?"Efectivo CUP":flkNormalizarMetodoPago(document.getElementById("metodoMovimientoPropietario").value);
+ const saldo=movimientosFlujoCaja().filter(m=>flkNormalizarMetodoPago(m.metodo)===metodo)
+  .reduce((t,m)=>t+(m.tipo==="entrada"?Number(m.cantidad||0):-Number(m.cantidad||0)),0);
+ const moneda=metodo==="Efectivo Euro"?"EUR":metodo.includes("MLC")?"MLC":metodo.includes("USD")||metodo==="Zelle"?"USD":"CUP";
+ document.getElementById("saldoDisponibleMovimientoEtiqueta").textContent="Saldo disponible · "+metodo;
+ document.getElementById("saldoDisponibleMovimientoValor").textContent=(Math.abs(saldo)<0.005?0:saldo).toFixed(2)+" "+moneda;
 }
 function abrirMovimientoPropietario(tipo){
  if(!requiereAdmin())return;
  if(rolSesion!=="admin")return alert("Solo el Administrador puede registrar retiros o aportes.");
  document.getElementById("tipoMovimientoPropietario").value=tipo;
  document.getElementById("tituloMovimientoPropietario").textContent=tipo==="withdrawal"?"🏦 Retirar efectivo de caja":"➕ Aporte del propietario";
- document.getElementById("saldoDisponibleMovimientoValor").textContent="$"+saldoCajaFisicaActual().toFixed(2);
+ const selector=document.getElementById("metodoMovimientoPropietario");
+ selector.innerHTML=FLK_METODOS_PAGO.map(m=>'<option value="'+escapeHtml(m)+'">'+escapeHtml(m)+'</option>').join("");
+ selector.value="Efectivo CUP";
+ document.getElementById("campoMetodoMovimientoPropietario").hidden=tipo==="withdrawal";
+ actualizarSaldoMovimientoPropietario();
  document.getElementById("cantidadMovimientoPropietario").value="";
  document.getElementById("notaMovimientoPropietario").value="";
  document.getElementById("botonGuardarMovimientoPropietario").textContent=tipo==="withdrawal"?"Confirmar retiro":"Guardar aporte";
@@ -9993,7 +10018,9 @@ document.getElementById("formularioMovimientoPropietario").addEventListener("sub
  if(flkMovimientoPropietarioGuardando)return;
  const tipo=document.getElementById("tipoMovimientoPropietario").value,
        cantidad=Number(document.getElementById("cantidadMovimientoPropietario").value),
-       nota=document.getElementById("notaMovimientoPropietario").value.trim();
+       nota=document.getElementById("notaMovimientoPropietario").value.trim(),
+       metodo=tipo==="withdrawal"?"Efectivo CUP":flkNormalizarMetodoPago(document.getElementById("metodoMovimientoPropietario").value);
+ if(!["contribution","withdrawal"].includes(tipo)||!FLK_METODOS_PAGO.includes(metodo))return alert("Selecciona una moneda / método de pago válido.");
  if(!Number.isFinite(cantidad)||cantidad<=0)return alert("Introduce una cantidad válida.");
  if(tipo==="withdrawal"&&cantidad>saldoCajaFisicaActual()+0.009)return alert("El retiro supera el efectivo disponible en caja.");
  // v62.42.3 SEGURIDAD: si ya hay un retiro/aporte del propietario del mismo tipo
@@ -10003,8 +10030,8 @@ document.getElementById("formularioMovimientoPropietario").addEventListener("sub
  // un reintento manual horas más tarde por la misma cantidad.
  const colaPropietarioActual=flkColaOffline();
  const posibleDuplicado=colaPropietarioActual.some(op=>op&&op.tipo==="owner_cash_movement"&&op.estado!=="sincronizado"
-  &&String(op.payload?.type||"")===tipo&&Math.abs(Number(op.payload?.amount||0)-cantidad)<0.005);
- if(posibleDuplicado&&!confirm("Ya hay un "+(tipo==="withdrawal"?"retiro":"aporte")+" del propietario por el mismo monto ($"+cantidad.toFixed(2)+") esperando sincronizarse con Supabase.\n\nSi el anterior en realidad sí se guardó bien, registrar otro ahora lo duplicaría.\n\n¿Seguro que quieres registrar otro de todas formas?")){
+  &&String(op.payload?.type||"")===tipo&&flkNormalizarMetodoPago(op.payload?.payment_method)===metodo&&Math.abs(Number(op.payload?.amount||0)-cantidad)<0.005);
+ if(posibleDuplicado&&!confirm("Ya hay un "+(tipo==="withdrawal"?"retiro":"aporte")+" del propietario por el mismo monto ("+cantidad.toFixed(2)+" · "+metodo+") esperando sincronizarse con Supabase.\n\nSi el anterior en realidad sí se guardó bien, registrar otro ahora lo duplicaría.\n\n¿Seguro que quieres registrar otro de todas formas?")){
   return;
  }
  flkMovimientoPropietarioGuardando=true;
@@ -10012,7 +10039,7 @@ document.getElementById("formularioMovimientoPropietario").addEventListener("sub
  boton.disabled=true;
  boton.textContent="⏳ Guardando movimiento…";
  try{
-  const op=await flkEncolarOperacionIndexedDB("owner_cash_movement",{type:tipo,amount:cantidad,note:nota||null});
+  const op=await flkEncolarOperacionIndexedDB("owner_cash_movement",{type:tipo,amount:cantidad,note:nota||null,payment_method:metodo});
   flkAplicarMovimientoPropietarioLocal(op);
   guardarMovimientosCajaLocal();
   actualizarFlujoCaja();actualizarCierre();actualizarSaldoCajaFisica();
