@@ -193,6 +193,7 @@ body{margin:0;background:#f4f7fb;color:#111;font-family:-apple-system,BlinkMacSy
 .logo{width:72px;height:72px;margin:auto;border-radius:20px;background:linear-gradient(135deg,#0a84ff,#0055cc);box-shadow:0 10px 25px rgba(10,132,255,.25)}
 .titulo{margin:15px 0 5px;font-size:28px;font-weight:700}.subtitulo{margin:0;color:#777;font-size:15px}
 .resumen{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:22px}
+.resumen-inventario-filtrado{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:-8px}.resumen-inventario-filtrado .tarjeta{min-width:0}.resumen-inventario-filtrado .tarjeta strong{font-size:20px;color:#0a84ff}
 .tarjeta,.producto,.movimiento,.lista-estadisticas,.respaldo-box,.estadistica-card,.tarjeta-historial{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(0,0,0,.06)}
 .tarjeta{padding:18px}.tarjeta span,.estadistica-card span,.tarjeta-historial span{display:block;color:#777;font-size:13px;margin-bottom:8px}.tarjeta strong{font-size:24px}.tarjeta.valor{grid-column:1/-1}.tarjeta.valor strong{color:#0a84ff}.tarjeta.ganancia strong{color:#39e75f}
 .alerta-inventario{display:none;background:#fff7e8;border:1px solid #ffd27a;border-radius:18px;padding:16px;margin-bottom:20px}.alerta-inventario.visible{display:block}.alerta-titulo{display:flex;gap:8px;font-size:16px;font-weight:700;color:#a15c00;margin-bottom:10px}.alerta-descripcion{color:#795000;font-size:13px;margin-bottom:12px}.producto-alerta{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #f0d99d}.producto-alerta-info strong{display:block;font-size:14px}.producto-alerta-info small{display:block;color:#876c3e;margin-top:3px;font-size:12px}.producto-alerta-cantidad{font-weight:700;white-space:nowrap;color:#a15c00}
@@ -2019,6 +2020,10 @@ textarea::placeholder{
 <div class="filtros-inventario">
 <select id="filtroCategoria" class="filtro-inventario" onchange="cambiarFiltrosInventario()"><option value="">Todas las categorías</option></select>
 <select id="filtroUbicacion" class="filtro-inventario" onchange="cambiarFiltrosInventario()"><option value="">Todas las ubicaciones</option></select>
+</div>
+<div id="resumenInventarioFiltrado" class="resumen resumen-inventario-filtrado">
+<div class="tarjeta"><span>Costo de los productos visibles</span><strong id="costoInventarioFiltrado">$0.00</strong></div>
+<div class="tarjeta"><span>Venta potencial de los productos visibles</span><strong id="ventaPotencialFiltrada">$0.00</strong></div>
 </div>
 <div class="seccion-titulo"><h2>Inventario</h2><button class="boton-agregar" onclick="abrirFormulario()">+ Agregar</button></div>
 <div id="listaProductos"></div>
@@ -7935,7 +7940,10 @@ async function eliminarProducto(id){
 function mostrarProductos(){
  const lista=document.getElementById("listaProductos"),q=document.getElementById("busqueda").value.toLowerCase().trim();
  actualizarOpcionesOrganizacion();
- const arr=productos.filter(p=>[p.nombre,p.sku,p.categoria,p.proveedor,p.ubicacion].some(v=>String(v||"").toLowerCase().includes(q))&&(!filtroCategoriaActual||String(p.categoria||"")===filtroCategoriaActual)&&(!filtroUbicacionActual||String(p.ubicacion||"")===filtroUbicacionActual));lista.innerHTML="";
+ const arr=productos.filter(p=>[p.nombre,p.sku,p.categoria,p.proveedor,p.ubicacion].some(v=>String(v||"").toLowerCase().includes(q))&&(!filtroCategoriaActual||String(p.categoria||"")===filtroCategoriaActual)&&(!filtroUbicacionActual||String(p.ubicacion||"")===filtroUbicacionActual));
+ const costoFiltrado=arr.reduce((t,p)=>t+Number(p.cantidad||0)*Number(p.costo??0),0),ventaFiltrada=arr.reduce((t,p)=>t+Number(p.cantidad||0)*Number(p.precio||0),0);
+ document.getElementById("costoInventarioFiltrado").textContent="$"+costoFiltrado.toFixed(2);document.getElementById("ventaPotencialFiltrada").textContent="$"+ventaFiltrada.toFixed(2);
+ lista.innerHTML="";
  if(!arr.length){lista.innerHTML=`<div class="sin-productos">${productos.length?"No encontramos productos con esa búsqueda.":"No hay productos todavía.<br>Presiona + Agregar para comenzar."}</div>`}
  else arr.forEach(p=>{
   const c=Number(p.cantidad),min=Number(p.stockMinimo??5),el=document.createElement("div");el.className="producto";
