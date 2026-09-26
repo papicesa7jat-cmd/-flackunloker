@@ -1,9 +1,11 @@
-const CACHE_NAME = "flackunloker-offline-web-df3923394806005b";
+const CACHE_NAME = "flackunloker-offline-web-b43888653869ab48";
 const PAGE_FALLBACK = "./index.html";
 
 const APP_SHELL = [
   "./",
   "./index.html",
+  "./scripts/flk-localstorage-guard.js",
+  "./scripts/flk-error-reporter.js",
   "./manifest.webmanifest",
   "./fotos-producto.js",
   "./fotos-producto.css",
