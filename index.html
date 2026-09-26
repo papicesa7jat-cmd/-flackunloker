@@ -2103,6 +2103,7 @@ textarea::placeholder{
 
 <div id="vistaFlujoCaja" style="display:none">
 <div class="seccion-titulo"><h2>💰 Flujo de caja</h2></div>
+<p id="flkAvisoReplicasPrestaciones" role="status" style="display:none;margin:10px 0;padding:10px 12px;border-radius:8px;background:#fff4d6;color:#664d03;font-size:13px;line-height:1.45"></p>
 <div class="reporte-controles">
 <p class="reporte-periodo">Muestra el dinero que realmente entró y salió del negocio según ventas cobradas, abonos de clientes, gastos y pagos a proveedores.</p>
 <div class="reporte-controles-grid">
@@ -9559,8 +9560,28 @@ function limitesFlujo(){
  const desde=new Date(desdeClave+"T12:00:00Z"),hasta=new Date(hastaClave+"T12:00:00Z");
  return {desde,hasta,desdeClave,hastaClave,texto}
 }
+function flkAnalizarReplicasPrestacionesFlujo(lista){
+ const normal=v=>String(v==null?'':v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ').toLowerCase();
+ const numero=v=>Math.round((Number(v)||0)*100)/100;
+ const filas=(Array.isArray(lista)?lista:[]).slice().sort((a,b)=>String(a.created_at||'').localeCompare(String(b.created_at||''))||String(a.cloud_id||a.id||'').localeCompare(String(b.cloud_id||b.id||'')));
+ const vistos=new Set(),ids=new Set();let cantidad=0,totalCUP=0;
+ filas.forEach(p=>{
+  const condicion=normal(p.condicion||'pagada'),metodo=normalizarMetodoFlujo(p.metodo||'Efectivo CUP');
+  const firma=JSON.stringify([String(p.fecha||''),normal(p.descripcion),normal(p.tipo||'ingreso'),numero(p.ingreso),metodo,numero(p.costo),condicion,normal(p.cliente),numero(p.pagoInicial),String(p.vencimiento||'')]);
+  if(!vistos.has(firma)){vistos.add(firma);return;}
+  cantidad++;
+  const ingreso=condicion==='credito'?numero(p.pagoInicial):numero(p.ingreso);
+  if(flkEsMetodoFinanzasCUP(metodo))totalCUP+=ingreso;
+  [p.id,p.cloud_id].forEach(id=>{if(id!=null&&String(id))ids.add(String(id));});
+ });
+ return {cantidad:cantidad,totalCUP:totalCUP,ids:ids};
+}
+function flkResumenReplicasPrestacionesFlujo(){
+ try{let bid='global';try{if(typeof flkBusinessGuardado==='function')bid=String(flkBusinessGuardado()||'global');}catch(_){}const lista=JSON.parse(localStorage.getItem('flackunloker_prestaciones_servicio_v1::'+bid)||'[]');return flkAnalizarReplicasPrestacionesFlujo(lista);}catch(_){return {cantidad:0,totalCUP:0,ids:new Set()};}
+}
 function movimientosFlujoCaja(){
  const mov=[];
+ const idsPrestacionesReplica=flkResumenReplicasPrestacionesFlujo().ids;
 
  // Cobros de ventas y abonos: se reconstruyen desde las cuentas de cada recibo.
  ventas.forEach(v=>{
@@ -9650,7 +9671,7 @@ function movimientosFlujoCaja(){
    catch(_){try{if(typeof FLK_BUSINESS_ID!=="undefined"&&FLK_BUSINESS_ID)bid=String(FLK_BUSINESS_ID);}catch(__){}}
    const arrPrest=JSON.parse(localStorage.getItem("flackunloker_prestaciones_servicio_v1::"+bid)||"[]");
    const confirmadas=(Array.isArray(movimientosCajaSupabase)?movimientosCajaSupabase:[])
-     .filter(m=>m.grupo==="prestacion"&&m.tipo==="entrada");
+     .filter(m=>m.grupo==="prestacion"&&m.tipo==="entrada"&&!idsPrestacionesReplica.has(String(m.service_provision_id||"")));
    const usadas=new Set();
    const texto=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
    const nombre=m=>texto(String(m.concepto||"").replace(/^(prestaci[oó]n(?: de servicio)?|abono prestaci[oó]n)\s*[·:]\s*/i,"")
@@ -9671,6 +9692,7 @@ function movimientosFlujoCaja(){
     const i=confirmadas.indexOf(candidatos[0]);usadas.add(i);return true;
    }
    (Array.isArray(arrPrest)?arrPrest:[]).forEach(p=>{
+    if(idsPrestacionesReplica.has(String(p.cloud_id||p.id||"")))return;
     if(String(p.condicion||"pagada")==="credito"){
      const pagos=Array.isArray(p.pagos)?p.pagos:[];
      if(pagos.length){pagos.forEach((ab,idx)=>{
@@ -9695,6 +9717,7 @@ function movimientosFlujoCaja(){
  // Conservar de cash_movements solo operaciones que no se pueden reconstruir
  // de las tablas anteriores (propietario y movimientos manuales/otros).
  (Array.isArray(movimientosCajaSupabase)?movimientosCajaSupabase:[]).forEach(m=>{
+  if(m.grupo==="prestacion"&&idsPrestacionesReplica.has(String(m.service_provision_id||"")))return;
   if(["venta","abono","gasto","proveedor","reembolso"].includes(m.grupo))return;
   mov.push({...m,metodo:normalizarMetodoFlujo(m.metodo)})
  });
@@ -9811,6 +9834,8 @@ async function sincronizarYActualizarFlujoCaja(boton){
 function actualizarFlujoCaja(){
  actualizarSaldoCajaFisica();
  const d=datosFlujoCaja();if(!d)return;
+ const avisoReplicas=document.getElementById("flkAvisoReplicasPrestaciones"),resumenReplicas=flkResumenReplicasPrestacionesFlujo();
+ if(avisoReplicas){avisoReplicas.style.display=resumenReplicas.cantidad?"block":"none";avisoReplicas.textContent=resumenReplicas.cantidad?"Se excluyeron "+resumenReplicas.cantidad+" prestaciones idénticas del cálculo para evitar réplicas (+$"+resumenReplicas.totalCUP.toFixed(2)+" CUP). Todos los registros siguen conservados en el historial.":""}
  document.getElementById("textoPeriodoFlujo").value=d.lim.texto;
  document.getElementById("flujoEntradas").textContent="$"+d.entradas.toFixed(2);
  document.getElementById("flujoSalidas").textContent="$"+d.salidas.toFixed(2);
@@ -13596,6 +13621,7 @@ async function flkDeepStorageCopy(){
 (function(){
 'use strict';
 var prestacionesServicio=[];
+var flkPrestacionGuardando=false;
 function key(){var b='global';try{if(typeof flkBusinessGuardado==='function')b=flkBusinessGuardado()||'global';}catch(_){}return 'flackunloker_prestaciones_servicio_v1::'+b;}
 function fechaISO(d){return typeof flkClaveFechaContable==='function'?flkClaveFechaContable(d):(new Date(d)).toISOString().slice(0,10);}
 function load(){try{var a=JSON.parse(localStorage.getItem(key())||'[]');prestacionesServicio=Array.isArray(a)?a:[];}catch(_){prestacionesServicio=[];}}
@@ -13647,8 +13673,15 @@ window.flkGuardarPrestacionServicio=async function(){
  if(!Number.isFinite(inicial)||inicial<0)return invalido(pi,'Escribe un pago inicial válido, igual o mayor que 0.');
  if(inicial>ingreso)return invalido(pi,'El pago inicial no puede superar el ingreso.');
  load();
+ function normalizarComparacionPrestacion(v){return String(v==null?'':v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ').toLowerCase();}
+ var posibleDuplicado=prestacionesServicio.find(function(p){return String(p.fecha||'')===String(fecha)&&normalizarComparacionPrestacion(p.descripcion)===normalizarComparacionPrestacion(descripcion)&&normalizarComparacionPrestacion(p.tipo||'ingreso')===normalizarComparacionPrestacion(tipo)&&Number(p.ingreso||0)===ingreso&&normalizarComparacionPrestacion(p.metodo||'Efectivo CUP')===normalizarComparacionPrestacion(metodo)&&Number(p.costo||0)===costo&&normalizarComparacionPrestacion(p.condicion||'pagada')===normalizarComparacionPrestacion(condicion)&&normalizarComparacionPrestacion(p.cliente||'')===normalizarComparacionPrestacion(cliente)&&Number(p.pagoInicial||0)===inicial&&String(p.vencimiento||'')===String(venc||'');});
+ if(posibleDuplicado&&!confirm('Ya existe una prestación idéntica para esta fecha, cliente e importe. ¿Deseas registrarla como un servicio adicional? No se modificará ningún registro existente.'))return;
+ if(flkPrestacionGuardando)return;
+ flkPrestacionGuardando=true;
+ var boton=document.querySelector('#vistaPrestacionesServicio button[onclick="flkGuardarPrestacionServicio()"]'),textoBoton=boton?boton.textContent:'';
+ if(boton){boton.disabled=true;boton.textContent='Guardando…';}
  var localId=typeof flkUUID==='function'?flkUUID():'prest-'+Date.now();
- var op;try{op=await flkEncolarOperacionIndexedDB('service_provision_save',{description:descripcion,service_type:tipo,income:ingreso,payment_method:metodo,external_cost:costo,service_date:fecha,customer_name:cliente||null,payment_condition:condicion,initial_payment:inicial,due_date:venc||null,local_id:localId});}catch(e){console.error('IndexedDB prestación:',e);alert('No se pudo confirmar el guardado en IndexedDB. Operación no aplicada. '+String(e.message||e));return;}
+ var op;try{op=await flkEncolarOperacionIndexedDB('service_provision_save',{description:descripcion,service_type:tipo,income:ingreso,payment_method:metodo,external_cost:costo,service_date:fecha,customer_name:cliente||null,payment_condition:condicion,initial_payment:inicial,due_date:venc||null,local_id:localId});}catch(e){console.error('IndexedDB prestación:',e);alert('No se pudo confirmar el guardado en IndexedDB. Operación no aplicada. '+String(e.message||e));return;}finally{flkPrestacionGuardando=false;if(boton){boton.disabled=false;boton.textContent=textoBoton;}}
  var pagos=condicion==='credito'&&inicial>0?[{id:'initial-local-'+localId,monto:inicial,metodo:metodo,fecha:fecha,nota:'Pago inicial',inicial:true}]:[];
  prestacionesServicio.push({id:localId,operation_id:op?op.id:'',descripcion:descripcion,tipo:tipo,ingreso:ingreso,costo:costo,metodo:metodo,fecha:fecha,cliente:cliente,condicion:condicion,pagoInicial:inicial,pagado:condicion==='credito'?inicial:ingreso,saldo:condicion==='credito'?Math.max(0,ingreso-inicial):0,vencimiento:venc,pagos:pagos,created_at:new Date().toISOString(),offlinePendiente:!!op});
  save();
