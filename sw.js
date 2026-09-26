@@ -1,4 +1,4 @@
-const CACHE_NAME = "flackunloker-offline-web-b43888653869ab48";
+const CACHE_NAME = "flackunloker-offline-web-cup-replicas-20260926";
 const PAGE_FALLBACK = "./index.html";
 
 const APP_SHELL = [
